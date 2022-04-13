@@ -2,7 +2,7 @@ import logging
 import logging.handlers
 import enum
 
-from . import file_fn
+from nyx.utils import file_fn
 
 MAIN_LOGGER_NAME = "nyx"
 LOGS_DIRECTORY = file_fn.get_data_dir() / "nyx" / "logs"
