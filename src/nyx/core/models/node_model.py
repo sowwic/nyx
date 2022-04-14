@@ -13,6 +13,7 @@ class NodeModel:
         super().__init__()
         self.signals = NodeModelSignals()
         self.__path = node_path
+        self.data = {}
 
     @property
     def path(self):
