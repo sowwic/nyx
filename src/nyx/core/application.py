@@ -1,3 +1,4 @@
+import os
 import sys
 from PySide2 import QtWidgets
 
@@ -5,6 +6,7 @@ from nyx.core import Stage, Node
 from nyx.widgets.stage_tree_widget import StageTreeWidget
 from nyx import get_main_logger
 
+os.environ["QT_MAC_WANTS_LAYER"] = "1"
 LOGGER = get_main_logger()
 
 
