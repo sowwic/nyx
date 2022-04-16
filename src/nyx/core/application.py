@@ -15,6 +15,10 @@ class NyxApplication(QtWidgets.QApplication):
         super().__init__(sys.argv)
 
         stage = Stage()
+        self.tree_view = StageTreeWidget(stage)
+        self.tree_view.show()
+
+        # Add nodes
         for index in range(1, 5):
             base_node = Node(f"node{index}")
             stage.add_node(base_node)
@@ -24,7 +28,3 @@ class NyxApplication(QtWidgets.QApplication):
                 for deep_index in range(1, 4):
                     leaf_node = Node(f"leaf_node{deep_index}")
                     stage.add_node(leaf_node, child_node)
-        LOGGER.debug(leaf_node.path())
-
-        self.tree_view = StageTreeWidget(stage)
-        self.tree_view.show()

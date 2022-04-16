@@ -19,16 +19,22 @@ class Node(QtGui.QStandardItem):
         return self.model()
 
     def list_children(self):
+        # type: () -> list[Node]
         return [self.child(row) for row in range(self.rowCount())]
 
-    def list_parents(self):
+    def list_parents(self, as_queue=False):
+        # type: (bool) -> list[Node]
         parents = deque()
         if self.parent():
             parents.appendleft(self.parent())
             parents.extendleft(self.parent().list_parents())
-        return parents
+        return parents if as_queue else list(parents)
 
     def path(self):
-        parents = self.list_parents()
+        # type: () -> list[Node]
+        parents = self.list_parents(as_queue=True)
         parents.append(self)
-        return parents
+        return list(parents)
+
+    def delete(self):
+        self.stage.delete_node(self)
