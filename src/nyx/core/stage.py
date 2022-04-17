@@ -1,10 +1,11 @@
 from PySide2 import QtGui
+from nyx.core.serializable import Serializable
 from nyx import get_main_logger
 
 LOGGER = get_main_logger()
 
 
-class Stage(QtGui.QStandardItemModel):
+class Stage(QtGui.QStandardItemModel, Serializable):
     def __init__(self) -> None:
         super().__init__()
 

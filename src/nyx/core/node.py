@@ -1,30 +1,37 @@
+from collections import deque
+from collections import OrderedDict
 from PySide2 import QtCore
 from PySide2 import QtGui
+
+from nyx.core.attribute import Attribute
+from nyx.core.serializable import Serializable
 from nyx.utils import inspect_fn
 from nyx import get_main_logger
-from collections import deque
 
 LOGGER = get_main_logger()
 
 
-class Node(QtGui.QStandardItem):
+class Node(QtGui.QStandardItem, Serializable):
 
     ATTRIBUTES_ROLE = QtCore.Qt.UserRole + 1
 
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)}({self.text()})"
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Attribute:
         return self.attributes[key]
 
     def __setitem__(self, key: str, value):
         data = self.attributes
-        data[key] = value
+        if key not in data:
+            data[key] = Attribute(self, key, value)
+        else:
+            data[key].set_value(value)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
-    def __init__(self, name: str, parent=None) -> None:
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.setData({}, role=Node.ATTRIBUTES_ROLE)
+        self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
 
     @property
     def stage(self):
@@ -55,7 +62,7 @@ class Node(QtGui.QStandardItem):
     def delete(self):
         self.stage.delete_node(self)
 
-    def get_attr(self, name: str):
+    def get_attr(self, name: str) -> Attribute:
         return self[name]
 
     def set_attr(self, name: str, value):

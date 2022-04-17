@@ -1,6 +1,7 @@
 from nyx import get_main_logger
 from nyx.core import Stage
 from nyx.core import Node
+from nyx.core.attribute import Attribute
 
 
 LOGGER = get_main_logger()
@@ -58,5 +59,5 @@ def test_node_getset_attr():
     node = Node("node1")
     stage.add_node(node, parent=parent_node)
     node["test"] = 2
-    assert node.attributes == {"test": 2}
-    assert node["test"] == 2
+    assert isinstance(node.attributes["test"], Attribute)
+    assert node["test"].value == 2
