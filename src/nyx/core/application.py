@@ -1,5 +1,6 @@
 import os
 import sys
+import pprint
 from PySide2 import QtWidgets
 
 from nyx.core import Stage, Node
@@ -21,6 +22,7 @@ class NyxApplication(QtWidgets.QApplication):
         # Add nodes
         for index in range(1, 5):
             base_node = Node("node")
+            base_node["count"] = 5
             stage.add_node(base_node)
             for child_index in range(1, 6):
                 child_node = Node("child_node")
@@ -28,3 +30,5 @@ class NyxApplication(QtWidgets.QApplication):
                 for deep_index in range(1, 4):
                     leaf_node = Node("leaf_node")
                     stage.add_node(leaf_node, child_node)
+
+        pprint.pprint(stage.serialize())

@@ -21,7 +21,8 @@ class Node(QtGui.QStandardItem, Serializable):
     ATTRIBUTES_ROLE = QtCore.Qt.UserRole + 1
 
     def __init__(self, name: str) -> None:
-        super().__init__(name)
+        QtGui.QStandardItem.__init__(self, name)
+        Serializable.__init__(self)
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
 
     def __repr__(self) -> str:
@@ -83,3 +84,16 @@ class Node(QtGui.QStandardItem, Serializable):
     def resolve(self):
         for attr in self.attributes.values():
             attr.resolve()
+
+    def serialize(self) -> OrderedDict:
+        data = super().serialize()
+        data["name"] = self.text()
+        children = [child.serialize() for child in self.list_children()]
+        attributes = [attr.serialize() for _, attr in self.attributes.items()]
+        data["attributes"] = attributes
+        data["children"] = children
+        return data
+
+    # TODO: Add implementation
+    def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
+        super().deserialize(data, hashmap, restore_id=restore_id)

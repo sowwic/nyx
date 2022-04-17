@@ -1,4 +1,5 @@
 import typing
+from collections import OrderedDict
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
 if typing.TYPE_CHECKING:
@@ -70,7 +71,7 @@ class Attribute(Serializable):
     def set_readable(self, state: bool):
         self.__readable = state
 
-    def serialize(self) -> dict:
+    def serialize(self) -> OrderedDict:
         data = super().serialize()
         value = self.value if file_fn.is_jsonable(self.value) else None
         new_data = {"name": self.name,

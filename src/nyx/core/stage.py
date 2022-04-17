@@ -1,4 +1,5 @@
 import typing
+from collections import OrderedDict
 from PySide2 import QtGui
 
 from nyx.core.serializable import Serializable
@@ -12,7 +13,8 @@ LOGGER = get_main_logger()
 
 class Stage(QtGui.QStandardItemModel, Serializable):
     def __init__(self) -> None:
-        super().__init__()
+        QtGui.QStandardItemModel.__init__(self)
+        Serializable.__init__(self)
         self.create_connections()
 
     def create_connections(self):
@@ -39,3 +41,14 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def on_node_changed(self, node: "Node"):
         node.on_changed()
+
+    def serialize(self) -> OrderedDict:
+        data = super().serialize()
+        top_nodes = self.list_children(self.invisibleRootItem())
+        nodes = [node.serialize() for node in top_nodes]
+        data["nodes"] = nodes
+        return data
+
+    # TODO: Add implementation
+    def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
+        super().deserialize(data, hashmap, restore_id=restore_id)
