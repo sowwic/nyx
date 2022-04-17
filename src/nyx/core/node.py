@@ -1,3 +1,4 @@
+import typing
 from collections import deque
 from collections import OrderedDict
 from PySide2 import QtCore
@@ -8,12 +9,20 @@ from nyx.core.serializable import Serializable
 from nyx.utils import inspect_fn
 from nyx import get_main_logger
 
+if typing.TYPE_CHECKING:
+    from nyx.core import Stage
+
+
 LOGGER = get_main_logger()
 
 
 class Node(QtGui.QStandardItem, Serializable):
 
     ATTRIBUTES_ROLE = QtCore.Qt.UserRole + 1
+
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
+        self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
 
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)}({self.text()})"
@@ -25,21 +34,21 @@ class Node(QtGui.QStandardItem, Serializable):
         data = self.attributes
         if key not in data:
             data[key] = Attribute(self, key, value)
+            LOGGER.debug(f"Added {data[key]}")
         else:
             data[key].set_value(value)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
-        self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
-
     @property
-    def stage(self):
+    def stage(self) -> "Stage":
         return self.model()
 
     @property
-    def attributes(self):
+    def attributes(self) -> "OrderedDict[str, Attribute]":
         return self.data(role=Node.ATTRIBUTES_ROLE)
+
+    def get_parent(self) -> "Node":
+        return self.parent() or self.stage.invisibleRootItem()
 
     def list_children(self):
         # type: () -> list[Node]
@@ -67,3 +76,10 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def set_attr(self, name: str, value):
         self[name] = value
+
+    def on_changed(self):
+        pass
+
+    def resolve(self):
+        for attr in self.attributes.values():
+            attr.resolve()

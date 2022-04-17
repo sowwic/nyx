@@ -20,11 +20,11 @@ class NyxApplication(QtWidgets.QApplication):
 
         # Add nodes
         for index in range(1, 5):
-            base_node = Node(f"node{index}")
+            base_node = Node("node")
             stage.add_node(base_node)
             for child_index in range(1, 6):
-                child_node = Node(f"child_node{child_index}")
+                child_node = Node("child_node")
                 stage.add_node(child_node, base_node)
                 for deep_index in range(1, 4):
-                    leaf_node = Node(f"leaf_node{deep_index}")
+                    leaf_node = Node("leaf_node")
                     stage.add_node(leaf_node, child_node)

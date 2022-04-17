@@ -1,10 +1,13 @@
+import typing
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
+if typing.TYPE_CHECKING:
+    from nyx.core import Node
 
 
 class Attribute(Serializable):
 
-    def __init__(self, node, name: str, value=None) -> None:
+    def __init__(self, node: "Node", name: str, value=None) -> None:
         super().__init__()
         self.node = node
         self.__name = name
@@ -51,3 +54,6 @@ class Attribute(Serializable):
         super().deserialize(data, hashmap, restore_id)
         self.set_name(data.get("name", self.name))
         self.set_value(data.get("value", self.value))
+
+    def resolve(self):
+        pass
