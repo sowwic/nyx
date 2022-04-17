@@ -18,6 +18,8 @@ def test_attr_getset():
     node["test"] = 2
     assert isinstance(node.attributes["test"], Attribute)
     assert node["test"].value == 2
+    assert node["test"].readable
+    assert node["test"].writable
 
 
 def test_attr_serialize():
@@ -63,3 +65,5 @@ def test_attr_deserialize():
     assert new_attr.uuid == node["test"].uuid
     assert new_attr.name == node["test"].name
     assert new_attr.value == node["test"].value
+    assert new_attr.readable == node["test"].readable
+    assert new_attr.writable == node["test"].writable
