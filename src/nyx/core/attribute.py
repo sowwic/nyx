@@ -1,17 +1,21 @@
 import typing
 from collections import OrderedDict
+
+from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
 if typing.TYPE_CHECKING:
     from nyx.core import Node
 
 
+LOGGER = get_main_logger()
+
+
 class Attribute(Serializable):
 
-    def __init__(self, node: "Node", name: str, value=None) -> None:
+    def __init__(self, node: "Node", value=None) -> None:
         super().__init__()
         self.node = node
-        self.__name = name
         self.__value = value
         self.__writable = True
         self.__readable = True
@@ -37,7 +41,13 @@ class Attribute(Serializable):
 
     @property
     def name(self):
-        return self.__name
+        all_node_attributes = self.node.attributes
+        for name, attr in all_node_attributes.items():
+            if self is attr:
+                return name
+
+        LOGGER.error(f"Failed to get name for attribute of {self.node}")
+        raise ValueError
 
     @property
     def writable(self):
@@ -55,9 +65,6 @@ class Attribute(Serializable):
 
     def get_name(self):
         return self.name
-
-    def set_name(self, name: str):
-        self.__name = name
 
     def get_writable(self):
         return self.writable
@@ -83,7 +90,6 @@ class Attribute(Serializable):
 
     def deserialize(self, data: dict, hashmap: dict = None, restore_id=False):
         super().deserialize(data, hashmap, restore_id)
-        self.set_name(data.get("name", self.name))
         self.set_value(data.get("value", self.value))
         self.set_writable(data.get("writable", True))
         self.set_readable(data.get("readable", True))

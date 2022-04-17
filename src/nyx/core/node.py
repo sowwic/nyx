@@ -34,7 +34,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def __setitem__(self, key: str, value):
         data = self.attributes
         if key not in data:
-            data[key] = Attribute(self, key, value)
+            data[key] = Attribute(self, value)
             LOGGER.debug(f"Added {data[key]}")
         else:
             data[key].set_value(value)
@@ -78,7 +78,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def set_attr(self, name: str, value):
         self[name] = value
 
-    def delete_attr(self, name):
+    def delete_attr(self, name: str):
         data = self.attributes
         if name not in data.keys():
             LOGGER.warning(f"Can't delete attribute {name} that doesn't exist!")
@@ -86,6 +86,18 @@ class Node(QtGui.QStandardItem, Serializable):
         data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
         LOGGER.debug(f"{self}: deleted attr {name}")
+
+    def rename_attr(self, name: str, new_name: str):
+        if not new_name:
+            LOGGER.error("New attribute name can't be empty string!")
+            return
+
+        data = self.attributes
+        if name not in data.keys():
+            LOGGER.warning(f"Can't rename attribute {name} that doesn't exist!")
+            return
+        data[new_name] = data.pop(name)
+        self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
     def on_changed(self):
         pass

@@ -36,6 +36,19 @@ def test_attr_delete():
     assert "test" not in node.attributes
 
 
+def test_attr_rename():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+
+    node["test"] = 5
+    LOGGER.debug(f"Attributes: {node.attributes}")
+    node.rename_attr("test", "new_test")
+    assert "test" not in node.attributes
+    assert "new_test" in node.attributes
+    assert node["new_test"].value == 5
+
+
 def test_attr_serialize():
     stage = Stage()
     parent_node = Node("node")
