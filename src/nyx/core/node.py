@@ -78,6 +78,15 @@ class Node(QtGui.QStandardItem, Serializable):
     def set_attr(self, name: str, value):
         self[name] = value
 
+    def delete_attr(self, name):
+        data = self.attributes
+        if name not in data.keys():
+            LOGGER.warning(f"Can't delete attribute {name} that doesn't exist!")
+            return
+        data.pop(name)
+        self.setData(data, role=Node.ATTRIBUTES_ROLE)
+        LOGGER.debug(f"{self}: deleted attr {name}")
+
     def on_changed(self):
         pass
 

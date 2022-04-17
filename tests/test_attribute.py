@@ -22,6 +22,20 @@ def test_attr_getset():
     assert node["test"].writable
 
 
+def test_attr_delete():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+
+    node["test"] = 5
+    LOGGER.debug(f"Attributes: {node.attributes}")
+    assert isinstance(node.attributes["test"], Attribute)
+
+    node.delete_attr("test")
+    LOGGER.debug(f"Attributes: {node.attributes}")
+    assert "test" not in node.attributes
+
+
 def test_attr_serialize():
     stage = Stage()
     parent_node = Node("node")
