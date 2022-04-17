@@ -1,9 +1,9 @@
 import os
 import sys
-import pprint
 from PySide2 import QtWidgets
 
 from nyx.core import Stage, Node
+from nyx.core.config import Config
 from nyx.widgets.stage_tree_widget import StageTreeWidget
 from nyx import get_main_logger
 
@@ -14,6 +14,8 @@ LOGGER = get_main_logger()
 class NyxApplication(QtWidgets.QApplication):
     def __init__(self) -> None:
         super().__init__(sys.argv)
+        self.config = Config.load()
+        LOGGER.setLevel(self.config.logging_level)
 
         stage = Stage()
         self.tree_view = StageTreeWidget(stage)
@@ -31,4 +33,6 @@ class NyxApplication(QtWidgets.QApplication):
                     leaf_node = Node("leaf_node")
                     stage.add_node(leaf_node, child_node)
 
-        pprint.pprint(stage.serialize())
+    def reset_config(self):
+        """Reset application config."""
+        self.config = self.config.reset()

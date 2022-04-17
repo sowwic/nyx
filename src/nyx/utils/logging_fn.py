@@ -30,7 +30,7 @@ def logger_exists(name: str):
 def get_logger(name: str,
                level: int = logging.DEBUG,
                file_level: int = logging.ERROR,
-               file_name: str = MAIN_LOGGER_NAME,
+               file_name: str = f"{MAIN_LOGGER_NAME}.log",
                std_format: str = LogFormat.basic.value,
                file_format: str = LogFormat.verbose.value):
     """Get logger object.
