@@ -2,6 +2,7 @@ import typing
 import pprint
 from collections import OrderedDict
 from PySide2 import QtGui
+from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
@@ -20,6 +21,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def __init__(self) -> None:
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
+        self.undo_stack = QtWidgets.QUndoStack(self)
+
         self.create_connections()
 
     def create_connections(self):
