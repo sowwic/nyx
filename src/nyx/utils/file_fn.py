@@ -46,7 +46,7 @@ def write_json(path: typing.Union[pathlib.Path, str], data: dict, as_string=Fals
     return path
 
 
-def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = None):
+def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = None, object_pairs_hook=None):
     """Load json data from file or string.
 
     Args:
@@ -67,7 +67,7 @@ def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = Non
     else:
         path = pathlib.Path(path) if not isinstance(path, pathlib.Path) else path
         with path.open("r") as json_file:
-            data = json.load(json_file)
+            data = json.load(json_file, object_pairs_hook=object_pairs_hook)
     return data
 
 

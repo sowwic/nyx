@@ -1,9 +1,11 @@
 import typing
+import pprint
 from collections import OrderedDict
 from PySide2 import QtGui
 
-from nyx.core.serializable import Serializable
 from nyx import get_main_logger
+from nyx.core.serializable import Serializable
+from nyx.utils import file_fn
 if typing.TYPE_CHECKING:
     from nyx.core import Node
 
@@ -12,6 +14,9 @@ LOGGER = get_main_logger()
 
 
 class Stage(QtGui.QStandardItemModel, Serializable):
+
+    FILE_EXTENSION = ".nyx"
+
     def __init__(self) -> None:
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
@@ -52,3 +57,23 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     # TODO: Add implementation
     def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
         super().deserialize(data, hashmap, restore_id=restore_id)
+
+    def describe(self):
+        return pprint.pformat(self.serialize())
+
+    def export_json(self, file_path):
+        try:
+            file_fn.write_json(file_path, self.serialize(), sort_keys=False)
+        except Exception:
+            LOGGER.exception("Failed to save stage to file.")
+
+    # TODO: Add implementation
+    def import_json(self, file_path):
+        try:
+            json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
+        except Exception:
+            LOGGER.exception("Failed to load stage from json.")
+            return
+
+        LOGGER.debug(f"Imported stage data:\n{pprint.pformat(json_data)}")
+        return json_data
