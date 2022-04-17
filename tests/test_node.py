@@ -48,3 +48,15 @@ def test_node_delete_mid_children():
     second.delete()
     third.delete()
     assert parent_node.list_children() == [first, fourth]
+
+
+def test_node_getset_attr():
+    stage = Stage()
+    parent_node = Node("node")
+    stage.add_node(parent_node)
+
+    node = Node("node1")
+    stage.add_node(node, parent=parent_node)
+    node["test"] = 2
+    assert node.attributes == {"test": 2}
+    assert node["test"] == 2

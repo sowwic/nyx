@@ -1,3 +1,4 @@
+from PySide2 import QtCore
 from PySide2 import QtGui
 from nyx.utils import inspect_fn
 from nyx import get_main_logger
@@ -8,15 +9,30 @@ LOGGER = get_main_logger()
 
 class Node(QtGui.QStandardItem):
 
+    ATTRIBUTES_ROLE = QtCore.Qt.UserRole + 1
+
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)}({self.text()})"
 
+    def __getitem__(self, key):
+        return self.attributes[key]
+
+    def __setitem__(self, key: str, value):
+        data = self.attributes
+        data[key] = value
+        self.setData(data, role=Node.ATTRIBUTES_ROLE)
+
     def __init__(self, name: str, parent=None) -> None:
         super().__init__(name)
+        self.setData({}, role=Node.ATTRIBUTES_ROLE)
 
     @property
     def stage(self):
         return self.model()
+
+    @property
+    def attributes(self):
+        return self.data(role=Node.ATTRIBUTES_ROLE)
 
     def list_children(self):
         # type: () -> list[Node]
@@ -38,3 +54,9 @@ class Node(QtGui.QStandardItem):
 
     def delete(self):
         self.stage.delete_node(self)
+
+    def get_attr(self, name: str):
+        return self[name]
+
+    def set_attr(self, name: str, value):
+        self[name] = value
