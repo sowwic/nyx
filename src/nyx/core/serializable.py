@@ -12,6 +12,9 @@ class Serializable:
         return data
 
     def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=False):
+        if hashmap is None:
+            hashmap = {}
+
         if restore_id:
             self.uuid = data["uuid"]
         hashmap[data["uuid"]] = self

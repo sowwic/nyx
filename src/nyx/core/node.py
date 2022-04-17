@@ -1,4 +1,5 @@
 import typing
+import pathlib
 from collections import deque
 from collections import OrderedDict
 from PySide2 import QtCore
@@ -7,6 +8,7 @@ from PySide2 import QtGui
 from nyx.core.attribute import Attribute
 from nyx.core.serializable import Serializable
 from nyx.utils import inspect_fn
+from nyx.utils import file_fn
 from nyx import get_main_logger
 
 if typing.TYPE_CHECKING:
@@ -121,6 +123,14 @@ class Node(QtGui.QStandardItem, Serializable):
     # TODO: Add implementation
     def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
         super().deserialize(data, hashmap, restore_id=restore_id)
+
+    def export_to_json(self, file_path: pathlib.Path):
+        data = self.serialize()
+        file_fn.write_json(file_path, data)
+
+    def load_from_json(self, file_path: pathlib.Path, as_reference=False):
+        json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
+        self.deserialize(json_data, {}, restore_id=False)
 
     def get_python_code(self) -> str:
         return self.python_code
