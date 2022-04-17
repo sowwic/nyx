@@ -71,6 +71,14 @@ def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = Non
     return data
 
 
+def is_jsonable(obj):
+    try:
+        json.dumps(obj)
+        return True
+    except (TypeError, OverflowError):
+        return False
+
+
 # Directory
 def get_data_dir() -> pathlib.Path:
     """Get user data direcotory for current machine OS.
