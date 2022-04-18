@@ -45,3 +45,15 @@ def test_node_delete_mid_children():
     second.delete()
     third.delete()
     assert parent_node.list_children() == [first, fourth]
+
+
+def test_node_code_exec():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+
+    code = 'self["test"] = 5'
+    node.set_python_code(code)
+    node.execute_code()
+
+    assert node["test"].value == 5
