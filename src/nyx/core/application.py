@@ -31,11 +31,10 @@ class NyxApplication(QtWidgets.QApplication):
             base_node["count"] = 5
             stage.add_node(base_node)
             for child_index in range(3):
-                child_node = Node("child_node")
-                stage.add_node(child_node, base_node)
+                child_node = Node("child_node", base_node)
                 for deep_index in range(3):
-                    leaf_node = Node("leaf_node")
-                    stage.add_node(leaf_node, child_node)
+                    leaf_node = Node("leaf_node", child_node)
+                    leaf_node["count"] = 10
 
         self.tree_view.selection_changed.connect(self.show_current_code)
         self.code_editor.textChanged.connect(self.set_node_code)
