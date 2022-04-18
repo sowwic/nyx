@@ -157,4 +157,4 @@ class Node(QtGui.QStandardItem, Serializable):
             attr.resolve()
 
     def execute_code(self):
-        exec(self.python_code)
+        exec(self.python_code, {"self": self})
