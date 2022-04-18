@@ -19,12 +19,10 @@ def test_add_node_to_root():
 def test_add_node_with_parent():
     stage = Stage()
     parent_node = Node("node")
-    child_node1 = Node("node")
-    child_node2 = Node("node")
+    child_node1 = Node("node", parent=parent_node)
+    child_node2 = Node("node", parent=parent_node)
 
     stage.add_node(parent_node)
-    stage.add_node(child_node1, parent=parent_node)
-    stage.add_node(child_node2, parent=parent_node)
 
     assert [child_node1, child_node2] == parent_node.list_children()
     assert [parent_node] == child_node1.list_parents()
@@ -39,8 +37,8 @@ def test_node_delete_mid_children():
     stage.add_node(parent_node)
 
     for index in range(1, 5):
-        node = Node(f"node{index}")
-        stage.add_node(node, parent=parent_node)
+        node = Node(f"node{index}", parent=parent_node)
+        stage.add_node(node)
 
     assert len(parent_node.list_children()) == 4
     first, second, third, fourth = parent_node.list_children()

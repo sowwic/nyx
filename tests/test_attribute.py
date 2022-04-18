@@ -13,10 +13,10 @@ def test_attr_getset():
     parent_node = Node("node")
     stage.add_node(parent_node)
 
-    node = Node("node1")
-    stage.add_node(node, parent=parent_node)
+    node = Node("node1", parent=parent_node)
+    stage.add_node(node)
     node["test"] = 2
-    assert isinstance(node.attributes["test"], Attribute)
+    assert isinstance(node.attribs["test"], Attribute)
     assert node["test"].value == 2
     assert node["test"].readable
     assert node["test"].writable
@@ -28,12 +28,12 @@ def test_attr_delete():
     stage.add_node(node)
 
     node["test"] = 5
-    LOGGER.debug(f"Attributes: {node.attributes}")
-    assert isinstance(node.attributes["test"], Attribute)
+    LOGGER.debug(f"Attributes: {node.attribs}")
+    assert isinstance(node.attribs["test"], Attribute)
 
     node.delete_attr("test")
-    LOGGER.debug(f"Attributes: {node.attributes}")
-    assert "test" not in node.attributes
+    LOGGER.debug(f"Attributes: {node.attribs}")
+    assert "test" not in node.attribs
 
 
 def test_attr_rename():
@@ -42,10 +42,10 @@ def test_attr_rename():
     stage.add_node(node)
 
     node["test"] = 5
-    LOGGER.debug(f"Attributes: {node.attributes}")
+    LOGGER.debug(f"Attributes: {node.attribs}")
     node.rename_attr("test", "new_test")
-    assert "test" not in node.attributes
-    assert "new_test" in node.attributes
+    assert "test" not in node.attribs
+    assert "new_test" in node.attribs
     assert node["new_test"].value == 5
 
 
@@ -54,8 +54,7 @@ def test_attr_serialize():
     parent_node = Node("node")
     stage.add_node(parent_node)
 
-    node = Node("node1")
-    stage.add_node(node, parent=parent_node)
+    node = Node("node1", parent=parent_node)
     node["test"] = 2
 
     LOGGER.debug(node["test"])

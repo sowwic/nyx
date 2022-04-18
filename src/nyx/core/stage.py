@@ -34,12 +34,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         else:
             return node.list_children()
 
-    def add_node(self, node: "Node", parent: "Node" = None):
-        if parent is None:
-            parent = self.invisibleRootItem()
-
-        parent.appendRow(node)
-        LOGGER.debug(f"Added node {node}")
+    def add_node(self, node: "Node"):
+        if not node.get_parent():
+            self.invisibleRootItem().appendRow(node)
+            LOGGER.debug(f"Added {node} to root")
 
     def delete_node(self, node: "Node"):
         self.beginResetModel()

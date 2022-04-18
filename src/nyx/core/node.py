@@ -23,20 +23,23 @@ class Node(QtGui.QStandardItem, Serializable):
     ATTRIBUTES_ROLE = QtCore.Qt.UserRole + 1
     PYTHON_CODE_ROLE = QtCore.Qt.UserRole + 2
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, parent: "Node" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
 
+        if parent:
+            parent.appendRow(self)
+
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)}({self.text()})"
 
     def __getitem__(self, key) -> Attribute:
-        return self.attributes[key]
+        return self.attribs[key]
 
     def __setitem__(self, key: str, value):
-        data = self.attributes
+        data = self.attribs
         if key not in data:
             data[key] = Attribute(self, value)
             LOGGER.debug(f"Added {data[key]}")
@@ -49,7 +52,7 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.model()
 
     @property
-    def attributes(self) -> "OrderedDict[str, Attribute]":
+    def attribs(self) -> "OrderedDict[str, Attribute]":
         return self.data(role=Node.ATTRIBUTES_ROLE)
 
     @property
@@ -57,7 +60,8 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.data(role=self.PYTHON_CODE_ROLE)
 
     def get_parent(self) -> "Node":
-        return self.parent() or self.stage.invisibleRootItem()
+        root = self.stage.invisibleRootItem() if self.stage else None
+        return self.parent() or root
 
     def list_children(self):
         # type: () -> list[Node]
@@ -87,7 +91,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self[name] = value
 
     def delete_attr(self, name: str):
-        data = self.attributes
+        data = self.attribs
         if name not in data.keys():
             LOGGER.warning(f"Can't delete attribute {name} that doesn't exist!")
             return
@@ -100,12 +104,19 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.error("New attribute name can't be empty string!")
             return
 
-        data = self.attributes
+        data = self.attribs
         if name not in data.keys():
             LOGGER.warning(f"Can't rename attribute {name} that doesn't exist!")
             return
         data[new_name] = data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
+
+    def resolved_attribs(self):
+        resolved_attrs = OrderedDict()
+        for parent in self.list_parents(as_queue=True):
+            resolved_attrs.update(parent.attribs)
+        resolved_attrs.update(self.attribs)
+        return resolved_attrs
 
     def on_changed(self):
         pass
@@ -114,8 +125,8 @@ class Node(QtGui.QStandardItem, Serializable):
         data = super().serialize()
         data["name"] = self.text()
         children = [child.serialize() for child in self.list_children()]
-        attributes = [attr.serialize() for _, attr in self.attributes.items()]
-        data["attributes"] = attributes
+        attribs = [attr.serialize() for _, attr in self.attribs.items()]
+        data["attribs"] = attribs
         data["children"] = children
         data["code"] = self.python_code
         return data
@@ -142,7 +153,7 @@ class Node(QtGui.QStandardItem, Serializable):
         pass
 
     def resolve(self):
-        for attr in self.attributes.values():
+        for attr in self.attribs.values():
             attr.resolve()
 
     def execute_code(self):

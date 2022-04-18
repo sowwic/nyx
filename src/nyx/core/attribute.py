@@ -41,8 +41,8 @@ class Attribute(Serializable):
 
     @property
     def name(self):
-        all_node_attributes = self.node.attributes
-        for name, attr in all_node_attributes.items():
+        all_node_attribs = self.node.attribs
+        for name, attr in all_node_attribs.items():
             if self is attr:
                 return name
 
