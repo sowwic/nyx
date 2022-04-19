@@ -89,6 +89,18 @@ class Attribute(Serializable):
         """Push given value to cache"""
         self.__cached_value = value
 
+    def clear_cache(self):
+        """Set cache value to None."""
+        self.__cached_value = None
+
+    def is_cached(self) -> bool:
+        """Is value equal to cached value
+
+        Returns:
+            bool: cached
+        """
+        return self.value == self.cached_value
+
     def same_scope_with(self, other_attr: "Attribute"):
         """Check if this and other attribute are in the same scope.
 

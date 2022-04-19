@@ -370,3 +370,13 @@ class Node(QtGui.QStandardItem, Serializable):
     def execute_code(self):
         """Execute code string."""
         exec(self.python_code, {"self": self})
+
+    def clear_attributes_caches(self):
+        """Clear all attributes caches."""
+        for attr in self.attribs.values():
+            attr.clear_cache()
+
+    def cache_attributes_values(self):
+        """Push current attributes values to cache."""
+        for attr in self.attribs.values():
+            attr.cache_current_value()

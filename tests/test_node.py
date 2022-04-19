@@ -139,3 +139,28 @@ def test_node_delete_mid_paths_map_valid():
     assert node.path in stage.path_map
     for child in node.list_children_tree():
         assert child.path in stage.path_map
+
+
+def test_node_cache_attributes():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    node["test1"] = 5
+    node["test2"] = 10
+    node["test3"] = 15
+
+    for attr in node.attribs.values():
+        assert not attr.is_cached()
+
+    node.cache_attributes_values()
+    for attr in node.attribs.values():
+        assert attr.is_cached()
+
+    node.clear_attributes_caches()
+    for attr in node.attribs.values():
+        assert not attr.is_cached()
+
+    node.cache_attributes_values()
+    for attr in node.attribs.values():
+        assert attr.is_cached()

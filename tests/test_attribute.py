@@ -32,6 +32,17 @@ def test_attr_push():
     assert node["test"].get(cached=True) == 5
 
 
+def test_attr_cache_current_value():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    node["test"] = 10
+    assert not node["test"].is_cached()
+    node["test"].cache_current_value()
+    assert node["test"].is_cached()
+
+
 def test_attr_delete():
     stage = Stage()
     node = Node("node")
