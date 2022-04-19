@@ -59,7 +59,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     @property
     def scope(self):
-        return tuple(self.path.parents)
+        return tuple(self.path.parents)[0]
 
     @property
     def path(self) -> pathlib.PurePosixPath:

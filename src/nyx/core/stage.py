@@ -119,5 +119,13 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return json_data
 
     def get_node_from_relative_path(self, anchor_node: "Node", relative_path: pathlib.PurePosixPath):
-        absolute_path = path_fn.get_absolute_path_from_relative(anchor_node.path, relative_path)
+        try:
+            absolute_path = path_fn.get_absolute_path_from_relative(anchor_node.path, relative_path)
+        except IndexError:
+            LOGGER.warning(f"Invalid path: {relative_path}")
+            return None
+        except Exception:
+            LOGGER.error(f"Failed to get absolute path from: {anchor_node.path}, {relative_path}")
+            raise
+
         return self.path_map.get(absolute_path)
