@@ -105,7 +105,7 @@ class Attribute(Serializable):
         data.update(new_data)
         return data
 
-    def deserialize(self, data: dict, hashmap: dict = None, restore_id=False):
+    def deserialize(self, data: dict, hashmap: dict, restore_id=False):
         super().deserialize(data, hashmap, restore_id)
         self.set(data.get("value", self.value))
 

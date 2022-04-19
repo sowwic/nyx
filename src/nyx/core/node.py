@@ -297,9 +297,26 @@ class Node(QtGui.QStandardItem, Serializable):
         data["code"] = self.python_code
         return data
 
-    # TODO: Add implementation
-    def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
+    def deserialize(self, data: OrderedDict, hashmap: dict, restore_id=True):
         super().deserialize(data, hashmap, restore_id=restore_id)
+        if not hashmap:
+            hashmap = {}
+
+        self.setText(data.get("name", self.name))
+        self.set_python_code(data.get("code", ""))
+        hashmap[self.uuid] = self
+        self._update_pathmap_entry()
+
+        # Attributes
+        for attr_data in data.get("attribs", {}):
+            attr_name = attr_data["name"]
+            self.set_attr(attr_name, attr_data.get("value"))
+            self[attr_name].deserialize(attr_data, hashmap, restore_id=True)
+
+        # Children
+        for child_data in data.get("children", {}):
+            child_node = Node(parent=self)
+            child_node.deserialize(child_data, hashmap, restore_id=True)
 
     def export_to_json(self, file_path: pathlib.Path):
         """Export node to json file.

@@ -16,7 +16,7 @@ class Serializable:
         data["uuid"] = self.uuid
         return data
 
-    def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=False):
+    def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
         """Deserialize object from given data.
 
         Args:
@@ -29,4 +29,4 @@ class Serializable:
 
         if restore_id:
             self.uuid = data["uuid"]
-        hashmap[data["uuid"]] = self
+        hashmap[self.uuid] = self

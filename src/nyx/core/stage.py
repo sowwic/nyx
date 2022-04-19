@@ -7,8 +7,7 @@ from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
-if typing.TYPE_CHECKING:
-    from nyx.core import Node
+from nyx.core import Node
 
 
 LOGGER = get_main_logger()
@@ -86,14 +85,17 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def serialize(self) -> OrderedDict:
         data = super().serialize()
-        top_nodes = self.list_children(self.invisibleRootItem())
+        top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes
         return data
 
-    # TODO: Add implementation
     def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
         super().deserialize(data, hashmap, restore_id=restore_id)
+        for top_node_data in data.get("nodes", {}):
+            top_node = Node()
+            self.add_node(top_node)
+            top_node.deserialize(top_node_data, hashmap, restore_id=True)
 
     def describe(self):
         return pprint.pformat(self.serialize())
@@ -104,7 +106,6 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         except Exception:
             LOGGER.exception("Failed to save stage to file.")
 
-    # TODO: Add implementation
     def import_json(self, file_path):
         try:
             json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
@@ -112,5 +113,5 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             LOGGER.exception("Failed to load stage from json.")
             return
 
-        # LOGGER.debug(f"Imported stage data:\n{pprint.pformat(json_data)}")
+        self.deserialize(json_data, restore_id=True)
         return json_data
