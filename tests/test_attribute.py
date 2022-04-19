@@ -101,3 +101,29 @@ def test_attr_deserialize():
     assert new_attr.uuid == node["test"].uuid
     assert new_attr.name == node["test"].name
     assert new_attr.value == node["test"].value
+
+
+def test_attr_same_scope():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+    node["test"] = 2
+
+    child1 = Node("child", parent=node)
+    child2 = Node("child", parent=node)
+
+    child1["count"] = 5
+    child2["len"] = 10
+
+    LOGGER.debug(child1["count"].node.scope)
+    LOGGER.debug(child2["len"].node.scope)
+
+    assert child1["count"].same_scope_with(child2["len"])
+    assert not child1["count"].same_scope_with(node["test"])
+
+
+# def test_attr_get_from_relative_path():
+#     stage = Stage()
+#     node = Node("node")
+#     stage.add_node(node)
+#     node["test"] = 2

@@ -89,6 +89,17 @@ class Attribute(Serializable):
         """Push given value to cache"""
         self.__cached_value = value
 
+    def same_scope_with(self, other_attr: "Attribute"):
+        """Check if this and other attribute are in the same scope.
+
+        Args:
+            other_attr (Attribute): attribute to compare to
+
+        Returns:
+            bool: in same scope.
+        """
+        return self.node.scope == other_attr.node.scope
+
     def cache_current_value(self):
         """Push current value to cache."""
         self.push(self.value)

@@ -58,6 +58,10 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.text()
 
     @property
+    def scope(self):
+        return tuple(self.path.parents)
+
+    @property
     def path(self) -> pathlib.PurePosixPath:
         """Get current node path.
 
