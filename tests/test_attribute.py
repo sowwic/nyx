@@ -17,6 +17,19 @@ def test_attr_getset():
     node["test"] = 2
     assert isinstance(node.attribs["test"], Attribute)
     assert node["test"].value == 2
+    assert node["test"].cached_value is None
+
+
+def test_attr_push():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    node["test"] = None
+    node["test"].push(5)
+
+    assert node["test"].get() is None
+    assert node["test"].get(cached=True) == 5
 
 
 def test_attr_delete():

@@ -45,15 +45,25 @@ class Node(QtGui.QStandardItem, Serializable):
             data[key] = Attribute(self, value)
             LOGGER.debug(f"Added {data[key]}")
         else:
-            data[key].set_value(value)
+            data[key].set(value)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
     @property
     def name(self):
+        """Node name
+
+        Returns:
+            str: name.
+        """
         return self.text()
 
     @property
-    def path(self):
+    def path(self) -> pathlib.Path:
+        """Get current node path.
+
+        Returns:
+            pathlib.Path: absolute node path.
+        """
         path = pathlib.Path()
         if not self.parent():
             return path / self.name
@@ -61,17 +71,44 @@ class Node(QtGui.QStandardItem, Serializable):
 
     @property
     def stage(self) -> "Stage":
+        """Utility method pointing to node's stage (model).
+
+        Returns:
+            Stage: stage node belongs to.
+        """
         return self.model()
 
     @property
     def attribs(self) -> "OrderedDict[str, Attribute]":
+        """Node attributes dictionnary.
+
+        Returns:
+            OrderedDict[str, Attribute]: Node attributes.
+        """
         return self.data(role=Node.ATTRIBUTES_ROLE)
 
     @property
     def python_code(self) -> str:
+        """Node python code.
+
+        Returns:
+            str: python code string.
+        """
         return self.data(role=self.PYTHON_CODE_ROLE)
 
     def appendRow(self, items: typing.Sequence) -> None:
+        """Override Qt method.
+
+        - Generates new unique name.
+        - Set cached path to current.
+        - Store path into stage path map.
+
+        Args:
+            items (typing.Sequence): items to append.
+
+        Raises:
+            ValueError: path exists in stage path map.
+        """
         if not isinstance(items, typing.Sequence):
             items = [items]
 
@@ -85,7 +122,15 @@ class Node(QtGui.QStandardItem, Serializable):
             node._cached_path = node.path
             self.stage.path_map[node.path] = node
 
-    def generate_unique_child_name(self, name):
+    def generate_unique_child_name(self, name: str):
+        """Iterate through node children to generate unique name from given one.
+
+        Args:
+            name (str): desired name.
+
+        Returns:
+            str: unique child name.
+        """
         child_names = self.child_names_set()
         if name in child_names:
             index = 1
@@ -95,6 +140,13 @@ class Node(QtGui.QStandardItem, Serializable):
         return name
 
     def rename(self, new_name):
+        """Rename node.
+
+        - Also update path for self and children in path map.
+
+        Args:
+            new_name (str): new node name.
+        """
         if new_name == self.name:
             return
 
@@ -106,32 +158,50 @@ class Node(QtGui.QStandardItem, Serializable):
         self._update_pathmap_entry()
 
     def _update_pathmap_entry(self):
+        """Update path stored for in stage path map."""
         self.stage.path_map.pop(self._cached_path)
         self.stage.path_map[self.path] = self
         self._cached_path = self.path
         for child_node in self.list_children():
             child_node._update_pathmap_entry()
 
-    def get_parent(self) -> "Node":
-        root = self.stage.invisibleRootItem() if self.stage else None
-        return self.parent() or root
-
     def child_names_set(self):
+        """Get set of existing child names.
+
+        Returns:
+            set[str]: child names.
+        """
         return {node.text() for node in self.list_children()}
 
-    def list_children(self):
-        # type: (bool) -> list[Node]
+    def list_children(self) -> "list[Node]":
+        """List child nodes.
+
+        Returns:
+            list[Node]: child nodes.
+        """
         children = [self.child(row) for row in range(self.rowCount())]
         return children
 
-    def list_children_tree(self):
+    def list_children_tree(self) -> "list[Node]":
+        """List children tree recursively.
+
+        Returns:
+            list[Node]: child nodes tree.
+        """
         children = self.list_children()
         for child in children:
             children += child.list_children()
         return children
 
-    def list_parents(self, as_queue=False):
-        # type: (bool) -> list[Node]
+    def list_parents(self, as_queue=False) -> "list[Node] | deque[Node]":
+        """List parents recursively.
+
+        Args:
+            as_queue (bool, optional): if result should be returned as deque. Defaults to False.
+
+        Returns:
+            list[Node] | deque[Node]: parent nodes collection.
+        """
         parents = deque()
         if self.parent():
             parents.appendleft(self.parent())
@@ -139,15 +209,35 @@ class Node(QtGui.QStandardItem, Serializable):
         return parents if as_queue else list(parents)
 
     def delete(self):
+        """Delete this node from stage."""
         self.stage.delete_node(self)
 
     def get_attr(self, name: str) -> Attribute:
+        """Get attribute with name.
+
+        Args:
+            name (str): attribute name.
+
+        Returns:
+            Attribute: attribute instance.
+        """
         return self[name]
 
-    def set_attr(self, name: str, value):
+    def set_attr(self, name: str, value: typing.Any):
+        """Set raw attribute value.
+
+        Args:
+            name (str): attribute name.
+            value (typing.Any): new value.
+        """
         self[name] = value
 
     def delete_attr(self, name: str):
+        """Delete attribute.
+
+        Args:
+            name (str): attribute name.
+        """
         data = self.attribs
         if name not in data.keys():
             LOGGER.warning(f"Can't delete attribute {name} that doesn't exist!")
@@ -157,6 +247,12 @@ class Node(QtGui.QStandardItem, Serializable):
         LOGGER.debug(f"{self}: deleted attr {name}")
 
     def rename_attr(self, name: str, new_name: str):
+        """Rename attribute.
+
+        Args:
+            name (str): attribute name.
+            new_name (str): new attribute name.
+        """
         if not new_name:
             LOGGER.error("New attribute name can't be empty string!")
             return
@@ -169,6 +265,13 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
     def resolved_attribs(self):
+        """Dictionary of merged dicitonaries.
+
+        parent: {a: 5, b: 10}, child: {a: 15} -> result: {a: 15, b: 10}
+
+        Returns:
+            OrderedDict: merged dictionary.
+        """
         resolved_attrs = OrderedDict()
         for parent in self.list_parents(as_queue=True):
             resolved_attrs.update(parent.attribs)
@@ -179,6 +282,11 @@ class Node(QtGui.QStandardItem, Serializable):
         pass
 
     def serialize(self) -> OrderedDict:
+        """Serialize node to dict.
+
+        Returns:
+            OrderedDict: serialized data
+        """
         data = super().serialize()
         data["name"] = self.text()
         children = [child.serialize() for child in self.list_children()]
@@ -194,17 +302,38 @@ class Node(QtGui.QStandardItem, Serializable):
         super().deserialize(data, hashmap, restore_id=restore_id)
 
     def export_to_json(self, file_path: pathlib.Path):
+        """Export node to json file.
+
+        Args:
+            file_path (pathlib.Path): json file path.
+        """
         data = self.serialize()
         file_fn.write_json(file_path, data)
 
     def load_from_json(self, file_path: pathlib.Path, as_reference=False):
+        """Load node from json file.
+
+        Args:
+            file_path (pathlib.Path): json file path.
+            as_reference (bool, optional): if node should be locked. Defaults to False.
+        """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
         self.deserialize(json_data, {}, restore_id=False)
 
     def get_python_code(self) -> str:
+        """Node python code.
+
+        Returns:
+            str: python code.
+        """
         return self.python_code
 
     def set_python_code(self, code_str) -> None:
+        """Set python code string.
+
+        Args:
+            code_str (str): python code.
+        """
         self.setData(code_str, role=Node.PYTHON_CODE_ROLE)
 
     def resolve_python_code(self) -> str:
@@ -215,4 +344,5 @@ class Node(QtGui.QStandardItem, Serializable):
             attr.resolve()
 
     def execute_code(self):
+        """Execute code string."""
         exec(self.python_code, {"self": self})

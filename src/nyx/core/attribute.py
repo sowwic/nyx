@@ -36,10 +36,32 @@ class Attribute(Serializable):
 
     @property
     def value(self):
+        """Raw attribute value.
+
+        Returns:
+            typing.Any: stored value
+        """
         return self.__value
 
     @property
+    def cached_value(self):
+        """Cached value.
+
+        Returns:
+            typing.Any: stored cached value
+        """
+        return self.__cached_value
+
+    @property
     def name(self):
+        """Attribute name.
+
+        Raises:
+            ValueError: error when getting attr from node.
+
+        Returns:
+            str: name
+        """
         all_node_attribs = self.node.attribs
         for name, attr in all_node_attribs.items():
             if self is attr:
@@ -48,13 +70,31 @@ class Attribute(Serializable):
         LOGGER.error(f"Failed to get name for attribute of {self.node}")
         raise ValueError
 
-    def get_value(self):
-        return self.value
+    def get(self, cached=False):
+        """Get attribute value
 
-    def set_value(self, value):
+        Args:
+            cached (bool, optional): get cached value instead. Defaults to False.
+
+        Returns:
+            typing.Any: value.
+        """
+        return self.value if not cached else self.cached_value
+
+    def set(self, value):
+        """Set raw attribute value"""
         self.__value = value
 
+    def push(self, value):
+        """Push given value to cache"""
+        self.__cached_value = value
+
     def get_name(self):
+        """Get attribute name.
+
+        Returns:
+            str: attribute name.
+        """
         return self.name
 
     def serialize(self) -> OrderedDict:
@@ -67,7 +107,7 @@ class Attribute(Serializable):
 
     def deserialize(self, data: dict, hashmap: dict = None, restore_id=False):
         super().deserialize(data, hashmap, restore_id)
-        self.set_value(data.get("value", self.value))
+        self.set(data.get("value", self.value))
 
     def resolve(self):
         pass

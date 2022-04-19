@@ -71,7 +71,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         # Removed paths
         self._delete_from_path_map(node)
         self.beginResetModel()
-        parent = node.get_parent()
+        parent = node.parent() or self.invisibleRootItem()
         self.removeRow(node.row(), parent.index())
         self.endResetModel()
 
