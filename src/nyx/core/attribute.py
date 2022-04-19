@@ -15,7 +15,7 @@ class Attribute(Serializable):
 
     def __init__(self, node: "Node", value=None) -> None:
         super().__init__()
-        self.node = node
+        self.__node = node
         self.__value = value
         self.__cached_value = None
 
@@ -33,6 +33,10 @@ class Attribute(Serializable):
                 self.value == other_attr.value
             ]
         )
+
+    @property
+    def node(self):
+        return self.__node
 
     @property
     def value(self):
