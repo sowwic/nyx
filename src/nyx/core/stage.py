@@ -1,5 +1,6 @@
 import typing
 import pprint
+import pathlib
 from collections import OrderedDict
 from PySide2 import QtGui
 from PySide2 import QtWidgets
@@ -7,6 +8,7 @@ from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
+from nyx.utils import path_fn
 from nyx.core import Node
 
 
@@ -115,3 +117,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         self.deserialize(json_data, restore_id=True)
         return json_data
+
+    def get_node_from_relative_path(self, anchor_node: "Node", relative_path: pathlib.PurePosixPath):
+        absolute_path = path_fn.get_absolute_path_from_relative(anchor_node.path, relative_path)
+        return self.path_map.get(absolute_path)

@@ -58,13 +58,13 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.text()
 
     @property
-    def path(self) -> pathlib.Path:
+    def path(self) -> pathlib.PurePosixPath:
         """Get current node path.
 
         Returns:
-            pathlib.Path: absolute node path.
+            pathlib.PurePosixPath: absolute node path.
         """
-        path = pathlib.Path()
+        path = pathlib.PurePosixPath()
         if not self.parent():
             return path / self.name
         return self.parent().path / self.name
@@ -277,6 +277,9 @@ class Node(QtGui.QStandardItem, Serializable):
             resolved_attrs.update(parent.attribs)
         resolved_attrs.update(self.attribs)
         return resolved_attrs
+
+    def get_node_from_relative_path(self, relative_path: pathlib.PurePosixPath):
+        return self.stage.get_node_from_relative_path(self, relative_path)
 
     def on_changed(self):
         pass

@@ -57,3 +57,20 @@ def test_stage_deserialize(output_dir: pathlib.Path):
     stage2.export_json(export_path2)
 
     assert stage2.serialize() == stage.serialize()
+
+
+def test_stage_get_node_from_relative_path():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    child1 = Node("child1", parent=node)
+    child2 = Node("child2", parent=node)
+
+    leaf1 = Node("leaf1", parent=child1)
+    leaf2 = Node("leaf2", parent=child2)
+
+    assert stage.get_node_from_relative_path(leaf1, "..") is child1
+    assert stage.get_node_from_relative_path(leaf1, "../..") is node
+    assert stage.get_node_from_relative_path(leaf1, "../../child2") is child2
+    assert stage.get_node_from_relative_path(leaf1, "../../child2/leaf2") is leaf2

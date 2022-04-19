@@ -65,7 +65,7 @@ def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = Non
     if input_str:
         data = json.loads(input_str)
     else:
-        path = pathlib.Path(path) if not isinstance(path, pathlib.Path) else path
+        path = pathlib.PurePosixPath(path) if not isinstance(path, pathlib.Path) else path
         with path.open("r") as json_file:
             data = json.load(json_file, object_pairs_hook=object_pairs_hook)
     return data
