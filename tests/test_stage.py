@@ -4,7 +4,10 @@ from nyx.core import Node
 
 
 def test_create_empty_stage():
-    Stage()
+    stage = Stage()
+    assert stage.path_map == {}
+    assert stage.undo_stack.isClean()
+    assert stage.list_top_nodes() == []
 
 
 def test_stage_export_import_json(output_dir: pathlib.Path):

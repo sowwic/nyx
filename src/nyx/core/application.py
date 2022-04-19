@@ -41,6 +41,9 @@ class NyxApplication(QtWidgets.QApplication):
         self.tree_view.selection_changed.connect(
             lambda: print(self.tree_view.current_item().serialize()))
 
+        import pprint
+        pprint.pprint(stage.path_map)
+
     def show_current_code(self):
         current_node = self.tree_view.current_item()
         if current_node:

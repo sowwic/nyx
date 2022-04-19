@@ -14,7 +14,6 @@ def test_attr_getset():
     stage.add_node(parent_node)
 
     node = Node("node1", parent=parent_node)
-    stage.add_node(node)
     node["test"] = 2
     assert isinstance(node.attribs["test"], Attribute)
     assert node["test"].value == 2

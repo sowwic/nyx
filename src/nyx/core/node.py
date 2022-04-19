@@ -23,12 +23,13 @@ class Node(QtGui.QStandardItem, Serializable):
     ATTRIBUTES_ROLE = QtCore.Qt.UserRole + 1
     PYTHON_CODE_ROLE = QtCore.Qt.UserRole + 2
 
-    def __init__(self, name: str, parent: "Node" = None) -> None:
+    def __init__(self, name: str = "node", parent: "Node" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
 
+        self._cached_path = None
         if parent:
             parent.appendRow(self)
 
@@ -48,6 +49,17 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
     @property
+    def name(self):
+        return self.text()
+
+    @property
+    def path(self):
+        path = pathlib.Path()
+        if not self.parent():
+            return path / self.name
+        return self.parent().path / self.name
+
+    @property
     def stage(self) -> "Stage":
         return self.model()
 
@@ -59,13 +71,64 @@ class Node(QtGui.QStandardItem, Serializable):
     def python_code(self) -> str:
         return self.data(role=self.PYTHON_CODE_ROLE)
 
+    def appendRow(self, items: typing.Sequence) -> None:
+        if not isinstance(items, typing.Sequence):
+            items = [items]
+
+        for node in items:
+            node.setText(self.generate_unique_child_name(node.name))
+            super().appendRow(node)
+            if node.path in self.stage.path_map:
+                LOGGER.error(f"Duplicate path: {node.path}")
+                raise ValueError
+
+            node._cached_path = node.path
+            self.stage.path_map[node.path] = node
+
+    def generate_unique_child_name(self, name):
+        child_names = self.child_names_set()
+        if name in child_names:
+            index = 1
+            while f"{name}{index}" in child_names:
+                index += 1
+            return name + str(index)
+        return name
+
+    def rename(self, new_name):
+        if new_name == self.name:
+            return
+
+        if not self.parent():
+            new_name = self.stage.generate_unique_child_name(new_name)
+        else:
+            new_name = self.parent().generate_unique_child_name(new_name)
+        self.setText(new_name)
+        self._update_pathmap_entry()
+
+    def _update_pathmap_entry(self):
+        self.stage.path_map.pop(self._cached_path)
+        self.stage.path_map[self.path] = self
+        self._cached_path = self.path
+        for child_node in self.list_children():
+            child_node._update_pathmap_entry()
+
     def get_parent(self) -> "Node":
         root = self.stage.invisibleRootItem() if self.stage else None
         return self.parent() or root
 
+    def child_names_set(self):
+        return {node.text() for node in self.list_children()}
+
     def list_children(self):
-        # type: () -> list[Node]
-        return [self.child(row) for row in range(self.rowCount())]
+        # type: (bool) -> list[Node]
+        children = [self.child(row) for row in range(self.rowCount())]
+        return children
+
+    def list_children_tree(self):
+        children = self.list_children()
+        for child in children:
+            children += child.list_children()
+        return children
 
     def list_parents(self, as_queue=False):
         # type: (bool) -> list[Node]
@@ -74,12 +137,6 @@ class Node(QtGui.QStandardItem, Serializable):
             parents.appendleft(self.parent())
             parents.extendleft(self.parent().list_parents())
         return parents if as_queue else list(parents)
-
-    def path(self):
-        # type: () -> list[Node]
-        parents = self.list_parents(as_queue=True)
-        parents.append(self)
-        return list(parents)
 
     def delete(self):
         self.stage.delete_node(self)
@@ -126,6 +183,7 @@ class Node(QtGui.QStandardItem, Serializable):
         data["name"] = self.text()
         children = [child.serialize() for child in self.list_children()]
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
+        data["path"] = self.path.as_posix()
         data["attribs"] = attribs
         data["children"] = children
         data["code"] = self.python_code

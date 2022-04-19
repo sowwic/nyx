@@ -21,6 +21,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def __init__(self) -> None:
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
+
+        self.path_map = {}
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
@@ -34,15 +36,50 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         else:
             return node.list_children()
 
+    def list_top_nodes(self) -> "list[Node]":
+        return self.list_children(self.invisibleRootItem())
+
+    def generate_unique_child_name(self, name: str):
+        child_names = {node.text() for node in self.list_children(self.invisibleRootItem())}
+        if name in child_names:
+            index = 1
+            while f"{name}{index}" in child_names:
+                index += 1
+            return name + str(index)
+        return name
+
+    def appendRow(self, items: typing.Sequence) -> None:
+        if not isinstance(items, typing.Sequence):
+            items = [items]
+
+        for node in items:
+            node.setText(self.generate_unique_child_name(node.name))
+            super().appendRow(node)
+            if node.path in self.path_map:
+                LOGGER.error(f"Duplicate path: {node.path}")
+                raise ValueError
+
+            node._cached_path = node.path
+            self.path_map[node.path] = node
+        return
+
     def add_node(self, node: "Node"):
         self.appendRow(node)
         LOGGER.debug(f"Added {node} to root")
 
     def delete_node(self, node: "Node"):
+        # Removed paths
+        self._delete_from_path_map(node)
         self.beginResetModel()
         parent = node.get_parent()
         self.removeRow(node.row(), parent.index())
         self.endResetModel()
+
+    def _delete_from_path_map(self, node: "Node", children=True):
+        self.path_map.pop(node.path)
+        if children:
+            for child in node.list_children_tree():
+                self.path_map.pop(child.path)
 
     def on_node_changed(self, node: "Node"):
         node.on_changed()
@@ -75,5 +112,5 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             LOGGER.exception("Failed to load stage from json.")
             return
 
-        LOGGER.debug(f"Imported stage data:\n{pprint.pformat(json_data)}")
+        # LOGGER.debug(f"Imported stage data:\n{pprint.pformat(json_data)}")
         return json_data
