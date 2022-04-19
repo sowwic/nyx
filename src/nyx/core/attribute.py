@@ -89,6 +89,10 @@ class Attribute(Serializable):
         """Push given value to cache"""
         self.__cached_value = value
 
+    def cache_current_value(self):
+        """Push current value to cache."""
+        self.push(self.value)
+
     def get_name(self):
         """Get attribute name.
 
