@@ -1,9 +1,12 @@
 import pathlib
 from collections import OrderedDict
 
+from nyx import get_main_logger
 from nyx.core import Stage
 from nyx.core import Node
 from nyx.utils import file_fn
+
+LOGGER = get_main_logger()
 
 
 def test_create_empty_stage():
@@ -105,3 +108,19 @@ def test_stage_invalid_relative_path_returns_none():
     assert stage.get_node_from_relative_path(node, "../..") is None
     assert stage.get_node_from_relative_path(node, "./child1/leaf") is None
     assert stage.get_node_from_relative_path(node, "./child1/../leaf") is None
+
+
+def test_get_relative_path_to():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    child1 = Node("child1", parent=node)
+    child2 = Node("child2", parent=node)
+
+    leaf1 = Node("leaf1", parent=child1)
+    leaf2 = Node("leaf2", parent=child2)
+
+    rel_leaf1_to_leaf2 = stage.get_relative_path_to(leaf1, leaf2)
+    LOGGER.debug(f"leaf_1 -> leaf_2: {rel_leaf1_to_leaf2}")
+    assert stage.get_node_from_relative_path(leaf1, rel_leaf1_to_leaf2) is leaf2

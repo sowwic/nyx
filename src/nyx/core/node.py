@@ -282,8 +282,38 @@ class Node(QtGui.QStandardItem, Serializable):
         resolved_attrs.update(self.attribs)
         return resolved_attrs
 
-    def get_node_from_relative_path(self, relative_path: pathlib.PurePosixPath):
+    def get_node_from_relative_path(self, relative_path: pathlib.PurePosixPath) -> pathlib.PurePosixPath:
+        """Get node from relative path.
+
+        Args:
+            relative_path (pathlib.PurePosixPath): relative path.
+
+        Returns:
+            pathlib.PurePosixPath: found node
+        """
         return self.stage.get_node_from_relative_path(self, relative_path)
+
+    def get_relative_path_to(self, other_node: "Node") -> pathlib.PurePosixPath:
+        """Get relative path this to other node.
+
+        Args:
+            other_node (Node): other node.
+
+        Returns:
+            pathlib.PurePosixPath: relative path
+        """
+        return self.stage.get_relative_path_to(self, other_node)
+
+    def get_relative_path_from(self, other_node: "Node"):
+        """Get relative path from other to this node.
+
+        Args:
+            other_node (Node): other node
+
+        Returns:
+            pathlib.PurePosixPath: relative path
+        """
+        return self.stage.get_relative_path_to(other_node, self)
 
     def on_changed(self):
         pass

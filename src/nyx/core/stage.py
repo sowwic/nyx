@@ -1,3 +1,4 @@
+import os
 import typing
 import pprint
 import pathlib
@@ -129,3 +130,17 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             raise
 
         return self.path_map.get(absolute_path)
+
+    def get_relative_path_to(self, from_node: "Node", to_node: "Node"):
+        """Get relative path between nodes.
+
+        Args:
+            from_node (Node): From this node.
+            to_node (Node): To this node.
+
+        Returns:
+            pathlib.PurePosixPath: relative path
+        """
+        path_str = os.path.relpath(to_node.path.as_posix(), from_node.path.as_posix())
+        path_str = path_str.replace(os.sep, "/")
+        return pathlib.PurePosixPath(path_str)
