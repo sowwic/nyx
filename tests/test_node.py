@@ -97,7 +97,7 @@ def test_node_rename():
         assert old_child_path not in stage.path_map
 
     for child in children:
-        assert child.path.parts[0] == new_name
+        assert child.path.parts[1] == new_name
         assert child.path in stage.path_map
 
 

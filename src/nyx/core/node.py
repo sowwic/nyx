@@ -68,7 +68,7 @@ class Node(QtGui.QStandardItem, Serializable):
         Returns:
             pathlib.PurePosixPath: absolute node path.
         """
-        path = pathlib.PurePosixPath()
+        path = pathlib.PurePosixPath("/")
         if not self.parent():
             return path / self.name
         return self.parent().path / self.name
