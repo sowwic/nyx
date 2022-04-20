@@ -24,7 +24,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
 
-        self.path_map = {}
+        self.path_map: dict[pathlib.PurePosixPath, Node] = {}
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
@@ -144,3 +144,11 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         path_str = os.path.relpath(to_node.path.as_posix(), from_node.path.as_posix())
         path_str = path_str.replace(os.sep, "/")
         return pathlib.PurePosixPath(path_str)
+
+    def get_node_children_from_path(self, node_path: "pathlib.PurePosixPath | str"):
+        if not isinstance(node_path, pathlib.PurePosixPath):
+            node_path = pathlib.PurePosixPath(node_path)
+
+        if node_path == pathlib.PurePosixPath("/"):
+            return self.list_top_nodes()
+        return self.path_map[node_path].list_children()

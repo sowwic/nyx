@@ -9,7 +9,7 @@ from nyx.utils import file_fn
 LOGGER = get_main_logger()
 
 
-def test_create_empty_stage():
+def test_stage_create_empty():
     stage = Stage()
     assert stage.path_map == {}
     assert stage.undo_stack.isClean()
@@ -110,7 +110,7 @@ def test_stage_invalid_relative_path_returns_none():
     assert stage.get_node_from_relative_path(node, "./child1/../leaf") is None
 
 
-def test_get_relative_path_to():
+def test_stage_get_relative_path_to():
     stage = Stage()
     node = Node()
     stage.add_node(node)
@@ -124,3 +124,28 @@ def test_get_relative_path_to():
     rel_leaf1_to_leaf2 = stage.get_relative_path_to(leaf1, leaf2)
     LOGGER.debug(f"leaf_1 -> leaf_2: {rel_leaf1_to_leaf2}")
     assert stage.get_node_from_relative_path(leaf1, rel_leaf1_to_leaf2) is leaf2
+
+
+def test_stage_get_node_from_path_root():
+    stage = Stage()
+    node = Node()
+
+    added_nodes = []
+    for i in range(5):
+        node = Node()
+        stage.add_node(node)
+        added_nodes.append(node)
+
+    assert stage.get_node_children_from_path("/") == added_nodes
+    assert stage.get_node_children_from_path("/") == stage.list_top_nodes()
+
+
+def test_stage_get_node_from_path():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    for i in range(5):
+        Node(parent=node)
+
+    assert stage.get_node_children_from_path("/node") == node.list_children()
