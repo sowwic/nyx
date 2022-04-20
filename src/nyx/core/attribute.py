@@ -87,7 +87,7 @@ class Attribute(Serializable):
         LOGGER.error(f"Failed to get name for attribute of {self.node}")
         raise ValueError
 
-    def get(self, cached=False):
+    def get(self, raw=False, resolved=False):
         """Get attribute value
 
         Args:
@@ -96,7 +96,12 @@ class Attribute(Serializable):
         Returns:
             typing.Any: value.
         """
-        return self.value if not cached else self.cached_value
+        if raw:
+            return self.value
+        elif resolved:
+            return self.resolved_value
+        else:
+            return self.cached_value
 
     def set(self, value):
         """Set raw attribute value"""

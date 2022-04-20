@@ -28,8 +28,9 @@ def test_attr_push():
     node["test"] = None
     node["test"].push(5)
 
-    assert node["test"].get() is None
-    assert node["test"].get(cached=True) == 5
+    assert node["test"].get(raw=True) is None
+    assert node["test"].get(resolved=True) is None
+    assert node["test"].get() == 5
 
 
 def test_attr_cache_current_value():
