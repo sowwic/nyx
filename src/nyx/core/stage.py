@@ -24,10 +24,14 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
 
-        self.path_map: dict[pathlib.PurePosixPath, Node] = {}
+        self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
+
+    @property
+    def path_map(self):
+        return self._path_map
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
@@ -42,7 +46,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return self.list_children(self.invisibleRootItem())
 
     def generate_unique_child_name(self, name: str):
-        child_names = {node.text() for node in self.list_children(self.invisibleRootItem())}
+        child_names = {node.text() for node in self.list_top_nodes()}
         if name in child_names:
             index = 1
             while f"{name}{index}" in child_names:
@@ -55,14 +59,19 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             items = [items]
 
         for node in items:
+            if node.stage:
+                LOGGER.warning(f"{node} is already in the stage.")
+                continue
+
+            # Set unique name and check if path exist
             node.setText(self.generate_unique_child_name(node.name))
             super().appendRow(node)
             if node.path in self.path_map:
                 LOGGER.error(f"Duplicate path: {node.path}")
-                raise ValueError
+                raise ValueError("Node path already exists.")
 
             node._cached_path = node.path
-            self.path_map[node.path] = node
+            self._path_map[node.path] = node
         return
 
     def add_node(self, node: "Node"):
@@ -78,10 +87,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.endResetModel()
 
     def _delete_from_path_map(self, node: "Node", children=True):
-        self.path_map.pop(node.path)
+        self._path_map.pop(node.path)
         if children:
             for child in node.list_children_tree():
-                self.path_map.pop(child.path)
+                self._path_map.pop(child.path)
 
     def on_node_changed(self, node: "Node"):
         node.on_changed()

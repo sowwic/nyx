@@ -124,7 +124,7 @@ class Node(QtGui.QStandardItem, Serializable):
                 raise ValueError
 
             node._cached_path = node.path
-            self.stage.path_map[node.path] = node
+            self.stage._path_map[node.path] = node
 
     def generate_unique_child_name(self, name: str):
         """Iterate through node children to generate unique name from given one.
@@ -163,8 +163,8 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def _update_pathmap_entry(self):
         """Update path stored for in stage path map."""
-        self.stage.path_map.pop(self._cached_path)
-        self.stage.path_map[self.path] = self
+        self.stage._path_map.pop(self._cached_path)
+        self.stage._path_map[self.path] = self
         self._cached_path = self.path
         for child_node in self.list_children():
             child_node._update_pathmap_entry()
