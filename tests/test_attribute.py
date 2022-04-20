@@ -152,7 +152,11 @@ def test_attr_resolve_from_relative_path():
     child = Node(name="child", parent=node)
     child["test_rel"] = "{..}{test}"
 
-    assert child["test_rel"].resolved_value == node["test"].value
+    node.cache_attributes_values()
+    child.cache_attributes_values()
+
+    assert isinstance(child["test_rel"].resolved_value, Attribute)
+    assert child["test_rel"].cached_value == node["test"].resolved_value
 
 
 def test_attr_resolve_invalid_path():

@@ -133,7 +133,10 @@ class Attribute(Serializable):
     def cache_current_value(self):
         """Push current value to cache."""
         self.resolve()
-        self.push(self.resolved_value)
+        # If value resolves to attribute push that attribute resolved value to cache instead.
+        value_to_cache = self.resolved_value.resolved_value if isinstance(
+            self.resolved_value, Attribute) else self.resolved_value
+        self.push(value_to_cache)
 
     def get_name(self):
         """Get attribute name.
@@ -183,4 +186,4 @@ class Attribute(Serializable):
             LOGGER.warning(f"{other_node} has no attr: {attr_name}")
             return raw_str
 
-        return attr.resolved_value
+        return attr
