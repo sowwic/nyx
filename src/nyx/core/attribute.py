@@ -1,4 +1,5 @@
 import typing
+import string
 from collections import OrderedDict
 
 from nyx import get_main_logger
@@ -17,10 +18,13 @@ class Attribute(Serializable):
         super().__init__()
         self.__node = node
         self.__value = value
+        self.__resolved = None
         self.__cached_value = None
 
+        self.resolve()
+
     def __repr__(self) -> str:
-        return f"Attribute ({self.name}: {self.value})"
+        return f"Attribute {self.name}, raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value}"
 
     def __eq__(self, other_attr):
         # type: (Attribute) -> bool
@@ -46,6 +50,15 @@ class Attribute(Serializable):
             typing.Any: stored value
         """
         return self.__value
+
+    @property
+    def resolved_value(self):
+        """Cached value.
+
+        Returns:
+            typing.Any: stored cached value
+        """
+        return self.__resolved
 
     @property
     def cached_value(self):
@@ -88,6 +101,7 @@ class Attribute(Serializable):
     def set(self, value):
         """Set raw attribute value"""
         self.__value = value
+        self.resolve()
 
     def push(self, value):
         """Push given value to cache"""
@@ -103,7 +117,7 @@ class Attribute(Serializable):
         Returns:
             bool: cached
         """
-        return self.value == self.cached_value
+        return self.resolved_value == self.cached_value
 
     def same_scope_with(self, other_attr: "Attribute"):
         """Check if this and other attribute are in the same scope.
@@ -118,7 +132,8 @@ class Attribute(Serializable):
 
     def cache_current_value(self):
         """Push current value to cache."""
-        self.push(self.value)
+        self.resolve()
+        self.push(self.resolved_value)
 
     def get_name(self):
         """Get attribute name.
@@ -141,4 +156,31 @@ class Attribute(Serializable):
         self.set(data.get("value", self.value))
 
     def resolve(self):
-        pass
+        self.__resolved = None
+        if self.value is None:
+            return
+
+        if isinstance(self.value, str):
+            self.__resolved = self._resolve_string(self.value)
+        else:
+            self.__resolved = self.value
+
+    def _resolve_string(self, raw_str: str):
+        str_tokens = [tup[1] for tup in string.Formatter().parse(raw_str) if tup[1] is not None]
+        if not str_tokens or len(str_tokens) != 2:
+            return raw_str
+
+        path, attr_name = str_tokens
+        # Resolve node path
+        other_node: "Node" = self.node.get_node_from_relative_path(path)
+        if not other_node:
+            return raw_str
+
+        # Get attr value
+        try:
+            attr: "Attribute" = other_node[attr_name]
+        except KeyError:
+            LOGGER.warning(f"{other_node} has no attr: {attr_name}")
+            return raw_str
+
+        return attr.resolved_value

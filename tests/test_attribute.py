@@ -133,8 +133,52 @@ def test_attr_same_scope():
     assert not child1["count"].same_scope_with(node["test"])
 
 
-# def test_attr_get_from_relative_path():
+def test_attr_resolve_number():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+    node["test"] = 2
+
+    LOGGER.debug(node["test"].value)
+    assert node["test"].resolved_value == 2
+
+
+def test_attr_resolve_from_relative_path():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+    node["test"] = 5
+
+    child = Node(name="child", parent=node)
+    child["test_rel"] = "{..}{test}"
+
+    assert child["test_rel"].resolved_value == node["test"].value
+
+
+def test_attr_resolve_invalid_path():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+    node["test"] = "{..}{dfdfd}"
+
+    assert node["test"].value == node["test"].resolved_value
+
+
+def test_attr_resolve_non_existing_attr():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+    node["test"] = 5
+
+    child = Node(name="child", parent=node)
+    child["test_rel"] = "{..}{bad_attr}"
+
+    assert child["test_rel"].resolved_value != node["test"].value
+    assert child["test_rel"].resolved_value == child["test_rel"].value
+
+
+# def test_attr_resolve_recursive_path():
 #     stage = Stage()
 #     node = Node("node")
 #     stage.add_node(node)
-#     node["test"] = 2
+#     node["test"] = 5
