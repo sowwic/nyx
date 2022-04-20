@@ -93,3 +93,7 @@ def get_data_dir() -> pathlib.Path:
         return home / ".local/share"
     elif sys.platform == "darwin":
         return home / "Library/Application Support"
+
+
+def get_nyx_data_dir() -> pathlib.Path:
+    return get_data_dir() / "nyx"

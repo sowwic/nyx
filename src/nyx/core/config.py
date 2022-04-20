@@ -5,7 +5,7 @@ from nyx import get_main_logger
 from nyx.utils import file_fn
 
 LOGGER = get_main_logger()
-CONFIG_FILE_PATH = file_fn.get_data_dir() / "nyx" / "config.json"
+CONFIG_FILE_PATH = file_fn.get_nyx_data_dir() / "config.json"
 
 
 @dataclasses.dataclass

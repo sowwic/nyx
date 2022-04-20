@@ -5,7 +5,7 @@ import enum
 from nyx.utils import file_fn
 
 MAIN_LOGGER_NAME = "nyx"
-LOGS_DIRECTORY = file_fn.get_data_dir() / "nyx" / "logs"
+LOGS_DIRECTORY = file_fn.get_nyx_data_dir() / "logs"
 
 
 class LogFormat(enum.Enum):
