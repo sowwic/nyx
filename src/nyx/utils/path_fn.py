@@ -21,5 +21,5 @@ def get_absolute_path_from_relative(anchor_path: pathlib.PurePosixPath, relative
     else:
         resolved_path = anchor_path.joinpath(*forward_parts)
 
-    LOGGER.debug(f"Resolved path: {resolved_path} (achor: {anchor_path} + rel: {relative_path})")
+    LOGGER.debug(f"Resolved path: {resolved_path} (anchor: {anchor_path} + rel: {relative_path})")
     return resolved_path

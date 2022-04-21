@@ -269,7 +269,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
     def resolved_attribs(self):
-        """Dictionary of merged dicitonaries.
+        """Dictionary of merged dictionaries.
 
         parent: {a: 5, b: 10}, child: {a: 15} -> result: {a: 15, b: 10}
 
