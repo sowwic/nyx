@@ -292,7 +292,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def get_output_exec_path(self) -> "str":
         return self.data(role=Node.OUTPUT_EXEC_ROLE)
 
-    def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None") -> None:
+    def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None", silent=False) -> None:
         if isinstance(path, Node):
             path = path.path.as_posix()
         elif isinstance(path, pathlib.PurePosixPath):
@@ -303,12 +303,20 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.error("{self}: Invalid input exec path: {}")
             raise TypeError("Invalid input exec path type")
 
+        if silent:
+            self.setData(path, role=Node.INPUT_EXEC_ROLE)
+            return
+
         previous_input_exec = self.get_input_exec_path()
         if path == previous_input_exec:
             LOGGER.debug(f"{self}: exec output is already set to {previous_input_exec}")
             return
 
         new_input_exec_node: "Node" = self.get_node_from_relative_path(path)
+        if new_input_exec_node.scope != self.scope:
+            LOGGER.error(f"{self}: Invalid new input scope: {new_input_exec_node.scope}")
+            return
+
         previous_input_exec_node = self.get_node_from_relative_path(previous_input_exec)
 
         # Set connections
@@ -316,7 +324,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         # Reset old input node
         if previous_input_exec_node is not None:
-            previous_input_exec_node.setData("", role=Node.OUTPUT_EXEC_ROLE)
+            previous_input_exec_node.set_output_exec_path("", silent=True)
 
         # Get path from new node to self
         # If its different from self.path -> store new path
@@ -325,7 +333,7 @@ class Node(QtGui.QStandardItem, Serializable):
             if new_input_exec_node.get_output_exec_path() != path_from_new_input_exec_node.as_posix():
                 new_input_exec_node.set_output_exec_path(self.path)
 
-    def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None") -> None:
+    def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None", silent=False) -> None:
         if isinstance(path, Node):
             path = path.path.as_posix()
         elif isinstance(path, pathlib.PurePosixPath):
@@ -336,12 +344,20 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.error("{self}: Invalid output exec path: {}")
             raise TypeError("Invalid output exec path type")
 
+        if silent:
+            self.setData(path, role=Node.OUTPUT_EXEC_ROLE)
+            return
+
         previous_output_exec = self.get_output_exec_path()
         if path == previous_output_exec:
             LOGGER.debug(f"{self}: exec output is already set to {previous_output_exec}")
             return
 
         new_output_exec_node: "Node" = self.get_node_from_relative_path(path)
+        if new_output_exec_node.scope != self.scope:
+            LOGGER.error(f"{self}: Invalid new output scope: {new_output_exec_node.scope}")
+            return
+
         previous_output_exec_node = self.get_node_from_relative_path(previous_output_exec)
 
         # Set connections
@@ -349,7 +365,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         # Reset old output node
         if previous_output_exec_node is not None:
-            previous_output_exec_node.setData("", role=Node.INPUT_EXEC_ROLE)
+            previous_output_exec_node.set_input_exec_path("", silent=True)
 
         # Get path from new node to self
         # If its different from self.path -> store new path
