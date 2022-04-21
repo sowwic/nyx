@@ -154,3 +154,21 @@ def test_stage_get_node_from_path():
         Node(parent=node)
 
     assert stage.get_node_children_from_path("/node") == node.list_children()
+
+
+def test_stage_export_import_with_connections(output_dir: pathlib.Path):
+    export_path = output_dir / f"test_stage_export_import_with_connections{Stage.FILE_EXTENSION}"
+
+    stage1 = Stage()
+    node1 = Node()
+    node2 = Node()
+    stage1.add_node(node1)
+    stage1.add_node(node2)
+
+    node2.set_input_exec_path(node1)
+    stage1.export_json(export_path)
+
+    stage2 = Stage()
+    stage2.import_json(export_path)
+
+    assert stage1.serialize() == stage2.serialize()

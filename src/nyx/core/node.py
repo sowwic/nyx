@@ -433,8 +433,12 @@ class Node(QtGui.QStandardItem, Serializable):
         if not hashmap:
             hashmap = {}
 
+        # ? Maybe use rename() ?
         self.setText(data.get("name", self.name))
         self.set_python_code(data.get("code", ""))
+        self.set_input_exec_path(data.get("input_exec", ""), silent=True)
+        self.set_output_exec_path(data.get("output_exec", ""), silent=True)
+
         hashmap[self.uuid] = self
         self._update_pathmap_entry()
 
