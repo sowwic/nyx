@@ -87,6 +87,7 @@ def test_stage_get_child_node_from_relative_path():
     stage.add_node(node)
 
     child1 = Node("child1", parent=node)
+    child1_1 = Node("child1_1", parent=node)
     child2 = Node("child2", parent=node)
 
     leaf1 = Node("leaf1", parent=child1)
@@ -97,6 +98,7 @@ def test_stage_get_child_node_from_relative_path():
     assert stage.get_node_from_relative_path(node, "./child1/leaf1") is leaf1
     assert stage.get_node_from_relative_path(child2, "./leaf2") is leaf2
     assert stage.get_node_from_relative_path(node, "./child2/leaf2") is leaf2
+    assert stage.get_node_from_relative_path(child1, "../child1_1") is child1_1
 
 
 def test_stage_invalid_relative_path_returns_none():
@@ -121,9 +123,12 @@ def test_stage_get_relative_path_to():
     leaf1 = Node("leaf1", parent=child1)
     leaf2 = Node("leaf2", parent=child2)
 
+    rel_child1_to_child2 = stage.get_relative_path_to(child1, child2)
     rel_leaf1_to_leaf2 = stage.get_relative_path_to(leaf1, leaf2)
+    LOGGER.debug(f"child_1 -> child_2: {rel_child1_to_child2}")
     LOGGER.debug(f"leaf_1 -> leaf_2: {rel_leaf1_to_leaf2}")
     assert stage.get_node_from_relative_path(leaf1, rel_leaf1_to_leaf2) is leaf2
+    assert stage.get_node_from_relative_path(child1, rel_child1_to_child2) is child2
 
 
 def test_stage_get_node_from_path_root():

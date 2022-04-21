@@ -164,3 +164,58 @@ def test_node_cache_attributes():
     node.cache_attributes_values()
     for attr in node.attribs.values():
         assert attr.is_cached()
+
+
+def test_node_set_exec_input():
+    stage = Stage()
+    node1 = Node()
+    node2 = Node()
+    stage.add_node(node1)
+    stage.add_node(node2)
+
+    node2.set_input_exec_path(node1)
+    assert node2.get_input_exec_path() == node1.path.as_posix()
+    assert node1.get_output_exec_path() == node2.path.as_posix()
+
+
+def test_node_set_exec_input_deep_hierarchy():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+    child1 = Node(parent=node)
+    child2 = Node(parent=child1)
+
+    node1 = Node(parent=child2)
+    node2 = Node(parent=child2)
+
+    node2.set_input_exec_path(node1)
+    assert node2.get_input_exec_path() == node1.path.as_posix()
+    assert node1.get_output_exec_path() == node2.path.as_posix()
+
+
+def test_node_set_exec_output():
+    stage = Stage()
+    node1 = Node()
+    node2 = Node()
+    stage.add_node(node1)
+    stage.add_node(node2)
+
+    node1.set_output_exec_path(node2)
+    assert node2.get_input_exec_path() == node1.path.as_posix()
+    assert node1.get_output_exec_path() == node2.path.as_posix()
+
+
+def test_node_set_input_exec_already_connected():
+    stage = Stage()
+    node1 = Node()
+    node2 = Node()
+    node3 = Node()
+    stage.add_node(node1)
+    stage.add_node(node2)
+    stage.add_node(node3)
+
+    node2.set_input_exec_path(node1)
+    node2.set_input_exec_path(node3)
+    assert node2.get_input_exec_path() == node3.path.as_posix()
+    assert node3.get_output_exec_path() == node2.path.as_posix()
+    assert node1.get_output_exec_path() == ""

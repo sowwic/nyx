@@ -6,7 +6,7 @@ from nyx import get_main_logger
 LOGGER = get_main_logger()
 
 
-def get_absolute_path_from_relative(anchor_path: pathlib.PurePosixPath, relative_path: pathlib.PurePosixPath):
+def get_absolute_path_from_relative(anchor_path: pathlib.PurePosixPath, relative_path: "pathlib.PurePosixPath | str"):
     if isinstance(relative_path, str):
         relative_path = pathlib.PurePosixPath(relative_path)
 

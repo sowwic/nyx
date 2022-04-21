@@ -20,14 +20,18 @@ LOGGER = get_main_logger()
 
 class Node(QtGui.QStandardItem, Serializable):
 
-    ATTRIBUTES_ROLE = QtCore.Qt.UserRole + 1
-    PYTHON_CODE_ROLE = QtCore.Qt.UserRole + 2
+    ATTRIBUTES_ROLE: int = QtCore.Qt.UserRole + 1
+    PYTHON_CODE_ROLE: int = QtCore.Qt.UserRole + 2
+    INPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 3
+    OUTPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 4
 
     def __init__(self, name: str = "node", parent: "Node" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
+        self.setData("", role=Node.INPUT_EXEC_ROLE)
+        self.setData("", role=Node.OUTPUT_EXEC_ROLE)
 
         self._cached_path = None
         if parent:
@@ -282,7 +286,79 @@ class Node(QtGui.QStandardItem, Serializable):
         resolved_attrs.update(self.attribs)
         return resolved_attrs
 
-    def get_node_from_relative_path(self, relative_path: pathlib.PurePosixPath) -> pathlib.PurePosixPath:
+    def get_input_exec_path(self) -> "str":
+        return self.data(role=Node.INPUT_EXEC_ROLE)
+
+    def get_output_exec_path(self) -> "str":
+        return self.data(role=Node.OUTPUT_EXEC_ROLE)
+
+    def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None") -> None:
+        if isinstance(path, Node):
+            path = path.path.as_posix()
+        elif isinstance(path, pathlib.PurePosixPath):
+            path = path.as_posix()
+        elif isinstance(path, str):
+            pass
+        else:
+            LOGGER.error("{self}: Invalid input exec path: {}")
+            raise TypeError("Invalid input exec path type")
+
+        previous_input_exec = self.get_input_exec_path()
+        if path == previous_input_exec:
+            LOGGER.debug(f"{self}: exec output is already set to {previous_input_exec}")
+            return
+
+        new_input_exec_node: "Node" = self.get_node_from_relative_path(path)
+        previous_input_exec_node = self.get_node_from_relative_path(previous_input_exec)
+
+        # Set connections
+        self.setData(path, role=Node.INPUT_EXEC_ROLE)
+
+        # Reset old input node
+        if previous_input_exec_node is not None:
+            previous_input_exec_node.setData("", role=Node.OUTPUT_EXEC_ROLE)
+
+        # Get path from new node to self
+        # If its different from self.path -> store new path
+        if new_input_exec_node is not None:
+            path_from_new_input_exec_node = new_input_exec_node.get_relative_path_to(self)
+            if new_input_exec_node.get_output_exec_path() != path_from_new_input_exec_node.as_posix():
+                new_input_exec_node.set_output_exec_path(self.path)
+
+    def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None") -> None:
+        if isinstance(path, Node):
+            path = path.path.as_posix()
+        elif isinstance(path, pathlib.PurePosixPath):
+            path = path.as_posix()
+        elif isinstance(path, str):
+            pass
+        else:
+            LOGGER.error("{self}: Invalid output exec path: {}")
+            raise TypeError("Invalid output exec path type")
+
+        previous_output_exec = self.get_output_exec_path()
+        if path == previous_output_exec:
+            LOGGER.debug(f"{self}: exec output is already set to {previous_output_exec}")
+            return
+
+        new_output_exec_node: "Node" = self.get_node_from_relative_path(path)
+        previous_output_exec_node = self.get_node_from_relative_path(previous_output_exec)
+
+        # Set connections
+        self.setData(path, role=Node.OUTPUT_EXEC_ROLE)
+
+        # Reset old output node
+        if previous_output_exec_node is not None:
+            previous_output_exec_node.setData("", role=Node.INPUT_EXEC_ROLE)
+
+        # Get path from new node to self
+        # If its different from self.path -> store new path
+        if new_output_exec_node is not None:
+            path_from_new_output_exec_node = new_output_exec_node.get_relative_path_to(self)
+            if new_output_exec_node.get_output_exec_path() != path_from_new_output_exec_node.as_posix():
+                new_output_exec_node.set_input_exec_path(self.path)
+
+    def get_node_from_relative_path(self, relative_path: "pathlib.PurePosixPath | str") -> "Node | None":
         """Get node from relative path.
 
         Args:
@@ -329,6 +405,8 @@ class Node(QtGui.QStandardItem, Serializable):
         children = [child.serialize() for child in self.list_children()]
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
         data["path"] = self.path.as_posix()
+        data["input_exec"] = self.get_input_exec_path()
+        data["output_exec"] = self.get_output_exec_path()
         data["attribs"] = attribs
         data["children"] = children
         data["code"] = self.python_code
