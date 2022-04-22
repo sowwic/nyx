@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
+from nyx.core import nyx_exceptions
 from nyx.utils import file_fn
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -20,8 +21,6 @@ class Attribute(Serializable):
         self.__value = value
         self.__resolved = None
         self.__cached_value = None
-
-        self.resolve()
 
     def __repr__(self) -> str:
         return f"Attribute {self.name}, raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value}"
@@ -87,15 +86,17 @@ class Attribute(Serializable):
         LOGGER.error(f"Failed to get name for attribute of {self.node}")
         raise ValueError
 
-    def get(self, raw=False, resolved=False):
-        """Get attribute value
+    def get(self, raw=False, resolved=False) -> typing.Any:
+        """Get attribute value. If no arguments were specified - will return cached value.
 
         Args:
-            cached (bool, optional): get cached value instead. Defaults to False.
+            raw (bool, optional): get raw value. Defaults to False.
+            resolved (bool, optional): get resolved value. Defaults to False.
 
         Returns:
-            typing.Any: value.
+            typing.Any: stored value.
         """
+
         if raw:
             return self.value
         elif resolved:
@@ -164,16 +165,21 @@ class Attribute(Serializable):
         self.set(data.get("value", self.value))
 
     def resolve(self):
+        LOGGER.debug(f"{self} | Resolving...")
         self.__resolved = None
         if self.value is None:
             return
 
         if isinstance(self.value, str):
-            self.__resolved = self._resolve_string(self.value)
+            resolved = self._resolve_string(self.value)
+            resolved = resolved.resolved_value if isinstance(resolved, Attribute) else resolved
+            self.__resolved = resolved
         else:
             self.__resolved = self.value
+        LOGGER.debug(f"{self} | Resoled value: {self.resolved_value}")
 
     def _resolve_string(self, raw_str: str):
+        LOGGER.debug(f"{self} | Resolving string value: {raw_str}")
         str_tokens = [tup[1] for tup in string.Formatter().parse(raw_str) if tup[1] is not None]
         if not str_tokens or len(str_tokens) != 2:
             return raw_str
@@ -187,7 +193,7 @@ class Attribute(Serializable):
         # Get attr value
         try:
             attr: "Attribute" = other_node[attr_name]
-        except KeyError:
+        except nyx_exceptions.NodeNoAttributeExistError:
             LOGGER.warning(f"{other_node} has no attr: {attr_name}")
             return raw_str
 

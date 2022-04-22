@@ -7,6 +7,7 @@ from PySide2 import QtGui
 
 from nyx.core.attribute import Attribute
 from nyx.core.serializable import Serializable
+from nyx.core import nyx_exceptions
 from nyx.utils import inspect_fn
 from nyx.utils import file_fn
 from nyx import get_main_logger
@@ -41,13 +42,16 @@ class Node(QtGui.QStandardItem, Serializable):
         return f"{inspect_fn.class_string(self.__class__)}({self.text()})"
 
     def __getitem__(self, key) -> Attribute:
-        return self.attribs[key]
+        try:
+            return self.attribs[key]
+        except KeyError:
+            raise nyx_exceptions.NodeNoAttributeExistError
 
     def __setitem__(self, key: str, value):
         data = self.attribs
         if key not in data:
             data[key] = Attribute(self, value)
-            LOGGER.debug(f"Added {data[key]}")
+            LOGGER.debug(f"{self} | Added {data[key]}")
         else:
             data[key].set(value)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
@@ -104,7 +108,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         return self.data(role=self.PYTHON_CODE_ROLE)
 
-    def appendRow(self, items: typing.Sequence) -> None:
+    def appendRow(self, items: typing.Sequence["Node"]) -> None:
         """Override Qt method.
 
         - Generates new unique name.
@@ -121,11 +125,16 @@ class Node(QtGui.QStandardItem, Serializable):
             items = [items]
 
         for node in items:
-            node.setText(self.generate_unique_child_name(node.name))
-            super().appendRow(node)
-            if node.path in self.stage.path_map:
-                LOGGER.error(f"Duplicate path: {node.path}")
+            unique_name = self.generate_unique_child_name(node.name)
+            new_path = self.path / unique_name
+            if new_path in self.stage.path_map:
+                LOGGER.error(f"Duplicate path: {new_path}")
                 raise ValueError
+
+            node.setText(unique_name)
+            super().appendRow(node)
+            assert node.path == new_path
+            LOGGER.debug(f"{self} | added child node {new_path}")
 
             node._cached_path = node.path
             self.stage._path_map[node.path] = node
@@ -219,6 +228,13 @@ class Node(QtGui.QStandardItem, Serializable):
     def delete(self):
         """Delete this node from stage."""
         self.stage.delete_node(self)
+
+    def add_attr(self, name: str, value=None, resolve=True):
+        if name in self.attribs.keys():
+            raise nyx_exceptions.NodeClashingAttributeNameError
+        self[name] = value
+        if resolve:
+            self[name].resolve()
 
     def get_attr(self, name: str) -> Attribute:
         """Get attribute with name.
@@ -434,7 +450,10 @@ class Node(QtGui.QStandardItem, Serializable):
             hashmap = {}
 
         # ? Maybe use rename() ?
-        self.setText(data.get("name", self.name))
+        if self.name != data.get("name", self.name):
+            self.rename(data.get("name"))
+
+        # self.setText(data.get("name", self.name))
         self.set_python_code(data.get("code", ""))
         self.set_input_exec_path(data.get("input_exec", ""), silent=True)
         self.set_output_exec_path(data.get("output_exec", ""), silent=True)

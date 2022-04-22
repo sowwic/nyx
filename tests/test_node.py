@@ -29,6 +29,21 @@ def test_add_node_with_parent():
     assert [parent_node] == child_node2.list_parents()
 
 
+def test_add_node_with_parent_via_stage():
+    stage = Stage()
+    parent_node = Node("node")
+    stage.add_node(parent_node)
+
+    child_node1 = Node("node")
+    child_node2 = Node("node")
+
+    stage.add_node([child_node1, child_node2], parent=parent_node)
+
+    assert [child_node1, child_node2] == parent_node.list_children()
+    assert [parent_node] == child_node1.list_parents()
+    assert [parent_node] == child_node2.list_parents()
+
+
 def test_node_delete_mid_children():
     stage = Stage()
     parent_node = Node("node")
@@ -49,11 +64,15 @@ def test_node_code_exec():
     node = Node("node")
     stage.add_node(node)
 
-    code = 'self["test"] = 5'
+    node.add_attr("test")
+
+    code = 'self["test"].push(5)'
     node.set_python_code(code)
     node.execute_code()
 
-    assert node["test"].value == 5
+    assert node["test"].value is None
+    assert node["test"].resolved_value is None
+    assert node["test"].cached_value == 5
 
 
 def test_node_list_children_tree():
@@ -146,9 +165,9 @@ def test_node_cache_attributes():
     node = Node()
     stage.add_node(node)
 
-    node["test1"] = 5
-    node["test2"] = 10
-    node["test3"] = 15
+    node.add_attr("test1", value=5, resolve=True)
+    node.add_attr("test2", value=10, resolve=True)
+    node.add_attr("test3", value=15, resolve=True)
 
     for attr in node.attribs.values():
         assert not attr.is_cached()

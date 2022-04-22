@@ -6,6 +6,9 @@ from nyx import get_main_logger
 LOGGER = get_main_logger()
 
 
+ROOT_ITEM_PATH = pathlib.PurePosixPath("/")
+
+
 def get_absolute_path_from_relative(anchor_path: pathlib.PurePosixPath, relative_path: "pathlib.PurePosixPath | str"):
     if isinstance(relative_path, str):
         relative_path = pathlib.PurePosixPath(relative_path)
@@ -17,7 +20,13 @@ def get_absolute_path_from_relative(anchor_path: pathlib.PurePosixPath, relative
     parent_paths.rotate()
 
     if steps_back:
-        resolved_path = parent_paths[steps_back].joinpath(*forward_parts)
+        try:
+            resolved_path = parent_paths[steps_back].joinpath(*forward_parts)
+        except IndexError:
+            if anchor_path.parent == ROOT_ITEM_PATH:
+                return ROOT_ITEM_PATH.joinpath(*forward_parts)
+            else:
+                raise IndexError
     else:
         resolved_path = anchor_path.joinpath(*forward_parts)
 
