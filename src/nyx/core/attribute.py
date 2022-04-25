@@ -42,6 +42,10 @@ class Attribute(Serializable):
         return self.__node
 
     @property
+    def stage(self):
+        return self.node.stage
+
+    @property
     def value(self):
         """Raw attribute value.
 
@@ -176,17 +180,23 @@ class Attribute(Serializable):
             self.__resolved = resolved
         else:
             self.__resolved = self.value
-        LOGGER.debug(f"{self} | Resoled value: {self.resolved_value}")
+        LOGGER.debug(f"{self} | Resolved value: {self.resolved_value}")
 
     def _resolve_string(self, raw_str: str):
-        LOGGER.debug(f"{self} | Resolving string value: {raw_str}")
+        LOGGER.debug(f"Resolving string value: {raw_str}")
         str_tokens = [tup[1] for tup in string.Formatter().parse(raw_str) if tup[1] is not None]
         if not str_tokens or len(str_tokens) != 2:
             return raw_str
 
         path, attr_name = str_tokens
         # Resolve node path
-        other_node: "Node" = self.node.get_node_from_relative_path(path)
+        if path.startswith("."):
+            other_node: "Node" = self.node.get_node_from_relative_path(path)
+        elif path.startswith("/"):
+            other_node = self.stage.get_node_from_absolute_path(path)
+        else:
+            other_node = None
+
         if not other_node:
             return raw_str
 

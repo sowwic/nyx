@@ -226,3 +226,20 @@ def test_attr_resolve_recursive_path():
     assert node3["test3"].resolved_value == node2["test2"].resolved_value
     assert node3["test3"].resolved_value == node1["test1"].value
     assert node2["test2"].resolved_value == node1["test1"].value
+
+
+def test_attr_resolve_from_absolute_path():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    child1 = Node("child1", parent=node)
+    child2 = Node("child2", parent=node)
+
+    leaf1 = Node("leaf1", parent=child1)
+    leaf2 = Node("leaf2", parent=child2)
+
+    leaf1.add_attr("test1", value="test_value")
+    leaf2.add_attr("test2", value="{/node/child1/leaf1}{test1}", resolve=True)
+
+    assert leaf2.get_attr("test2").resolved_value == leaf1.get_attr("test1").resolved_value

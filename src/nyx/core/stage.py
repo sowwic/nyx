@@ -191,6 +191,14 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.deserialize(json_data, restore_id=True)
         return json_data
 
+    def get_node_from_absolute_path(self, path: "pathlib.PurePosixPath | str") -> "Node | None":
+        if isinstance(path, str):
+            path = pathlib.PurePosixPath(path)
+        if not isinstance(path, pathlib.PurePosixPath):
+            LOGGER.exception(f"{self} | Invalid absolute path: {path}")
+            return None
+        return self.path_map.get(path, None)
+
     def get_node_from_relative_path(self, anchor_node: "Node", relative_path: "pathlib.PurePosixPath | str") -> "Node | None":
         """Get node from anchor node and relative to it path.
 
