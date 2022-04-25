@@ -64,11 +64,18 @@ def test_attr_rename():
     stage.add_node(node)
 
     node.add_attr("test", value=5)
-    LOGGER.debug(f"Attributes: {node.attribs}")
+    old_raw = node.get_attr("test").get(raw=True)
+    old_resolved = node.get_attr("test").get(resolved=True)
+    old_cached = node.get_attr("test").get()
+
+    LOGGER.debug(f"Before rename: {node.attribs}")
     node.rename_attr("test", "new_test")
+    LOGGER.debug(f"After rename: {node.attribs}")
     assert "test" not in node.attribs
     assert "new_test" in node.attribs
-    assert node["new_test"].value == 5
+    assert node["new_test"].value == old_raw
+    assert node["new_test"].resolved_value == old_resolved
+    assert node["new_test"].cached_value == old_cached
 
 
 def test_attr_serialize():

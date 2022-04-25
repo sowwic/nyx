@@ -25,6 +25,7 @@ class Node(QtGui.QStandardItem, Serializable):
     PYTHON_CODE_ROLE: int = QtCore.Qt.UserRole + 2
     INPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 3
     OUTPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 4
+    ACTIVE_ROLE: int = QtCore.Qt.UserRole + 5
 
     def __init__(self, name: str = "node", parent: "Node" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
@@ -33,6 +34,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
         self.setData("", role=Node.INPUT_EXEC_ROLE)
         self.setData("", role=Node.OUTPUT_EXEC_ROLE)
+        self.setData(True, role=Node.ACTIVE_ROLE)
 
         self._cached_path = None
         if parent:
@@ -107,6 +109,30 @@ class Node(QtGui.QStandardItem, Serializable):
             str: python code string.
         """
         return self.data(role=self.PYTHON_CODE_ROLE)
+
+    def is_active(self) -> bool:
+        """Query if node's active state.
+
+        Returns:
+            bool: current active state.
+        """
+        return self.data(role=Node.ACTIVE_ROLE)
+
+    def set_active(self, state: bool):
+        """Set active state.
+
+        Args:
+            state (bool): new active state.
+        """
+        self.setData(state, role=Node.ACTIVE_ROLE)
+
+    def deactivate(self):
+        """Set node's active state to False."""
+        self.set_active(False)
+
+    def activate(self):
+        """Set node's active state to True."""
+        self.set_active(True)
 
     def appendRow(self, items: typing.Sequence["Node"]) -> None:
         """Override Qt method.
@@ -436,6 +462,7 @@ class Node(QtGui.QStandardItem, Serializable):
         data["name"] = self.text()
         children = [child.serialize() for child in self.list_children()]
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
+        data["active"] = self.is_active()
         data["path"] = self.path.as_posix()
         data["input_exec"] = self.get_input_exec_path()
         data["output_exec"] = self.get_output_exec_path()
@@ -454,6 +481,7 @@ class Node(QtGui.QStandardItem, Serializable):
             self.rename(data.get("name"))
 
         # self.setText(data.get("name", self.name))
+        self.set_active(data.get("active", True))
         self.set_python_code(data.get("code", ""))
         self.set_input_exec_path(data.get("input_exec", ""), silent=True)
         self.set_output_exec_path(data.get("output_exec", ""), silent=True)
@@ -516,7 +544,8 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def execute_code(self):
         """Execute code string."""
-        exec(self.python_code, {"self": self})
+        if self.is_active():
+            exec(self.python_code, {"self": self})
 
     def clear_attributes_caches(self):
         """Clear all attributes caches."""
