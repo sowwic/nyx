@@ -243,7 +243,7 @@ def test_node_set_exec_output():
     assert node1.get_output_exec_path() == node2.path.as_posix()
 
 
-def test_node_set_input_exec_already_connected():
+def test_node_set_input_exec_reconnect():
     stage = Stage()
     node1 = Node()
     node2 = Node()
@@ -257,3 +257,21 @@ def test_node_set_input_exec_already_connected():
     assert node2.get_input_exec_path() == node3.path.as_posix()
     assert node3.get_output_exec_path() == node2.path.as_posix()
     assert node1.get_output_exec_path() == ""
+
+
+def test_node_set_exec_input_out_of_scope():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+    child1 = Node(parent=node)
+    child2 = Node(parent=child1)
+
+    node1 = Node(parent=child2)
+    node2 = Node(parent=child2)
+
+    leaf1 = Node(name="leaf1", parent=node1)
+    leaf2 = Node(name="leaf2", parent=node2)
+
+    leaf1.set_input_exec_path(leaf2)
+    assert leaf1.get_input_exec_path() == ""
+    assert leaf2.get_output_exec_path() == ""

@@ -354,12 +354,12 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.debug(f"{self}: exec output is already set to {previous_input_exec}")
             return
 
-        new_input_exec_node: "Node" = self.get_node_from_relative_path(path)
+        new_input_exec_node: "Node" = self.stage.get_node_from_absolute_path(path)
         if new_input_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new input scope: {new_input_exec_node.scope}")
             return
 
-        previous_input_exec_node = self.get_node_from_relative_path(previous_input_exec)
+        previous_input_exec_node = self.stage.get_node_from_absolute_path(previous_input_exec)
 
         # Set connections
         self.setData(path, role=Node.INPUT_EXEC_ROLE)
@@ -395,12 +395,12 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.debug(f"{self}: exec output is already set to {previous_output_exec}")
             return
 
-        new_output_exec_node: "Node" = self.get_node_from_relative_path(path)
+        new_output_exec_node: "Node" = self.stage.get_node_from_absolute_path(path)
         if new_output_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new output scope: {new_output_exec_node.scope}")
             return
 
-        previous_output_exec_node = self.get_node_from_relative_path(previous_output_exec)
+        previous_output_exec_node = self.stage.get_node_from_absolute_path(previous_output_exec)
 
         # Set connections
         self.setData(path, role=Node.OUTPUT_EXEC_ROLE)
