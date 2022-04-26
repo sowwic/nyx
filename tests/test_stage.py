@@ -165,7 +165,14 @@ def test_stage_export_import_with_connections(output_dir: pathlib.Path):
     stage1.add_node(node1)
     stage1.add_node(node2)
 
+    # Add attributes
+    node1.add_attr("count", 5)
+    node2.add_attr("test")
+
+    # Connetions
     node2.set_input_exec_path(node1)
+    node1.attr("count").connect(node2.attr("test"))
+
     stage1.export_json(export_path)
 
     stage2 = Stage()

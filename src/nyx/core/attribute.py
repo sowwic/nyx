@@ -108,10 +108,11 @@ class Attribute(Serializable):
         else:
             return self.cached_value
 
-    def set(self, value):
+    def set(self, value, resolve=True):
         """Set raw attribute value"""
         self.__value = value
-        self.resolve()
+        if resolve:
+            self.resolve()
 
     def push(self, value):
         """Push given value to cache"""
@@ -208,3 +209,10 @@ class Attribute(Serializable):
             return raw_str
 
         return attr
+
+    def connect(self, other_attr: "Attribute", resolve=True):
+        node_path_fmt = "{" + self.node.path.as_posix() + "}"
+        attr_name_fmt = "{" + self.name + "}"
+        full_fmt_str = node_path_fmt + attr_name_fmt
+        other_attr.set(full_fmt_str, resolve=resolve)
+        LOGGER.info(f"Connected {self} -> {other_attr}")

@@ -262,7 +262,7 @@ class Node(QtGui.QStandardItem, Serializable):
         if resolve:
             self[name].resolve()
 
-    def get_attr(self, name: str) -> Attribute:
+    def attr(self, name: str) -> Attribute:
         """Get attribute with name.
 
         Args:

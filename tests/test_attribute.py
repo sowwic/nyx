@@ -64,9 +64,9 @@ def test_attr_rename():
     stage.add_node(node)
 
     node.add_attr("test", value=5)
-    old_raw = node.get_attr("test").get(raw=True)
-    old_resolved = node.get_attr("test").get(resolved=True)
-    old_cached = node.get_attr("test").get()
+    old_raw = node.attr("test").get(raw=True)
+    old_resolved = node.attr("test").get(resolved=True)
+    old_cached = node.attr("test").get()
 
     LOGGER.debug(f"Before rename: {node.attribs}")
     node.rename_attr("test", "new_test")
@@ -242,4 +242,23 @@ def test_attr_resolve_from_absolute_path():
     leaf1.add_attr("test1", value="test_value")
     leaf2.add_attr("test2", value="{/node/child1/leaf1}{test1}", resolve=True)
 
-    assert leaf2.get_attr("test2").resolved_value == leaf1.get_attr("test1").resolved_value
+    assert leaf2.attr("test2").resolved_value == leaf1.attr("test1").resolved_value
+
+
+def test_attr_connect():
+    stage = Stage()
+    node = Node()
+    stage.add_node(node)
+
+    child1 = Node("child1", parent=node)
+    child2 = Node("child2", parent=node)
+
+    child1.add_attr("test1", value=5)
+    child2.add_attr("test2")
+
+    child1["test1"].connect(child2["test2"])
+
+    expected_value = "{" + child1.path.as_posix() + "}{" + child1["test1"].name + "}"
+    assert child2["test2"].value == expected_value
+    assert child2["test2"].resolved_value == 5
+    assert child2["test2"].cached_value is None
