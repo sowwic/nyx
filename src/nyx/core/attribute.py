@@ -90,6 +90,12 @@ class Attribute(Serializable):
         LOGGER.error(f"Failed to get name for attribute of {self.node}")
         raise ValueError
 
+    def as_fmt_string(self):
+        node_path_fmt = "{" + self.node.path.as_posix() + "}"
+        attr_name_fmt = "{" + self.name + "}"
+        full_fmt_str = node_path_fmt + attr_name_fmt
+        return full_fmt_str
+
     def get(self, raw=False, resolved=False) -> typing.Any:
         """Get attribute value. If no arguments were specified - will return cached value.
 
@@ -211,8 +217,5 @@ class Attribute(Serializable):
         return attr
 
     def connect(self, other_attr: "Attribute", resolve=True):
-        node_path_fmt = "{" + self.node.path.as_posix() + "}"
-        attr_name_fmt = "{" + self.name + "}"
-        full_fmt_str = node_path_fmt + attr_name_fmt
-        other_attr.set(full_fmt_str, resolve=resolve)
+        other_attr.set(self.as_fmt_string(), resolve=resolve)
         LOGGER.info(f"Connected {self} -> {other_attr}")
