@@ -1,6 +1,6 @@
-from nyx.core.application import NyxApplication
+from nyx.application import NyxEditorApplication
 
 
 if __name__ == "__main__":
-    app = NyxApplication()
+    app = NyxEditorApplication()
     app.exec_()
