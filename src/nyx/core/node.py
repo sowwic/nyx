@@ -314,7 +314,7 @@ class Node(QtGui.QStandardItem, Serializable):
         data[new_name] = data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
 
-    def resolved_attribs(self):
+    def stacked_attribs(self):
         """Dictionary of merged dictionaries.
 
         parent: {a: 5, b: 10}, child: {a: 15} -> result: {a: 15, b: 10}
@@ -322,11 +322,11 @@ class Node(QtGui.QStandardItem, Serializable):
         Returns:
             OrderedDict: merged dictionary.
         """
-        resolved_attrs = OrderedDict()
+        stacked_attrs = OrderedDict()
         for parent in self.list_parents(as_queue=True):
-            resolved_attrs.update(parent.attribs)
-        resolved_attrs.update(self.attribs)
-        return resolved_attrs
+            stacked_attrs.update(parent.attribs)
+        stacked_attrs.update(self.attribs)
+        return stacked_attrs
 
     def get_input_exec_path(self) -> "str":
         return self.data(role=Node.INPUT_EXEC_ROLE)
