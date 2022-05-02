@@ -179,3 +179,45 @@ def test_stage_export_import_with_connections(output_dir: pathlib.Path):
     stage2.import_json(export_path)
 
     assert stage1.serialize() == stage2.serialize()
+
+
+def test_stage_set_stage_execution_start():
+    stage = Stage()
+    node1 = Node()
+    node2 = Node()
+    node3 = Node()
+
+    stage.add_node(node1)
+    stage.add_node(node2)
+    stage.add_node(node3)
+
+    stage.set_execution_start_path(None, node1)
+    LOGGER.debug(stage.describe())
+
+    assert stage.get_execution_start_path(None, serializable=False) == node1.path
+
+
+def test_stage_set_execution_start_set_export_import(output_dir: pathlib.Path):
+    export_path = output_dir / \
+        f"test_stage_set_execution_start_set_export_import{Stage.FILE_EXTENSION}"
+
+    stage = Stage()
+    node1 = Node()
+    node2 = Node()
+    node3 = Node()
+
+    stage.add_node(node1)
+    stage.add_node(node2, parent=node1)
+    stage.add_node(node3, parent=node1)
+
+    stage.set_execution_start_path(None, node1)
+    stage.set_execution_start_path(node1, node2)
+
+    stage.export_json(export_path)
+
+    stage2 = Stage()
+    stage2.import_json(export_path)
+
+    assert stage2.get_node_from_absolute_path(
+        "/node").get_execution_start_path(serializable=True) == "/node/node"
+    assert stage.serialize() == stage2.serialize()

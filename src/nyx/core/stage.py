@@ -29,6 +29,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         Serializable.__init__(self)
 
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
+        self._execution_start_path: pathlib.PurePosixPath = None
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
@@ -36,6 +37,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     @property
     def path_map(self):
         return self._path_map
+
+    @property
+    def execution_start_path(self):
+        return self._execution_start_path
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
@@ -48,6 +53,14 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def list_top_nodes(self) -> "list[Node]":
         return self.list_children(self.invisibleRootItem())
+
+    def list_top_nodes_paths(self) -> "list[pathlib.PurePosixPath]":
+        return [node.cached_path for node in self.list_top_nodes()]
+
+    def is_top_node_path(self, path: "str | pathlib.PurePosixPath") -> bool:
+        if isinstance(path, str):
+            path = pathlib.PosixPath(path)
+        return path in set(self.list_top_nodes_paths())
 
     def generate_unique_child_name(self, name: str):
         child_names = {node.text() for node in self.list_top_nodes()}
@@ -144,14 +157,18 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes
+        data["execution_start_path"] = self.get_execution_start_path(None, serializable=True)
         return data
 
     def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
         super().deserialize(data, hashmap, restore_id=restore_id)
+        # Deserialize nodes
         for top_node_data in data.get("nodes", {}):
             top_node = Node()
             self.add_node(top_node)
             top_node.deserialize(top_node_data, hashmap, restore_id=True)
+        # Extra data
+        self.set_execution_start_path(None, data.get("execution_start_path"))
 
     def describe(self):
         """Pretty format serialized scene.
@@ -270,3 +287,85 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return []
 
         return self.path_map[node_path].list_children()
+
+    def set_stage_execution_start_path(self, start_path: "Node | pathlib.PurePosixPath | str"):
+        """Set execution start path for this stage.
+
+        Args:
+            start_path (Node | pathlib.PurePosixPath | str): node path.
+        """
+        if not isinstance(start_path, pathlib.PurePosixPath):
+            if isinstance(start_path, Node):
+                start_path = start_path.cached_path
+            elif isinstance(start_path, str):
+                start_path = pathlib.PurePosixPath(start_path)
+            else:
+                LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
+                return
+
+        self._execution_start_path = start_path
+        LOGGER.info(f"{self} | Set execution start path to {start_path}")
+
+    def set_execution_start_path(self,
+                                 for_node: "Node | pathlib.PurePosixPath | str",
+                                 start_path: "Node | pathlib.PurePosixPath | str"):
+        """Utility method for setting execution for either stage or node.
+
+        Args:
+            for_node (Node | pathlib.PurePosixPath | str): set execution path for this node. If None - path will be set for stage.
+            start_path (Node | pathlib.PurePosixPath | str): new execution start path.
+        """
+        if not isinstance(start_path, pathlib.PurePosixPath):
+            if isinstance(start_path, Node):
+                start_path = start_path.cached_path
+            elif isinstance(start_path, str):
+                start_path = pathlib.PurePosixPath(start_path)
+            else:
+                LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
+                return
+
+        if for_node is None:
+            self.set_stage_execution_start_path(start_path)  # Set path for stage if node is None
+            return
+
+        if not isinstance(for_node, Node):
+            if isinstance(for_node, (str, pathlib.PurePosixPath)):
+                for_node = self.get_node_from_absolute_path(for_node)
+            else:
+                LOGGER.exception(f"{self} | Invalid argument type for_node: {for_node}")
+                return
+
+        for_node.set_execution_start_path(start_path)
+
+    def get_execution_start_path(self,
+                                 for_node: "Node | str | pathlib.PurePosixPath | None",
+                                 serializable=False
+                                 ) -> "pathlib.PurePosixPath | str | None":
+        """Get execution start path for stage or node.
+
+        Args:
+            for_node (Node | str | pathlib.PurePosixPath | None): Object to get start execution path for. None will get stage's path.
+            serializable (bool, optional): get resulting path in jsonable form. Defaults to False.
+
+        Returns:
+            : _description_
+        """
+        original_for_node = for_node
+        if for_node is None:
+            path = self.execution_start_path
+            if serializable and isinstance(path, pathlib.PurePosixPath):
+                path = path.as_posix()
+            return path
+
+        elif not isinstance(for_node, Node):
+            if isinstance(for_node, (str, pathlib.PurePosixPath)):
+                for_node = self.get_node_from_absolute_path(for_node)
+            else:
+                LOGGER.exception(f"{self} | Invalid execution start path object: {for_node}")
+                return
+
+        if not isinstance(for_node, Node):
+            LOGGER.exception(f"{self} | Failed to execution start path from {original_for_node}")
+            return
+
+        return for_node.get_execution_start_path(serializable=serializable)

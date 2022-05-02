@@ -275,3 +275,21 @@ def test_node_set_exec_input_out_of_scope():
     leaf1.set_input_exec_path(leaf2)
     assert leaf1.get_input_exec_path() == ""
     assert leaf2.get_output_exec_path() == ""
+
+
+def test_node_set_execution_start():
+    stage = Stage()
+    node1 = Node()
+    node2 = Node()
+    node3 = Node()
+
+    stage.add_node(node1)
+    stage.add_node(node2, parent=node1)
+    stage.add_node(node3, parent=node1)
+
+    stage.set_execution_start_path(None, node1)
+    stage.set_execution_start_path(node1, node2)
+    LOGGER.debug(stage.describe())
+
+    assert stage.get_execution_start_path(node1) == node2.path
+    assert stage.get_execution_start_path(None, serializable=False) == node1.path

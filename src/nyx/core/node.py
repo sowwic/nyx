@@ -26,6 +26,7 @@ class Node(QtGui.QStandardItem, Serializable):
     INPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 3
     OUTPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 4
     ACTIVE_ROLE: int = QtCore.Qt.UserRole + 5
+    EXECUTION_START_PATH: int = QtCore.Qt.UserRole + 6
 
     def __init__(self, name: str = "node", parent: "Node" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
@@ -35,6 +36,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData("", role=Node.INPUT_EXEC_ROLE)
         self.setData("", role=Node.OUTPUT_EXEC_ROLE)
         self.setData(True, role=Node.ACTIVE_ROLE)
+        self.setData(None, role=Node.EXECUTION_START_PATH)
 
         self._cached_path = None
         if parent:
@@ -84,6 +86,10 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.parent().path / self.name
 
     @property
+    def cached_path(self):
+        return self._cached_path
+
+    @property
     def stage(self) -> "Stage":
         """Utility method pointing to node's stage (model).
 
@@ -109,6 +115,10 @@ class Node(QtGui.QStandardItem, Serializable):
             str: python code string.
         """
         return self.data(role=self.PYTHON_CODE_ROLE)
+
+    def cache_current_path(self):
+        """Store current path in cache."""
+        self._cached_path = self.path
 
     def is_active(self) -> bool:
         """Query if node's active state.
@@ -162,7 +172,7 @@ class Node(QtGui.QStandardItem, Serializable):
             assert node.path == new_path
             LOGGER.debug(f"{self} | added child node {new_path}")
 
-            node._cached_path = node.path
+            node.cache_current_path()
             self.stage._path_map[node.path] = node
 
     def generate_unique_child_name(self, name: str):
@@ -202,9 +212,9 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def _update_pathmap_entry(self):
         """Update path stored for in stage path map."""
-        self.stage._path_map.pop(self._cached_path)
+        self.stage._path_map.pop(self.cached_path)
         self.stage._path_map[self.path] = self
-        self._cached_path = self.path
+        self.cache_current_path()
         for child_node in self.list_children():
             child_node._update_pathmap_entry()
 
@@ -225,6 +235,14 @@ class Node(QtGui.QStandardItem, Serializable):
         children = [self.child(row) for row in range(self.rowCount())]
         return children
 
+    def list_children_paths(self) -> "list[pathlib.PurePosixPath]":
+        """List of child paths.
+
+        Returns:
+            list[pathlib.PurePosixPath]: child paths.
+        """
+        return [child_node.cached_path for child_node in self.list_children()]
+
     def list_children_tree(self) -> "list[Node]":
         """List children tree recursively.
 
@@ -235,6 +253,19 @@ class Node(QtGui.QStandardItem, Serializable):
         for child in children:
             children += child.list_children()
         return children
+
+    def is_child_path(self, path: "str | pathlib.PurePosixPath"):
+        """Check if given path is path of one of the child nodes.
+
+        Args:
+            path (str | pathlib.PurePosixPath): path to test.
+
+        Returns:
+            bool: if path belongs to one of children.
+        """
+        if isinstance(path, str):
+            path = pathlib.PurePosixPath(path)
+        return path in set(self.list_children_paths())
 
     def list_parents(self, as_queue=False) -> "list[Node] | deque[Node]":
         """List parents recursively.
@@ -464,6 +495,7 @@ class Node(QtGui.QStandardItem, Serializable):
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
         data["active"] = self.is_active()
         data["path"] = self.path.as_posix()
+        data["execution_start_path"] = self.get_execution_start_path(serializable=True)
         data["input_exec"] = self.get_input_exec_path()
         data["output_exec"] = self.get_output_exec_path()
         data["attribs"] = attribs
@@ -485,6 +517,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.set_python_code(data.get("code", ""))
         self.set_input_exec_path(data.get("input_exec", ""), silent=True)
         self.set_output_exec_path(data.get("output_exec", ""), silent=True)
+        self.set_execution_start_path(data.get("execution_start_path"))
 
         hashmap[self.uuid] = self
         self._update_pathmap_entry()
@@ -556,3 +589,29 @@ class Node(QtGui.QStandardItem, Serializable):
         """Push current attributes values to cache."""
         for attr in self.attribs.values():
             attr.cache_current_value()
+
+    def set_execution_start_path(self, child_path: "pathlib.PurePosixPath | str | None"):
+        """Set execution start path to one of the child node's path.
+
+        Args:
+            child_path (pathlib.PurePosixPath | None): execution start node path.
+        """
+        if isinstance(child_path, str):
+            child_path = pathlib.PurePosixPath(child_path)
+
+        self.setData(child_path, role=Node.EXECUTION_START_PATH)
+        LOGGER.info(f"{self} | Set execution start path to: {child_path}")
+
+    def get_execution_start_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
+        """Get execution start path. Can be child path or None.
+
+        Args:
+            serializable (bool, optional): get path as jsonable str or None. Defaults to False.
+
+        Returns:
+            pathlib.PurePosixPath | str | None: execution start path
+        """
+        path = self.data(role=Node.EXECUTION_START_PATH)
+        if serializable and isinstance(path, pathlib.PurePosixPath):
+            path = path.as_posix()
+        return path
