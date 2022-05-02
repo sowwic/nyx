@@ -11,6 +11,7 @@ from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
 from nyx.utils import path_fn
 from nyx.core import Node
+from nyx.core.stage_executor import StageExecutor
 
 
 LOGGER = get_main_logger()
@@ -30,6 +31,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self._execution_start_path: pathlib.PurePosixPath = None
+        self.__executor = StageExecutor(self)
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
@@ -37,6 +39,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     @property
     def path_map(self):
         return self._path_map
+
+    @property
+    def executor(self):
+        return self.__executor
 
     @property
     def execution_start_path(self):
@@ -294,7 +300,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         Args:
             start_path (Node | pathlib.PurePosixPath | str): node path.
         """
-        if not isinstance(start_path, pathlib.PurePosixPath):
+        if not (isinstance(start_path, pathlib.PurePosixPath) or start_path is None):
             if isinstance(start_path, Node):
                 start_path = start_path.cached_path
             elif isinstance(start_path, str):
@@ -369,3 +375,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return
 
         return for_node.get_execution_start_path(serializable=serializable)
+
+    def execute_node_from_path(self, path):
+        node = self.get_node_from_absolute_path(path)
+        node.execute()

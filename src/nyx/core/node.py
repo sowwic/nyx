@@ -596,7 +596,10 @@ class Node(QtGui.QStandardItem, Serializable):
         Args:
             child_path (pathlib.PurePosixPath | None): execution start node path.
         """
-        if isinstance(child_path, str):
+        if isinstance(child_path, Node):
+            child_path = child_path.cached_path
+
+        elif isinstance(child_path, str):
             child_path = pathlib.PurePosixPath(child_path)
 
         self.setData(child_path, role=Node.EXECUTION_START_PATH)
@@ -615,3 +618,26 @@ class Node(QtGui.QStandardItem, Serializable):
         if serializable and isinstance(path, pathlib.PurePosixPath):
             path = path.as_posix()
         return path
+
+    def build_execution_queue(self):
+        exec_queue = deque()
+        exec_queue.append(self.cached_path)
+        child_path = self.get_execution_start_path()
+        if child_path:
+            child_node = self.stage.get_node_from_absolute_path(child_path)
+            exec_queue.extend(child_node.build_execution_queue())
+
+        output_path = self.get_output_exec_path()
+        if output_path:
+            output_node = self.stage.get_node_from_absolute_path(output_path)
+            exec_queue.extend(output_node.build_execution_queue())
+
+        return exec_queue
+
+    def execute(self):
+        try:
+            self.cache_attributes_values()
+            self.execute_code()
+        except Exception as err:
+            LOGGER.exception(f"{self} | Execution error.")
+            raise err

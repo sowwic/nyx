@@ -1,12 +1,13 @@
 import pathlib
 from collections import OrderedDict
 
-from nyx import get_main_logger
+from nyx import get_main_logger, get_logger
 from nyx.core import Stage
 from nyx.core import Node
 from nyx.utils import file_fn
 
 LOGGER = get_main_logger()
+TEST_LOGGER = get_logger(__name__)
 
 
 def test_stage_create_empty():
@@ -125,8 +126,8 @@ def test_stage_get_relative_path_to():
 
     rel_child1_to_child2 = stage.get_relative_path_to(child1, child2)
     rel_leaf1_to_leaf2 = stage.get_relative_path_to(leaf1, leaf2)
-    LOGGER.debug(f"child_1 -> child_2: {rel_child1_to_child2}")
-    LOGGER.debug(f"leaf_1 -> leaf_2: {rel_leaf1_to_leaf2}")
+    TEST_LOGGER.debug(f"child_1 -> child_2: {rel_child1_to_child2}")
+    TEST_LOGGER.debug(f"leaf_1 -> leaf_2: {rel_leaf1_to_leaf2}")
     assert stage.get_node_from_relative_path(leaf1, rel_leaf1_to_leaf2) is leaf2
     assert stage.get_node_from_relative_path(child1, rel_child1_to_child2) is child2
 
@@ -192,7 +193,7 @@ def test_stage_set_stage_execution_start():
     stage.add_node(node3)
 
     stage.set_execution_start_path(None, node1)
-    LOGGER.debug(stage.describe())
+    TEST_LOGGER.debug(stage.describe())
 
     assert stage.get_execution_start_path(None, serializable=False) == node1.path
 

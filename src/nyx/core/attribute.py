@@ -153,6 +153,7 @@ class Attribute(Serializable):
         # If value resolves to attribute push that attribute resolved value to cache instead.
         value_to_cache = self.resolved_value.resolved_value if isinstance(
             self.resolved_value, Attribute) else self.resolved_value
+
         self.push(value_to_cache)
 
     def get_name(self):
@@ -183,11 +184,16 @@ class Attribute(Serializable):
 
         if isinstance(self.value, str):
             resolved = self._resolve_string(self.value)
-            resolved = resolved.resolved_value if isinstance(resolved, Attribute) else resolved
+            if isinstance(resolved, Attribute):
+                if resolved.resolved_value and not resolved.cached_value:
+                    resolved = resolved.resolved_value
+                else:
+                    resolved = resolved.cached_value
+
             self.__resolved = resolved
         else:
             self.__resolved = self.value
-        LOGGER.debug(f"{self} | Resolved value: {self.resolved_value}")
+        LOGGER.debug(f"Resolved value: {self.resolved_value}")
 
     def _resolve_string(self, raw_str: str):
         LOGGER.debug(f"Resolving string value: {raw_str}")
