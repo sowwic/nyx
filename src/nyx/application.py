@@ -13,16 +13,21 @@ LOGGER = get_main_logger()
 class NyxApplication(QtWidgets.QApplication):
     def __init__(self) -> None:
         super().__init__(sys.argv)
-        self.config = Config.load()
-        LOGGER.setLevel(self.config.logging_level)
+        self.__config = Config.load()
+        LOGGER.setLevel(self.config().logging_level)
+
+    def config(self):
+        return self.__config
 
     def reset_config(self):
         """Reset application config."""
-        self.config = self.config.reset()
+        self.__config = self.config().reset()
 
 
 class NyxEditorApplication(NyxApplication):
     def __init__(self) -> None:
         super().__init__()
-        self.main_window = NyxEditorMainWindow()
-        self.main_window.show()
+        NyxEditorMainWindow.display()
+
+    def main_window(self):
+        return NyxEditorMainWindow.INSTANCE
