@@ -29,6 +29,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
 
+        self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self._execution_start_path: pathlib.PurePosixPath = None
         self.__executor = StageExecutor(self)
@@ -193,6 +194,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         """
         try:
             file_fn.write_json(file_path, self.serialize(), sort_keys=False)
+            self.file_path = file_path
         except Exception:
             LOGGER.exception("Failed to save stage to file.")
 
@@ -212,6 +214,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return
 
         self.deserialize(json_data, restore_id=True)
+        self.file_path = file_path
         return json_data
 
     def get_node_from_absolute_path(self, path: "pathlib.PurePosixPath | str") -> "Node | None":
@@ -305,6 +308,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 start_path = start_path.cached_path
             elif isinstance(start_path, str):
                 start_path = pathlib.PurePosixPath(start_path)
+            elif start_path is None:
+                pass
             else:
                 LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
                 return
@@ -326,6 +331,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 start_path = start_path.cached_path
             elif isinstance(start_path, str):
                 start_path = pathlib.PurePosixPath(start_path)
+            elif start_path is None:
+                pass
             else:
                 LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
                 return

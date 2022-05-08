@@ -3,20 +3,27 @@ from PySide2 import QtCore
 from PySide2 import QtWidgets
 
 if typing.TYPE_CHECKING:
+    from nyx.core import Stage
     from nyx.core import Node
 
 
-class StageTreeWidget(QtWidgets.QTreeView):
+class StageTreeView(QtWidgets.QTreeView):
 
     selection_changed = QtCore.Signal()
     nodes_selected = QtCore.Signal(list)
     nodes_deselected = QtCore.Signal(list)
 
-    def __init__(self, stage, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, stage=None, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-        self.stage = stage
         self.setModel(self.stage)
         self.setHeaderHidden(True)
+
+    @property
+    def stage(self) -> "Stage":
+        return self.model()
+
+    def set_stage(self, stage):
+        self.setModel(stage)
 
     def current_item(self) -> "Node":
         return self.stage.itemFromIndex(self.currentIndex())

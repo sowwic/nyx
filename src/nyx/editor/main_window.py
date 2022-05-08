@@ -1,10 +1,13 @@
 import typing
+import pathlib
 
 from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
+from nyx.editor.views.stage_graph_view import StageGraphView
+from nyx.editor.views.stage_tree_view import StageTreeView
 
 if typing.TYPE_CHECKING:
     from nyx.core.config import Config
@@ -39,6 +42,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         super().__init__(parent)
         self.setWindowTitle(self.DEFAULT_TITLE)
         self.setMinimumSize(*self.MINIMUM_SIZE)
+        self.undo_group = QtWidgets.QUndoGroup(self)
 
         # Initialize ui
         self.create_actions()
@@ -53,6 +57,16 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def config(self) -> "Config":
         return QtWidgets.QApplication.instance().config()
 
+    @property
+    def current_stage_graph(self) -> "StageGraphView | None":
+        if not self.current_mdi_window:
+            return None
+        return self.current_mdi_window.widget()
+
+    @property
+    def current_mdi_window(self) -> "QtWidgets.QMdiSubWindow | None":
+        return self.mdi_area.currentSubWindow()
+
     def create_actions(self):
         pass
 
@@ -60,6 +74,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         pass
 
     def create_widgets(self):
+        self.stage_tree_view = StageTreeView()
+        self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
+        self.undo_view.setEmptyLabel("Stage initial state")
+
         # mdi area
         self.mdi_area = QtWidgets.QMdiArea()
         self.setCentralWidget(self.mdi_area)
@@ -73,14 +91,23 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Dock Widgets
         self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
         self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.North)
+        # Tree dock
+        self.stage_tree_dock = QtWidgets.QDockWidget("Tree View")
+        self.stage_tree_dock.setWidget(self.stage_tree_view)
+        # Undo view
+        self.undo_dock = QtWidgets.QDockWidget("Undo History")
+        self.undo_dock.setWidget(self.undo_view)
+
+        # Add dock widgets
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
 
     def create_layouts(self):
-        self.main_layout = QtWidgets.QVBoxLayout(self)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(self.main_layout)
+        pass
 
     def create_connections(self):
-        pass
+        self.mdi_area.subWindowActivated.connect(self.on_node_graph_window_activated)
+        self.mdi_area.subWindowActivated.connect(self.update_title)
 
     # Events
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
@@ -91,7 +118,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return super().closeEvent(event)
 
     # Config methods
-
     def save_config_value(self):
         self.config.window_position = (self.pos().x(), self.pos().y())
         self.config.window_size = (self.width(), self.height())
@@ -114,3 +140,39 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """Reset application config and apply changes."""
         QtWidgets.QApplication.instance().reset_config()
         self.apply_config_values()
+
+    def create_stage_node_graph(self, stage=None, file_path: "pathlib.Path | str" = None):
+        if file_path:
+            graph_widget = StageGraphView.from_json_file(file_path)
+        else:
+            graph_widget = StageGraphView(stage)
+        sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(graph_widget)
+        # Signal connections
+        # graph_widget.scene.signals.file_name_changed.connect(self.update_title)
+        # graph_widget.scene.signals.modified.connect(self.update_title)
+        # graph_widget.scene.signals.item_selected.connect(
+        # self.attrib_editor.update_current_node_widget)
+        # graph_widget.scene.signals.items_deselected.connect(self.attrib_editor.clear)
+        # graph_widget.signals.about_to_close.connect(self.on_sub_window_close)
+        # graph_widget.scene.signals.file_load_finished.connect(self.vars_widget.update_var_list)
+        return sub_wnd
+
+    # Slots
+    def update_title(self):
+        if not self.current_stage_graph:
+            self.setWindowTitle(self.DEFAULT_TITLE)
+            return
+
+        title = f"{self.DEFAULT_TITLE} - {self.current_stage_graph.windowTitle()}"
+        self.setWindowTitle(title)
+
+    @QtCore.Slot(QtWidgets.QMdiSubWindow)
+    def on_node_graph_window_activated(self, mdi_window: QtWidgets.QMdiSubWindow):
+        if mdi_window is None:
+            self.stage_tree_view.set_stage(None)
+            self.undo_group.setActiveStack(None)
+            return
+
+        stage_graph: StageGraphView = mdi_window.widget()
+        self.stage_tree_view.set_stage(stage_graph.stage)
+        self.undo_group.setActiveStack(stage_graph.stage.undo_stack)

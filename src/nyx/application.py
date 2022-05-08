@@ -28,6 +28,7 @@ class NyxEditorApplication(NyxApplication):
     def __init__(self) -> None:
         super().__init__()
         NyxEditorMainWindow.display()
+        self.main_window().create_stage_node_graph()
 
     def main_window(self):
-        return NyxEditorMainWindow.INSTANCE
+        return NyxEditorMainWindow.instance()
