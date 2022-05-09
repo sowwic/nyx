@@ -28,7 +28,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def __init__(self) -> None:
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
-
+        self.last_saved_undo_index = 0
         self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self._execution_start_path: pathlib.PurePosixPath = None
@@ -51,6 +51,12 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
+
+    def is_new(self):
+        return not self.undo_stack.count() and self.file_path is None
+
+    def is_modified(self):
+        return self.file_path is None or self.last_saved_undo_index != self.undo_stack.index()
 
     def list_children(self, node: "Node") -> typing.List["Node"]:
         if node is self.invisibleRootItem():
@@ -212,7 +218,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         """
         try:
             file_fn.write_json(file_path, self.serialize(), sort_keys=False)
-            self.file_path = file_path
+            self.file_path = pathlib.Path(file_path)
+            self.last_saved_undo_index = self.undo_stack.index()
         except Exception:
             LOGGER.exception("Failed to save stage to file.")
 
@@ -232,7 +239,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return
 
         self.deserialize(json_data, restore_id=True)
-        self.file_path = file_path
+        self.file_path = pathlib.Path(file_path)
+        self.last_saved_undo_index = self.undo_stack.index()
         return json_data
 
     def get_node_from_absolute_path(self, path: "pathlib.PurePosixPath | str") -> "Node | None":
