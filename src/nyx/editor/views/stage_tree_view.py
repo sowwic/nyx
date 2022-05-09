@@ -1,6 +1,9 @@
 import typing
 from PySide2 import QtCore
+from PySide2 import QtGui
 from PySide2 import QtWidgets
+
+from nyx.core import commands
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
@@ -36,3 +39,18 @@ class StageTreeView(QtWidgets.QTreeView):
         self.nodes_selected.emit(selected_items)
         self.nodes_deselected.emit(deselected_items)
         self.selection_changed.emit()
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_Delete:
+            self.delete_selected_node()
+            return
+
+        return super().keyPressEvent(event)
+
+    def delete_selected_node(self):
+        selected_node: Node = self.current_item()
+        if not selected_node:
+            return
+
+        delete_cmd = commands.DeleteNodeCommand(self.stage, selected_node)
+        self.stage.undo_stack.push(delete_cmd)
