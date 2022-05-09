@@ -53,7 +53,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def create_connections(self):
         self.stage.undo_stack.indexChanged.connect(self.update_title)
 
-    def update_title(self, *args):
+    def update_title(self):
         if not self.stage.file_path:
             title = self.DEFAULT_TITLE
         else:

@@ -116,6 +116,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_connections(self):
         self.mdi_area.subWindowActivated.connect(self.on_node_graph_window_activated)
         self.mdi_area.subWindowActivated.connect(self.update_title)
+        self.undo_group.indexChanged.connect(self.update_title)
 
     # Events
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
