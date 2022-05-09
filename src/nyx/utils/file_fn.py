@@ -38,6 +38,9 @@ def write_json(path: typing.Union[pathlib.Path, str], data: dict, as_string=Fals
     Returns:
         pathlib.Path: path to written file.
     """
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+
     with path.open("w") as json_file:
         if as_string:
             json_file.write(json.dumps(data, sort_keys=sort_keys, indent=4, separators=(",", ":")))

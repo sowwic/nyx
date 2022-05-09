@@ -151,6 +151,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.apply_config_values()
 
     def create_stage_node_graph(self, stage=None, file_path: "pathlib.Path | str" = None):
+
         if file_path:
             graph_widget = StageGraphView.from_json_file(file_path)
         else:
@@ -185,3 +186,30 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         stage_graph: StageGraphView = mdi_window.widget()
         self.stage_tree_view.set_stage(stage_graph.stage)
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
+
+    def on_stage_open(self):
+        sub_wnd = self.current_mdi_window if self.current_mdi_window else self.create_stage_node_graph()
+        stage_graph: StageGraphView = sub_wnd.widget()
+        stage_graph.on_stage_open()
+
+    def on_stage_open_tabbed(self):
+        sub_wnd = self.create_stage_node_graph()
+        stage_graph: StageGraphView = sub_wnd.widget()
+        file_opened: bool = stage_graph.on_stage_open()
+        if not file_opened:
+            self.mdi_area.removeSubWindow(sub_wnd)
+
+    def on_stage_new(self):
+        try:
+            sub_wnd = self.create_stage_node_graph()
+            sub_wnd.show()
+        except Exception:
+            LOGGER.exception('Failed to create new stage view window')
+
+    def on_stage_save(self):
+        if self.current_stage_graph:
+            self.current_stage_graph.on_stage_save()
+
+    def on_stage_save_as(self):
+        if self.current_stage_graph:
+            self.current_stage_graph.on_stage_save_as()
