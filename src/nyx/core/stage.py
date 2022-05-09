@@ -113,7 +113,18 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             self._path_map[node.path] = node
         return
 
-    def add_node(self, node: "Node | list[Node]", parent: "Node" = None):
+    def node(self, node):
+        if isinstance(node, Node):
+            return node
+        elif isinstance(node, pathlib.PurePosixPath):
+            return self.path_map.get(node)
+        elif isinstance(node, str):
+            return self.path_map.get(pathlib.PurePosixPath(node))
+        else:
+            LOGGER.exception(f"{self} | Invalid argument type: {type(node)}")
+            return None
+
+    def add_node(self, node: "Node | list[Node]", parent: "Node | pathlib.PurePosixPath | str" = None):
         """Adds new node as root node.
 
         Args:
@@ -122,18 +133,25 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         if not isinstance(node, list):
             node = [node]
 
+        if parent is not None:
+            parent = self.node(parent)
+
         for each_node in node:
             if parent:
                 parent.appendRow(each_node)
             else:
                 self.appendRow(each_node)
 
-    def delete_node(self, node: "Node"):
+    def delete_node(self, node: "Node | pathlib.PurePosixPath | str"):
         """Delete node from stage.
 
         Args:
             node (Node): node to delete.
         """
+        node = self.node(node)
+        if node is None:
+            LOGGER.exception(f"{self} | Failed to delete node.")
+            return
 
         # Removed paths
         self._delete_from_path_map(node)
