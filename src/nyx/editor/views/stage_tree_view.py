@@ -17,6 +17,7 @@ class StageTreeView(QtWidgets.QTreeView):
         super().__init__(parent)
         self.setModel(self.stage)
         self.setHeaderHidden(True)
+        self.setEditTriggers(StageTreeView.NoEditTriggers)
 
     @property
     def stage(self) -> "Stage":
