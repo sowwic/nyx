@@ -8,6 +8,7 @@ from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.views.stage_tree_view import StageTreeView
+from nyx.editor.widgets import menubar_menus
 
 if typing.TYPE_CHECKING:
     from nyx.core.config import Config
@@ -71,7 +72,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         pass
 
     def create_menubar(self):
-        pass
+        self.menubar_file_menu = menubar_menus.FileMenu(self)
+        self.menubar_edit_menu = menubar_menus.EditMenu(self)
+        self.menubar_window_menu = menubar_menus.WindowMenu(self)
+
+        self.menuBar().setNativeMenuBar(False)
+        self.menuBar().addMenu(self.menubar_file_menu)
+        self.menuBar().addMenu(self.menubar_edit_menu)
+        self.menuBar().addMenu(self.menubar_window_menu)
 
     def create_widgets(self):
         self.stage_tree_view = StageTreeView()
