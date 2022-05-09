@@ -38,6 +38,9 @@ def write_json(path: typing.Union[pathlib.Path, str], data: dict, as_string=Fals
     Returns:
         pathlib.Path: path to written file.
     """
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+
     with path.open("w") as json_file:
         if as_string:
             json_file.write(json.dumps(data, sort_keys=sort_keys, indent=4, separators=(",", ":")))
@@ -46,7 +49,7 @@ def write_json(path: typing.Union[pathlib.Path, str], data: dict, as_string=Fals
     return path
 
 
-def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = None):
+def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = None, object_pairs_hook=None):
     """Load json data from file or string.
 
     Args:
@@ -67,8 +70,16 @@ def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = Non
     else:
         path = pathlib.Path(path) if not isinstance(path, pathlib.Path) else path
         with path.open("r") as json_file:
-            data = json.load(json_file)
+            data = json.load(json_file, object_pairs_hook=object_pairs_hook)
     return data
+
+
+def is_jsonable(obj):
+    try:
+        json.dumps(obj)
+        return True
+    except (TypeError, OverflowError):
+        return False
 
 
 # Directory
@@ -85,3 +96,7 @@ def get_data_dir() -> pathlib.Path:
         return home / ".local/share"
     elif sys.platform == "darwin":
         return home / "Library/Application Support"
+
+
+def get_nyx_data_dir() -> pathlib.Path:
+    return get_data_dir() / "nyx"

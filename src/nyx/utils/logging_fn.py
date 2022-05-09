@@ -2,10 +2,10 @@ import logging
 import logging.handlers
 import enum
 
-from . import file_fn
+from nyx.utils import file_fn
 
 MAIN_LOGGER_NAME = "nyx"
-LOGS_DIRECTORY = file_fn.get_data_dir() / "nyx" / "logs"
+LOGS_DIRECTORY = file_fn.get_nyx_data_dir() / "logs"
 
 
 class LogFormat(enum.Enum):
@@ -30,7 +30,7 @@ def logger_exists(name: str):
 def get_logger(name: str,
                level: int = logging.DEBUG,
                file_level: int = logging.ERROR,
-               file_name: str = MAIN_LOGGER_NAME,
+               file_name: str = f"{MAIN_LOGGER_NAME}.log",
                std_format: str = LogFormat.basic.value,
                file_format: str = LogFormat.verbose.value):
     """Get logger object.
