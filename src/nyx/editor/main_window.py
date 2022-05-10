@@ -120,6 +120,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     # Events
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        for sub_window in self.mdi_area.subWindowList():
+            graph_view: StageGraphView = sub_window.widget()
+            result = graph_view.maybe_save()
+            if not result:
+                event.ignore()
+                return
+
         try:
             self.save_config_value()
         except Exception:

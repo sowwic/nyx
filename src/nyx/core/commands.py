@@ -294,6 +294,7 @@ class ConnectNodeExecCommand(NyxCommand):
         self.input_node_path = self.stage.node(input_node).path
         self.old_output_node_exec_value = None
         self.old_input_node_exec_value = None
+        self.setText(f"{self.text()} {self.output_node_path} -> {self.input_node_path}")
 
     def redo(self) -> None:
         output_node = self.stage.node(self.output_node_path)

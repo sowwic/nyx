@@ -81,8 +81,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
         if self.stage.is_new() or not self.stage.is_modified():
             return True
 
-        res = QtWidgets.QMessageBox.warning(self, 'Warning: Stage is not saved',
-                                            'Save changes to current stage?',
+        stage_title = self.DEFAULT_TITLE if not self.stage.file_path else self.stage.file_path.name
+        res = QtWidgets.QMessageBox.warning(self, 'Stage is not saved',
+                                            f'Save changes to "{stage_title}"?',
                                             QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel)
         if res == QtWidgets.QMessageBox.Save:
             return self.on_stage_save()
