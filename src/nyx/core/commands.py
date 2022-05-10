@@ -238,3 +238,46 @@ class ConnectAttribute(NyxCommand):
         destination_node.attr(self.destination_attr_name).set(
             self.destination_attr_old_value, resolve=True)
         return super().undo()
+
+
+class SetNodeExecutionStartPath(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 node: "Node | pathlib.PurePosixPath | str | None",
+                 path: "pathlib.PurePosixPath | str | Node",
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Set exec start ->", parent_command)
+        self.node_path = self.stage.node(node).path
+        self.path = path
+        self.old_exec_path = None
+        self.setText(f"Set {self.node_path} exec start -> {self.path}")
+
+    def redo(self) -> None:
+        node = self.stage.node(self.node_path)
+        self.old_exec_path = node.get_execution_start_path()
+        self.stage.set_execution_start_path(node, self.path)
+        return super().redo()
+
+    def undo(self) -> None:
+        self.stage.set_execution_start_path(self.node_path, self.old_exec_path)
+        return super().undo()
+
+
+class SetStageExecutionStartPath(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 path: "pathlib.PurePosixPath | str | Node",
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Set stage exec start -> ", parent_command)
+        self.path = path
+        self.old_exec_path = None
+        self.setText(f"{self.text()}{self.path}")
+
+    def redo(self) -> None:
+        self.old_exec_path = self.stage.get_execution_start_path(None)
+        self.stage.set_execution_start_path(None, self.path)
+        return super().redo()
+
+    def undo(self) -> None:
+        self.stage.set_execution_start_path(None, self.old_exec_path)
+        return super().undo()

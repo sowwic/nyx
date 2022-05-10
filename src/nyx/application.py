@@ -60,7 +60,7 @@ class NyxEditorApplication(NyxApplication):
         rename_cmd2 = commands.RenameNodeCommand(stage, "/parent_node/node", new_name="child_node")
         stage.undo_stack.push(rename_cmd2)
 
-        # Add attributes
+        # Attributes
         add_attr_cmd1 = commands.AddNodeAttributeCommand(
             stage, node="/test_node", attr_name="test_attr", attr_value=5)
         set_attr_cmd = commands.SetNodeAttributeCommand(
@@ -82,6 +82,15 @@ class NyxEditorApplication(NyxApplication):
         rename_attr_cmd = commands.RenameNodeAttributeCommand(
             stage, node="/test_node/test_child", attr_name="child_attr", new_attr_name="new_attr")
         stage.undo_stack.push(rename_attr_cmd)
+
+        # Exec starts
+        stage_exec_start_cmd = commands.SetStageExecutionStartPath(stage, "/test_node")
+        stage.undo_stack.push(stage_exec_start_cmd)
+
+        node_exec_start_cmd = commands.SetNodeExecutionStartPath(stage,
+                                                                 node="/parent_node",
+                                                                 path="/parent_node/node")
+        stage.undo_stack.push(node_exec_start_cmd)
 
         # del_attr_cmd = commands.DeleteNodeAttributeCommand(
         #     stage, node="/test_node/test_child", attr_name="new_attr",)
