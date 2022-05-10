@@ -2,8 +2,12 @@ import pathlib
 from collections import OrderedDict
 from PySide2 import QtWidgets
 
+from nyx import get_main_logger
 from nyx.core import Node
 from nyx.core import Stage
+
+
+LOGGER = get_main_logger()
 
 
 class NyxCommand(QtWidgets.QUndoCommand):
@@ -106,7 +110,7 @@ class AddNodeAttributeCommand(NyxCommand):
         self.attr_name = attr_name
         self.attr_value = attr_value
         self.attr_resolve = attr_resolve
-        self.setText(f"{self.text()} '{self.attr_name}' to {self.node_path.as_posix()}")
+        self.setText(f"{self.text()} {self.node_path.as_posix()} ({self.attr_name})")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
@@ -129,7 +133,7 @@ class DeleteNodeAttributeCommand(NyxCommand):
         self.node_path = self.stage.node(node).path
         self.attr_name = attr_name
         self.attr_serialized = None
-        self.setText(f"{self.text()} '{self.attr_name}' from {self.node_path.as_posix()}")
+        self.setText(f"{self.text()} {self.node_path.as_posix()} ({self.attr_name})")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
@@ -156,8 +160,8 @@ class RenameNodeAttributeCommand(NyxCommand):
         self.node_path = self.stage.node(node).path
         self.attr_name = attr_name
         self.new_attr_name = new_attr_name
-        self.setText(f"{self.text()} '{self.attr_name}' \
-            -> '{self.new_attr_name}' on {self.node_path.as_posix()}")
+        self.setText(
+            f"{self.text()} {self.node_path.as_posix()} ({self.attr_name}) -> '{self.new_attr_name}'")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
@@ -182,6 +186,8 @@ class SetNodeAttributeCommand(NyxCommand):
         self.attr_name = attr_name
         self.attr_value = attr_value
         self.old_attr_value = None
+        self.setText(
+            f"{self.text()} {self.node_path.as_posix()} ({self.attr_name}) -> {self.attr_value}")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
@@ -192,4 +198,43 @@ class SetNodeAttributeCommand(NyxCommand):
     def undo(self) -> None:
         node = self.stage.node(self.node_path)
         node.set_attr(self.attr_name, self.old_attr_value)
+        return super().undo()
+
+
+class ConnectAttribute(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 source_node: "Node | pathlib.PurePosixPath | str",
+                 destination_node: "Node | pathlib.PurePosixPath | str",
+                 source_attr_name: str,
+                 destination_attr_name: str,
+                 resolve_on_connect=True,
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Connect attr", parent_command)
+        self.source_node_path = self.stage.node(source_node).path
+        self.destination_node_path = self.stage.node(destination_node).path
+        self.source_attr_name = source_attr_name
+        self.destination_attr_name = destination_attr_name
+
+        LOGGER.debug(destination_attr_name)
+
+        self.destination_attr_old_value = None
+        self.resolve_on_connect = resolve_on_connect
+        self.setText(
+            f"{self.text()} {self.source_node_path.as_posix()} ({self.source_attr_name}) -> {self.destination_node_path.as_posix()} ({self.destination_attr_name})")
+
+    def redo(self) -> None:
+        source_node = self.stage.node(self.source_node_path)
+        destination_node = self.stage.node(self.destination_node_path)
+        self.destination_attr_old_value = destination_node.attr(
+            self.destination_attr_name).get(raw=True)
+        source_node.attr(self.source_attr_name).connect(
+            destination_node.attr(self.destination_attr_name), resolve=self.resolve_on_connect)
+
+        return super().redo()
+
+    def undo(self) -> None:
+        destination_node = self.stage.node(self.destination_node_path)
+        destination_node.attr(self.destination_attr_name).set(
+            self.destination_attr_old_value, resolve=True)
         return super().undo()
