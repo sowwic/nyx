@@ -75,14 +75,21 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             path = pathlib.PosixPath(path)
         return path in set(self.list_top_nodes_paths())
 
-    def generate_unique_child_name(self, name: str):
-        child_names = {node.text() for node in self.list_top_nodes()}
-        if name in child_names:
+    def generate_unique_node_name(self, base_name: str,
+                                  parent_node: "Node | pathlib.PurePosixPath | str" = None):
+        if parent_node:
+            parent_node = self.node(parent_node)
+            parent_path = parent_node.path
+        else:
+            parent_path = self.ROOT_ITEM_PATH
+
+        new_node_path = parent_path / base_name
+        if new_node_path in self.path_map:
             index = 1
-            while f"{name}{index}" in child_names:
+            while parent_path / f"{base_name}{index}" in self.path_map:
                 index += 1
-            return name + str(index)
-        return name
+            return base_name + str(index)
+        return base_name
 
     def appendRow(self, items: typing.Sequence["Node"]) -> None:
         """Overridden QStandartItemModel method.
@@ -104,20 +111,19 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 LOGGER.warning(f"{node} is already in the stage.")
                 continue
 
-            unique_name = self.generate_unique_child_name(node.name)
+            unique_name = self.generate_unique_node_name(node.name, parent_node=node.parent())
             new_path = self.ROOT_ITEM_PATH / unique_name
             if new_path in self.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
                 raise ValueError
 
             # Set unique name and check if path exist
-            node.setText(self.generate_unique_child_name(node.name))
+            node.setText(unique_name)
             super().appendRow(node)
             LOGGER.debug(f"{self} | Added {node} to root")
 
-            node._cached_path = node.path
-            self._path_map[node.path] = node
-        return
+            node.cache_current_path()
+            self._path_map[node.cached_path] = node
 
     def node(self, node):
         if isinstance(node, Node):

@@ -177,7 +177,7 @@ class Node(QtGui.QStandardItem, Serializable):
             items = [items]
 
         for node in items:
-            unique_name = self.generate_unique_child_name(node.name)
+            unique_name = self.stage.generate_unique_node_name(node.name, parent_node=self)
             new_path = self.path / unique_name
             if new_path in self.stage.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
@@ -191,24 +191,7 @@ class Node(QtGui.QStandardItem, Serializable):
             node.cache_current_path()
             self.stage._path_map[node.path] = node
 
-    def generate_unique_child_name(self, name: str):
-        """Iterate through node children to generate unique name from given one.
-
-        Args:
-            name (str): desired name.
-
-        Returns:
-            str: unique child name.
-        """
-        child_names = self.child_names_set()
-        if name in child_names:
-            index = 1
-            while f"{name}{index}" in child_names:
-                index += 1
-            return name + str(index)
-        return name
-
-    def rename(self, new_name):
+    def rename(self, new_name: str):
         """Rename node.
 
         - Also update path for self and children in path map.
@@ -219,10 +202,7 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_name == self.name:
             return
 
-        if not self.parent():
-            new_name = self.stage.generate_unique_child_name(new_name)
-        else:
-            new_name = self.parent().generate_unique_child_name(new_name)
+        new_name = self.stage.generate_unique_node_name(new_name, parent_node=self.parent())
         self.setText(new_name)
         self._update_pathmap_entry()
 
