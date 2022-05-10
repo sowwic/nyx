@@ -26,7 +26,9 @@ class Node(QtGui.QStandardItem, Serializable):
     INPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 3
     OUTPUT_EXEC_ROLE: int = QtCore.Qt.UserRole + 4
     ACTIVE_ROLE: int = QtCore.Qt.UserRole + 5
-    EXECUTION_START_PATH: int = QtCore.Qt.UserRole + 6
+    EXECUTION_START_PATH_ROLE: int = QtCore.Qt.UserRole + 6
+    POSITION_ROLE: int = QtCore.Qt.UserRole + 7
+    COMMENT_ROLE: int = QtCore.Qt.UserRole + 8
 
     def __init__(self, name: str = "node", parent: "Node" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
@@ -36,7 +38,9 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData("", role=Node.INPUT_EXEC_ROLE)
         self.setData("", role=Node.OUTPUT_EXEC_ROLE)
         self.setData(True, role=Node.ACTIVE_ROLE)
-        self.setData(None, role=Node.EXECUTION_START_PATH)
+        self.setData(None, role=Node.EXECUTION_START_PATH_ROLE)
+        self.setData([0.0, 0.0], role=Node.POSITION_ROLE)
+        self.setData("", role=Node.COMMENT_ROLE)
 
         self._cached_path = None
         if parent:
@@ -143,6 +147,18 @@ class Node(QtGui.QStandardItem, Serializable):
     def activate(self):
         """Set node's active state to True."""
         self.set_active(True)
+
+    def position(self) -> "list[float, float]":
+        return self.data(role=Node.POSITION_ROLE)
+
+    def set_position(self, pos_x: float, pos_y: float):
+        self.setData([pos_x, pos_y], role=Node.POSITION_ROLE)
+
+    def comment(self) -> str:
+        return self.data(role=Node.COMMENT_ROLE)
+
+    def set_comment(self, text: str):
+        self.setData(text, role=Node.COMMENT_ROLE)
 
     def appendRow(self, items: typing.Sequence["Node"]) -> None:
         """Override Qt method.
@@ -490,10 +506,12 @@ class Node(QtGui.QStandardItem, Serializable):
             OrderedDict: serialized data
         """
         data = super().serialize()
-        data["name"] = self.text()
         children = [child.serialize() for child in self.list_children()]
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
+
+        data["name"] = self.text()
         data["active"] = self.is_active()
+        data["position"] = self.position()
         data["path"] = self.path.as_posix()
         data["execution_start_path"] = self.get_execution_start_path(serializable=True)
         data["input_exec"] = self.get_input_exec_path()
@@ -501,6 +519,7 @@ class Node(QtGui.QStandardItem, Serializable):
         data["attribs"] = attribs
         data["children"] = children
         data["code"] = self.python_code
+        data["comment"] = self.comment()
         return data
 
     def deserialize(self, data: OrderedDict, hashmap: dict, restore_id=True):
@@ -518,6 +537,8 @@ class Node(QtGui.QStandardItem, Serializable):
         self.set_input_exec_path(data.get("input_exec", ""), silent=True)
         self.set_output_exec_path(data.get("output_exec", ""), silent=True)
         self.set_execution_start_path(data.get("execution_start_path"))
+        self.set_position(*data.get("position", [0.0, 0.0]))
+        self.set_comment(data.get("comment", ""))
 
         hashmap[self.uuid] = self
         self._update_pathmap_entry()
@@ -602,7 +623,7 @@ class Node(QtGui.QStandardItem, Serializable):
         elif isinstance(child_path, str):
             child_path = pathlib.PurePosixPath(child_path)
 
-        self.setData(child_path, role=Node.EXECUTION_START_PATH)
+        self.setData(child_path, role=Node.EXECUTION_START_PATH_ROLE)
         LOGGER.info(f"{self} | Set execution start path to: {child_path}")
 
     def get_execution_start_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
@@ -614,7 +635,7 @@ class Node(QtGui.QStandardItem, Serializable):
         Returns:
             pathlib.PurePosixPath | str | None: execution start path
         """
-        path = self.data(role=Node.EXECUTION_START_PATH)
+        path = self.data(role=Node.EXECUTION_START_PATH_ROLE)
         if serializable and isinstance(path, pathlib.PurePosixPath):
             path = path.as_posix()
         return path
