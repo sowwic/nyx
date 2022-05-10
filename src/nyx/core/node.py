@@ -361,7 +361,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def get_output_exec_path(self) -> "str":
         return self.data(role=Node.OUTPUT_EXEC_ROLE)
 
-    def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None", silent=False) -> None:
+    def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
         if isinstance(path, Node):
             path = path.path.as_posix()
         elif isinstance(path, pathlib.PurePosixPath):
@@ -378,11 +378,11 @@ class Node(QtGui.QStandardItem, Serializable):
 
         previous_input_exec = self.get_input_exec_path()
         if path == previous_input_exec:
-            LOGGER.debug(f"{self}: exec output is already set to {previous_input_exec}")
+            LOGGER.debug(f"{self}: exec output set to {previous_input_exec}")
             return
 
         new_input_exec_node: "Node" = self.stage.get_node_from_absolute_path(path)
-        if new_input_exec_node.scope != self.scope:
+        if new_input_exec_node and new_input_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new input scope: {new_input_exec_node.scope}")
             return
 
@@ -402,7 +402,7 @@ class Node(QtGui.QStandardItem, Serializable):
             if new_input_exec_node.get_output_exec_path() != path_from_new_input_exec_node.as_posix():
                 new_input_exec_node.set_output_exec_path(self.path)
 
-    def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node | None", silent=False) -> None:
+    def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
         if isinstance(path, Node):
             path = path.path.as_posix()
         elif isinstance(path, pathlib.PurePosixPath):
@@ -419,11 +419,11 @@ class Node(QtGui.QStandardItem, Serializable):
 
         previous_output_exec = self.get_output_exec_path()
         if path == previous_output_exec:
-            LOGGER.debug(f"{self}: exec output is already set to {previous_output_exec}")
+            LOGGER.debug(f"{self}: exec output set to {previous_output_exec}")
             return
 
         new_output_exec_node: "Node" = self.stage.get_node_from_absolute_path(path)
-        if new_output_exec_node.scope != self.scope:
+        if new_output_exec_node and new_output_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new output scope: {new_output_exec_node.scope}")
             return
 

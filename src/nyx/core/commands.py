@@ -221,7 +221,7 @@ class ConnectAttribute(NyxCommand):
         self.destination_attr_old_value = None
         self.resolve_on_connect = resolve_on_connect
         self.setText(
-            f"{self.text()} {self.source_node_path.as_posix()} ({self.source_attr_name}) -> {self.destination_node_path.as_posix()} ({self.destination_attr_name})")
+            f"{self.text()} {self.source_node_path.as_posix()} ({self.source_attr_name}) -> {self.destination_node_path.as_posix()} ({self.destination_attr_name})")  # noqa: E501
 
     def redo(self) -> None:
         source_node = self.stage.node(self.source_node_path)
@@ -240,7 +240,7 @@ class ConnectAttribute(NyxCommand):
         return super().undo()
 
 
-class SetNodeExecutionStartPath(NyxCommand):
+class SetNodeExecStartCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  node: "Node | pathlib.PurePosixPath | str | None",
@@ -263,7 +263,7 @@ class SetNodeExecutionStartPath(NyxCommand):
         return super().undo()
 
 
-class SetStageExecutionStartPath(NyxCommand):
+class SetStageExecStartCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  path: "pathlib.PurePosixPath | str | Node",
@@ -280,4 +280,32 @@ class SetStageExecutionStartPath(NyxCommand):
 
     def undo(self) -> None:
         self.stage.set_execution_start_path(None, self.old_exec_path)
+        return super().undo()
+
+
+class ConnectNodeExecCommand(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 output_node: "Node | pathlib.PurePosixPath | str",
+                 input_node: "Node | pathlib.PurePosixPath | str",
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Connect exec", parent_command)
+        self.output_node_path = self.stage.node(output_node).path
+        self.input_node_path = self.stage.node(input_node).path
+        self.old_output_node_exec_value = None
+        self.old_input_node_exec_value = None
+
+    def redo(self) -> None:
+        output_node = self.stage.node(self.output_node_path)
+        input_node = self.stage.node(self.input_node_path)
+        self.old_output_node_exec_value = output_node.get_output_exec_path()
+        self.old_input_node_exec_value = input_node.get_input_exec_path()
+        input_node.set_input_exec_path(output_node)
+        return super().redo()
+
+    def undo(self) -> None:
+        output_node = self.stage.node(self.output_node_path)
+        input_node = self.stage.node(self.input_node_path)
+        output_node.set_output_exec_path(self.old_output_node_exec_value)
+        input_node.set_input_exec_path(self.old_input_node_exec_value)
         return super().undo()
