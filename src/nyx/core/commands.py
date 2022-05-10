@@ -12,15 +12,20 @@ class NyxCommand(QtWidgets.QUndoCommand):
 
 
 class CreateNodeCommand(NyxCommand):
-    def __init__(self, stage: Stage, parent_path=None, position=None, parent_command=None) -> None:
+    def __init__(self,
+                 stage: Stage,
+                 node_name: str = "node",
+                 parent_path: str = None,
+                 position=None, parent_command=None) -> None:
         super().__init__("Create Node", parent=parent_command)
         self.stage = stage
         self.position = position
         self.parent_path = parent_path
+        self.node_name = node_name
         self.node_data: OrderedDict = None
 
     def redo(self) -> None:
-        node = Node()
+        node = Node(name=self.node_name)
         self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()
 

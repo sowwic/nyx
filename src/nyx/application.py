@@ -42,8 +42,13 @@ class NyxEditorApplication(NyxApplication):
         # Create 2 nodes
         create_cmd1 = commands.CreateNodeCommand(stage)
         create_cmd2 = commands.CreateNodeCommand(stage, parent_path="/node")
+        create_cmd3 = commands.CreateNodeCommand(stage, parent_path="/node")
+        create_cmd4 = commands.CreateNodeCommand(stage, node_name="test_custom_name")
+
         stage.undo_stack.push(create_cmd1)
         stage.undo_stack.push(create_cmd2)
+        stage.undo_stack.push(create_cmd3)
+        stage.undo_stack.push(create_cmd4)
 
         # Renamed parent
         rename_cmd1 = commands.RenameNodeCommand(stage, "/node", new_name="parent_node")
