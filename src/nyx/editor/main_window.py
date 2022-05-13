@@ -6,7 +6,7 @@ from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
-from nyx.editor.views.stage_graph_view import StageGraphView
+from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets import menubar_menus
 
@@ -59,7 +59,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return QtWidgets.QApplication.instance().config()
 
     @property
-    def current_stage_graph(self) -> "StageGraphView | None":
+    def current_stage_graph(self) -> "StageGraphEditor | None":
         if not self.current_mdi_window:
             return None
         return self.current_mdi_window.widget()
@@ -121,8 +121,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     # Events
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         for sub_window in self.mdi_area.subWindowList():
-            graph_view: StageGraphView = sub_window.widget()
-            result = graph_view.maybe_save()
+            graph_editor: StageGraphEditor = sub_window.widget()
+            result = graph_editor.maybe_save()
             if not result:
                 event.ignore()
                 return
@@ -160,9 +160,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_stage_node_graph(self, stage=None, file_path: "pathlib.Path | str" = None):
 
         if file_path:
-            graph_widget = StageGraphView.from_json_file(file_path)
+            graph_widget = StageGraphEditor.from_json_file(file_path)
         else:
-            graph_widget = StageGraphView(stage)
+            graph_widget = StageGraphEditor(stage)
         sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(graph_widget)
         # Signal connections
         # graph_widget.scene.signals.file_name_changed.connect(self.update_title)
@@ -190,18 +190,18 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             self.undo_group.setActiveStack(None)
             return
 
-        stage_graph: StageGraphView = mdi_window.widget()
+        stage_graph: StageGraphEditor = mdi_window.widget()
         self.stage_tree_view.set_stage(stage_graph.stage)
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
 
     def on_stage_open(self):
         sub_wnd = self.current_mdi_window if self.current_mdi_window else self.create_stage_node_graph()
-        stage_graph: StageGraphView = sub_wnd.widget()
+        stage_graph: StageGraphEditor = sub_wnd.widget()
         stage_graph.on_stage_open()
 
     def on_stage_open_tabbed(self):
         sub_wnd = self.create_stage_node_graph()
-        stage_graph: StageGraphView = sub_wnd.widget()
+        stage_graph: StageGraphEditor = sub_wnd.widget()
         file_opened: bool = stage_graph.on_stage_open()
         if not file_opened:
             self.mdi_area.removeSubWindow(sub_wnd)
