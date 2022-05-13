@@ -6,6 +6,7 @@ from nyx import get_main_logger
 from nyx.core.config import Config
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.core import commands
+from nyx.utils import pyside_fn
 
 os.environ["QT_MAC_WANTS_LAYER"] = "1"
 LOGGER = get_main_logger()
@@ -28,6 +29,9 @@ class NyxApplication(QtWidgets.QApplication):
 class NyxEditorApplication(NyxApplication):
     def __init__(self) -> None:
         super().__init__()
+        if self.config().dark_mode:
+            pyside_fn.set_dark_fusion_palette(self)
+
         NyxEditorMainWindow.display()
         self.main_window().create_stage_node_graph()
 
