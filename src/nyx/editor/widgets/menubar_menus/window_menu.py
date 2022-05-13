@@ -14,3 +14,4 @@ class WindowMenu(BaseMenu):
     def populate(self):
         self.addAction(self.main_window.stage_tree_dock.toggleViewAction())
         self.addAction(self.main_window.undo_dock.toggleViewAction())
+        self.addAction(self.main_window.logger_dock.toggleViewAction())

@@ -1,6 +1,7 @@
 import logging
 import logging.handlers
 import enum
+from PySide2 import QtCore
 
 from nyx.utils import file_fn
 
@@ -13,6 +14,20 @@ class LogFormat(enum.Enum):
     minimal: str = "[%(levelname)s] %(message)s"
     basic: str = "[%(levelname)s][%(name)s] %(message)s"
     verbose: str = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+
+
+class QSignaler(QtCore.QObject):
+    message_logged = QtCore.Signal(str)
+
+
+class QSignalHandler(logging.Handler):
+    def __init__(self, *args, **kwargs):
+        super(QSignalHandler, self).__init__(*args, **kwargs)
+        self.emitter = QSignaler()
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.emitter.message_logged.emit(msg)
 
 
 def logger_exists(name: str):
@@ -99,3 +114,18 @@ def get_log_files(pattern: str = "*"):
         Generator[pathlib.Path]: generator for paths matching given pattern.
     """
     return LOGS_DIRECTORY.glob(pattern)
+
+
+def add_signal_handler(logger: logging.Logger,
+                       formatter: "LogFormat | logging.Formatter" = LogFormat.minimal) -> QSignalHandler:
+    if hasattr(logger, "signal_handler"):
+        return logger.signal_handler
+
+    if isinstance(formatter, LogFormat):
+        formatter = logging.Formatter(formatter.value)
+
+    signal_handler = QSignalHandler()
+    signal_handler.setFormatter(formatter)
+    logger.addHandler(signal_handler)
+    logger.signal_handler = signal_handler
+    return signal_handler
