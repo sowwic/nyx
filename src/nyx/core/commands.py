@@ -313,6 +313,28 @@ class ConnectNodeExecCommand(NyxCommand):
         return super().undo()
 
 
+class DisconnectNodeInputExecCommand(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 node: "Node | pathlib.PurePosixPath | str",
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Disconnect exec input", parent_command)
+        self.node_path = self.stage.node(node).path
+        self.setText(f"{self.text()} ({self.node_path})")
+        self.previous_input_exec_path = None
+
+    def redo(self) -> None:
+        node = self.stage.node(self.node_path)
+        self.previous_input_exec_path = node.get_input_exec_path()
+        node.set_input_exec_path(None)
+        return super().redo()
+
+    def undo(self) -> None:
+        node = self.stage.node(self.node_path)
+        node.set_input_exec_path(self.previous_input_exec_path)
+        return super().undo()
+
+
 class EditNodePythonCodeCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",

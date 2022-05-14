@@ -1,4 +1,5 @@
 import typing
+import pathlib
 # from PySide2 import QtCore
 # from PySide2 import QtGui
 from PySide2 import QtWidgets
@@ -65,6 +66,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.tree_view.selection_changed.connect(self.update_node_data_from_treeview)
         self.main_window.undo_group.indexChanged.connect(self.update_node_data_from_treeview)
         self.node_name_lineedit.editingFinished.connect(self.apply_name_edit)
+        self.node_exec_input_line_edit.editingFinished.connect(self.apply_exec_input_edit)
 
     def deactivate(self):
         pass
@@ -107,3 +109,25 @@ class AttributeEditor(QtWidgets.QWidget):
                                                 node=current_node,
                                                 new_name=new_name)
         current_node.stage.undo_stack.push(rename_cmd)
+
+    def apply_exec_input_edit(self):
+        current_node = self.tree_view.current_item()
+        if not current_node:
+            return
+
+        new_path = pathlib.PurePosixPath(self.node_exec_input_line_edit.text())
+        if new_path == pathlib.PurePosixPath("."):
+            new_path = None
+
+        if new_path == current_node.get_input_exec_path():
+            return
+
+        source_node = current_node.stage.node(new_path)
+        if source_node is None:
+            set_exec_input_cmd = commands.DisconnectNodeInputExecCommand(stage=current_node.stage,
+                                                                         node=current_node)
+        else:
+            set_exec_input_cmd = commands.ConnectNodeExecCommand(stage=current_node.stage,
+                                                                 output_node=source_node,
+                                                                 input_node=current_node)
+        current_node.stage.undo_stack.push(set_exec_input_cmd)
