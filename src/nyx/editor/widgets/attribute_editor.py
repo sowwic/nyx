@@ -81,7 +81,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_name_lineedit.setText(current_node.name)
         self.node_path_lineedit.setText(current_node.path.as_posix())
         self.node_exec_input_line_edit.setText(
-            current_node.get_input_exec_path())
+            current_node.get_input_exec_path(serializable=True))
         self.node_execution_start_lineedit.setText(
             current_node.get_execution_start_path(serializable=True))
         self.node_isactive_checkbox.setChecked(current_node.is_active())

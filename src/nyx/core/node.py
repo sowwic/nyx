@@ -35,8 +35,8 @@ class Node(QtGui.QStandardItem, Serializable):
         Serializable.__init__(self)
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
-        self.setData("", role=Node.INPUT_EXEC_ROLE)
-        self.setData("", role=Node.OUTPUT_EXEC_ROLE)
+        self.setData(None, role=Node.INPUT_EXEC_ROLE)
+        self.setData(None, role=Node.OUTPUT_EXEC_ROLE)
         self.setData(True, role=Node.ACTIVE_ROLE)
         self.setData(None, role=Node.EXECUTION_START_PATH_ROLE)
         self.setData([0.0, 0.0], role=Node.POSITION_ROLE)
@@ -366,18 +366,26 @@ class Node(QtGui.QStandardItem, Serializable):
         stacked_attrs.update(self.attribs)
         return stacked_attrs
 
-    def get_input_exec_path(self) -> "str":
-        return self.data(role=Node.INPUT_EXEC_ROLE)
+    def get_input_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | None":
+        path = self.data(role=Node.INPUT_EXEC_ROLE)
+        if path is None or not serializable:
+            return path
+        return path.as_posix()
 
-    def get_output_exec_path(self) -> "str":
-        return self.data(role=Node.OUTPUT_EXEC_ROLE)
+    def get_output_exec_path(self, serializable=False) -> "str":
+        path = self.data(role=Node.OUTPUT_EXEC_ROLE)
+        if path is None or not serializable:
+            return path
+        return path.as_posix()
 
     def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
         if isinstance(path, Node):
-            path = path.path.as_posix()
+            path = path.path
         elif isinstance(path, pathlib.PurePosixPath):
-            path = path.as_posix()
+            pass
         elif isinstance(path, str):
+            path = pathlib.PurePosixPath(path)
+        elif path is None:
             pass
         else:
             LOGGER.error("{self}: Invalid input exec path: {}")
@@ -387,12 +395,12 @@ class Node(QtGui.QStandardItem, Serializable):
             self.setData(path, role=Node.INPUT_EXEC_ROLE)
             return
 
-        previous_input_exec = self.get_input_exec_path()
-        if path == previous_input_exec:
-            LOGGER.debug(f"{self}: exec output set to {previous_input_exec}")
+        new_input_exec_node: "Node" = self.stage.node(path)
+        previous_input_exec_node = self.stage.node(self.get_input_exec_path())
+        if new_input_exec_node == previous_input_exec_node:
+            LOGGER.debug(f"{self}: exec output set to {new_input_exec_node.path}")
             return
 
-        new_input_exec_node: "Node" = self.stage.node(path)
         if new_input_exec_node and new_input_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new input scope: {new_input_exec_node.scope}")
             return
@@ -401,22 +409,23 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(path, role=Node.INPUT_EXEC_ROLE)
 
         # Reset old input node
-        previous_input_exec_node = self.stage.node(previous_input_exec)
         if previous_input_exec_node is not None:
-            previous_input_exec_node.set_output_exec_path("", silent=True)
+            previous_input_exec_node.set_output_exec_path(None, silent=True)
 
         # Get path from new node to self
         # If its different from self.path -> store new path
         if new_input_exec_node is not None:
-            if new_input_exec_node.get_output_exec_path() != self.path.as_posix():
-                new_input_exec_node.set_output_exec_path(self.path.as_posix())
+            if new_input_exec_node.get_output_exec_path() != self.path:
+                new_input_exec_node.set_output_exec_path(self.path)
 
     def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
         if isinstance(path, Node):
-            path = path.path.as_posix()
+            path = path.path
         elif isinstance(path, pathlib.PurePosixPath):
-            path = path.as_posix()
+            pass
         elif isinstance(path, str):
+            path = pathlib.PurePosixPath(path)
+        elif path is None:
             pass
         else:
             LOGGER.error("{self}: Invalid output exec path: {}")
@@ -426,28 +435,27 @@ class Node(QtGui.QStandardItem, Serializable):
             self.setData(path, role=Node.OUTPUT_EXEC_ROLE)
             return
 
-        previous_output_exec = self.get_output_exec_path()
-        if path == previous_output_exec:
-            LOGGER.debug(f"{self}: exec output set to {previous_output_exec}")
+        new_output_exec_node = self.stage.node(path)
+        previous_output_exec_node = self.stage.node(self.get_output_exec_path())
+        if new_output_exec_node == previous_output_exec_node:
+            LOGGER.debug(f"{self}: exec output set to {previous_output_exec_node.cached_path}")
             return
 
-        new_output_exec_node: "Node" = self.stage.node(path)
         if new_output_exec_node and new_output_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new output scope: {new_output_exec_node.scope}")
             return
         # Set connections
-        self.setData(path, role=Node.OUTPUT_EXEC_ROLE)
+        self.setData(new_output_exec_node.path, role=Node.OUTPUT_EXEC_ROLE)
 
         # Reset old output node
-        previous_output_exec_node = self.stage.node(previous_output_exec)
         if previous_output_exec_node is not None:
-            previous_output_exec_node.set_input_exec_path("", silent=True)
+            previous_output_exec_node.set_input_exec_path(None, silent=True)
 
         # Get path from new node to self
         # If its different from self.path -> store new path
         if new_output_exec_node is not None:
-            if new_output_exec_node.get_output_exec_path() != self.path.as_posix():
-                new_output_exec_node.set_input_exec_path(self.path.as_posix())
+            if new_output_exec_node.get_output_exec_path() != self.path:
+                new_output_exec_node.set_input_exec_path(self.path)
 
     def on_changed(self):
         pass
@@ -467,8 +475,8 @@ class Node(QtGui.QStandardItem, Serializable):
         data["position"] = self.position()
         data["path"] = self.path.as_posix()
         data["execution_start_path"] = self.get_execution_start_path(serializable=True)
-        data["input_exec"] = self.get_input_exec_path()
-        data["output_exec"] = self.get_output_exec_path()
+        data["input_exec"] = self.get_input_exec_path(serializable=True)
+        data["output_exec"] = self.get_output_exec_path(serializable=True)
         data["attribs"] = attribs
         data["children"] = children
         data["code"] = self.python_code
