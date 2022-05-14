@@ -283,11 +283,19 @@ class Node(QtGui.QStandardItem, Serializable):
         self.stage.delete_node(self)
 
     def add_attr(self, name: str, value=None, resolve=True):
-        if name in self.attribs.keys():
-            raise nyx_exceptions.NodeClashingAttributeNameError
+        name = self.generate_unique_attr_name(name)
         self[name] = value
         if resolve:
             self[name].resolve()
+        return self[name]
+
+    def generate_unique_attr_name(self, name: str):
+        if name in self.attribs.keys():
+            index = 1
+            while name + str(index) in self.attribs.keys():
+                index += 1
+            return name + str(index)
+        return name
 
     def attr(self, name: str) -> Attribute:
         """Get attribute with name.
@@ -338,8 +346,11 @@ class Node(QtGui.QStandardItem, Serializable):
         if name not in data.keys():
             LOGGER.warning(f"Can't rename attribute {name} that doesn't exist!")
             return
+
+        new_name = self.generate_unique_attr_name(new_name)
         data[new_name] = data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
+        return data[new_name]
 
     def stacked_attribs(self):
         """Dictionary of merged dictionaries.

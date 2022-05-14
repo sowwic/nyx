@@ -114,7 +114,8 @@ class AddNodeAttributeCommand(NyxCommand):
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
-        node.add_attr(self.attr_name, value=self.attr_value, resolve=self.attr_resolve)
+        new_attr = node.add_attr(self.attr_name, value=self.attr_value, resolve=self.attr_resolve)
+        self.attr_name = new_attr.name
         return super().redo()
 
     def undo(self) -> None:
@@ -165,7 +166,7 @@ class RenameNodeAttributeCommand(NyxCommand):
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
-        node.rename_attr(self.attr_name, self.new_attr_name)
+        self.new_attr_name = node.rename_attr(self.attr_name, self.new_attr_name).name
         return super().redo()
 
     def undo(self) -> None:
