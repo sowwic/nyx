@@ -15,9 +15,13 @@ LOGGER = get_main_logger()
 
 
 class AttrTableItem(QtWidgets.QTableWidgetItem):
+    EDITABLE = True
+
     def __init__(self, node_attr: "Attribute", text: str) -> None:
-        self.node_attr = node_attr
         super().__init__(text)
+        self.node_attr = node_attr
+        if not self.EDITABLE:
+            self.setFlags(self.flags() ^ QtCore.Qt.ItemIsEditable)
 
     def set_node_attr_value(self):
         raise NotImplementedError
@@ -44,6 +48,8 @@ class AttrNameTableItem(AttrTableItem):
 
 
 class AttrTypeTableItem(AttrTableItem):
+    EDITABLE = False
+
     def __init__(self, node_attr: "Attribute") -> None:
         super().__init__(node_attr, node_attr.resolved_value.__class__.__name__)
         self.setData(QtCore.Qt.UserRole, type(self.node_attr.resolved_value))
@@ -76,6 +82,8 @@ class AttrRawValueTableItem(AttrTableItem):
 
 
 class AttrResolvedValueTableItem(AttrTableItem):
+    EDITABLE = False
+
     def __init__(self, node_attr: "Attribute") -> None:
         super().__init__(node_attr, str(node_attr.resolved_value))
         self.setData(QtCore.Qt.UserRole, self.node_attr.resolved_value)
@@ -84,6 +92,8 @@ class AttrResolvedValueTableItem(AttrTableItem):
 
 
 class AttrCachedValueTableItem(AttrTableItem):
+    EDITABLE = False
+
     def __init__(self, node_attr: "Attribute") -> None:
         super().__init__(node_attr, str(node_attr.cached_value))
         self.setData(QtCore.Qt.UserRole, node_attr.cached_value)
