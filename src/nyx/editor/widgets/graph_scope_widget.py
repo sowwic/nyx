@@ -27,7 +27,7 @@ class GraphScopeWidget(QtWidgets.QWidget):
 
     def create_layouts(self):
         self.main_layout = QtWidgets.QHBoxLayout()
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setContentsMargins(5, 0, 5, 0)
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(self.scope_back_btn)
         self.main_layout.addWidget(self.path_line_edit)

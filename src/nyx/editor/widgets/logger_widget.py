@@ -67,7 +67,6 @@ class RichLogMessageItem(QtWidgets.QListWidgetItem):
 class LoggerWidget(QtWidgets.QWidget):
     def __init__(self, logger_name=logging_fn.MAIN_LOGGER_NAME, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-
         self.create_actions()
         self.create_widgets()
         self.create_layouts()
@@ -80,8 +79,10 @@ class LoggerWidget(QtWidgets.QWidget):
     def create_widgets(self):
         self.std_out = QtWidgets.QTextEdit()
         self.std_out.setReadOnly(True)
+        self.std_out.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.rich_out = QtWidgets.QListWidget()
         self.rich_out.setWordWrap(False)
+        self.rich_out.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
         self.tab_widget = QtWidgets.QTabWidget()
         self.tab_widget.setContentsMargins(0, 0, 0, 0,)
@@ -95,19 +96,49 @@ class LoggerWidget(QtWidgets.QWidget):
         self.main_layout.addWidget(self.tab_widget)
 
     def create_connections(self):
-        pass
+        self.std_out.customContextMenuRequested.connect(self.show_raw_output_context_menu)
+        self.rich_out.customContextMenuRequested.connect(self.show_rich_output_context_menu)
 
     @property
     def logger(self):
         return self.__logger
 
+    @property
+    def config(self):
+        return QtWidgets.QApplication.instance().config()
+
+    @property
+    def auto_scroll(self):
+        return self.config.logger_autoscroll
+
     def set_logger(self, name: str):
         self.__logger = logging_fn.get_logger(name,
                                               level=QtWidgets.QApplication.instance().config().logging_level)
         logging_fn.add_signal_handler(self.__logger)
-        self.__logger.signal_handler.emitter.message_logged.connect(self.std_out.append)
+        self.__logger.signal_handler.emitter.message_logged.connect(self.append_raw_message)
         self.__logger.signal_handler.emitter.record_logged.connect(self.append_rich_message)
+
+    def append_raw_message(self, text: str):
+        self.std_out.append(text)
+        if self.auto_scroll:
+            self.std_out.verticalScrollBar().setValue(self.std_out.verticalScrollBar().maximum())
 
     def append_rich_message(self, record: logging_fn.logging.LogRecord):
         log_item = RichLogMessageItem(record)
         self.rich_out.addItem(log_item)
+        if self.auto_scroll:
+            self.rich_out.scrollToBottom()
+
+    def show_raw_output_context_menu(self, point: QtCore.QPoint):
+        menu = QtWidgets.QMenu(self.std_out)
+        clear_action = QtWidgets.QAction("Clear", self.std_out)
+        clear_action.triggered.connect(self.std_out.clear)
+        menu.addAction(clear_action)
+        menu.exec_(self.std_out.mapToGlobal(point))
+
+    def show_rich_output_context_menu(self, point: QtCore.QPoint):
+        menu = QtWidgets.QMenu(self.rich_out)
+        clear_action = QtWidgets.QAction("Clear", self.rich_out)
+        clear_action.triggered.connect(self.rich_out.clear)
+        menu.addAction(clear_action)
+        menu.exec_(self.rich_out.mapToGlobal(point))

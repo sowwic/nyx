@@ -16,6 +16,7 @@ class Config:
     logging_level: int = 10
     maya_port: int = 7221
     dark_mode: bool = True
+    logger_autoscroll: bool = True
 
     @classmethod
     def get_fields_names(cls):
