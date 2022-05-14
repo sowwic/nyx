@@ -83,6 +83,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         """Create connections between graph widgets and stage."""
         self.stage.undo_stack.indexChanged.connect(self.update_title)
         self.tree_view.node_doubleclicked.connect(self.set_scope_path)
+        self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
 
     def create_connections(self):
         """Create signal to slot connections."""
@@ -193,3 +194,8 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def scope_back(self) -> None:
         self.set_scope_path(self.get_scope_path().parent)
+
+    def _handle_scope_path_at_node_deletion(self, deleted_node_path):
+        current_scope = self.get_scope_path()
+        if current_scope == deleted_node_path or deleted_node_path in current_scope.parents:
+            self.set_scope_path(self.stage.ROOT_ITEM_PATH)

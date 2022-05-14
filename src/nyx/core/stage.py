@@ -2,6 +2,7 @@ import typing
 import pprint
 import pathlib
 from collections import OrderedDict
+from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
@@ -16,6 +17,8 @@ LOGGER = get_main_logger()
 
 
 class Stage(QtGui.QStandardItemModel, Serializable):
+
+    node_deleted = QtCore.Signal(pathlib.PurePosixPath)
 
     FILE_EXTENSION = ".nyx"
     ROOT_ITEM_PATH = pathlib.PurePosixPath("/")
@@ -166,11 +169,14 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return
 
         # Removed paths
+        node = self.node(node)
+        node_path_to_emit = node.path
         self._delete_from_path_map(node)
         self.beginResetModel()
         parent = node.parent() or self.invisibleRootItem()
         self.removeRow(node.row(), parent.index())
         self.endResetModel()
+        self.node_deleted.emit(node_path_to_emit)
 
     def _delete_from_path_map(self, node: "Node", children=True):
         """Remove node's path from path map.
