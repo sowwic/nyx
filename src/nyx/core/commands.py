@@ -388,7 +388,7 @@ class SetNodeCommentCommand(NyxCommand):
                  node: "Node | pathlib.PurePosixPath | str | None",
                  comment: str,
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
-        super().__init__(stage, "Edit comment for ", parent_command)
+        super().__init__(stage, "Edit comment for", parent_command)
         self.node_path = self.stage.node(node).path
         self.old_comment = None
         self.new_comment = comment
@@ -403,4 +403,29 @@ class SetNodeCommentCommand(NyxCommand):
     def undo(self) -> None:
         node = self.stage.node(self.node_path)
         node.set_comment(self.old_comment)
+        return super().undo()
+
+
+class SetNodePositionCommand(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 node: "Node | pathlib.PurePosixPath | str | None",
+                 new_position: "tuple(float, float)",
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Set position", parent_command)
+        self.node_path = self.stage.node(node).path
+        self.new_position = new_position
+        self.old_position = None
+        self.setText(
+            f"{self.text()} ({self.node_path} -> ({self.new_position[0], self.new_position[1]}))")
+
+    def redo(self) -> None:
+        node = self.stage.node(self.node_path)
+        self.old_position = node.position()
+        node.set_position(*self.new_position)
+        return super().redo()
+
+    def undo(self) -> None:
+        node = self.stage.node(self.node_path)
+        node.set_position(*self.old_position)
         return super().undo()

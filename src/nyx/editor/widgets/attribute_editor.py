@@ -33,7 +33,6 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def create_widgets(self):
         # TODO: Add scroll area
-        # TODO: Add attributes table
         self.node_name_lineedit = QtWidgets.QLineEdit()
         self.node_path_lineedit = QtWidgets.QLineEdit()
         self.node_path_lineedit.setReadOnly(True)
@@ -71,6 +70,8 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_execution_start_lineedit.editingFinished.connect(self.apply_execution_start_edit)
         self.node_isactive_checkbox.toggled.connect(self.apply_active_toggle)
         self.node_comment_text_edit.editingFinished.connect(self.apply_comment_edit)
+        self.node_position_x_spinbox.editingFinished .connect(self.apply_position_edit)
+        self.node_position_y_spinbox.editingFinished .connect(self.apply_position_edit)
 
     def deactivate(self):
         pass
@@ -185,3 +186,17 @@ class AttributeEditor(QtWidgets.QWidget):
                                                          node=current_node,
                                                          comment=new_comment)
         current_node.stage.undo_stack.push(set_comment_cmd)
+
+    def apply_position_edit(self):
+        current_node = self.tree_view.current_item()
+        if not current_node:
+            return
+
+        new_position = [self.node_position_x_spinbox.value(), self.node_position_y_spinbox.value()]
+        if new_position == current_node.position():
+            return
+
+        set_position_cmd = commands.SetNodePositionCommand(stage=current_node.stage,
+                                                           node=current_node,
+                                                           new_position=new_position)
+        current_node.stage.undo_stack.push(set_position_cmd)
