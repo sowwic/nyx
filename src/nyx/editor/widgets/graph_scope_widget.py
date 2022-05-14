@@ -1,5 +1,6 @@
 import typing
 import pathlib
+from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 if typing.TYPE_CHECKING:

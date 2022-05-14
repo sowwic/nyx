@@ -7,7 +7,6 @@ from nyx import get_main_logger
 from nyx.core import commands
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
     from nyx.editor.main_window import NyxEditorMainWindow
     from nyx.editor.views.stage_tree_view import StageTreeView
 
