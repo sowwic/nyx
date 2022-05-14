@@ -78,6 +78,6 @@ class CodeEditor(QtWidgets.QWidget):
         if old_code == new_code:
             return
 
-        edit_cmd = commands.EditNodePythonCode(
+        edit_cmd = commands.EditNodePythonCodeCommand(
             stage=self.stage, node=current_node, new_code=new_code)
         self.stage.undo_stack.push(edit_cmd)

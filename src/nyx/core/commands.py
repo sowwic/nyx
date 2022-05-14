@@ -312,7 +312,7 @@ class ConnectNodeExecCommand(NyxCommand):
         return super().undo()
 
 
-class EditNodePythonCode(NyxCommand):
+class EditNodePythonCodeCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  node: "Node | pathlib.PurePosixPath | str | None",

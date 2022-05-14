@@ -33,6 +33,9 @@ class StageTreeView(QtWidgets.QTreeView):
         self.setModel(stage)
 
     def current_item(self) -> "Node":
+        if not self.stage:
+            return None
+
         try:
             return self.stage.itemFromIndex(self.currentIndex())
         except Exception:
