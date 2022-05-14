@@ -67,6 +67,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.main_window.undo_group.indexChanged.connect(self.update_node_data_from_treeview)
         self.node_name_lineedit.editingFinished.connect(self.apply_name_edit)
         self.node_exec_input_line_edit.editingFinished.connect(self.apply_exec_input_edit)
+        self.node_execution_start_lineedit.editingFinished.connect(self.apply_execution_start_edit)
 
     def deactivate(self):
         pass
@@ -131,3 +132,20 @@ class AttributeEditor(QtWidgets.QWidget):
                                                                  output_node=source_node,
                                                                  input_node=current_node)
         current_node.stage.undo_stack.push(set_exec_input_cmd)
+
+    def apply_execution_start_edit(self):
+        current_node = self.tree_view.current_item()
+        if not current_node:
+            return
+
+        new_path = pathlib.PurePosixPath(self.node_execution_start_lineedit.text())
+        if new_path == pathlib.PurePosixPath("."):
+            new_path = None
+
+        if new_path == current_node.get_execution_start_path():
+            return
+
+        set_execution_start_cmd = commands.SetNodeExecStartCommand(stage=current_node.stage,
+                                                                   node=current_node,
+                                                                   path=new_path)
+        current_node.stage.undo_stack.push(set_execution_start_cmd)
