@@ -24,6 +24,7 @@ class StageTreeView(QtWidgets.QTreeView):
         super().__init__(parent)
         self.setModel(self.stage)
         self.setHeaderHidden(True)
+        self.setExpandsOnDoubleClick(False)
         self.setEditTriggers(StageTreeView.NoEditTriggers)
         self.doubleClicked.connect(self.__emit_doubledclicked_item)
 

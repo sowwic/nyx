@@ -93,7 +93,7 @@ class NyxEditorApplication(NyxApplication):
 
         node_exec_start_cmd = commands.SetNodeExecStartCommand(stage,
                                                                node="/parent_node",
-                                                               path="/parent_node/node")
+                                                               path="/parent_node/node1")
         stage.undo_stack.push(node_exec_start_cmd)
 
         # Node exec connections

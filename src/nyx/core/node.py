@@ -49,6 +49,9 @@ class Node(QtGui.QStandardItem, Serializable):
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)}({self.text()})"
 
+    def __hash__(self) -> int:
+        return hash(self.path)
+
     def __getitem__(self, key) -> Attribute:
         try:
             return self.attribs[key]
@@ -250,7 +253,7 @@ class Node(QtGui.QStandardItem, Serializable):
             children += child.list_children()
         return children
 
-    def is_child_path(self, path: "str | pathlib.PurePosixPath"):
+    def is_parent_of(self, other_node: "Node | str | pathlib.PurePosixPath"):
         """Check if given path is path of one of the child nodes.
 
         Args:
@@ -259,9 +262,8 @@ class Node(QtGui.QStandardItem, Serializable):
         Returns:
             bool: if path belongs to one of children.
         """
-        if isinstance(path, str):
-            path = pathlib.PurePosixPath(path)
-        return path in set(self.list_children_paths())
+        other_node = self.stage.node(other_node)
+        return other_node in set(self.list_children())
 
     def list_parents(self, as_queue=False) -> "list[Node] | deque[Node]":
         """List parents recursively.
