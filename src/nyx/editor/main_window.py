@@ -9,6 +9,7 @@ from nyx import get_main_logger
 from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 from nyx.editor.widgets.logger_widget import LoggerWidget
+from nyx.editor.widgets.attribute_editor import AttributeEditor
 from nyx.editor.widgets.code_editor import CodeEditor
 from nyx.editor.widgets.editor_toolbar import EditorToolBar
 from nyx.editor.widgets import menubar_menus
@@ -89,6 +90,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.stage_tree_view = StageTreeView()
         self.code_editor = CodeEditor(self)
         self.tool_bar = EditorToolBar(self)
+        self.attrib_editor = AttributeEditor(self)
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
 
@@ -122,11 +124,15 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.toolbar_dock.setAllowedAreas(
             QtCore.Qt.TopDockWidgetArea | QtCore.Qt.BottomDockWidgetArea)
         self.toolbar_dock.setWidget(self.tool_bar)
+        # Attribute editor dock
+        self.attrib_editor_dock = QtWidgets.QDockWidget("Attribute Editor")
+        self.attrib_editor_dock.setWidget(self.attrib_editor)
 
         # Add dock widgets
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.attrib_editor_dock)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.code_editor_dock)
         self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.toolbar_dock)
 
