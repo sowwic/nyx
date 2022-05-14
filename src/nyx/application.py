@@ -75,7 +75,7 @@ class NyxEditorApplication(NyxApplication):
         stage.undo_stack.push(set_attr_cmd)
         stage.undo_stack.push(add_attr_cmd2)
 
-        conn_attr_cmd = commands.ConnectAttribute(
+        conn_attr_cmd = commands.ConnectAttributeCommand(
             stage,
             source_node="/test_node",
             destination_node="/test_node/test_child",

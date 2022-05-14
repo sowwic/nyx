@@ -68,12 +68,21 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_name_lineedit.editingFinished.connect(self.apply_name_edit)
         self.node_exec_input_line_edit.editingFinished.connect(self.apply_exec_input_edit)
         self.node_execution_start_lineedit.editingFinished.connect(self.apply_execution_start_edit)
+        self.node_isactive_checkbox.toggled.connect(self.apply_active_toggle)
 
     def deactivate(self):
         pass
 
     def block_fields_signals(self, state: bool):
-        LOGGER.debug("TODO: Add implementation of 'block_fields_signals'")
+        for widget in [self.node_name_lineedit,
+                       self.node_path_lineedit,
+                       self.node_exec_input_line_edit,
+                       self.node_execution_start_lineedit,
+                       self.node_isactive_checkbox,
+                       self.node_comment_text_edit,
+                       self.node_position_x_spinbox,
+                       self.node_position_y_spinbox]:
+            widget.blockSignals(state)
 
     def update_node_data_from_treeview(self):
         current_node = self.tree_view.current_item()
@@ -149,3 +158,14 @@ class AttributeEditor(QtWidgets.QWidget):
                                                                    node=current_node,
                                                                    path=new_path)
         current_node.stage.undo_stack.push(set_execution_start_cmd)
+
+    def apply_active_toggle(self):
+        current_node = self.tree_view.current_item()
+        if not current_node:
+            return
+        new_state = self.node_isactive_checkbox.isChecked()
+
+        set_active_cmd = commands.SetNodeActiveStateCommand(stage=current_node.stage,
+                                                            node=current_node,
+                                                            state=new_state)
+        current_node.stage.undo_stack.push(set_active_cmd)

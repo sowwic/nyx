@@ -202,7 +202,7 @@ class SetNodeAttributeCommand(NyxCommand):
         return super().undo()
 
 
-class ConnectAttribute(NyxCommand):
+class ConnectAttributeCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  source_node: "Node | pathlib.PurePosixPath | str",
@@ -355,4 +355,28 @@ class EditNodePythonCodeCommand(NyxCommand):
     def undo(self) -> None:
         node = self.stage.node(self.node_path)
         node.set_python_code(self.old_code)
+        return super().undo()
+
+
+class SetNodeActiveStateCommand(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 node: "Node | pathlib.PurePosixPath | str | None",
+                 state: bool,
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Set active state", parent_command)
+        self.node_path = self.stage.node(node).path
+        self.old_state = None
+        self.new_state = state
+        self.setText(f"{self.text()} ({self.node_path} -> {self.new_state})")
+
+    def redo(self) -> None:
+        node = self.stage.node(self.node_path)
+        self.old_state = node.is_active()
+        node.set_active(self.new_state)
+        return super().redo()
+
+    def undo(self) -> None:
+        node = self.stage.node(self.node_path)
+        node.set_active(self.old_state)
         return super().undo()
