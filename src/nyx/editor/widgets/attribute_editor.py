@@ -42,18 +42,23 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_comment_text_edit = NyxTextEdit()
         self.node_position_x_spinbox = QtWidgets.QDoubleSpinBox()
         self.node_position_y_spinbox = QtWidgets.QDoubleSpinBox()
+        self.node_position_x_spinbox.setRange(-64000, 64000)
+        self.node_position_y_spinbox.setRange(-64000, 64000)
 
         self.attributes_table = AttributesTable(self)
 
     def create_layouts(self):
+        position_layout = QtWidgets.QHBoxLayout()
+        position_layout.addWidget(self.node_position_x_spinbox)
+        position_layout.addWidget(self.node_position_y_spinbox)
+
         basic_properties_layout = QtWidgets.QFormLayout()
+        basic_properties_layout.addRow(self.node_isactive_checkbox)
         basic_properties_layout.addRow("Name:", self.node_name_lineedit)
         basic_properties_layout.addRow("Path:", self.node_path_lineedit)
         basic_properties_layout.addRow("Exec Input:", self.node_exec_input_line_edit)
-        basic_properties_layout.addRow("Child execution start", self.node_execution_start_lineedit)
-        basic_properties_layout.addRow(self.node_isactive_checkbox)
-        basic_properties_layout.addRow("PositionX:", self.node_position_x_spinbox)
-        basic_properties_layout.addRow("PositionY:", self.node_position_y_spinbox)
+        basic_properties_layout.addRow("Execution start:", self.node_execution_start_lineedit)
+        basic_properties_layout.addRow("Position:", position_layout)
         basic_properties_layout.addRow("Comment:", self.node_comment_text_edit)
 
         self.main_layout = QtWidgets.QVBoxLayout()
@@ -73,8 +78,25 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_position_x_spinbox.editingFinished .connect(self.apply_position_edit)
         self.node_position_y_spinbox.editingFinished .connect(self.apply_position_edit)
 
-    def deactivate(self):
-        pass
+    def set_fields_enabled(self, state: bool):
+        for field in [self.node_name_lineedit,
+                      self.node_path_lineedit,
+                      self.node_exec_input_line_edit,
+                      self.node_execution_start_lineedit,
+                      self.node_comment_text_edit]:
+            if not state:
+                field.clear()
+            field.setEnabled(state)
+
+        if not state:
+            self.node_isactive_checkbox.setChecked(False)
+        self.node_isactive_checkbox.setEnabled(state)
+
+        for spinbox in [self.node_position_x_spinbox,
+                        self.node_position_y_spinbox]:
+            if not state:
+                spinbox.setValue(0.0)
+            spinbox.setEnabled(state)
 
     def block_fields_signals(self, state: bool):
         for widget in [self.node_name_lineedit,
@@ -88,13 +110,14 @@ class AttributeEditor(QtWidgets.QWidget):
             widget.blockSignals(state)
 
     def update_node_data_from_treeview(self):
-        current_node = self.tree_view.current_item()
-        # self.attributes_table.update_node_data()
-        if not current_node:
-            self.deactivate()
-            return
-
         self.block_fields_signals(True)
+        current_node = self.tree_view.current_item()
+        if not current_node:
+            self.set_fields_enabled(False)
+            return
+        else:
+            self.set_fields_enabled(True)
+
         self.node_name_lineedit.setText(current_node.name)
         self.node_path_lineedit.setText(current_node.path.as_posix())
         self.node_exec_input_line_edit.setText(

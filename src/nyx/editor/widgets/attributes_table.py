@@ -137,7 +137,7 @@ class AttributesTable(QtWidgets.QTableWidget):
         if not node:
             return
 
-        LOGGER.debug("Updating attr table")
+        # LOGGER.debug("Updating attr table")
         row_index = 0
         for _, attr in node.attribs.items():
             self.setRowCount(self.rowCount() + 1)
