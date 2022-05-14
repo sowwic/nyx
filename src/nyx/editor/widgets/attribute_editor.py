@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 # from nyx.core import commands
+from nyx.editor.widgets.attributes_table import AttributesTable
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
@@ -41,6 +42,8 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_position_x_spinbox = QtWidgets.QDoubleSpinBox()
         self.node_position_y_spinbox = QtWidgets.QDoubleSpinBox()
 
+        self.attributes_table = AttributesTable()
+
     def create_layouts(self):
         basic_properties_layout = QtWidgets.QFormLayout()
         basic_properties_layout.addRow("Name:", self.node_name_lineedit)
@@ -56,6 +59,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.main_window.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
         self.main_layout.addLayout(basic_properties_layout)
+        self.main_layout.addWidget(self.attributes_table)
 
     def create_connections(self):
         self.tree_view.selection_changed.connect(self.update_node_data_from_treeview)
@@ -68,6 +72,7 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def update_node_data_from_treeview(self):
         current_node = self.tree_view.current_item()
+        self.attributes_table.update_node_data(current_node)
         if not current_node:
             self.deactivate()
             return
