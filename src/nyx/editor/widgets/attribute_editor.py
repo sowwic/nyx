@@ -42,7 +42,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_position_x_spinbox = QtWidgets.QDoubleSpinBox()
         self.node_position_y_spinbox = QtWidgets.QDoubleSpinBox()
 
-        self.attributes_table = AttributesTable()
+        self.attributes_table = AttributesTable(self)
 
     def create_layouts(self):
         basic_properties_layout = QtWidgets.QFormLayout()
@@ -72,7 +72,7 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def update_node_data_from_treeview(self):
         current_node = self.tree_view.current_item()
-        self.attributes_table.update_node_data(current_node)
+        self.attributes_table.update_node_data()
         if not current_node:
             self.deactivate()
             return
