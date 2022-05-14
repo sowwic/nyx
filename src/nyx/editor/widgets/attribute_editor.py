@@ -163,6 +163,10 @@ class AttributeEditor(QtWidgets.QWidget):
             set_exec_input_cmd = commands.DisconnectNodeInputExecCommand(stage=current_node.stage,
                                                                          node=current_node)
         else:
+            if current_node.is_input_exec_cyclic(source_node):
+                LOGGER.warning(f"Cyclic exec path: {source_node.path} <-> {current_node.path}")
+                self.update_node_data_from_treeview()
+                return
             set_exec_input_cmd = commands.ConnectNodeExecCommand(stage=current_node.stage,
                                                                  output_node=source_node,
                                                                  input_node=current_node)
@@ -178,6 +182,11 @@ class AttributeEditor(QtWidgets.QWidget):
             new_path = None
 
         if new_path == current_node.get_execution_start_path():
+            return
+
+        if new_path and new_path not in current_node.list_children_paths():
+            LOGGER.warning(f"Node({new_path}) is not a child of {current_node}")
+            self.update_node_data_from_treeview()
             return
 
         set_execution_start_cmd = commands.SetNodeExecStartCommand(stage=current_node.stage,

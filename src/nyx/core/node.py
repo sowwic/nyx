@@ -378,6 +378,10 @@ class Node(QtGui.QStandardItem, Serializable):
             return path
         return path.as_posix()
 
+    def is_input_exec_cyclic(self, other_node: "Node | pathlib.PurePosixPath | str") -> bool:
+        other_node = self.stage.node(other_node)
+        return other_node.get_input_exec_path() == self.path
+
     def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
         if isinstance(path, Node):
             path = path.path
