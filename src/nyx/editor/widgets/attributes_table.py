@@ -1,13 +1,13 @@
 import typing
 from PySide2 import QtCore
-# from PySide2 import QtGui
+from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core import commands
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
+    # from nyx.core import Node
     from nyx.core.attribute import Attribute
     from nyx.editor.widgets.attribute_editor import AttributeEditor
 
@@ -101,12 +101,23 @@ class AttributesTable(QtWidgets.QTableWidget):
         self.tree_view = self.main_window.stage_tree_view
 
         self.setHorizontalHeaderLabels(self.COLUMNS)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
+        self.create_actions()
         self.create_connections()
+
+    def create_actions(self):
+        self.add_attr_action = QtWidgets.QAction("Add new attribute", self)
+        self.add_attr_action.triggered.connect(self.add_new_attribute)
+        self.delete_selected_attr_action = QtWidgets.QAction("Delete selected", self)
+        self.delete_selected_attr_action.triggered.connect(self.delete_selected_attr)
+        self.update_action = QtWidgets.QAction("Update", self)
+        self.update_action.triggered.connect(self.update_node_data)
 
     def create_connections(self):
         self.itemChanged.connect(self.apply_item_edits)
         self.main_window.undo_group.indexChanged.connect(self.update_node_data)
+        self.customContextMenuRequested.connect(self.show_context_menu)
 
     def update_node_data(self):
         self.setRowCount(0)
@@ -115,7 +126,7 @@ class AttributesTable(QtWidgets.QTableWidget):
         if not node:
             return
 
-        LOGGER.debug("Updating table")
+        LOGGER.debug("Updating attr table")
         row_index = 0
         for _, attr in node.attribs.items():
             self.setRowCount(self.rowCount() + 1)
@@ -138,3 +149,36 @@ class AttributesTable(QtWidgets.QTableWidget):
     def apply_item_edits(self, item: AttrTableItem):
         item.set_node_attr_value()
         self.update_node_data()
+
+    def add_new_attribute(self):
+        node = self.tree_view.current_item()
+        if not node:
+            return
+        add_attr_cmd = commands.AddNodeAttributeCommand(stage=node.stage,
+                                                        node=node,
+                                                        attr_name="attr",
+                                                        attr_value=None,
+                                                        attr_resolve=True)
+        node.stage.undo_stack.push(add_attr_cmd)
+
+    def delete_selected_attr(self):
+        selected_rows = [item.row() for item in self.selectedItems()]
+        for row in selected_rows:
+            attrib_name_item: AttrNameTableItem = self.item(row, 0)
+            node = attrib_name_item.node_attr.node
+            del_attr_cmd = commands.DeleteNodeAttributeCommand(stage=node.stage,
+                                                               node=node,
+                                                               attr_name=attrib_name_item.node_attr.name)
+            node.stage.undo_stack.push(del_attr_cmd)
+
+    def show_context_menu(self, point: QtCore.QPoint):
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.add_attr_action)
+        menu.addAction(self.delete_selected_attr_action)
+        menu.addAction(self.update_action)
+        menu.exec_(self.mapToGlobal(point))
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_Delete:
+            self.delete_selected_attr_action.trigger()
+        return super().keyPressEvent(event)
