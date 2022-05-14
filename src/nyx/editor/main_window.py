@@ -9,6 +9,7 @@ from nyx import get_main_logger
 from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 from nyx.editor.widgets.logger_widget import LoggerWidget
+from nyx.editor.widgets.code_editor import CodeEditor
 from nyx.editor.widgets import menubar_menus
 
 if typing.TYPE_CHECKING:
@@ -85,6 +86,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_widgets(self):
         self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
+        self.code_editor = CodeEditor()
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
 
@@ -110,11 +112,15 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Logger dock
         self.logger_dock = QtWidgets.QDockWidget("Output Log")
         self.logger_dock.setWidget(self.logger_widget)
+        # Code editor dock
+        self.code_editor_dock = QtWidgets.QDockWidget("Code Editor")
+        self.code_editor_dock.setWidget(self.code_editor)
 
         # Add dock widgets
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.code_editor_dock)
 
     def create_layouts(self):
         pass
