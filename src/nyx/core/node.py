@@ -392,26 +392,24 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.debug(f"{self}: exec output set to {previous_input_exec}")
             return
 
-        new_input_exec_node: "Node" = self.stage.get_node_from_absolute_path(path)
+        new_input_exec_node: "Node" = self.stage.node(path)
         if new_input_exec_node and new_input_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new input scope: {new_input_exec_node.scope}")
             return
-
-        previous_input_exec_node = self.stage.get_node_from_absolute_path(previous_input_exec)
 
         # Set connections
         self.setData(path, role=Node.INPUT_EXEC_ROLE)
 
         # Reset old input node
+        previous_input_exec_node = self.stage.node(previous_input_exec)
         if previous_input_exec_node is not None:
             previous_input_exec_node.set_output_exec_path("", silent=True)
 
         # Get path from new node to self
         # If its different from self.path -> store new path
         if new_input_exec_node is not None:
-            path_from_new_input_exec_node = new_input_exec_node.get_relative_path_to(self)
-            if new_input_exec_node.get_output_exec_path() != path_from_new_input_exec_node.as_posix():
-                new_input_exec_node.set_output_exec_path(self.path)
+            if new_input_exec_node.get_output_exec_path() != self.path.as_posix():
+                new_input_exec_node.set_output_exec_path(self.path.as_posix())
 
     def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
         if isinstance(path, Node):
@@ -433,59 +431,23 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.debug(f"{self}: exec output set to {previous_output_exec}")
             return
 
-        new_output_exec_node: "Node" = self.stage.get_node_from_absolute_path(path)
+        new_output_exec_node: "Node" = self.stage.node(path)
         if new_output_exec_node and new_output_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new output scope: {new_output_exec_node.scope}")
             return
-
-        previous_output_exec_node = self.stage.get_node_from_absolute_path(previous_output_exec)
-
         # Set connections
         self.setData(path, role=Node.OUTPUT_EXEC_ROLE)
 
         # Reset old output node
+        previous_output_exec_node = self.stage.node(previous_output_exec)
         if previous_output_exec_node is not None:
             previous_output_exec_node.set_input_exec_path("", silent=True)
 
         # Get path from new node to self
         # If its different from self.path -> store new path
         if new_output_exec_node is not None:
-            path_from_new_output_exec_node = new_output_exec_node.get_relative_path_to(self)
-            if new_output_exec_node.get_output_exec_path() != path_from_new_output_exec_node.as_posix():
-                new_output_exec_node.set_input_exec_path(self.path)
-
-    def get_node_from_relative_path(self, relative_path: "pathlib.PurePosixPath | str") -> "Node | None":
-        """Get node from relative path.
-
-        Args:
-            relative_path (pathlib.PurePosixPath): relative path.
-
-        Returns:
-            pathlib.PurePosixPath: found node
-        """
-        return self.stage.get_node_from_relative_path(self, relative_path)
-
-    def get_relative_path_to(self, other_node: "Node") -> pathlib.PurePosixPath:
-        """Get relative path this to other node.
-
-        Args:
-            other_node (Node): other node.
-
-        Returns:
-            pathlib.PurePosixPath: relative path
-        """
-        return self.stage.get_relative_path_to(self, other_node)
-
-    def get_relative_path_from(self, other_node: "Node"):
-        """Get relative path from other to this node.
-
-        Args:
-            other_node (Node): other node
-
-        Returns:
-            pathlib.PurePosixPath: relative path
-        """
-        return self.stage.get_relative_path_to(other_node, self)
+            if new_output_exec_node.get_output_exec_path() != self.path.as_posix():
+                new_output_exec_node.set_input_exec_path(self.path.as_posix())
 
     def on_changed(self):
         pass

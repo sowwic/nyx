@@ -98,7 +98,7 @@ def test_executor_run():
     # Root Attributes
     child1_1.add_attr("child_test1")
     child1_2.add_attr("child_test2")
-    child1_3.add_attr("child_test3", value="{../child1_2}{child_test2}")
+    child1_3.add_attr("child_test3", value="/root_node1/child1_2.child_test2")
 
     child1_1.set_python_code("self.attr('child_test1').push(5)")
     child1_2.set_python_code("self.attr('child_test2').push(10)")

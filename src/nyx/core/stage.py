@@ -1,4 +1,3 @@
-import os
 import typing
 import pprint
 import pathlib
@@ -9,7 +8,6 @@ from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
-from nyx.utils import path_fn
 from nyx.core import Node
 from nyx.core.stage_executor import StageExecutor
 
@@ -20,7 +18,7 @@ LOGGER = get_main_logger()
 class Stage(QtGui.QStandardItemModel, Serializable):
 
     FILE_EXTENSION = ".nyx"
-    ROOT_ITEM_PATH = path_fn.ROOT_ITEM_PATH
+    ROOT_ITEM_PATH = pathlib.PurePosixPath("/")
 
     def __repr__(self) -> str:
         return "Stage"
@@ -258,57 +256,6 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             LOGGER.exception(f"{self} | Invalid absolute path: {path}")
             return None
         return self.path_map.get(path, None)
-
-    def get_node_from_relative_path(self, anchor_node: "Node", relative_path: "pathlib.PurePosixPath | str") -> "Node | None":
-        """Get node from anchor node and relative to it path.
-
-        If path is invalid will return None.
-
-        top_node
-
-        |- child1
-
-        |--- leaf1
-
-        |- child2
-
-        |--- leaf2
-
-        leaf1 -> leaf2 path: ../../child2/leaf2
-        child1 -> leaf1 path: ./leaf1
-        child1 -> child2 path: ../child2
-
-        Args:
-            anchor_node (Node): node for find start search from.
-            relative_path (pathlib.PurePosixPath | str): relative path.
-
-        Returns:
-            _type_: _description_
-        """
-        try:
-            absolute_path = path_fn.get_absolute_path_from_relative(anchor_node.path, relative_path)
-        except IndexError:
-            LOGGER.warning(f"Invalid path: {relative_path}")
-            return None
-        except Exception:
-            LOGGER.error(f"Failed to get absolute path from: {anchor_node.path}, {relative_path}")
-            raise
-
-        return self.path_map.get(absolute_path)
-
-    def get_relative_path_to(self, from_node: "Node", to_node: "Node"):
-        """Get relative path between nodes.
-
-        Args:
-            from_node (Node): From this node.
-            to_node (Node): To this node.
-
-        Returns:
-            pathlib.PurePosixPath: relative path
-        """
-        path_str = os.path.relpath(to_node.path.as_posix(), from_node.path.as_posix())
-        path_str = path_str.replace(os.sep, "/")
-        return pathlib.PurePosixPath(path_str)
 
     def get_node_children_from_path(self, node_path: "pathlib.PurePosixPath | str") -> "list[Node]":
         """Get children of node with given full path.

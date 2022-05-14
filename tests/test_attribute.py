@@ -153,42 +153,12 @@ def test_attr_resolve_number():
     assert node["test"].resolved_value == 2
 
 
-def test_attr_resolve_from_relative_path():
-    stage = Stage()
-    node = Node("node")
-    stage.add_node(node)
-    node.add_attr("test", value=5)
-
-    child = Node(name="child", parent=node)
-    child["test_rel"] = "{..}{test}"
-
-    node.cache_attributes_values()
-    child.cache_attributes_values()
-
-    assert child["test_rel"].resolved_value == node["test"].resolved_value
-    assert child["test_rel"].cached_value == node["test"].resolved_value
-
-
-def test_attr_resolve_relative_path_between_top_nodes():
-    stage = Stage()
-
-    node1 = Node("node1")
-    stage.add_node(node1)
-    node1.add_attr("test1", value=5)
-
-    node2 = Node("node2")
-    stage.add_node(node2)
-    node2.add_attr("test2", value="{../node1}{test1}", resolve=True)
-
-    assert node2["test2"].resolved_value == node1["test1"].value
-
-
 def test_attr_resolve_invalid_path():
     stage = Stage()
     node = Node("node")
     stage.add_node(node)
     node.add_attr("test")
-    node["test"].set("{..}{dfdfd}")
+    node["test"].set("/non_existing_node.test")
 
     assert node["test"].value == node["test"].resolved_value
 
@@ -216,11 +186,11 @@ def test_attr_resolve_recursive_path():
 
     node2 = Node("node2")
     stage.add_node(node2)
-    node2.add_attr("test2", value="{../node1}{test1}", resolve=True)
+    node2.add_attr("test2", value="/node1.test1", resolve=True)
 
     node3 = Node("node3")
     stage.add_node(node3)
-    node3.add_attr("test3", value="{../node2}{test2}", resolve=True)
+    node3.add_attr("test3", value="/node2.test2", resolve=True)
 
     TEST_LOGGER.debug(stage.describe())
 
@@ -241,7 +211,7 @@ def test_attr_resolve_from_absolute_path():
     leaf2 = Node("leaf2", parent=child2)
 
     leaf1.add_attr("test1", value="test_value")
-    leaf2.add_attr("test2", value="{/node/child1/leaf1}{test1}", resolve=True)
+    leaf2.add_attr("test2", value="/node/child1/leaf1.test1", resolve=True)
 
     assert leaf2.attr("test2").resolved_value == leaf1.attr("test1").resolved_value
 
@@ -259,7 +229,7 @@ def test_attr_connect():
 
     child1["test1"].connect(child2["test2"])
 
-    expected_value = "{" + child1.path.as_posix() + "}{" + child1["test1"].name + "}"
+    expected_value = f"{child1.path.as_posix()}.{child1['test1'].name}"
     assert child2["test2"].value == expected_value
     assert child2["test2"].resolved_value == 5
     assert child2["test2"].cached_value is None
