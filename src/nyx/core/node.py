@@ -398,7 +398,7 @@ class Node(QtGui.QStandardItem, Serializable):
         new_input_exec_node: "Node" = self.stage.node(path)
         previous_input_exec_node = self.stage.node(self.get_input_exec_path())
         if new_input_exec_node == previous_input_exec_node:
-            LOGGER.debug(f"{self}: exec output set to {new_input_exec_node.path}")
+            LOGGER.debug(f"{self}: exec output set to {path}")
             return
 
         if new_input_exec_node and new_input_exec_node.scope != self.scope:
@@ -406,7 +406,10 @@ class Node(QtGui.QStandardItem, Serializable):
             return
 
         # Set connections
-        self.setData(path, role=Node.INPUT_EXEC_ROLE)
+        if new_input_exec_node is None:
+            self.setData(None, role=Node.INPUT_EXEC_ROLE)
+        else:
+            self.setData(new_input_exec_node.path, role=Node.INPUT_EXEC_ROLE)
 
         # Reset old input node
         if previous_input_exec_node is not None:
@@ -438,14 +441,17 @@ class Node(QtGui.QStandardItem, Serializable):
         new_output_exec_node = self.stage.node(path)
         previous_output_exec_node = self.stage.node(self.get_output_exec_path())
         if new_output_exec_node == previous_output_exec_node:
-            LOGGER.debug(f"{self}: exec output set to {previous_output_exec_node.cached_path}")
+            LOGGER.debug(f"{self}: exec output set to {path}")
             return
 
         if new_output_exec_node and new_output_exec_node.scope != self.scope:
             LOGGER.error(f"{self}: Invalid new output scope: {new_output_exec_node.scope}")
             return
         # Set connections
-        self.setData(new_output_exec_node.path, role=Node.OUTPUT_EXEC_ROLE)
+        if new_output_exec_node is None:
+            self.setData(None, role=Node.OUTPUT_EXEC_ROLE)
+        else:
+            self.setData(new_output_exec_node.path, role=Node.OUTPUT_EXEC_ROLE)
 
         # Reset old output node
         if previous_output_exec_node is not None:

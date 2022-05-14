@@ -126,6 +126,7 @@ class AttributesTable(QtWidgets.QTableWidget):
 
     def create_connections(self):
         self.itemChanged.connect(self.apply_item_edits)
+        self.tree_view.selection_changed.connect(self.update_node_data)
         self.main_window.undo_group.indexChanged.connect(self.update_node_data)
         self.customContextMenuRequested.connect(self.show_context_menu)
 

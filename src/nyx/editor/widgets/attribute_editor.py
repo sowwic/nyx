@@ -4,7 +4,7 @@ import typing
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
-# from nyx.core import commands
+from nyx.core import commands
 from nyx.editor.widgets.attributes_table import AttributesTable
 
 if typing.TYPE_CHECKING:
@@ -63,6 +63,8 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def create_connections(self):
         self.tree_view.selection_changed.connect(self.update_node_data_from_treeview)
+        self.main_window.undo_group.indexChanged.connect(self.update_node_data_from_treeview)
+        self.node_name_lineedit.editingFinished.connect(self.apply_name_edit)
 
     def deactivate(self):
         pass
@@ -72,7 +74,7 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def update_node_data_from_treeview(self):
         current_node = self.tree_view.current_item()
-        self.attributes_table.update_node_data()
+        # self.attributes_table.update_node_data()
         if not current_node:
             self.deactivate()
             return
@@ -91,3 +93,17 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_position_y_spinbox.setValue(node_position[1])
         self.node_comment_text_edit.setText(current_node.comment())
         self.block_fields_signals(False)
+
+    def apply_name_edit(self):
+        current_node = self.tree_view.current_item()
+        if not current_node:
+            return
+
+        new_name = self.node_name_lineedit.text()
+        if new_name == current_node.name:
+            return
+
+        rename_cmd = commands.RenameNodeCommand(stage=current_node.stage,
+                                                node=current_node,
+                                                new_name=new_name)
+        current_node.stage.undo_stack.push(rename_cmd)
