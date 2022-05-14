@@ -108,7 +108,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.undo_dock = QtWidgets.QDockWidget("Undo History")
         self.undo_dock.setWidget(self.undo_view)
         # Logger dock
-        self.logger_dock = QtWidgets.QDockWidget("Log")
+        self.logger_dock = QtWidgets.QDockWidget("Output Log")
         self.logger_dock.setWidget(self.logger_widget)
 
         # Add dock widgets
@@ -170,14 +170,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         else:
             graph_widget = StageGraphEditor(stage)
         sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(graph_widget)
-        # Signal connections
-        # graph_widget.scene.signals.file_name_changed.connect(self.update_title)
-        # graph_widget.scene.signals.modified.connect(self.update_title)
-        # graph_widget.scene.signals.item_selected.connect(
-        # self.attrib_editor.update_current_node_widget)
-        # graph_widget.scene.signals.items_deselected.connect(self.attrib_editor.clear)
-        # graph_widget.signals.about_to_close.connect(self.on_sub_window_close)
-        # graph_widget.scene.signals.file_load_finished.connect(self.vars_widget.update_var_list)
         return sub_wnd
 
     # Slots

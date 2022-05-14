@@ -106,7 +106,7 @@ class NyxEditorApplication(NyxApplication):
         #     stage, node="/test_node/test_child", attr_name="new_attr",)
         # stage.undo_stack.push(del_attr_cmd)
 
-        LOGGER.debug(stage.describe())
+        # LOGGER.debug(stage.describe())
         # Delete parent
         # del_cmd = commands.DeleteNodeCommand(stage, "/parent_node")
         # stage.undo_stack.push(del_cmd)

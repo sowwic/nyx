@@ -18,6 +18,7 @@ class LogFormat(enum.Enum):
 
 class QSignaler(QtCore.QObject):
     message_logged = QtCore.Signal(str)
+    record_logged = QtCore.Signal(logging.LogRecord)
 
 
 class QSignalHandler(logging.Handler):
@@ -25,8 +26,9 @@ class QSignalHandler(logging.Handler):
         super(QSignalHandler, self).__init__(*args, **kwargs)
         self.emitter = QSignaler()
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         msg = self.format(record)
+        self.emitter.record_logged.emit(record)
         self.emitter.message_logged.emit(msg)
 
 
