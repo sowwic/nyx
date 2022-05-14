@@ -15,3 +15,5 @@ class WindowMenu(BaseMenu):
         self.addAction(self.main_window.stage_tree_dock.toggleViewAction())
         self.addAction(self.main_window.undo_dock.toggleViewAction())
         self.addAction(self.main_window.logger_dock.toggleViewAction())
+        self.addAction(self.main_window.code_editor_dock.toggleViewAction())
+        self.addAction(self.main_window.toolbar_dock.toggleViewAction())

@@ -226,6 +226,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             file_fn.write_json(file_path, self.serialize(), sort_keys=False)
             self.file_path = pathlib.Path(file_path)
             self.last_saved_undo_index = self.undo_stack.index()
+            LOGGER.info(f"Exported stage: {self.file_path}")
         except Exception:
             LOGGER.exception("Failed to save stage to file.")
 
@@ -247,6 +248,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.deserialize(json_data, restore_id=True)
         self.file_path = pathlib.Path(file_path)
         self.last_saved_undo_index = self.undo_stack.index()
+        LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
 
     def get_node_from_absolute_path(self, path: "pathlib.PurePosixPath | str") -> "Node | None":
