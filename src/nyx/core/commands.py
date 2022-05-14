@@ -345,7 +345,7 @@ class EditNodePythonCodeCommand(NyxCommand):
         self.new_code = new_code
         self.old_code = node.get_python_code()
         self.node_path = self.stage.node(node).path
-        self.setText(f"Edit code ({self.node_path.as_posix()})")
+        self.setText(f"Edit code ({self.node_path})")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
@@ -379,4 +379,28 @@ class SetNodeActiveStateCommand(NyxCommand):
     def undo(self) -> None:
         node = self.stage.node(self.node_path)
         node.set_active(self.old_state)
+        return super().undo()
+
+
+class SetNodeCommentCommand(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 node: "Node | pathlib.PurePosixPath | str | None",
+                 comment: str,
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Edit comment for ", parent_command)
+        self.node_path = self.stage.node(node).path
+        self.old_comment = None
+        self.new_comment = comment
+        self.setText(f"{self.text()} ({self.node_path})")
+
+    def redo(self) -> None:
+        node = self.stage.node(self.node_path)
+        self.old_comment = node.comment()
+        node.set_comment(self.new_comment)
+        return super().redo()
+
+    def undo(self) -> None:
+        node = self.stage.node(self.node_path)
+        node.set_comment(self.old_comment)
         return super().undo()
