@@ -12,6 +12,7 @@ from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
+    from nyx.editor.main_window import NyxEditorMainWindow
 
 
 LOGGER = get_main_logger()
@@ -25,6 +26,8 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def __init__(self, stage: Stage = None, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent=parent)
+        self.main_window: "NyxEditorMainWindow" = QtWidgets.QApplication.instance().main_window()
+        self.tree_view = self.main_window.stage_tree_view
         self.last_saved_undo_index = 0
         self.__stage: Stage = None
         self.set_stage(stage, create_connections=False)
@@ -79,6 +82,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     def create_stage_connections(self):
         """Create connections between graph widgets and stage."""
         self.stage.undo_stack.indexChanged.connect(self.update_title)
+        self.tree_view.node_doubleclicked.connect(self.set_scope_path)
 
     def create_connections(self):
         """Create signal to slot connections."""

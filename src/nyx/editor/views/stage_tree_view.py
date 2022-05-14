@@ -18,12 +18,14 @@ class StageTreeView(QtWidgets.QTreeView):
     selection_changed = QtCore.Signal()
     nodes_selected = QtCore.Signal(list)
     nodes_deselected = QtCore.Signal(list)
+    node_doubleclicked = QtCore.Signal(QtGui.QStandardItem)
 
     def __init__(self, stage=None, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.setModel(self.stage)
         self.setHeaderHidden(True)
         self.setEditTriggers(StageTreeView.NoEditTriggers)
+        self.doubleClicked.connect(self.__emit_doubledclicked_item)
 
     @property
     def stage(self) -> "Stage":
@@ -31,6 +33,12 @@ class StageTreeView(QtWidgets.QTreeView):
 
     def set_stage(self, stage):
         self.setModel(stage)
+
+    def __emit_doubledclicked_item(self, index):
+        if not self.stage:
+            return
+        node = self.stage.itemFromIndex(index)
+        self.node_doubleclicked.emit(node)
 
     def current_item(self) -> "Node":
         if not self.stage:
