@@ -47,7 +47,7 @@ class Node(QtGui.QStandardItem, Serializable):
             parent.appendRow(self)
 
     def __repr__(self) -> str:
-        return f"{inspect_fn.class_string(self.__class__)}({self.text()})"
+        return f"{inspect_fn.class_string(self.__class__)} ({self.cached_path})"
 
     def __hash__(self) -> int:
         return hash(self.path)
@@ -331,7 +331,7 @@ class Node(QtGui.QStandardItem, Serializable):
             return
         data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
-        LOGGER.debug(f"{self}: deleted attr {name}")
+        LOGGER.debug(f"{self} | deleted attr {name}")
 
     def rename_attr(self, name: str, new_name: str):
         """Rename attribute.
@@ -394,7 +394,7 @@ class Node(QtGui.QStandardItem, Serializable):
         elif path is None:
             pass
         else:
-            LOGGER.error("{self}: Invalid input exec path: {}")
+            LOGGER.error(f"{self} | Invalid input exec path: {path}")
             raise TypeError("Invalid input exec path type")
 
         if silent:
@@ -404,11 +404,11 @@ class Node(QtGui.QStandardItem, Serializable):
         new_input_exec_node: "Node" = self.stage.node(path)
         previous_input_exec_node = self.stage.node(self.get_input_exec_path())
         if new_input_exec_node == previous_input_exec_node:
-            LOGGER.debug(f"{self}: exec output set to {path}")
+            LOGGER.debug(f"{self} | exec output set to {path}")
             return
 
         if new_input_exec_node and new_input_exec_node.scope != self.scope:
-            LOGGER.error(f"{self}: Invalid new input scope: {new_input_exec_node.scope}")
+            LOGGER.error(f"{self} | Invalid new input scope: {new_input_exec_node.scope}")
             return
 
         # Set connections
@@ -437,7 +437,7 @@ class Node(QtGui.QStandardItem, Serializable):
         elif path is None:
             pass
         else:
-            LOGGER.error("{self}: Invalid output exec path: {}")
+            LOGGER.error(f"{self} | Invalid output exec path: {path}")
             raise TypeError("Invalid output exec path type")
 
         if silent:
@@ -447,11 +447,11 @@ class Node(QtGui.QStandardItem, Serializable):
         new_output_exec_node = self.stage.node(path)
         previous_output_exec_node = self.stage.node(self.get_output_exec_path())
         if new_output_exec_node == previous_output_exec_node:
-            LOGGER.debug(f"{self}: exec output set to {path}")
+            LOGGER.debug(f"{self} | exec output set to {path}")
             return
 
         if new_output_exec_node and new_output_exec_node.scope != self.scope:
-            LOGGER.error(f"{self}: Invalid new output scope: {new_output_exec_node.scope}")
+            LOGGER.error(f"{self} | Invalid new output scope: {new_output_exec_node.scope}")
             return
         # Set connections
         if new_output_exec_node is None:
@@ -619,12 +619,17 @@ class Node(QtGui.QStandardItem, Serializable):
         child_path = self.get_execution_start_path()
         if child_path:
             child_node = self.stage.node(child_path)
-            exec_queue.extend(child_node.build_execution_queue())
+            if child_node:
+                exec_queue.extend(child_node.build_execution_queue())
+            LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
 
         output_path = self.get_output_exec_path()
         if output_path:
             output_node = self.stage.node(output_path)
-            exec_queue.extend(output_node.build_execution_queue())
+            if output_node:
+                exec_queue.extend(output_node.build_execution_queue())
+            else:
+                LOGGER.warning(f"{self} | output exec path doesn't exist: {output_path} ")
 
         return exec_queue
 

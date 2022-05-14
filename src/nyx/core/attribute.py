@@ -23,7 +23,7 @@ class Attribute(Serializable):
         self.__cached_value = None
 
     def __repr__(self) -> str:
-        return f"Attribute {self.name}, raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value}"
+        return f"Attribute {self.name} (raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value})"
 
     def __eq__(self, other_attr):
         # type: (Attribute) -> bool
