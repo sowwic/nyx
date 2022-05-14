@@ -4,9 +4,11 @@ from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
+from nyx.core import commands
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
+    from nyx.editor.main_window import NyxEditorMainWindow
     from nyx.editor.views.stage_tree_view import StageTreeView
 
 LOGGER = get_main_logger()
@@ -26,9 +28,10 @@ class CodeTextEdit(QtWidgets.QPlainTextEdit):
 
 class CodeEditor(QtWidgets.QWidget):
 
-    def __init__(self, tree_view: "StageTreeView", parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-        self.tree_view: StageTreeView = tree_view
+        self.main_window: "NyxEditorMainWindow" = main_window
+        self.tree_view: "StageTreeView" = self.main_window.stage_tree_view
 
         self.create_actions()
         self.create_widgets()
@@ -49,19 +52,32 @@ class CodeEditor(QtWidgets.QWidget):
 
     def create_connections(self):
         self.tree_view.nodes_selected.connect(self.update_text_edit)
-        self.text_edit.textChanged.connect(self.set_node_python_code)
+        self.text_edit.lost_focus.connect(self.set_node_python_code)
+        self.main_window.undo_group.indexChanged.connect(self.update_text_edit)
 
-    def update_text_edit(self, selected_nodes: "list[Node]"):
-        self.setEnabled(len(selected_nodes))
-        if not selected_nodes:
+    @property
+    def stage(self):
+        return self.tree_view.stage
+
+    def update_text_edit(self):
+        current_node = self.tree_view.current_item()
+        self.setDisabled(current_node is None)
+        if not current_node:
             self.text_edit.clear()
             return
-        node = selected_nodes[-1]
         self.text_edit.blockSignals(True)
-        self.text_edit.setPlainText(node.get_python_code())
+        self.text_edit.setPlainText(current_node.get_python_code())
         self.text_edit.blockSignals(False)
 
     def set_node_python_code(self):
         current_node = self.tree_view.current_item()
-        if current_node:
-            current_node.set_python_code(self.text_edit.toPlainText())
+        if not current_node:
+            return
+        old_code = current_node.get_python_code()
+        new_code = self.text_edit.toPlainText()
+        if old_code == new_code:
+            return
+
+        edit_cmd = commands.EditNodePythonCode(
+            stage=self.stage, node=current_node, new_code=new_code)
+        self.stage.undo_stack.push(edit_cmd)

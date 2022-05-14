@@ -3,11 +3,14 @@ from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
+from nyx import get_main_logger
 from nyx.core import commands
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
     from nyx.core import Node
+
+LOGGER = get_main_logger()
 
 
 class StageTreeView(QtWidgets.QTreeView):
@@ -30,7 +33,11 @@ class StageTreeView(QtWidgets.QTreeView):
         self.setModel(stage)
 
     def current_item(self) -> "Node":
-        return self.stage.itemFromIndex(self.currentIndex())
+        try:
+            return self.stage.itemFromIndex(self.currentIndex())
+        except Exception:
+            LOGGER.exception("Treeview | Failed to get current item")
+            return None
 
     def selectionChanged(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
         super().selectionChanged(selected, deselected)

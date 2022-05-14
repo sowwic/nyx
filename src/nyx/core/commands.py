@@ -310,3 +310,26 @@ class ConnectNodeExecCommand(NyxCommand):
         output_node.set_output_exec_path(self.old_output_node_exec_value)
         input_node.set_input_exec_path(self.old_input_node_exec_value)
         return super().undo()
+
+
+class EditNodePythonCode(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 node: "Node | pathlib.PurePosixPath | str | None",
+                 new_code: "str",
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Edit code", parent_command)
+        self.new_code = new_code
+        self.old_code = node.get_python_code()
+        self.node_path = self.stage.node(node).path
+        self.setText(f"Edit code ({self.node_path.as_posix()})")
+
+    def redo(self) -> None:
+        node = self.stage.node(self.node_path)
+        node.set_python_code(self.new_code)
+        return super().redo()
+
+    def undo(self) -> None:
+        node = self.stage.node(self.node_path)
+        node.set_python_code(self.old_code)
+        return super().undo()

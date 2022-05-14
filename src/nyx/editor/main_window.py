@@ -87,7 +87,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_widgets(self):
         self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
-        self.code_editor = CodeEditor(self.stage_tree_view)
+        self.code_editor = CodeEditor(self)
         self.tool_bar = EditorToolBar(self)
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
