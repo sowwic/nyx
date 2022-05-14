@@ -150,6 +150,5 @@ def test_stage_set_execution_start_set_export_import(output_dir: pathlib.Path):
     stage2 = Stage()
     stage2.import_json(export_path)
 
-    assert stage2.get_node_from_absolute_path(
-        "/node").get_execution_start_path(serializable=True) == "/node/node"
+    assert stage2.node("/node").get_execution_start_path(serializable=True) == "/node/node"
     assert stage.serialize() == stage2.serialize()

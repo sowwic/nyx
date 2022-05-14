@@ -30,14 +30,16 @@ class StageExecutor:
         Returns:
             deque[pathlib.PurePosixPath]: resulting queue
         """
-        start_path = self.stage.get_execution_start_path(start_path)
+        start_node = self.stage.node(start_path)
+        if not start_node:
+            start_path = self.stage.get_execution_start_path(start_path)
         if start_path is None:
             LOGGER.warning(f"{self} | No execution start path specified. Start path: {start_path}")
             return
+        else:
+            start_node = self.stage.node(start_path)
 
-        start_node = self.stage.get_node_from_absolute_path(start_path)
         exec_queue = start_node.build_execution_queue()
-
         return exec_queue
 
     def run(self,

@@ -251,14 +251,6 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
 
-    def get_node_from_absolute_path(self, path: "pathlib.PurePosixPath | str") -> "Node | None":
-        if isinstance(path, str):
-            path = pathlib.PurePosixPath(path)
-        if not isinstance(path, pathlib.PurePosixPath):
-            LOGGER.exception(f"{self} | Invalid absolute path: {path}")
-            return None
-        return self.path_map.get(path, None)
-
     def get_node_children_from_path(self, node_path: "pathlib.PurePosixPath | str") -> "list[Node]":
         """Get children of node with given full path.
 
@@ -326,7 +318,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         if not isinstance(for_node, Node):
             if isinstance(for_node, (str, pathlib.PurePosixPath)):
-                for_node = self.get_node_from_absolute_path(for_node)
+                for_node = self.node(for_node)
             else:
                 LOGGER.exception(f"{self} | Invalid argument type for_node: {for_node}")
                 return
@@ -355,7 +347,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         elif not isinstance(for_node, Node):
             if isinstance(for_node, (str, pathlib.PurePosixPath)):
-                for_node = self.get_node_from_absolute_path(for_node)
+                for_node = self.node(for_node)
             else:
                 LOGGER.exception(f"{self} | Invalid execution start path object: {for_node}")
                 return
@@ -367,5 +359,5 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return for_node.get_execution_start_path(serializable=serializable)
 
     def execute_node_from_path(self, path):
-        node = self.get_node_from_absolute_path(path)
+        node = self.node(path)
         node.execute()

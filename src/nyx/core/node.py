@@ -616,12 +616,12 @@ class Node(QtGui.QStandardItem, Serializable):
         exec_queue.append(self.cached_path)
         child_path = self.get_execution_start_path()
         if child_path:
-            child_node = self.stage.get_node_from_absolute_path(child_path)
+            child_node = self.stage.node(child_path)
             exec_queue.extend(child_node.build_execution_queue())
 
         output_path = self.get_output_exec_path()
         if output_path:
-            output_node = self.stage.get_node_from_absolute_path(output_path)
+            output_node = self.stage.node(output_path)
             exec_queue.extend(output_node.build_execution_queue())
 
         return exec_queue
