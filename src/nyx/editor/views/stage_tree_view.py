@@ -148,10 +148,13 @@ class StageTreeView(QtWidgets.QTreeView):
         if not serialized_nodes:
             LOGGER.warning("No nodes found in the clipboard!")
             return
+
+        gr_view_center_position = self.current_stage_graph.gr_view.get_center_position()
+        gr_view_center_position = [gr_view_center_position.x(), gr_view_center_position.y()]
         parent_node = self.current_node()
         paste_cmd = commands.PasteNodesCommand(stage=self.stage,
                                                serialize_nodes=serialized_nodes,
-                                               mouse_scene_position=[0.0, 0.0],
+                                               position=gr_view_center_position,
                                                parent_node=parent_node)
         self.stage.undo_stack.push(paste_cmd)
 

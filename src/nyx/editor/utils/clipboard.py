@@ -8,7 +8,6 @@ from nyx.core import commands
 from nyx import get_main_logger
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Stage
     from nyx.core import Node
 
 

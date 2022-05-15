@@ -468,12 +468,12 @@ class PasteNodesCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  serialize_nodes: "list[OrderedDict]",
-                 mouse_scene_position: "tuple(float, float)",
+                 position: "tuple(float, float)",
                  parent_node: "Node | pathlib.PurePosixPath | str | None" = None,
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
         super().__init__(stage, "Paste nodes", parent_command)
         self.serialized_nodes = serialize_nodes
-        self.mouse_scene_position = mouse_scene_position
+        self.position = position
         self.created_node_paths = deque()
         self.parent_path = None
 
@@ -497,9 +497,25 @@ class PasteNodesCommand(NyxCommand):
             new_node = Node(name="pasted_node")
             self.stage.add_node(new_node, parent=self.parent_path)
             new_node.deserialize(node_data, hashmap={}, restore_id=False)
+            paste_position = self.get_paste_position(new_node.position())
+            new_node.set_position(*paste_position)
+
             self.created_node_paths.append(new_node.cached_path)
         return super().redo()
 
     def undo(self) -> None:
         self.stage.delete_node(self.created_node_paths)
         return super().undo()
+
+    def get_paste_position(self, serialized_node_position: "list[float ,float]"):
+        min_x, max_x, min_y, max_y = 10000000, -10000000, 10000000, -10000000
+        pos_x, pos_y = serialized_node_position
+        min_x = min(pos_x, min_x)
+        max_x = max(pos_x, max_x)
+        min_y = min(pos_y, min_y)
+        max_y = max(pos_y, max_y)
+
+        new_x = self.position[0] + pos_x - min_x,
+        new_y = self.position[1] + pos_y - min_y
+
+        return [new_x, new_y]
