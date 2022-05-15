@@ -123,6 +123,8 @@ class AttributesTable(QtWidgets.QTableWidget):
         self.delete_selected_attr_action.triggered.connect(self.delete_selected_attr)
         self.update_action = QtWidgets.QAction("Update", self)
         self.update_action.triggered.connect(self.update_node_data)
+        self.copy_selected_attr_path_action = QtWidgets.QAction("Copy as path", self)
+        self.copy_selected_attr_path_action.triggered.connect(self.copy_selected_attr_path)
 
     def create_connections(self):
         self.itemChanged.connect(self.apply_item_edits)
@@ -182,10 +184,22 @@ class AttributesTable(QtWidgets.QTableWidget):
                                                                attr_name=attrib_name_item.node_attr.name)
             node.stage.undo_stack.push(del_attr_cmd)
 
+    def copy_selected_attr_path(self):
+        selected_items = self.selectedItems()
+        if not selected_items:
+            return
+        last_row: AttrTableItem = selected_items[-1]
+        attr_path = last_row.node_attr.as_path()
+        QtWidgets.QApplication.clipboard().setText(attr_path.as_posix())
+        LOGGER.info(f"Copied path: {attr_path}")
+
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.add_attr_action)
-        menu.addAction(self.delete_selected_attr_action)
+        if self.selectedIndexes():
+            menu.addAction(self.copy_selected_attr_path_action)
+            menu.addAction(self.delete_selected_attr_action)
+
         menu.addAction(self.update_action)
         menu.exec_(self.mapToGlobal(point))
 
