@@ -1,6 +1,6 @@
 import typing
 # import pathlib
-# from PySide2 import QtCore
+from PySide2 import QtCore
 # from PySide2 import QtGui
 from PySide2 import QtWidgets
 
@@ -40,3 +40,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
     @property
     def stage(self):
         return self.graph_editor.stage
+
+    def get_center_position(self) -> QtCore.QPointF:
+        return self.mapToScene(self.viewport().rect().center())

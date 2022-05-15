@@ -9,6 +9,7 @@ from nyx.core import commands
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
     from nyx.core import Node
+    from nyx.editor.main_window import NyxEditorMainWindow
 
 LOGGER = get_main_logger()
 
@@ -32,6 +33,10 @@ class StageTreeView(QtWidgets.QTreeView):
         self.create_connections()
 
     def create_actions(self):
+        self.create_new_node_action = QtWidgets.QAction("Create node", self)
+        self.create_new_node_action.triggered.connect(self.create_new_node)
+        self.delete_selected_node_action = QtWidgets.QAction("Delete node", self)
+        self.delete_selected_node_action.triggered.connect(self.delete_selected_node)
         self.copy_selected_node_path_action = QtWidgets.QAction("Copy path to selected", self)
         self.copy_selected_node_path_action.triggered.connect(self.copy_selected_node_path)
 
@@ -42,6 +47,14 @@ class StageTreeView(QtWidgets.QTreeView):
     @property
     def stage(self) -> "Stage":
         return self.model()
+
+    @property
+    def main_window(self) -> "NyxEditorMainWindow":
+        return QtWidgets.QApplication.instance().main_window()
+
+    @property
+    def current_stage_graph(self):
+        return self.main_window.current_stage_graph
 
     def set_stage(self, stage):
         self.setModel(stage)
@@ -77,6 +90,18 @@ class StageTreeView(QtWidgets.QTreeView):
 
         return super().keyPressEvent(event)
 
+    def create_new_node(self):
+        parent_path = None
+        if self.current_item():
+            parent_path = self.current_item().path
+
+        view_center_position: QtCore.QPointF = self.current_stage_graph.gr_view.get_center_position()
+        create_cmd = commands.CreateNodeCommand(stage=self.stage,
+                                                node_name="node",
+                                                parent_path=parent_path,
+                                                position=view_center_position)
+        self.stage.undo_stack.push(create_cmd)
+
     def delete_selected_node(self):
         selected_node: Node = self.current_item()
         if not selected_node:
@@ -94,7 +119,9 @@ class StageTreeView(QtWidgets.QTreeView):
 
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu("", self)
+        menu.addAction(self.create_new_node_action)
         if self.current_item():
             menu.addAction(self.copy_selected_node_path_action)
+            menu.addAction(self.delete_selected_node_action)
 
         menu.exec_(self.mapToGlobal(point))

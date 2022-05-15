@@ -1,5 +1,6 @@
 import pathlib
 from collections import OrderedDict
+from PySide2 import QtCore
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
@@ -27,6 +28,9 @@ class CreateNodeCommand(NyxCommand):
                  position: "list[float, float]" = None,
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
         super().__init__(stage=stage, text="Create Node", parent_command=parent_command)
+        if isinstance(position, (QtCore.QPointF, QtCore.QPoint)):
+            position = [position.x(), position.y()]
+
         self.position = position
         self.parent_path = parent_path
         self.node_name = node_name
@@ -36,6 +40,8 @@ class CreateNodeCommand(NyxCommand):
         node = Node(name=self.node_name)
         self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()
+        if self.position:
+            node.set_position(*self.position)
 
         self.setText(f"Create node ({node.path.as_posix()})")
         return super().redo()
