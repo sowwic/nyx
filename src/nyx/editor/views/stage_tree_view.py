@@ -23,10 +23,21 @@ class StageTreeView(QtWidgets.QTreeView):
     def __init__(self, stage=None, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.setModel(self.stage)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.setHeaderHidden(True)
         self.setExpandsOnDoubleClick(False)
         self.setEditTriggers(StageTreeView.NoEditTriggers)
+
+        self.create_actions()
+        self.create_connections()
+
+    def create_actions(self):
+        self.copy_selected_node_path_action = QtWidgets.QAction("Copy path to selected", self)
+        self.copy_selected_node_path_action.triggered.connect(self.copy_selected_node_path)
+
+    def create_connections(self):
         self.doubleClicked.connect(self.__emit_doubledclicked_item)
+        self.customContextMenuRequested.connect(self.show_context_menu)
 
     @property
     def stage(self) -> "Stage":
@@ -73,3 +84,17 @@ class StageTreeView(QtWidgets.QTreeView):
 
         delete_cmd = commands.DeleteNodeCommand(self.stage, selected_node)
         self.stage.undo_stack.push(delete_cmd)
+
+    def copy_selected_node_path(self):
+        selected_node = self.current_item()
+        if not selected_node:
+            return
+        QtWidgets.QApplication.clipboard().setText(selected_node.path.as_posix())
+        LOGGER.info(f"Copied node path: {selected_node.path.as_posix()}")
+
+    def show_context_menu(self, point: QtCore.QPoint):
+        menu = QtWidgets.QMenu("", self)
+        if self.current_item():
+            menu.addAction(self.copy_selected_node_path_action)
+
+        menu.exec_(self.mapToGlobal(point))
