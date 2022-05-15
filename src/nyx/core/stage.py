@@ -1,7 +1,7 @@
 import typing
 import pprint
 import pathlib
-from collections import OrderedDict
+from collections import OrderedDict, Sequence
 from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
@@ -157,26 +157,29 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             else:
                 self.appendRow(each_node)
 
-    def delete_node(self, node: "Node | pathlib.PurePosixPath | str"):
+    def delete_node(self, nodes: "Sequence[Node | pathlib.PurePosixPath | str]"):
         """Delete node from stage.
 
         Args:
             node (Node): node to delete.
         """
-        node = self.node(node)
-        if node is None:
-            LOGGER.exception(f"{self} | Failed to delete node.")
-            return
+        if isinstance(nodes, (Node, str, pathlib.PurePosixPath)):
+            nodes = [nodes]
+        for node in nodes:
+            node = self.node(node)
+            if node is None:
+                LOGGER.exception(f"{self} | Failed to delete node.")
+                return
 
-        # Removed paths
-        node = self.node(node)
-        node_path_to_emit = node.path
-        self._delete_from_path_map(node)
-        self.beginResetModel()
-        parent = node.parent() or self.invisibleRootItem()
-        self.removeRow(node.row(), parent.index())
-        self.endResetModel()
-        self.node_deleted.emit(node_path_to_emit)
+            # Removed paths
+            node = self.node(node)
+            node_path_to_emit = node.path
+            self._delete_from_path_map(node)
+            self.beginResetModel()
+            parent = node.parent() or self.invisibleRootItem()
+            self.removeRow(node.row(), parent.index())
+            self.endResetModel()
+            self.node_deleted.emit(node_path_to_emit)
 
     def _delete_from_path_map(self, node: "Node", children=True):
         """Remove node's path from path map.

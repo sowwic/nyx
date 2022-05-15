@@ -135,13 +135,14 @@ class AttributesTable(QtWidgets.QTableWidget):
     def update_node_data(self):
         self.setRowCount(0)
         self.blockSignals(True)
-        node = self.tree_view.current_item()
+        node = self.tree_view.current_node()
         if not node:
             return
 
         # LOGGER.debug("Updating attr table")
         row_index = 0
         for _, attr in node.attribs.items():
+            attr.resolve()
             self.setRowCount(self.rowCount() + 1)
             name_item = AttrNameTableItem(attr)
             type_item = AttrTypeTableItem(attr)
@@ -164,7 +165,7 @@ class AttributesTable(QtWidgets.QTableWidget):
         self.update_node_data()
 
     def add_new_attribute(self):
-        node = self.tree_view.current_item()
+        node = self.tree_view.current_node()
         if not node:
             return
         add_attr_cmd = commands.AddNodeAttributeCommand(stage=node.stage,

@@ -1,5 +1,7 @@
 import pathlib
 from collections import OrderedDict
+from collections import deque
+from collections import Sequence
 from PySide2 import QtCore
 from PySide2 import QtWidgets
 
@@ -55,23 +57,35 @@ class CreateNodeCommand(NyxCommand):
 class DeleteNodeCommand(NyxCommand):
     def __init__(self,
                  stage: Stage,
-                 node: "Node | pathlib.PurePosixPath | str",
+                 nodes: "list[Node | pathlib.PurePosixPath | str]",
+                 command_text: str = "Delete node",
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
-        super().__init__(stage=stage, text="Delete node", parent_command=parent_command)
-        node = self.stage.node(node)
-        self.node_data = node.serialize()
-        self.setText(f"Delete node ({node.path.as_posix()})")
+        super().__init__(stage=stage, text=command_text, parent_command=parent_command)
+        if not isinstance(nodes, Sequence):
+            nodes = [nodes]
+        self.serialized_nodes = deque()
+        for each_node in nodes:
+            each_node = self.stage.node(each_node)
+            self.serialized_nodes.append(each_node.serialize())
+
+        if not command_text:
+            if len(nodes) == 1:
+                self.setText(f"Delete node ({nodes[-1].path.as_posix()})")
+            else:
+                self.setText("Deleted nodes")
 
     def redo(self) -> None:
-        self.stage.delete_node(self.node_data.get("path"))
+        paths_to_delete = [node_data.get("path") for node_data in self.serialized_nodes]
+        self.stage.delete_node(paths_to_delete)
         return super().redo()
 
     def undo(self) -> None:
-        node_path: pathlib.PurePosixPath = pathlib.PurePosixPath(self.node_data.get("path"))
-        parent_path = node_path.parent
-        new_node = Node()
-        self.stage.add_node(new_node, parent=parent_path)
-        new_node.deserialize(self.node_data, {}, restore_id=True)
+        for node_data in self.serialized_nodes:
+            node_path: pathlib.PurePosixPath = pathlib.PurePosixPath(node_data.get("path"))
+            parent_path = node_path.parent
+            new_node = Node()
+            self.stage.add_node(new_node, parent=parent_path)
+            new_node.deserialize(node_data, {}, restore_id=True)
         return super().undo()
 
 

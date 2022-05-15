@@ -59,7 +59,7 @@ class CodeEditor(QtWidgets.QWidget):
         return self.tree_view.stage
 
     def update_text_edit(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         self.setDisabled(current_node is None)
         if not current_node:
             self.text_edit.clear()
@@ -69,7 +69,7 @@ class CodeEditor(QtWidgets.QWidget):
         self.text_edit.blockSignals(False)
 
     def set_node_python_code(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             return
         old_code = current_node.get_python_code()

@@ -111,7 +111,7 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def update_node_data_from_treeview(self):
         self.block_fields_signals(True)
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             self.set_fields_enabled(False)
             return
@@ -133,7 +133,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.block_fields_signals(False)
 
     def apply_name_edit(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             return
 
@@ -147,7 +147,7 @@ class AttributeEditor(QtWidgets.QWidget):
         current_node.stage.undo_stack.push(rename_cmd)
 
     def apply_exec_input_edit(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             return
 
@@ -173,7 +173,7 @@ class AttributeEditor(QtWidgets.QWidget):
         current_node.stage.undo_stack.push(set_exec_input_cmd)
 
     def apply_execution_start_edit(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             return
 
@@ -196,7 +196,7 @@ class AttributeEditor(QtWidgets.QWidget):
         current_node.stage.undo_stack.push(set_execution_start_cmd)
 
     def apply_active_toggle(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             return
         new_state = self.node_isactive_checkbox.isChecked()
@@ -207,7 +207,7 @@ class AttributeEditor(QtWidgets.QWidget):
         current_node.stage.undo_stack.push(set_active_cmd)
 
     def apply_comment_edit(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             return
 
@@ -221,7 +221,7 @@ class AttributeEditor(QtWidgets.QWidget):
         current_node.stage.undo_stack.push(set_comment_cmd)
 
     def apply_position_edit(self):
-        current_node = self.tree_view.current_item()
+        current_node = self.tree_view.current_node()
         if not current_node:
             return
 
