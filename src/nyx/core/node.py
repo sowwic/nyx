@@ -30,7 +30,9 @@ class Node(QtGui.QStandardItem, Serializable):
     POSITION_ROLE: int = QtCore.Qt.UserRole + 7
     COMMENT_ROLE: int = QtCore.Qt.UserRole + 8
 
-    def __init__(self, name: str = "node", parent: "Node" = None) -> None:
+    def __init__(self,
+                 name: str = "node",
+                 parent: "Node | pathlib.PurePosixPath | str | None" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
@@ -43,6 +45,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData("", role=Node.COMMENT_ROLE)
 
         self._cached_path = None
+
         if parent:
             parent.appendRow(self)
 

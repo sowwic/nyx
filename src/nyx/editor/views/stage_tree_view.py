@@ -47,6 +47,8 @@ class StageTreeView(QtWidgets.QTreeView):
         self.cut_selected_nodes_action.triggered.connect(self.cut_selected_nodes)
         self.copy_selected_node_path_action = QtWidgets.QAction("Copy path to selected", self)
         self.copy_selected_node_path_action.triggered.connect(self.copy_selected_node_path)
+        self.paste_nodes_action = QtWidgets.QAction("Paste", self)
+        self.paste_nodes_action.triggered.connect(self.paste_nodes_from_clipboard)
 
     def create_connections(self):
         self.doubleClicked.connect(self.__emit_doubledclicked_item)
@@ -121,7 +123,8 @@ class StageTreeView(QtWidgets.QTreeView):
         if not self.selected_nodes():
             return
 
-        delete_cmd = commands.DeleteNodeCommand(self.stage, self.selected_nodes())
+        delete_cmd = commands.DeleteNodeCommand(
+            self.stage, self.selected_nodes(), command_text=None)
         self.stage.undo_stack.push(delete_cmd)
 
     def copy_selected_nodes(self):
@@ -140,6 +143,18 @@ class StageTreeView(QtWidgets.QTreeView):
         clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=True)
         LOGGER.info("Copied selected nodes")
 
+    def paste_nodes_from_clipboard(self):
+        serialized_nodes = clipboard.get_serialized_nodes_from_clipboard()
+        if not serialized_nodes:
+            LOGGER.warning("No nodes found in the clipboard!")
+            return
+        parent_node = self.current_node()
+        paste_cmd = commands.PasteNodesCommand(stage=self.stage,
+                                               serialize_nodes=serialized_nodes,
+                                               mouse_scene_position=[0.0, 0.0],
+                                               parent_node=parent_node)
+        self.stage.undo_stack.push(paste_cmd)
+
     def copy_selected_node_path(self):
         selected_node = self.current_node()
         if not selected_node:
@@ -153,6 +168,10 @@ class StageTreeView(QtWidgets.QTreeView):
         if self.current_node():
             menu.addAction(self.copy_selected_nodes_action)
             menu.addAction(self.cut_selected_nodes_action)
+
+        menu.addAction(self.paste_nodes_action)
+
+        if self.current_node():
             menu.addAction(self.copy_selected_node_path_action)
             menu.addAction(self.delete_selected_node_action)
 

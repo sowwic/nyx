@@ -34,8 +34,14 @@ def serialize_nodes_to_clipboard(nodes: "Sequence[Node]", delete=False):
         stage.undo_stack.push(del_cmd)
 
 
-def deserialize_nodes_from_clipboard(stage: "Stage",
-                                     hashmap: OrderedDict,
-                                     new_parent: "Node" = None,
-                                     restore_id: bool = True):
-    pass
+def get_serialized_nodes_from_clipboard() -> "list[OrderedDict] | list":
+    raw_data = QtWidgets.QApplication.clipboard().text()
+    serialized_nodes = []
+    try:
+        json_data: dict = json.loads(raw_data)
+    except Exception:
+        LOGGER.debug(f"Clipboard data is not of json format: {raw_data}")
+    else:
+        serialized_nodes = json_data.get("nyx_nodes", [])
+    finally:
+        return serialized_nodes

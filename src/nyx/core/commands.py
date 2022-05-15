@@ -67,6 +67,7 @@ class DeleteNodeCommand(NyxCommand):
         for each_node in nodes:
             each_node = self.stage.node(each_node)
             self.serialized_nodes.append(each_node.serialize())
+        self.deleted_paths = deque()
 
         if not command_text:
             if len(nodes) == 1:
@@ -75,13 +76,25 @@ class DeleteNodeCommand(NyxCommand):
                 self.setText("Deleted nodes")
 
     def redo(self) -> None:
-        paths_to_delete = [node_data.get("path") for node_data in self.serialized_nodes]
-        self.stage.delete_node(paths_to_delete)
+        self.deleted_paths.clear()
+        serialized_paths = [pathlib.PurePosixPath(node_data.get("path"))
+                            for node_data in self.serialized_nodes]
+        serialized_paths_set = set(serialized_paths)
+
+        # Filter paths to delete, so that only parent paths are deleted.
+        for path in serialized_paths:
+            if set(path.parents).intersection(serialized_paths_set):
+                continue
+            self.deleted_paths.append(path)
+
+        self.stage.delete_node(self.deleted_paths)
         return super().redo()
 
     def undo(self) -> None:
         for node_data in self.serialized_nodes:
             node_path: pathlib.PurePosixPath = pathlib.PurePosixPath(node_data.get("path"))
+            if node_path not in self.deleted_paths:
+                continue
             parent_path = node_path.parent
             new_node = Node()
             self.stage.add_node(new_node, parent=parent_path)
@@ -448,4 +461,45 @@ class SetNodePositionCommand(NyxCommand):
     def undo(self) -> None:
         node = self.stage.node(self.node_path)
         node.set_position(*self.old_position)
+        return super().undo()
+
+
+class PasteNodesCommand(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 serialize_nodes: "list[OrderedDict]",
+                 mouse_scene_position: "tuple(float, float)",
+                 parent_node: "Node | pathlib.PurePosixPath | str | None" = None,
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Paste nodes", parent_command)
+        self.serialized_nodes = serialize_nodes
+        self.mouse_scene_position = mouse_scene_position
+        self.created_node_paths = deque()
+        self.parent_path = None
+
+        parent_node = self.stage.node(parent_node)
+        if parent_node:
+            self.parent_path = parent_node.path
+
+    def redo(self) -> None:
+        self.created_node_paths.clear()
+
+        # Filter child paths
+        serialized_paths = [
+            pathlib.PurePosixPath(node_data["path"]) for node_data in self.serialized_nodes]
+        serialized_paths_set = set(serialized_paths)
+        for node_data in self.serialized_nodes:
+            node_path = pathlib.PurePosixPath(node_data["path"])
+            if set(node_path.parents).intersection(serialized_paths_set):
+                LOGGER.debug(f"Skipping paste: {node_path}")
+                continue
+            # Create new node and store it's path
+            new_node = Node(name="pasted_node")
+            self.stage.add_node(new_node, parent=self.parent_path)
+            new_node.deserialize(node_data, hashmap={}, restore_id=False)
+            self.created_node_paths.append(new_node.cached_path)
+        return super().redo()
+
+    def undo(self) -> None:
+        self.stage.delete_node(self.created_node_paths)
         return super().undo()
