@@ -4,7 +4,7 @@ from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 
-class NyxGraphicsScene(QtWidgets.QGraphicsScene):
+class GraphicsStage(QtWidgets.QGraphicsScene):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 

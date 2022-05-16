@@ -6,7 +6,7 @@ from PySide2 import QtWidgets
 
 from nyx.core import Stage
 from nyx import get_main_logger
-from nyx.editor.graphics.graphics_scene import NyxGraphicsScene
+from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 
@@ -67,7 +67,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     def create_widgets(self):
         """Create and setup widgets."""
         self.graph_scope_widget = GraphScopeWidget(self)
-        self.gr_scene = NyxGraphicsScene()
+        self.gr_scene = GraphicsStage()
         self.gr_view = StageGraphView(self)
 
     def create_layouts(self):

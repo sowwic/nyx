@@ -35,6 +35,8 @@ class Node(QtGui.QStandardItem, Serializable):
                  parent: "Node | pathlib.PurePosixPath | str | None" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
+        self.gr_node = None
+
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
         self.setData(None, role=Node.INPUT_EXEC_ROLE)
