@@ -80,7 +80,9 @@ class StageTreeView(QtWidgets.QTreeView):
             return None
 
         try:
-            return self.stage.itemFromIndex(self.currentIndex())
+            return self.selected_nodes()[-1]
+        except IndexError:
+            return None
         except Exception:
             LOGGER.exception("Treeview | Failed to get current item")
             return None
@@ -107,10 +109,18 @@ class StageTreeView(QtWidgets.QTreeView):
 
         return super().keyPressEvent(event)
 
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == QtCore.Qt.LeftButton:
+            if not self.indexAt(event.pos()).isValid():
+                self.selectionModel().clear()
+
+        return super().mousePressEvent(event)
+
     def create_new_node(self):
         parent_path = None
-        if self.current_node():
-            parent_path = self.current_node().path
+        selected_nodes = self.selected_nodes()
+        if selected_nodes:
+            parent_path = selected_nodes[-1].path
 
         view_center_position: QtCore.QPointF = self.current_stage_graph.gr_view.get_center_position()
         create_cmd = commands.CreateNodeCommand(stage=self.stage,
@@ -150,7 +160,6 @@ class StageTreeView(QtWidgets.QTreeView):
             return
 
         gr_view_center_position = self.current_stage_graph.gr_view.get_center_position()
-        gr_view_center_position = [gr_view_center_position.x(), gr_view_center_position.y()]
         parent_node = self.current_node()
         paste_cmd = commands.PasteNodesCommand(stage=self.stage,
                                                serialize_nodes=serialized_nodes,

@@ -27,7 +27,7 @@ class CreateNodeCommand(NyxCommand):
                  stage: Stage,
                  node_name: str = "node",
                  parent_path: str = None,
-                 position: "list[float, float]" = None,
+                 position: QtCore.QPointF = None,
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
         super().__init__(stage=stage, text="Create Node", parent_command=parent_command)
         if isinstance(position, (QtCore.QPointF, QtCore.QPoint)):
@@ -43,7 +43,7 @@ class CreateNodeCommand(NyxCommand):
         self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()
         if self.position:
-            node.set_position(*self.position)
+            node.set_position(self.position)
 
         self.setText(f"Create node ({node.path.as_posix()})")
         return super().redo()
@@ -443,7 +443,7 @@ class SetNodePositionCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  node: "Node | pathlib.PurePosixPath | str | None",
-                 new_position: "tuple(float, float)",
+                 new_position: QtCore.QPointF,
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
         super().__init__(stage, "Set position", parent_command)
         self.node_path = self.stage.node(node).path
@@ -455,12 +455,12 @@ class SetNodePositionCommand(NyxCommand):
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
         self.old_position = node.position()
-        node.set_position(*self.new_position)
+        node.set_position(self.new_position)
         return super().redo()
 
     def undo(self) -> None:
         node = self.stage.node(self.node_path)
-        node.set_position(*self.old_position)
+        node.set_position(self.old_position)
         return super().undo()
 
 
@@ -468,7 +468,7 @@ class PasteNodesCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  serialize_nodes: "list[OrderedDict]",
-                 position: "tuple(float, float)",
+                 position: QtCore.QPointF,
                  parent_node: "Node | pathlib.PurePosixPath | str | None" = None,
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
         super().__init__(stage, "Paste nodes", parent_command)
@@ -494,11 +494,12 @@ class PasteNodesCommand(NyxCommand):
                 LOGGER.debug(f"Skipping paste: {node_path}")
                 continue
             # Create new node and store it's path
+            LOGGER.debug(f"Adding {node_path}")
             new_node = Node(name="pasted_node")
             self.stage.add_node(new_node, parent=self.parent_path)
             new_node.deserialize(node_data, hashmap={}, restore_id=False)
             paste_position = self.get_paste_position(new_node.position())
-            new_node.set_position(*paste_position)
+            new_node.set_position(paste_position)
 
             self.created_node_paths.append(new_node.cached_path)
         return super().redo()
@@ -507,15 +508,15 @@ class PasteNodesCommand(NyxCommand):
         self.stage.delete_node(self.created_node_paths)
         return super().undo()
 
-    def get_paste_position(self, serialized_node_position: "list[float ,float]"):
+    def get_paste_position(self, serialized_node_position: QtCore.QPointF):
         min_x, max_x, min_y, max_y = 10000000, -10000000, 10000000, -10000000
-        pos_x, pos_y = serialized_node_position
+        pos_x = serialized_node_position.x()
+        pos_y = serialized_node_position.y()
         min_x = min(pos_x, min_x)
         max_x = max(pos_x, max_x)
         min_y = min(pos_y, min_y)
         max_y = max(pos_y, max_y)
 
-        new_x = self.position[0] + pos_x - min_x,
-        new_y = self.position[1] + pos_y - min_y
-
-        return [new_x, new_y]
+        new_x = self.position.x() + pos_x - min_x
+        new_y = self.position.y() + pos_y - min_y
+        return QtCore.QPointF(new_x, new_y)

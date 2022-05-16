@@ -43,7 +43,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(None, role=Node.OUTPUT_EXEC_ROLE)
         self.setData(True, role=Node.ACTIVE_ROLE)
         self.setData(None, role=Node.EXECUTION_START_PATH_ROLE)
-        self.setData([0.0, 0.0], role=Node.POSITION_ROLE)
+        self.setData(QtCore.QPointF(), role=Node.POSITION_ROLE)
         self.setData("", role=Node.COMMENT_ROLE)
 
         self._cached_path = None
@@ -156,11 +156,14 @@ class Node(QtGui.QStandardItem, Serializable):
         """Set node's active state to True."""
         self.set_active(True)
 
-    def position(self) -> "list[float, float]":
-        return self.data(role=Node.POSITION_ROLE)
+    def position(self, serializable=False) -> QtCore.QPointF:
+        position: QtCore.QPointF = self.data(role=Node.POSITION_ROLE)
+        if not serializable:
+            return position
+        return [position.x(), position.y()]
 
-    def set_position(self, pos_x: float, pos_y: float):
-        self.setData([pos_x, pos_y], role=Node.POSITION_ROLE)
+    def set_position(self, position: QtCore.QPointF):
+        self.setData(position, role=Node.POSITION_ROLE)
 
     def comment(self) -> str:
         return self.data(role=Node.COMMENT_ROLE)
@@ -489,7 +492,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         data["name"] = self.text()
         data["active"] = self.is_active()
-        data["position"] = self.position()
+        data["position"] = self.position(serializable=True)
         data["path"] = self.path.as_posix()
         data["execution_start_path"] = self.get_execution_start_path(serializable=True)
         data["input_exec"] = self.get_input_exec_path(serializable=True)
@@ -515,7 +518,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.set_input_exec_path(data.get("input_exec", ""), silent=True)
         self.set_output_exec_path(data.get("output_exec", ""), silent=True)
         self.set_execution_start_path(data.get("execution_start_path"))
-        self.set_position(*data.get("position", [0.0, 0.0]))
+        self.set_position(QtCore.QPointF(*data.get("position", [0.0, 0.0])))
         self.set_comment(data.get("comment", ""))
 
         hashmap[self.uuid] = self

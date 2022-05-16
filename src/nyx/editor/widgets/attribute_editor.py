@@ -127,8 +127,8 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_isactive_checkbox.setChecked(current_node.is_active())
         node_position = current_node.position()
 
-        self.node_position_x_spinbox.setValue(node_position[0])
-        self.node_position_y_spinbox.setValue(node_position[1])
+        self.node_position_x_spinbox.setValue(node_position.x())
+        self.node_position_y_spinbox.setValue(node_position.y())
         self.node_comment_text_edit.setText(current_node.comment())
         self.block_fields_signals(False)
 
