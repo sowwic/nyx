@@ -6,10 +6,13 @@ from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
+from nyx.core import commands
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 
 if typing.TYPE_CHECKING:
+    from nyx.core import Node
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
+    from nyx.editor.graphics.graphics_stage import GraphicsStage
 
 
 LOGGER = get_main_logger()
@@ -34,9 +37,10 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
         super().__init__(graph_editor.gr_scene, parent=parent)
         self.graph_editor: "StageGraphEditor" = graph_editor
+        self.__interaction_mode = StageGraphView.InteractionMode.NOOP
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.cutline = GraphCutLine()
         self.scene().addItem(self.cutline)
-        self.__interaction_mode = StageGraphView.InteractionMode.NOOP
 
         # Zoom
         self.zoom_in_factor = 1.25
@@ -75,7 +79,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
                                 QtGui.QPainter.TextAntialiasing | QtGui.QPainter.SmoothPixmapTransform)
 
     def create_actions(self):
-        pass
+        self.delete_selected_action = QtWidgets.QAction("Delete", self)
+        self.delete_selected_action.triggered.connect(self.delete_selected)
 
     def create_widgets(self):
         pass
@@ -84,7 +89,11 @@ class StageGraphView(QtWidgets.QGraphicsView):
         pass
 
     def create_connections(self):
-        pass
+        self.customContextMenuRequested.connect(self.show_context_menu)
+
+    def update_actions(self):
+        is_selection_empty = self.gr_scene.is_gr_node_selection_empty()
+        self.delete_selected_action.setEnabled(is_selection_empty)
 
     @property
     def stage(self):
@@ -97,6 +106,10 @@ class StageGraphView(QtWidgets.QGraphicsView):
     @property
     def interaction_mode(self):
         return self.__interaction_mode
+
+    @property
+    def gr_scene(self) -> "GraphicsStage":
+        return self.scene()
 
     def set_interaction_mode(self, mode: "StageGraphView.InteractionMode"):
         self.__interaction_mode = mode
@@ -267,6 +280,14 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def dropEvent(self, event: QtGui.QDropEvent):
         self.item_dropped.emit(event)
 
+    def show_context_menu(self, point: QtCore.QPoint):
+        menu = QtWidgets.QMenu("", self)
+        self.update_actions()
+        # Add actions
+        menu.addAction(self.delete_selected_action)
+
+        menu.exec_(self.mapToGlobal(point))
+
     def cut_intersecting_edges(self):
         cut_result = False
         # for ix in range(len(self.cutline.line_points) - 1):
@@ -283,5 +304,17 @@ class StageGraphView(QtWidgets.QGraphicsView):
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
 
-    def rebuild_current_scope(self):
-        self.scene().clear()
+    def delete_selected(self):
+        if not self.stage:
+            return
+
+        if self.gr_scene.is_gr_node_selection_empty():
+            LOGGER.warning("No nodes selected to delete!")
+            return
+
+        selected_gr_nodes = self.scene().selected_gr_nodes()
+        nodes_to_delete: "list[Node]" = [gr_node.node for gr_node in selected_gr_nodes]
+        del_cmd = commands.DeleteNodeCommand(stage=self.stage,
+                                             nodes=nodes_to_delete)
+        self.stage.undo_stack.push(del_cmd)
+        self.scene().rebuild_current_scope()

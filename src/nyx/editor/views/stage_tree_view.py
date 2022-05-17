@@ -10,6 +10,7 @@ from nyx.core import commands
 from nyx.editor.utils import clipboard
 
 if typing.TYPE_CHECKING:
+    import pathlib
     from nyx.core import Stage
     from nyx.core import Node
     from nyx.editor.main_window import NyxEditorMainWindow
@@ -93,6 +94,19 @@ class StageTreeView(QtWidgets.QTreeView):
             nodes.append(self.stage.itemFromIndex(index))
 
         return nodes
+
+    def select_paths(self, node_paths: "list[pathlib.PurePosixPath]", silent=False):
+        if silent:
+            self.blockSignals(True)
+        indexes = []
+        for path in node_paths:
+            node = self.stage.node(path)
+            if node is None:
+                LOGGER.warning("Invalid path selected: {}".format(path))
+                continue
+            indexes.append(node.index())
+        self.selectionModel().select(indexes)
+        self.blockSignals(False)
 
     def selectionChanged(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
         super().selectionChanged(selected, deselected)

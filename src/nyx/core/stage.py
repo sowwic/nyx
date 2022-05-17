@@ -60,6 +60,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return self.file_path is None or self.last_saved_undo_index != self.undo_stack.index()
 
     def list_children(self, node: "Node") -> typing.List["Node"]:
+        node = node or self.invisibleRootItem()
         if node is self.invisibleRootItem():
             return [self.invisibleRootItem().child(row) for row in range(self.invisibleRootItem().rowCount())]
         else:

@@ -14,6 +14,7 @@ from nyx import get_main_logger
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
+    from nyx.editor.graphics.graphics_node import GraphicsNode
 
 
 LOGGER = get_main_logger()
@@ -35,7 +36,7 @@ class Node(QtGui.QStandardItem, Serializable):
                  parent: "Node | pathlib.PurePosixPath | str | None" = None) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
-        self.gr_node = None
+        self.gr_node: "GraphicsNode" = None
 
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
