@@ -12,6 +12,7 @@ class GraphScopeWidget(QtWidgets.QWidget):
     def __init__(self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.__icon_scope_back: QtGui.QIcon = None
+        self.__icon_scope_root: QtGui.QIcon = None
         self.graph_editor: "StageGraphEditor" = graph_editor
 
         # Initialize ui
@@ -26,6 +27,7 @@ class GraphScopeWidget(QtWidgets.QWidget):
     def create_widgets(self):
         self.path_line_edit = QtWidgets.QLineEdit()
         self.scope_back_btn = QtWidgets.QPushButton(self.icon_scope_back, "")
+        self.scope_root_btn = QtWidgets.QPushButton(self.icon_scope_root, "")
         self.path_line_edit.setText(self.graph_editor.get_scope_path().as_posix())
 
     def create_layouts(self):
@@ -33,12 +35,14 @@ class GraphScopeWidget(QtWidgets.QWidget):
         self.main_layout.setContentsMargins(5, 0, 5, 0)
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(self.scope_back_btn)
+        self.main_layout.addWidget(self.scope_root_btn)
         self.main_layout.addWidget(self.path_line_edit)
 
     def create_connections(self):
         self.graph_editor.scope_changed.connect(self.update_scope_text)
         self.path_line_edit.returnPressed.connect(self.set_editor_scope)
         self.scope_back_btn.clicked.connect(self.graph_editor.scope_back)
+        self.scope_root_btn.clicked.connect(self.graph_editor.scope_root)
 
     @property
     def icon_scope_back(self):
@@ -48,6 +52,15 @@ class GraphScopeWidget(QtWidgets.QWidget):
         pixmap = QtWidgets.QStyle.SP_FileDialogBack
         self.__icon_scope_back = main_window.style().standardIcon(pixmap)
         return self.__icon_scope_back
+
+    @property
+    def icon_scope_root(self):
+        if self.__icon_scope_root:
+            return self.__icon_scope_root
+        main_window: "NyxEditorMainWindow" = QtWidgets.QApplication.instance().main_window()
+        pixmap = QtWidgets.QStyle.SP_DirHomeIcon
+        self.__icon_scope_root = main_window.style().standardIcon(pixmap)
+        return self.__icon_scope_root
 
     @property
     def stage(self):

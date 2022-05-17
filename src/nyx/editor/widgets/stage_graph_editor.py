@@ -202,6 +202,9 @@ class StageGraphEditor(QtWidgets.QWidget):
     def scope_back(self) -> None:
         self.set_scope_path(self.get_scope_path().parent)
 
+    def scope_root(self) -> None:
+        self.set_scope_path(self.stage.ROOT_ITEM_PATH)
+
     def _handle_scope_path_at_node_deletion(self, deleted_node_path):
         current_scope = self.get_scope_path()
         if current_scope == deleted_node_path or deleted_node_path in current_scope.parents:
