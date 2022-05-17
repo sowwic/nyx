@@ -35,7 +35,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def __init__(self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None) -> None:
 
-        super().__init__(graph_editor.gr_scene, parent=parent)
+        super().__init__(graph_editor.gr_stage, parent=parent)
         self.graph_editor: "StageGraphEditor" = graph_editor
         self.__interaction_mode = StageGraphView.InteractionMode.NOOP
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -92,7 +92,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     def update_actions(self):
-        is_selection_empty = self.gr_scene.is_gr_node_selection_empty()
+        is_selection_empty = self.gr_stage.is_gr_node_selection_empty()
         self.delete_selected_action.setEnabled(is_selection_empty)
 
     @property
@@ -108,7 +108,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         return self.__interaction_mode
 
     @property
-    def gr_scene(self) -> "GraphicsStage":
+    def gr_stage(self) -> "GraphicsStage":
         return self.scene()
 
     def set_interaction_mode(self, mode: "StageGraphView.InteractionMode"):
@@ -308,7 +308,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         if not self.stage:
             return
 
-        if self.gr_scene.is_gr_node_selection_empty():
+        if self.gr_stage.is_gr_node_selection_empty():
             LOGGER.warning("No nodes selected to delete!")
             return
 

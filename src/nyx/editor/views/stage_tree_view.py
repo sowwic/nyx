@@ -50,6 +50,10 @@ class StageTreeView(QtWidgets.QTreeView):
         self.copy_selected_node_path_action.triggered.connect(self.copy_selected_node_path)
         self.paste_nodes_action = QtWidgets.QAction("Paste", self)
         self.paste_nodes_action.triggered.connect(self.paste_nodes_from_clipboard)
+        self.set_selected_item_as_parents_execution_start_action = QtWidgets.QAction(
+            "Set as parent execution start", self)
+        self.set_selected_item_as_parents_execution_start_action.triggered.connect(
+            self.set_selected_item_as_parents_execution_start)
 
     def create_connections(self):
         self.doubleClicked.connect(self.__emit_doubledclicked_item)
@@ -188,16 +192,34 @@ class StageTreeView(QtWidgets.QTreeView):
         QtWidgets.QApplication.clipboard().setText(selected_node.path.as_posix())
         LOGGER.info(f"Copied node path: {selected_node.path.as_posix()}")
 
+    def set_selected_item_as_parents_execution_start(self):
+        current_node = self.current_node()
+        if not current_node:
+            return
+
+        if current_node.parent():
+            set_execution_start_cmd = commands.SetNodeExecStartCommand(stage=current_node.stage,
+                                                                       node=current_node.parent(),
+                                                                       path=current_node.path)
+        else:
+            set_execution_start_cmd = commands.SetStageExecStartCommand(stage=current_node.stage,
+                                                                        path=current_node.path)
+
+        current_node.stage.undo_stack.push(set_execution_start_cmd)
+
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu("", self)
         menu.addAction(self.create_new_node_action)
         if self.current_node():
+            menu.addAction(self.set_selected_item_as_parents_execution_start_action)
+            menu.addSeparator()
             menu.addAction(self.copy_selected_nodes_action)
             menu.addAction(self.cut_selected_nodes_action)
 
         menu.addAction(self.paste_nodes_action)
 
         if self.current_node():
+            menu.addSeparator()
             menu.addAction(self.copy_selected_node_path_action)
             menu.addAction(self.delete_selected_node_action)
 

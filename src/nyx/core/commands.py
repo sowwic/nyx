@@ -439,31 +439,6 @@ class SetNodeCommentCommand(NyxCommand):
         return super().undo()
 
 
-class SetNodePositionCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str | None",
-                 new_position: QtCore.QPointF,
-                 parent_command: QtWidgets.QUndoCommand = None) -> None:
-        super().__init__(stage, "Set position", parent_command)
-        self.node_path = self.stage.node(node).path
-        self.new_position = new_position
-        self.old_position = None
-        self.setText(
-            f"{self.text()} ({self.node_path} -> ({self.new_position[0], self.new_position[1]}))")
-
-    def redo(self) -> None:
-        node = self.stage.node(self.node_path)
-        self.old_position = node.position()
-        node.set_position(self.new_position)
-        return super().redo()
-
-    def undo(self) -> None:
-        node = self.stage.node(self.node_path)
-        node.set_position(self.old_position)
-        return super().undo()
-
-
 class PasteNodesCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
@@ -520,3 +495,37 @@ class PasteNodesCommand(NyxCommand):
         new_x = self.position.x() + pos_x - min_x
         new_y = self.position.y() + pos_y - min_y
         return QtCore.QPointF(new_x, new_y)
+
+
+class MoveNodeCommand(NyxCommand):
+    def __init__(self,
+                 stage: "Stage",
+                 nodes: "list[Node] | list[pathlib.PurePosixPath] | list[str]",
+                 new_positions: "list[QtCore.QPointF]",
+                 parent_command: QtWidgets.QUndoCommand = None) -> None:
+        super().__init__(stage, "Moved nodes", parent_command)
+        if not isinstance(nodes, (list, tuple, deque)):
+            nodes = [nodes]
+        if not isinstance(new_positions, (list, tuple, deque)):
+            new_positions = [new_positions]
+
+        self.node_paths = [self.stage.node(node).path for node in nodes]
+        self.old_positions = [self.stage.node(node).position() for node in nodes]
+        self.new_positions = new_positions
+
+        self.setText(f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
+
+    def redo(self) -> None:
+        for node, new_pos in zip([self.stage.node(path) for path in self.node_paths], self.new_positions):
+            node.set_position(new_pos)
+            if node.gr_node and node.gr_node.pos() != new_pos:
+                node.gr_node.setPos(new_pos)
+
+        return super().redo()
+
+    def undo(self) -> None:
+        for node, old_pos in zip([self.stage.node(path) for path in self.node_paths], self.old_positions):
+            node.set_position(old_pos)
+            if node.gr_node and node.gr_node.pos() != old_pos:
+                node.gr_node.setPos(old_pos)
+        return super().undo()

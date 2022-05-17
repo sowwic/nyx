@@ -1,6 +1,6 @@
 import typing
 import pathlib
-# from PySide2 import QtCore
+from PySide2 import QtCore
 # from PySide2 import QtGui
 from PySide2 import QtWidgets
 
@@ -42,6 +42,8 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_comment_text_edit = NyxTextEdit()
         self.node_position_x_spinbox = QtWidgets.QDoubleSpinBox()
         self.node_position_y_spinbox = QtWidgets.QDoubleSpinBox()
+        self.node_position_x_spinbox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        self.node_position_y_spinbox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.node_position_x_spinbox.setRange(-64000, 64000)
         self.node_position_y_spinbox.setRange(-64000, 64000)
 
@@ -49,8 +51,11 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def create_layouts(self):
         position_layout = QtWidgets.QHBoxLayout()
+        position_layout.addWidget(QtWidgets.QLabel("X:"))
         position_layout.addWidget(self.node_position_x_spinbox)
+        position_layout.addWidget(QtWidgets.QLabel("Y:"))
         position_layout.addWidget(self.node_position_y_spinbox)
+        position_layout.addStretch()
 
         basic_properties_layout = QtWidgets.QFormLayout()
         basic_properties_layout.addRow(self.node_isactive_checkbox)
@@ -115,9 +120,8 @@ class AttributeEditor(QtWidgets.QWidget):
         if not current_node:
             self.set_fields_enabled(False)
             return
-        else:
-            self.set_fields_enabled(True)
 
+        self.set_fields_enabled(True)
         self.node_name_lineedit.setText(current_node.name)
         self.node_path_lineedit.setText(current_node.path.as_posix())
         self.node_exec_input_line_edit.setText(
@@ -126,6 +130,8 @@ class AttributeEditor(QtWidgets.QWidget):
             current_node.get_execution_start_path(serializable=True))
         self.node_isactive_checkbox.setChecked(current_node.is_active())
         node_position = current_node.position()
+        if not isinstance(node_position, QtCore.QPointF):
+            node_position = QtCore.QPointF(*node_position)
 
         self.node_position_x_spinbox.setValue(node_position.x())
         self.node_position_y_spinbox.setValue(node_position.y())
@@ -229,7 +235,7 @@ class AttributeEditor(QtWidgets.QWidget):
         if new_position == current_node.position():
             return
 
-        set_position_cmd = commands.SetNodePositionCommand(stage=current_node.stage,
-                                                           node=current_node,
-                                                           new_position=new_position)
-        current_node.stage.undo_stack.push(set_position_cmd)
+        move_cmd = commands.MoveNodeCommand(stage=current_node.stage,
+                                            nodes=[current_node],
+                                            new_positions=[new_position])
+        current_node.stage.undo_stack.push(move_cmd)

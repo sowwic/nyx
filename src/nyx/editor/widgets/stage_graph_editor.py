@@ -38,7 +38,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.create_layouts()
         self.create_connections()
 
-        self.gr_scene.rebuild_current_scope()
+        self.gr_stage.rebuild_current_scope()
 
     @classmethod
     def from_json_file(cls, file_path: "pathlib.Path | str"):
@@ -69,7 +69,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     def create_widgets(self):
         """Create and setup widgets."""
         self.graph_scope_widget = GraphScopeWidget(self)
-        self.gr_scene = GraphicsStage(self)
+        self.gr_stage = GraphicsStage(self)
         self.gr_view = StageGraphView(self)
 
     def create_layouts(self):
@@ -86,15 +86,15 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.stage.undo_stack.indexChanged.connect(self.update_title)
         self.tree_view.node_doubleclicked.connect(self.set_scope_path)
         self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
-        self.scope_changed.connect(self.gr_scene.rebuild_scope)
+        self.scope_changed.connect(self.gr_stage.rebuild_scope)
 
     def create_connections(self):
         """Create signal to slot connections."""
         self.create_stage_connections()
-        self.gr_scene.nodes_selection_cleared.connect(self.tree_view.clearSelection)
-        self.gr_scene.nodes_selection_changed.connect(
+        self.gr_stage.nodes_selection_cleared.connect(self.tree_view.clearSelection)
+        self.gr_stage.nodes_selection_changed.connect(
             lambda paths: self.tree_view.select_paths(paths, silent=True))
-        self.tree_view.selection_changed.connect(self.gr_scene.on_tree_view_selection_changed)
+        self.tree_view.selection_changed.connect(self.gr_stage.on_tree_view_selection_changed)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Overridden close event.

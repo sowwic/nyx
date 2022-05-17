@@ -120,18 +120,21 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             return None
         return deque(self.selected_gr_nodes(), maxlen=1).pop()
 
-    def clear(self) -> None:
+    def clear_nodes(self):
         for gr_node in self.gr_nodes():
             gr_node.node.gr_node = None
+            self.removeItem(gr_node)
 
-        return super().clear()
+    def add_node(self, node: "Node | pathlib.PurePosixPath | str"):
+        node = self.stage.node(node)
+        gr_node = GraphicsNode(node)
+        self.addItem(gr_node)
 
     def build_nodes(self, scope_node: "Node"):
         child_nodes = self.stage.list_children(scope_node)
         child_nodes = self.stage.list_children(scope_node)
         for node in child_nodes:
-            # gr_node = GraphicsNode(node)
-            # self.addItem(gr_node)
+            # self.add_node(node)
             text_item = self.addText(node.name)
             text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
             text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
@@ -141,7 +144,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         pass
 
     def rebuild_scope(self, scope_path: pathlib.PurePosixPath):
-        self.clear()
+        self.clear_nodes()
         scope_node = self.stage.node(scope_path)
         self.build_nodes(scope_node)
         self.build_edges(scope_node)
