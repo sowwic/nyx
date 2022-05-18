@@ -27,11 +27,11 @@ class CreateNodeCommand(NyxCommand):
                  stage: Stage,
                  node_name: str = "node",
                  parent_path: str = None,
-                 position: QtCore.QPointF = None,
+                 position: QtCore.QPointF = QtCore.QPointF(),
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
         super().__init__(stage=stage, text="Create Node", parent_command=parent_command)
-        if isinstance(position, (QtCore.QPointF, QtCore.QPoint)):
-            position = [position.x(), position.y()]
+        if not isinstance(position, (QtCore.QPointF, QtCore.QPoint)):
+            position = QtCore.QPointF(*position)
 
         self.position = position
         self.parent_path = parent_path

@@ -84,8 +84,9 @@ class StageGraphEditor(QtWidgets.QWidget):
     def create_stage_connections(self):
         """Create connections between graph widgets and stage."""
         self.stage.undo_stack.indexChanged.connect(self.update_title)
-        self.tree_view.node_doubleclicked.connect(self.set_scope_path)
+        self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope())
         self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
+        self.tree_view.node_doubleclicked.connect(self.set_scope_path)
         self.scope_changed.connect(self.gr_stage.rebuild_scope)
 
     def create_connections(self):

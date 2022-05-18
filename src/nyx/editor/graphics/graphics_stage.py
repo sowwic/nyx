@@ -132,7 +132,6 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def build_nodes(self, scope_node: "Node"):
         child_nodes = self.stage.list_children(scope_node)
-        child_nodes = self.stage.list_children(scope_node)
         for node in child_nodes:
             # self.add_node(node)
             text_item = self.addText(node.name)
@@ -144,6 +143,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         pass
 
     def rebuild_scope(self, scope_path: pathlib.PurePosixPath):
+        LOGGER.debug(f"Rebuilding scope: {scope_path}")
         self.clear_nodes()
         scope_node = self.stage.node(scope_path)
         self.build_nodes(scope_node)
