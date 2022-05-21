@@ -89,10 +89,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
         self.code_editor = CodeEditor(self)
-        self.tool_bar = EditorToolBar(self)
         self.attrib_editor = AttributeEditor(self)
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
+        self.tool_bar = EditorToolBar(self)
 
         # mdi area
         self.mdi_area = QtWidgets.QMdiArea()
@@ -106,7 +106,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         # Dock Widgets
         self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
-        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.North)
+        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.West)
         # Tree dock
         self.stage_tree_dock = QtWidgets.QDockWidget("Tree View")
         self.stage_tree_dock.setWidget(self.stage_tree_view)
@@ -184,7 +184,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.apply_config_values()
 
     def create_stage_node_graph(self, stage=None, file_path: "pathlib.Path | str" = None):
-
         if file_path:
             graph_widget = StageGraphEditor.from_json_file(file_path)
         else:

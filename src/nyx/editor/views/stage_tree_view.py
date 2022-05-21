@@ -8,6 +8,7 @@ from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.core import commands
 from nyx.editor.utils import clipboard
+from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
     import pathlib
@@ -27,7 +28,7 @@ class StageTreeView(QtWidgets.QTreeView):
 
     def __init__(self, stage=None, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-        self.setModel(self.stage)
+        self.setModel(stage)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.setHeaderHidden(True)
         self.setSelectionMode(self.ExtendedSelection)
@@ -40,7 +41,9 @@ class StageTreeView(QtWidgets.QTreeView):
     def create_actions(self):
         self.create_new_node_action = QtWidgets.QAction("Create node", self)
         self.create_new_node_action.triggered.connect(self.create_new_node)
-        self.delete_selected_node_action = QtWidgets.QAction("Delete node", self)
+        self.delete_selected_node_action = QtWidgets.QAction(pyside_fn.get_standard_icon(self, "SP_DialogDiscardButton"),
+                                                             "Delete node",
+                                                             self)
         self.delete_selected_node_action.triggered.connect(self.delete_selected_node)
         self.copy_selected_nodes_action = QtWidgets.QAction("Copy", self)
         self.copy_selected_nodes_action.triggered.connect(self.copy_selected_nodes)

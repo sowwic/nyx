@@ -18,6 +18,10 @@ class FileMenu(BaseMenu):
         self.save_stage_action = QtWidgets.QAction("Save Stage", self)
         self.save_stage_as_action = QtWidgets.QAction("Save Stage As...", self)
 
+        self.new_stage_action.setShortcut("Ctrl+Shift+N")
+        self.open_stage_action.setShortcut("Ctrl+Shift+O")
+        self.save_stage_action.setShortcut("Ctrl+Shift+S")
+
     def populate(self):
         self.addAction(self.new_stage_action)
         self.addAction(self.open_stage_action)

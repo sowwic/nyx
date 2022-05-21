@@ -9,3 +9,5 @@ class EditorToolBar(QtWidgets.QToolBar):
     def __init__(self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None) -> None:
         super().__init__("Tools", parent)
         self.main_window: "NyxEditorMainWindow" = main_window
+        self.addAction(self.main_window.stage_tree_view.create_new_node_action)
+        self.addAction(self.main_window.stage_tree_view.delete_selected_node_action)

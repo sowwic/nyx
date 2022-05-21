@@ -46,3 +46,9 @@ def min_bounding_rect(rects: "list[QtCore.QRect]"):
         max_y = max(max_y, rects[k].bottom())
 
     return QtCore.QRectF(min_x, min_y, max_x - min_x, max_y - min_y)
+
+
+def get_standard_icon(widget, icon_name: str):
+    pixmap = getattr(QtWidgets.QStyle, icon_name)
+    icon = widget.style().standardIcon(pixmap)
+    return icon
