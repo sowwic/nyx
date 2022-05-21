@@ -163,6 +163,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         new_stage = Stage()
         new_stage.import_json(file_path)
         self.set_stage(new_stage)
+        self.gr_stage.rebuild_current_scope()
         return True
 
     def on_stage_save(self):
