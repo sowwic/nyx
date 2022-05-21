@@ -81,10 +81,12 @@ class StageGraphView(QtWidgets.QGraphicsView):
                                 QtGui.QPainter.TextAntialiasing | QtGui.QPainter.SmoothPixmapTransform)
 
     def create_actions(self):
+        self.create_node_action = QtWidgets.QAction("Create Node", self)
         self.copy_selected_action = QtWidgets.QAction("Copy", self)
         self.cut_selected_action = QtWidgets.QAction("Cut", self)
         self.paste_action = QtWidgets.QAction("Paste", self)
         self.delete_selected_action = QtWidgets.QAction("Delete", self)
+        self.create_node_action.triggered.connect(self.create_new_node)
         self.copy_selected_action.triggered.connect(self.copy_selected_nodes)
         self.cut_selected_action.triggered.connect(self.cut_selected_nodes)
         self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
@@ -235,6 +237,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
                 event.ignore()
                 return
             else:
+                self.gr_stage.clearSelection()
                 self.rubberband_dragging_rect = True
 
         super().mousePressEvent(event)
@@ -311,6 +314,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         menu = QtWidgets.QMenu("", self)
         self.update_actions()
         # Add actions
+        menu.addAction(self.create_node_action)
         menu.addAction(self.copy_selected_action)
         menu.addAction(self.cut_selected_action)
         menu.addAction(self.paste_action)
@@ -333,6 +337,16 @@ class StageGraphView(QtWidgets.QGraphicsView):
             # TODO: Disconnect attributes here
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
+
+    def create_new_node(self):
+        parent_path = self.graph_editor.get_scope_path()
+
+        position = self.last_scene_mouse_pos
+        create_cmd = commands.CreateNodeCommand(stage=self.stage,
+                                                node_name="node",
+                                                parent_path=parent_path,
+                                                position=position)
+        self.stage.undo_stack.push(create_cmd)
 
     def delete_selected(self):
         if not self.stage:

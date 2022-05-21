@@ -111,7 +111,7 @@ class StageTreeView(QtWidgets.QTreeView):
             indexes.append(node.index())
 
         for each_index in indexes:
-            self.selectionModel().select(each_index, QtCore.QItemSelectionModel.Select)
+            self.selectionModel().select(each_index, QtCore.QItemSelectionModel.ClearAndSelect)
         self.blockSignals(False)
 
     def selectionChanged(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
