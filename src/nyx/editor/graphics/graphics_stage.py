@@ -147,11 +147,18 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def rebuild_scope(self, scope_path: pathlib.PurePosixPath):
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
+        previous_selection = self.list_selected_node_paths()
         self.clear_edges()
         self.clear_nodes()
         scope_node = self.stage.node(scope_path)
         self.build_nodes(scope_node)
         self.build_edges(scope_node)
+        for path in previous_selection:
+            node = self.stage.node(path)
+            if not node or not node.gr_node:
+                continue
+            node.gr_node.setSelected(True)
+        self.graph_editor.tree_view.select_paths(previous_selection)
 
     def rebuild_current_scope(self):
         self.rebuild_scope(self.graph_editor.get_scope_path())
