@@ -109,7 +109,9 @@ class StageTreeView(QtWidgets.QTreeView):
                 LOGGER.warning("Invalid path selected: {}".format(path))
                 continue
             indexes.append(node.index())
-        self.selectionModel().select(indexes)
+
+        for each_index in indexes:
+            self.selectionModel().select(each_index, QtCore.QItemSelectionModel.Select)
         self.blockSignals(False)
 
     def selectionChanged(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
@@ -169,7 +171,7 @@ class StageTreeView(QtWidgets.QTreeView):
             return
 
         clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=True)
-        LOGGER.info("Copied selected nodes")
+        LOGGER.info("Cut selected nodes")
 
     def paste_nodes_from_clipboard(self):
         serialized_nodes = clipboard.get_serialized_nodes_from_clipboard()

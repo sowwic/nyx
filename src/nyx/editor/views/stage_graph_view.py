@@ -7,7 +7,9 @@ from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core import commands
+from nyx.editor.utils import clipboard
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
+from nyx.editor.graphics.graphics_node import GraphicsNode
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -79,8 +81,19 @@ class StageGraphView(QtWidgets.QGraphicsView):
                                 QtGui.QPainter.TextAntialiasing | QtGui.QPainter.SmoothPixmapTransform)
 
     def create_actions(self):
+        self.copy_selected_action = QtWidgets.QAction("Copy", self)
+        self.cut_selected_action = QtWidgets.QAction("Cut", self)
+        self.paste_action = QtWidgets.QAction("Paste", self)
         self.delete_selected_action = QtWidgets.QAction("Delete", self)
+        self.copy_selected_action.triggered.connect(self.copy_selected_nodes)
+        self.cut_selected_action.triggered.connect(self.cut_selected_nodes)
+        self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
         self.delete_selected_action.triggered.connect(self.delete_selected)
+
+        self.copy_selected_action.setShortcut("Ctrl+C")
+        self.cut_selected_action.setShortcut("Ctrl+X")
+        self.paste_action.setShortcut("Ctrl+V")
+        self.delete_selected_action.setShortcut("Delete")
 
     def create_widgets(self):
         pass
@@ -93,7 +106,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def update_actions(self):
         is_selection_empty = self.gr_stage.is_gr_node_selection_empty()
-        self.delete_selected_action.setEnabled(is_selection_empty)
+        self.copy_selected_action.setDisabled(is_selection_empty)
+        self.cut_selected_action.setDisabled(is_selection_empty)
+        self.delete_selected_action.setDisabled(is_selection_empty)
 
     @property
     def stage(self):
@@ -140,6 +155,18 @@ class StageGraphView(QtWidgets.QGraphicsView):
             self.scale(zoom_factor, zoom_factor)
             # self.update_edge_width()
             self.update_render_hints()
+
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> None:
+        gr_item = self.itemAt(event.pos())
+        if not gr_item:
+            event.ignore()
+            return
+        elif isinstance(gr_item, GraphicsNode):
+            self.graph_editor.set_scope_path(gr_item.node.path)
+            event.accept()
+            return
+        else:
+            super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         if event.button() == QtCore.Qt.MiddleButton:
@@ -284,6 +311,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
         menu = QtWidgets.QMenu("", self)
         self.update_actions()
         # Add actions
+        menu.addAction(self.copy_selected_action)
+        menu.addAction(self.cut_selected_action)
+        menu.addAction(self.paste_action)
         menu.addAction(self.delete_selected_action)
 
         menu.exec_(self.mapToGlobal(point))
@@ -318,3 +348,34 @@ class StageGraphView(QtWidgets.QGraphicsView):
                                              nodes=nodes_to_delete)
         self.stage.undo_stack.push(del_cmd)
         self.scene().rebuild_current_scope()
+
+    def copy_selected_nodes(self):
+        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
+        if not selected_nodes:
+            return
+
+        clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=False)
+        LOGGER.info("Copied selected nodes")
+
+    def cut_selected_nodes(self):
+        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
+        if not selected_nodes:
+            return
+
+        clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=True)
+        LOGGER.info("Cut selected nodes")
+
+    def paste_nodes_from_clipboard(self):
+        serialized_nodes = clipboard.get_serialized_nodes_from_clipboard()
+        if not serialized_nodes:
+            LOGGER.warning("No nodes found in the clipboard!")
+            return
+
+        # gr_view_center_position = self.current_stage_graph.gr_view.get_center_position()
+        parent_node = self.stage.node(self.graph_editor.get_scope_path())
+        position = self.last_scene_mouse_pos
+        paste_cmd = commands.PasteNodesCommand(stage=self.stage,
+                                               serialize_nodes=serialized_nodes,
+                                               position=position,
+                                               parent_node=parent_node)
+        self.stage.undo_stack.push(paste_cmd)

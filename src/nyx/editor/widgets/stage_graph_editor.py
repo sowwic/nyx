@@ -86,16 +86,16 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.stage.undo_stack.indexChanged.connect(self.update_title)
         self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope)
         self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
-        self.tree_view.node_doubleclicked.connect(self.set_scope_path)
-        self.scope_changed.connect(self.gr_stage.rebuild_scope)
 
     def create_connections(self):
         """Create signal to slot connections."""
         self.create_stage_connections()
+        self.tree_view.selection_changed.connect(self.gr_stage.on_tree_view_selection_changed)
+        self.tree_view.node_doubleclicked.connect(self.set_scope_path)
+        self.scope_changed.connect(self.gr_stage.rebuild_scope)
         self.gr_stage.nodes_selection_cleared.connect(self.tree_view.clearSelection)
         self.gr_stage.nodes_selection_changed.connect(
             lambda paths: self.tree_view.select_paths(paths, silent=True))
-        self.tree_view.selection_changed.connect(self.gr_stage.on_tree_view_selection_changed)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Overridden close event.

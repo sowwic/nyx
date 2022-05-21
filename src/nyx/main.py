@@ -17,4 +17,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as err:
-        LOGGER.exception(err.with_traceback())
+        LOGGER.exception(err)

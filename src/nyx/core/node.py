@@ -157,10 +157,11 @@ class Node(QtGui.QStandardItem, Serializable):
         """Set node's active state to True."""
         self.set_active(True)
 
-    def position(self, serializable=False) -> QtCore.QPointF:
-        position: QtCore.QPointF = self.data(role=Node.POSITION_ROLE)
-        if not serializable:
-            return position
+    def position(self) -> QtCore.QPointF:
+        return self.data(role=Node.POSITION_ROLE)
+
+    def serializable_position(self):
+        position = self.position()
         return [position.x(), position.y()]
 
     def set_position(self, position: QtCore.QPointF):
@@ -493,7 +494,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         data["name"] = self.text()
         data["active"] = self.is_active()
-        data["position"] = self.position(serializable=True)
+        data["position"] = self.serializable_position()
         data["path"] = self.path.as_posix()
         data["execution_start_path"] = self.get_execution_start_path(serializable=True)
         data["input_exec"] = self.get_input_exec_path(serializable=True)

@@ -231,7 +231,8 @@ class AttributeEditor(QtWidgets.QWidget):
         if not current_node:
             return
 
-        new_position = [self.node_position_x_spinbox.value(), self.node_position_y_spinbox.value()]
+        new_position = QtCore.QPointF(self.node_position_x_spinbox.value(),
+                                      self.node_position_y_spinbox.value())
         if new_position == current_node.position():
             return
 

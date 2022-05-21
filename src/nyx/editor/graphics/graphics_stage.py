@@ -125,6 +125,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             gr_node.node.gr_node = None
             self.removeItem(gr_node)
 
+    def clear_edges(self):
+        LOGGER.debug("TODO: cleaning edges")
+
     def add_node(self, node: "Node | pathlib.PurePosixPath | str"):
         node = self.stage.node(node)
         gr_node = GraphicsNode(node)
@@ -133,10 +136,10 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def build_nodes(self, scope_node: "Node"):
         child_nodes = self.stage.list_children(scope_node)
         for node in child_nodes:
-            # self.add_node(node)
-            text_item = self.addText(node.name)
-            text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
-            text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+            self.add_node(node)
+            # text_item = self.addText(node.name)
+            # text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
+            # text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
 
     def build_edges(self, scope_node: "Node"):
         # TODO: Build graphics edges
@@ -144,6 +147,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def rebuild_scope(self, scope_path: pathlib.PurePosixPath):
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
+        self.clear_edges()
         self.clear_nodes()
         scope_node = self.stage.node(scope_path)
         self.build_nodes(scope_node)
@@ -156,6 +160,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         selected_paths = self.list_selected_node_paths()
         if not selected_paths:
             self.nodes_selection_cleared.emit()
+            self._previous_selected_paths.clear()
         elif set(selected_paths) == set(self._previous_selected_paths):
             pass
         else:
