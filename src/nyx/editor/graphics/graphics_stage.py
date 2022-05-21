@@ -110,7 +110,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         return (item for item in self.selectedItems() if isinstance(item, GraphicsNode))
 
     def list_selected_node_paths(self):
-        return [gr_node.node.path for gr_node in self.selected_gr_nodes()]
+        return [gr_node.node.cached_path for gr_node in self.selected_gr_nodes()]
 
     def is_gr_node_selection_empty(self):
         return next(self.selected_gr_nodes(), None) is None
