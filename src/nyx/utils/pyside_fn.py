@@ -31,3 +31,18 @@ def dark_fusion_palette() -> QtGui.QPalette:
 def set_dark_fusion_palette(application: QtWidgets.QApplication):
     application.setStyle(QtWidgets.QStyleFactory.create("fusion"))
     application.setPalette(dark_fusion_palette())
+
+
+def min_bounding_rect(rects: "list[QtCore.QRect]"):
+    min_x = rects[0].left()
+    min_y = rects[0].top()
+    max_x = rects[0].right()
+    max_y = rects[0].bottom()
+
+    for k in range(1, len(rects)):
+        min_x = min(min_x, rects[k].left())
+        min_y = min(min_y, rects[k].top())
+        max_x = max(max_x, rects[k].right())
+        max_y = max(max_y, rects[k].bottom())
+
+    return QtCore.QRectF(min_x, min_y, max_x - min_x, max_y - min_y)

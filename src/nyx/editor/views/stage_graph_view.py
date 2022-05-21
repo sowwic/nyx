@@ -8,6 +8,7 @@ from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.core import commands
 from nyx.editor.utils import clipboard
+from nyx.utils import pyside_fn
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
 
@@ -38,9 +39,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def __init__(self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None) -> None:
 
         super().__init__(graph_editor.gr_stage, parent=parent)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.graph_editor: "StageGraphEditor" = graph_editor
         self.__interaction_mode = StageGraphView.InteractionMode.NOOP
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.cutline = GraphCutLine()
         self.scene().addItem(self.cutline)
 
@@ -81,21 +82,26 @@ class StageGraphView(QtWidgets.QGraphicsView):
                                 QtGui.QPainter.TextAntialiasing | QtGui.QPainter.SmoothPixmapTransform)
 
     def create_actions(self):
-        self.create_node_action = QtWidgets.QAction("Create Node", self)
-        self.copy_selected_action = QtWidgets.QAction("Copy", self)
-        self.cut_selected_action = QtWidgets.QAction("Cut", self)
-        self.paste_action = QtWidgets.QAction("Paste", self)
-        self.delete_selected_action = QtWidgets.QAction("Delete", self)
+        self.create_node_action = QtWidgets.QAction("Create Node", self.gr_stage)
+        self.copy_selected_action = QtWidgets.QAction("Copy", self.gr_stage)
+        self.cut_selected_action = QtWidgets.QAction("Cut", self.gr_stage)
+        self.paste_action = QtWidgets.QAction("Paste", self.gr_stage)
+        self.delete_selected_action = QtWidgets.QAction("Delete", self.gr_stage)
+        self.focus_on_selected_nodes_action = QtWidgets.QAction(
+            "Focus on selected nodes", self.gr_stage)
+
         self.create_node_action.triggered.connect(self.create_new_node)
         self.copy_selected_action.triggered.connect(self.copy_selected_nodes)
         self.cut_selected_action.triggered.connect(self.cut_selected_nodes)
         self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
         self.delete_selected_action.triggered.connect(self.delete_selected)
+        self.focus_on_selected_nodes_action.triggered.connect(self.focus_on_selected_nodes)
 
         self.copy_selected_action.setShortcut("Ctrl+C")
         self.cut_selected_action.setShortcut("Ctrl+X")
         self.paste_action.setShortcut("Ctrl+V")
         self.delete_selected_action.setShortcut("Delete")
+        self.focus_on_selected_nodes_action.setShortcut("F")
 
     def create_widgets(self):
         pass
@@ -317,6 +323,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         menu.addAction(self.cut_selected_action)
         menu.addAction(self.paste_action)
         menu.addAction(self.delete_selected_action)
+        menu.addAction(self.focus_on_selected_nodes_action)
 
         menu.exec_(self.mapToGlobal(point))
 
@@ -391,3 +398,13 @@ class StageGraphView(QtWidgets.QGraphicsView):
                                                position=position,
                                                parent_node=parent_node)
         self.stage.undo_stack.push(paste_cmd)
+
+    def focus_on_selected_nodes(self):
+        selected_nodes = list(self.gr_stage.selected_gr_nodes())
+        if not selected_nodes:
+            return
+
+        nodes_rects = [node.mapToScene(node.boundingRect()).boundingRect()
+                       for node in selected_nodes]
+        rect = pyside_fn.min_bounding_rect(nodes_rects)
+        self.setSceneRect(rect)
