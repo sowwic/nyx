@@ -137,9 +137,6 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         child_nodes = self.stage.list_children(scope_node)
         for node in child_nodes:
             self.add_node(node)
-            # text_item = self.addText(node.name)
-            # text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
-            # text_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
 
     def build_edges(self, scope_node: "Node"):
         # TODO: Build graphics edges

@@ -267,7 +267,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
             if self.rubberband_dragging_rect:
                 self.rubberband_dragging_rect = False
-                # self.scene.on_selection_change()
+                self.gr_stage.on_selection_changed()
                 event.accept()
                 return
         except Exception:
@@ -276,11 +276,11 @@ class StageGraphView(QtWidgets.QGraphicsView):
         super().mouseReleaseEvent(event)
 
     # Right mouse
-    def right_mouse_press(self, mouse_event: QtGui.QMouseEvent):
-        mouse_event.accept()
+    def right_mouse_press(self, event: QtGui.QMouseEvent):
+        event.accept()
 
     def right_mouse_release(self, event: QtGui.QMouseEvent):
-        event.accept()
+        super().mouseReleaseEvent(event)
 
     def get_item_at_click(self, event: QtGui.QMouseEvent) -> "QtWidgets.QGraphicsItem | None":
         """Object at click event position"""
@@ -288,24 +288,22 @@ class StageGraphView(QtWidgets.QGraphicsView):
         return item
 
     # Middle mouse
-    def middle_mouse_press(self, mouse_event: QtGui.QMouseEvent):
-        release_event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, mouse_event.localPos(), mouse_event.screenPos(),
-                                          QtCore.Qt.LeftButton, QtCore.Qt.NoButton, mouse_event.modifiers())
+    def middle_mouse_press(self, event: QtGui.QMouseEvent):
+        release_event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, event.localPos(), event.screenPos(),
+                                          QtCore.Qt.LeftButton, QtCore.Qt.NoButton, event.modifiers())
         super().mouseReleaseEvent(release_event)
-        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
         self.setInteractive(False)
-        fake_event = QtGui.QMouseEvent(mouse_event.type(), mouse_event.localPos(), mouse_event.screenPos(),
-                                       QtCore.Qt.LeftButton, mouse_event.buttons() | QtCore.Qt.LeftButton, mouse_event.modifiers())
+        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        fake_event = QtGui.QMouseEvent(event.type(), event.localPos(), event.screenPos(),
+                                       QtCore.Qt.LeftButton, event.buttons() | QtCore.Qt.LeftButton, event.modifiers())
         super().mousePressEvent(fake_event)
-        mouse_event.ignore()
 
     def middle_mouse_release(self, event: QtGui.QMouseEvent):
         fake_event = QtGui.QMouseEvent(event.type(), event.localPos(), event.screenPos(),
-                                       QtCore.Qt.LeftButton, event.buttons() & ~QtCore.Qt.LeftButton, event.modifiers())
+                                       QtGui.Qt.LeftButton, event.buttons() & ~QtGui.Qt.LeftButton, event.modifiers())
         super().mouseReleaseEvent(fake_event)
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.setInteractive(True)
-        event.ignore()
 
     # Dragging
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent):

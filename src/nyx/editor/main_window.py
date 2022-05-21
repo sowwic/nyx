@@ -107,6 +107,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Dock Widgets
         self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
         self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.West)
+        self.setTabPosition(QtCore.Qt.BottomDockWidgetArea, QtWidgets.QTabWidget.North)
         # Tree dock
         self.stage_tree_dock = QtWidgets.QDockWidget("Tree View")
         self.stage_tree_dock.setWidget(self.stage_tree_view)
