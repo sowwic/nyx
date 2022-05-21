@@ -58,7 +58,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._brush_title = QtGui.QBrush(self.TITLE_COLOR)
 
     def _init_title(self):
-        self.title_item = GraphicsNodeTitle(self, self.node.name, is_editable=True)
+        self.title_item = GraphicsNodeTitle(self)
 
     def boundingRect(self):
         return QtCore.QRectF(0,

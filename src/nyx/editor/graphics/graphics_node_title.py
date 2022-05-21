@@ -1,13 +1,17 @@
+import typing
 from PySide2 import QtCore
 from PySide2 import QtWidgets
+
+from nyx.core import commands
+if typing.TYPE_CHECKING:
+    from nyx.editor.graphics.graphics_node import GraphicsNode
 
 
 class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
 
-    def __init__(self, gr_node, text='', is_editable=False):
-        super().__init__(text, gr_node)
+    def __init__(self, gr_node: "GraphicsNode"):
         self.gr_node = gr_node
-        self.is_editable = is_editable
+        super().__init__(self.gr_node.node.name, gr_node)
 
     @property
     def height(self):
@@ -31,6 +35,9 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
 
     def apply_edit(self, new_text):
         new_text = new_text.strip()
-        if new_text == self.gr_node.title:
+        if not new_text or new_text == self.gr_node.node.name:
             return
-        # self.gr_node.node.signals.title_edited.emit(new_text)
+        rename_cmd = commands.RenameNodeCommand(stage=self.gr_node.node.stage,
+                                                node=self.gr_node.node,
+                                                new_name=new_text)
+        self.gr_node.node.stage.undo_stack.push(rename_cmd)

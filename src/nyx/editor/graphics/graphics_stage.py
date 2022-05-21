@@ -192,3 +192,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             node.gr_node.setSelected(True)
 
         self.blockSignals(False)
+
+    def start_selected_node_rename(self):
+        gr_node = self.get_last_selected_gr_node()
+        if not gr_node:
+            return
+        gr_node.title_item.edit()
