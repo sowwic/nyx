@@ -161,25 +161,27 @@ class DeleteNodeAttributeCommand(NyxCommand):
     def __init__(self,
                  stage: "Stage",
                  node: "Node | pathlib.PurePosixPath | str",
-                 attr_name: str,
+                 attr_names: "list[str]",
                  parent_command: QtWidgets.QUndoCommand = None) -> None:
-        super().__init__(stage, "Delete attr", parent_command)
+        super().__init__(stage, "Delete attrs", parent_command)
         self.node_path = self.stage.node(node).path
-        self.attr_name = attr_name
-        self.attr_serialized = None
-        self.setText(f"{self.text()} {self.node_path.as_posix()} ({self.attr_name})")
+        self.attr_names = attr_names
+        self.attrs_serialized = []
+        self.setText(f"{self.text()} {self.node_path.as_posix()} {self.attr_names}")
 
     def redo(self) -> None:
+        self.attrs_serialized.clear()
         node = self.stage.node(self.node_path)
-        self.attr_serialized = node.attr(self.attr_name).serialize()
-        node.delete_attr(self.attr_name)
-        return super().redo()
+        self.attrs_serialized = [node.attr(name).serialize() for name in self.attr_names]
+        for name in self.attr_names:
+            node.delete_attr(name)
 
     def undo(self) -> None:
         node = self.stage.node(self.node_path)
-        attr_name = self.attr_serialized["name"]
-        node.add_attr(attr_name)
-        node.attr(attr_name).deserialize(self.attr_serialized, {}, restore_id=True)
+        for attr_data in self.attrs_serialized:
+            attr_name = attr_data["name"]
+            node.add_attr(attr_name)
+            node.attr(attr_name).deserialize(attr_data, {}, restore_id=True)
         return super().undo()
 
 

@@ -51,7 +51,11 @@ class AttrTypeTableItem(AttrTableItem):
     EDITABLE = False
 
     def __init__(self, node_attr: "Attribute") -> None:
-        super().__init__(node_attr, node_attr.resolved_value.__class__.__name__)
+        value = node_attr.resolved_value
+        if node_attr.cached_value is not None and node_attr.cached_value != value:
+            value = node_attr.cached_value
+
+        super().__init__(node_attr, value.__class__.__name__)
         self.setData(QtCore.Qt.UserRole, type(self.node_attr.resolved_value))
         self.setToolTip(f"Type: {self.data(QtCore.Qt.UserRole)}")
 
@@ -118,13 +122,16 @@ class AttributesTable(QtWidgets.QTableWidget):
 
     def create_actions(self):
         self.add_attr_action = QtWidgets.QAction("Add new attribute", self)
-        self.add_attr_action.triggered.connect(self.add_new_attribute)
         self.delete_selected_attr_action = QtWidgets.QAction("Delete selected", self)
-        self.delete_selected_attr_action.triggered.connect(self.delete_selected_attr)
         self.update_action = QtWidgets.QAction("Update", self)
-        self.update_action.triggered.connect(self.update_node_data)
         self.copy_selected_attr_path_action = QtWidgets.QAction("Copy as path", self)
+        self.clear_cache_for_selected_action = QtWidgets.QAction("Clear cached value", self)
+
+        self.add_attr_action.triggered.connect(self.add_new_attribute)
+        self.update_action.triggered.connect(self.update_node_data)
+        self.delete_selected_attr_action.triggered.connect(self.delete_selected_attr)
         self.copy_selected_attr_path_action.triggered.connect(self.copy_selected_attr_path)
+        self.clear_cache_for_selected_action.triggered.connect(self.clear_cache_for_selected_attrs)
 
     def create_connections(self):
         self.itemChanged.connect(self.apply_item_edits)
@@ -176,14 +183,22 @@ class AttributesTable(QtWidgets.QTableWidget):
         node.stage.undo_stack.push(add_attr_cmd)
 
     def delete_selected_attr(self):
-        selected_rows = [item.row() for item in self.selectedItems()]
+        selected_rows = {item.row() for item in self.selectedItems()}
+        if not selected_rows:
+            return
+
+        attr_to_del_names = []
+        node = None
         for row in selected_rows:
             attrib_name_item: AttrNameTableItem = self.item(row, 0)
-            node = attrib_name_item.node_attr.node
-            del_attr_cmd = commands.DeleteNodeAttributeCommand(stage=node.stage,
-                                                               node=node,
-                                                               attr_name=attrib_name_item.node_attr.name)
-            node.stage.undo_stack.push(del_attr_cmd)
+            if not node:
+                node = attrib_name_item.node_attr.node
+            attr_to_del_names.append(attrib_name_item.text())
+
+        del_attr_cmd = commands.DeleteNodeAttributeCommand(stage=node.stage,
+                                                           node=node,
+                                                           attr_names=attr_to_del_names)
+        node.stage.undo_stack.push(del_attr_cmd)
 
     def copy_selected_attr_path(self):
         selected_items = self.selectedItems()
@@ -194,12 +209,21 @@ class AttributesTable(QtWidgets.QTableWidget):
         QtWidgets.QApplication.clipboard().setText(attr_path.as_posix())
         LOGGER.info(f"Copied path: {attr_path}")
 
+    def clear_cache_for_selected_attrs(self):
+        selected_rows = {item.row() for item in self.selectedItems()}
+        for row in selected_rows:
+            attrib_name_item: AttrNameTableItem = self.item(row, 0)
+            attrib_name_item.node_attr.clear_cache()
+            LOGGER.info(f"Cleared cache for: {attrib_name_item.node_attr.as_path()}")
+        self.update_node_data()
+
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.add_attr_action)
         if self.selectedIndexes():
             menu.addAction(self.copy_selected_attr_path_action)
             menu.addAction(self.delete_selected_attr_action)
+            menu.addAction(self.clear_cache_for_selected_action)
 
         menu.addAction(self.update_action)
         menu.exec_(self.mapToGlobal(point))
