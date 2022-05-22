@@ -88,6 +88,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.delete_selected_action = QtWidgets.QAction("Delete", self.gr_stage)
         self.focus_on_selected_nodes_action = QtWidgets.QAction(
             "Focus on selected nodes", self.gr_stage)
+        self.set_selected_node_as_parent_execution_start_action = QtWidgets.QAction(
+            "Set selected node as parent execution start", self.gr_stage)
 
         self.create_node_action.triggered.connect(self.create_new_node)
         self.copy_selected_action.triggered.connect(self.copy_selected_nodes)
@@ -95,6 +97,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
         self.delete_selected_action.triggered.connect(self.delete_selected)
         self.focus_on_selected_nodes_action.triggered.connect(self.focus_on_selected_nodes)
+        self.set_selected_node_as_parent_execution_start_action.triggered.connect(
+            self.set_selected_node_as_parent_execution_start)
 
         self.copy_selected_action.setShortcut("Ctrl+C")
         self.cut_selected_action.setShortcut("Ctrl+X")
@@ -113,9 +117,11 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def update_actions(self):
         is_selection_empty = self.gr_stage.is_gr_node_selection_empty()
+        self.set_selected_node_as_parent_execution_start_action.setDisabled(is_selection_empty)
         self.copy_selected_action.setDisabled(is_selection_empty)
         self.cut_selected_action.setDisabled(is_selection_empty)
         self.delete_selected_action.setDisabled(is_selection_empty)
+        self.focus_on_selected_nodes_action.setDisabled(is_selection_empty)
 
     @property
     def stage(self):
@@ -316,10 +322,13 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.update_actions()
         # Add actions
         menu.addAction(self.create_node_action)
+        menu.addAction(self.set_selected_node_as_parent_execution_start_action)
+        menu.addSeparator()
         menu.addAction(self.copy_selected_action)
         menu.addAction(self.cut_selected_action)
         menu.addAction(self.paste_action)
         menu.addAction(self.delete_selected_action)
+        menu.addSeparator()
         menu.addAction(self.focus_on_selected_nodes_action)
 
         menu.exec_(self.mapToGlobal(point))
@@ -406,3 +415,19 @@ class StageGraphView(QtWidgets.QGraphicsView):
             mid_point += gr_node.pos()
         mid_point /= len(selected_nodes)
         self.centerOn(mid_point)
+
+    def set_selected_node_as_parent_execution_start(self):
+        last_selected_gr_node = self.gr_stage.get_last_selected_gr_node()
+        if not last_selected_gr_node:
+            return
+
+        node = last_selected_gr_node.node
+        if node.parent():
+            set_execution_start_cmd = commands.SetNodeExecStartCommand(stage=node.stage,
+                                                                       node=node.parent(),
+                                                                       path=node.path)
+        else:
+            set_execution_start_cmd = commands.SetStageExecStartCommand(stage=node.stage,
+                                                                        path=node.path)
+
+        node.stage.undo_stack.push(set_execution_start_cmd)
