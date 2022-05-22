@@ -20,6 +20,11 @@ if typing.TYPE_CHECKING:
 LOGGER = get_main_logger()
 
 
+class NodeSignals(QtCore.QObject):
+    renamed = QtCore.Signal(pathlib.PurePosixPath, pathlib.PurePosixPath)
+    active_state_changed = QtCore.Signal(bool)
+
+
 class Node(QtGui.QStandardItem, Serializable):
 
     ATTRIBUTES_ROLE: int = QtCore.Qt.UserRole + 1
@@ -37,6 +42,7 @@ class Node(QtGui.QStandardItem, Serializable):
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
         self.gr_node: "GraphicsNode" = None
+        self.signals = NodeSignals()
 
         self.setData(OrderedDict(), role=Node.ATTRIBUTES_ROLE)
         self.setData(str(), role=Node.PYTHON_CODE_ROLE)
@@ -148,6 +154,7 @@ class Node(QtGui.QStandardItem, Serializable):
             state (bool): new active state.
         """
         self.setData(state, role=Node.ACTIVE_ROLE)
+        self.signals.active_state_changed.emit(state)
 
     def deactivate(self):
         """Set node's active state to False."""
@@ -215,9 +222,11 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_name == self.name:
             return
 
+        old_path = self.cached_path
         new_name = self.stage.generate_unique_node_name(new_name, parent_node=self.parent())
         self.setText(new_name)
         self._update_pathmap_entry()
+        self.signals.renamed.emit(old_path, self.cached_path)
 
     def _update_pathmap_entry(self):
         """Update path stored for in stage path map."""
