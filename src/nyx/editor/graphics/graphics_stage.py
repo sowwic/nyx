@@ -31,6 +31,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.grid_size = 20
         self.grid_squares = 5
         self.scene_width = self.scene_height = 64000
+        # ? Note: calling self.setSceneRect(QtCore.QRect) again disables QGraphicsView scrolling
+        self.set_scene_size(self.scene_width, self.scene_height)
         # Colors
         self._color_background = QtGui.QColor("#393939")
         self._color_light = QtGui.QColor("#2f2f2f")

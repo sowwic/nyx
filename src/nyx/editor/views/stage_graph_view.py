@@ -8,7 +8,6 @@ from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.core import commands
 from nyx.editor.utils import clipboard
-from nyx.utils import pyside_fn
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
 
@@ -402,7 +401,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         if not selected_nodes:
             return
 
-        nodes_rects = [node.mapToScene(node.boundingRect()).boundingRect()
-                       for node in selected_nodes]
-        rect = pyside_fn.min_bounding_rect(nodes_rects)
-        self.setSceneRect(rect)
+        mid_point = QtCore.QPointF()
+        for gr_node in selected_nodes:
+            mid_point += gr_node.pos()
+        mid_point /= len(selected_nodes)
+        self.centerOn(mid_point)
