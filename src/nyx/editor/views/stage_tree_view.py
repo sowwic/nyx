@@ -109,7 +109,6 @@ class StageTreeView(QtWidgets.QTreeView):
         for path in node_paths:
             node = self.stage.node(path)
             if node is None:
-                LOGGER.warning("Invalid path selected: {}".format(path))
                 continue
             indexes.append(node.index())
 
