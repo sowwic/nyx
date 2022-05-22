@@ -11,3 +11,5 @@ class EditorToolBar(QtWidgets.QToolBar):
         self.main_window: "NyxEditorMainWindow" = main_window
         self.addAction(self.main_window.stage_tree_view.create_new_node_action)
         self.addAction(self.main_window.stage_tree_view.delete_selected_node_action)
+        self.addAction(self.main_window.execute_stage_action)
+        self.addAction(self.main_window.execute_from_selected_node_action)

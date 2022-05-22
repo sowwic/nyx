@@ -640,7 +640,8 @@ class Node(QtGui.QStandardItem, Serializable):
             child_node = self.stage.node(child_path)
             if child_node:
                 exec_queue.extend(child_node.build_execution_queue())
-            LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
+            else:
+                LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
 
         output_path = self.get_output_exec_path()
         if output_path:

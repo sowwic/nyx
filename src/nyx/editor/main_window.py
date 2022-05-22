@@ -13,6 +13,7 @@ from nyx.editor.widgets.attribute_editor import AttributeEditor
 from nyx.editor.widgets.code_editor import CodeEditor
 from nyx.editor.widgets.editor_toolbar import EditorToolBar
 from nyx.editor.widgets import menubar_menus
+from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
     from nyx.core.config import Config
@@ -73,7 +74,12 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return self.mdi_area.currentSubWindow()
 
     def create_actions(self):
-        pass
+        self.execute_stage_action = QtWidgets.QAction(
+            pyside_fn.get_standard_icon(self, "SP_MediaPlay"), "Execute stage", self)
+        self.execute_from_selected_node_action = QtWidgets.QAction(
+            pyside_fn.get_standard_icon(self, "SP_MediaSkipForward"), "Execute from selected node", self)
+        self.execute_stage_action.triggered.connect(self.execute_stage_graph)
+        self.execute_from_selected_node_action.triggered.connect(self.execute_from_selected_node)
 
     def create_menubar(self):
         self.menubar_file_menu = menubar_menus.FileMenu(self)
@@ -238,3 +244,19 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def on_stage_save_as(self):
         if self.current_stage_graph:
             self.current_stage_graph.on_stage_save_as()
+
+    def execute_stage_graph(self):
+        if not self.current_stage_graph:
+            return
+        self.current_stage_graph.stage.executor.run()
+
+    def execute_from_selected_node(self):
+        if not self.current_stage_graph:
+            return
+
+        selected_gr_node = self.current_stage_graph.gr_stage.get_last_selected_gr_node()
+        if not selected_gr_node:
+            LOGGER.warning("No node selected for execution")
+            return
+
+        self.current_stage_graph.stage.executor.run(selected_gr_node.node)

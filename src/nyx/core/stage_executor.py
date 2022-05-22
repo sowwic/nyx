@@ -1,4 +1,5 @@
 import typing
+import timeit
 import pathlib
 from collections import deque
 
@@ -49,10 +50,20 @@ class StageExecutor:
         Args:
             start_path ("Node | str | pathlib.PurePosixPath | None, optional): execution start path. Defaults to None.
         """
-        queue = self.build_execution_queue(start_path=start_path)
-        for node_path in queue:
+        exec_queue = self.build_execution_queue(start_path=start_path)
+        if not exec_queue:
+            LOGGER.warning("No nodes found for execution.")
+            return
+
+        start_time = timeit.default_timer()
+        success = True
+        LOGGER.info(f"Executing graph (start path: {exec_queue[0]})")
+        for node_path in exec_queue:
             try:
                 self.stage.execute_node_from_path(node_path)
             except Exception:
+                success = False
                 LOGGER.error("Error raised during graph execution.")
                 break
+        if success:
+            LOGGER.info("Executed graph in {0:.2f}s".format(timeit.default_timer() - start_time))
