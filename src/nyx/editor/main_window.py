@@ -5,6 +5,7 @@ from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
+from nyx._version import _version
 from nyx import get_main_logger
 from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
@@ -26,7 +27,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     __INSTANCE: "NyxEditorMainWindow" = None
 
-    DEFAULT_TITLE = "Nyx Editor"
+    DEFAULT_TITLE = f"Nyx Editor v{_version}"
     MINIMUM_SIZE = (500, 400)
 
     @classmethod
