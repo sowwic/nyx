@@ -1,5 +1,6 @@
 import typing
 from PySide2 import QtCore
+from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 from nyx.core import commands
@@ -9,9 +10,13 @@ if typing.TYPE_CHECKING:
 
 class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
 
+    TITLE_FONT = QtGui.QFont("Roboto", 10)
+
     def __init__(self, gr_node: "GraphicsNode"):
         self.gr_node = gr_node
         super().__init__(self.gr_node.node.name, gr_node)
+        self.setFont(self.TITLE_FONT)
+        self.font().setBold(True)
 
     @property
     def height(self):

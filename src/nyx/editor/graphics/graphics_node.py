@@ -1,4 +1,5 @@
 import typing
+from collections import deque
 
 from PySide2 import QtCore
 from PySide2 import QtGui
@@ -6,6 +7,7 @@ from PySide2 import QtWidgets
 
 from nyx.core import commands
 from nyx.editor.graphics.graphics_node_title import GraphicsNodeTitle
+from nyx.editor.graphics.graphics_attribute import GraphicsNodeAttribute
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -17,7 +19,6 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     MIN_WIDTH = 100
     MIN_HEIGHT = 100
     TITLE_COLOR = QtGui.QColor("#FF313131")
-    TITLE_FONT = QtGui.QFont("Roboto", 10)
 
     def __init__(self, node: "Node", parent=None):
         super().__init__(parent)
@@ -33,6 +34,11 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._init_title()
 
         self.create_connections()
+        self.gr_attribs = deque()
+
+        for _, attr in self.node.attribs.items():
+            gr_attrib = GraphicsNodeAttribute(attr, self)
+            self.gr_attribs.append(gr_attrib)
 
     def create_connections(self):
         pass
@@ -48,9 +54,6 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.lower_padding = 8.0
 
     def _init_assets(self):
-        # Fonts colors
-        self.TITLE_FONT.setBold(True)
-
         # Pens, Brushes
         self._pen_default = QtGui.QPen(QtGui.QColor("#7F000000"))
         self._pen_selected = QtGui.QPen(QtGui.QColor("#FFA637"))
