@@ -1,10 +1,8 @@
 import typing
-import pathlib
 from collections import OrderedDict
 
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
-from nyx.core import nyx_exceptions
 from nyx.utils import file_fn
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -194,29 +192,11 @@ class Attribute(Serializable):
 
     def _resolve_string(self, raw_str: str):
         LOGGER.debug(f"Resolving string value: {raw_str}")
-        full_path = pathlib.PurePosixPath(raw_str)
-        node_path = full_path.with_suffix("")
-        if node_path not in self.stage.path_map:
+        other_attr = self.stage.attribute(raw_str)
+        if not other_attr:
             return raw_str
 
-        attr_name = full_path.suffix.replace(".", "")
-        if not attr_name:
-            return raw_str
-
-        # Resolve node path
-        other_node = self.stage.node(node_path)
-
-        if not other_node:
-            return raw_str
-
-        # Get attr value
-        try:
-            attr: "Attribute" = other_node[attr_name]
-        except nyx_exceptions.NodeNoAttributeExistError:
-            LOGGER.warning(f"{other_node} has no attr: {attr_name}")
-            return raw_str
-
-        return attr
+        return other_attr
 
     def connect(self, other_attr: "Attribute", resolve=True):
         other_attr.set(self.as_path().as_posix(), resolve=resolve)

@@ -10,7 +10,9 @@ from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
 from nyx.core import Node
+from nyx.core.attribute import Attribute
 from nyx.core.stage_executor import StageExecutor
+from nyx.core import nyx_exceptions
 
 
 LOGGER = get_main_logger()
@@ -127,9 +129,17 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             node.cache_current_path()
             self._path_map[node.cached_path] = node
 
-    def node(self, node):
+    def node(self, node: "Node | pathlib.PurePosixPath | str | None") -> "Node | None":
+        """Get node instance.
+
+        Args:
+            node (Node | pathlib.PurePosixPath | str | None): node or full path.
+
+        Returns:
+            Node | None: node instance if found
+        """
         if node is None:
-            return None
+            return node
         if isinstance(node, Node):
             return node
         elif isinstance(node, pathlib.PurePosixPath):
@@ -139,6 +149,32 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         else:
             LOGGER.exception(f"{self} | Invalid argument type: {type(node)}")
             return None
+
+    def attribute(self, attr: "Attribute | pathlib.PurePosixPath | str | None") -> "Attribute | None":
+        """Get attribute instance.
+
+        Args:
+            attr (Attribute | pathlib.PurePosixPath | str | None): attribute or path.
+
+        Returns:
+            Attribute | None: attribute instance if found
+        """
+        if attr is None:
+            return attr
+        if isinstance(attr, Attribute):
+            return attr
+        if isinstance(attr, str):
+            attr = pathlib.PurePosixPath(attr)
+        if isinstance(attr, pathlib.PurePosixPath):
+            node_path = attr.with_suffix("")
+            node = self.node(node_path)
+            attr_name = attr.suffix.replace(".", "")
+            if not node:
+                return None
+            try:
+                return node.attr(attr_name)
+            except nyx_exceptions.NodeNoAttributeExistError:
+                return None
 
     def add_node(self, node: "Node | list[Node]", parent: "Node | pathlib.PurePosixPath | str" = None):
         """Adds new node as root node.
