@@ -25,8 +25,10 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
 
-        self.__node = node
-        self.node.gr_node = self
+        self.__node = None
+        self.gr_attribs: "deque[GraphicsNodeAttribute]" = deque()
+
+        self._set_node(node)
         self.setPos(self.node.position())
 
         self._init_sizes()
@@ -34,14 +36,25 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._init_title()
 
         self.create_connections()
-        self.gr_attribs = deque()
-
-        for _, attr in self.node.attribs.items():
-            gr_attrib = GraphicsNodeAttribute(attr, self)
-            self.gr_attribs.append(gr_attrib)
+        self._create_gr_attributes()
 
     def create_connections(self):
         pass
+
+    def _set_node(self, node: "Node | None"):
+        if node:
+            node.gr_node = self
+            # Connect signals
+        else:
+            # Disconnect signals
+            self.__node.gr_node = None
+
+        self.__node = node
+
+    def _create_gr_attributes(self):
+        for _, attr in self.node.attribs.items():
+            gr_attrib = GraphicsNodeAttribute(attr, self)
+            self.gr_attribs.append(gr_attrib)
 
     def _init_sizes(self):
         self.width = self.MIN_WIDTH

@@ -124,7 +124,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def clear_nodes(self):
         for gr_node in self.gr_nodes():
-            gr_node.node.gr_node = None
+            gr_node._set_node(None)
             self.removeItem(gr_node)
 
     def clear_edges(self):
