@@ -26,6 +26,11 @@ class NodeSignals(QtCore.QObject):
     execution_started = QtCore.Signal()
     execution_succeed = QtCore.Signal()
     execution_failed = QtCore.Signal()
+    attr_added = QtCore.Signal(Attribute)
+    attr_deleted = QtCore.Signal(str)
+    attr_renamed = QtCore.Signal(str, str)
+    input_exec_changed = QtCore.Signal()
+    output_exec_changed = QtCore.Signal()
 
 
 class Node(QtGui.QStandardItem, Serializable):
@@ -311,6 +316,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self[name] = value
         if resolve:
             self[name].resolve()
+        self.signals.attr_added.emit(self[name])
         return self[name]
 
     def generate_unique_attr_name(self, name: str):
@@ -353,6 +359,7 @@ class Node(QtGui.QStandardItem, Serializable):
             return
         data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
+        self.signals.attr_deleted.emit(name)
         LOGGER.debug(f"{self} | deleted attr {name}")
 
     def rename_attr(self, name: str, new_name: str):
@@ -374,6 +381,7 @@ class Node(QtGui.QStandardItem, Serializable):
         new_name = self.generate_unique_attr_name(new_name)
         data[new_name] = data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
+        self.signals.attr_renamed.emit(name, new_name)
         return data[new_name]
 
     def stacked_attribs(self):
@@ -448,6 +456,7 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_input_exec_node is not None:
             if new_input_exec_node.get_output_exec_path() != self.path:
                 new_input_exec_node.set_output_exec_path(self.path)
+        self.signals.input_exec_changed.emit()
 
     def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
         if isinstance(path, Node):
@@ -490,6 +499,7 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_output_exec_node is not None:
             if new_output_exec_node.get_output_exec_path() != self.path:
                 new_output_exec_node.set_input_exec_path(self.path)
+        self.signals.output_exec_changed.emit()
 
     def on_changed(self):
         pass
