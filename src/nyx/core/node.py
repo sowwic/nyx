@@ -23,6 +23,9 @@ LOGGER = get_main_logger()
 class NodeSignals(QtCore.QObject):
     renamed = QtCore.Signal(pathlib.PurePosixPath, pathlib.PurePosixPath)
     active_state_changed = QtCore.Signal(bool)
+    execution_started = QtCore.Signal()
+    execution_succeed = QtCore.Signal()
+    execution_failed = QtCore.Signal()
 
 
 class Node(QtGui.QStandardItem, Serializable):
@@ -590,8 +593,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def execute_code(self):
         """Execute code string."""
-        if self.is_active():
-            exec(self.python_code, {"self": self})
+        exec(self.python_code, {"self": self})
 
     def clear_attributes_caches(self):
         """Clear all attributes caches."""
@@ -634,14 +636,15 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def build_execution_queue(self):
         exec_queue = deque()
-        exec_queue.append(self.cached_path)
-        child_path = self.get_execution_start_path()
-        if child_path:
-            child_node = self.stage.node(child_path)
-            if child_node:
-                exec_queue.extend(child_node.build_execution_queue())
-            else:
-                LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
+        if self.is_active():
+            exec_queue.append(self.cached_path)
+            child_path = self.get_execution_start_path()
+            if child_path:
+                child_node = self.stage.node(child_path)
+                if child_node:
+                    exec_queue.extend(child_node.build_execution_queue())
+                else:
+                    LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
 
         output_path = self.get_output_exec_path()
         if output_path:
@@ -654,9 +657,16 @@ class Node(QtGui.QStandardItem, Serializable):
         return exec_queue
 
     def execute(self):
+        if not self.is_active():
+            return
+
         try:
+            self.signals.execution_started.emit()
             self.cache_attributes_values()
             self.execute_code()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
+            self.signals.execution_failed.emit()
             raise err
+        else:
+            self.signals.execution_succeed.emit()
