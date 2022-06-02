@@ -60,7 +60,7 @@ def test_node_delete_mid_children():
     assert parent_node.list_children() == [first, fourth]
 
 
-def test_node_execute_code_while_active():
+def test_node_execute_while_active():
     stage = Stage()
     node = Node("node")
     stage.add_node(node)
@@ -69,7 +69,7 @@ def test_node_execute_code_while_active():
 
     code = 'self["test"].push(5)'
     node.set_python_code(code)
-    node.execute_code()
+    node.execute()
 
     assert node.is_active()
     assert node["test"].value is None
@@ -77,7 +77,7 @@ def test_node_execute_code_while_active():
     assert node["test"].cached_value == 5
 
 
-def test_node_execute_code_while_not_active():
+def test_node_execute_while_not_active():
     stage = Stage()
     node = Node("node")
     stage.add_node(node)
@@ -87,7 +87,7 @@ def test_node_execute_code_while_not_active():
 
     code = 'self["test"].push(5)'
     node.set_python_code(code)
-    node.execute_code()
+    node.execute()
 
     assert not node.is_active()
     assert node["test"].value is None
