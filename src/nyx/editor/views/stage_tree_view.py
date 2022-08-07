@@ -103,6 +103,7 @@ class StageTreeView(QtWidgets.QTreeView):
         return nodes
 
     def select_paths(self, node_paths: "list[pathlib.PurePosixPath]", silent=False):
+        LOGGER.debug("Paths: {}".format(node_paths))
         if silent:
             self.blockSignals(True)
         indexes = []

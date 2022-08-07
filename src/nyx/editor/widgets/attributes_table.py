@@ -146,6 +146,10 @@ class AttributesTable(QtWidgets.QTableWidget):
         if not node:
             return
 
+        self.set_data_from_node(node)
+        self.blockSignals(False)
+
+    def set_data_from_node(self, node):
         # LOGGER.debug("Updating attr table")
         row_index = 0
         for _, attr in node.attribs.items():
@@ -164,8 +168,6 @@ class AttributesTable(QtWidgets.QTableWidget):
             self.setItem(row_index, 4, cached_value_item)
 
             row_index += 1
-
-        self.blockSignals(False)
 
     def apply_item_edits(self, item: AttrTableItem):
         item.set_node_attr_value()

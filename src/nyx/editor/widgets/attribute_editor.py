@@ -10,8 +10,8 @@ from nyx.editor.widgets.attributes_table import AttributesTable
 from nyx.editor.widgets.text_edit_widget import NyxTextEdit
 
 if typing.TYPE_CHECKING:
+    from nyx.core import Node
     from nyx.editor.main_window import NyxEditorMainWindow
-    from nyx.editor.views.stage_tree_view import StageTreeView
 
 LOGGER = get_main_logger()
 
@@ -20,8 +20,6 @@ class AttributeEditor(QtWidgets.QWidget):
     def __init__(self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.main_window: "NyxEditorMainWindow" = main_window
-        self.tree_view: "StageTreeView" = self.main_window.stage_tree_view
-        self.node_field_widgets: "list[QtWidgets.QWidget]" = []
 
         self.create_actions()
         self.create_widgets()
@@ -83,6 +81,14 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_position_x_spinbox.editingFinished .connect(self.apply_position_edit)
         self.node_position_y_spinbox.editingFinished .connect(self.apply_position_edit)
 
+    @property
+    def tree_view(self):
+        return self.main_window.stage_tree_view
+
+    @property
+    def current_stage_graph(self):
+        return self.main_window.current_stage_graph
+
     def set_fields_enabled(self, state: bool):
         for field in [self.node_name_lineedit,
                       self.node_path_lineedit,
@@ -114,29 +120,44 @@ class AttributeEditor(QtWidgets.QWidget):
                        self.node_position_y_spinbox]:
             widget.blockSignals(state)
 
-    def update_node_data_from_treeview(self):
+    def update_node_data_from_stage_graph(self, selected_paths):
+        if not selected_paths:
+            self.set_fields_enabled(False)
+            return
+
+        last_selected_node = self.current_stage_graph.stage.node(
+            selected_paths[-1])  # type: Node
         self.block_fields_signals(True)
+        self.set_fields_enabled(True)
+        self.set_data_from_node(last_selected_node)
+        self.block_fields_signals(False)
+
+    def update_node_data_from_treeview(self):
         current_node = self.tree_view.current_node()
         if not current_node:
             self.set_fields_enabled(False)
             return
 
+        self.block_fields_signals(True)
         self.set_fields_enabled(True)
-        self.node_name_lineedit.setText(current_node.name)
-        self.node_path_lineedit.setText(current_node.path.as_posix())
+        self.set_data_from_node(current_node)
+        self.block_fields_signals(False)
+
+    def set_data_from_node(self, node):
+        self.node_name_lineedit.setText(node.name)
+        self.node_path_lineedit.setText(node.path.as_posix())
         self.node_exec_input_line_edit.setText(
-            current_node.get_input_exec_path(serializable=True))
+            node.get_input_exec_path(serializable=True))
         self.node_execution_start_lineedit.setText(
-            current_node.get_execution_start_path(serializable=True))
-        self.node_isactive_checkbox.setChecked(current_node.is_active())
-        node_position = current_node.position()
+            node.get_execution_start_path(serializable=True))
+        self.node_isactive_checkbox.setChecked(node.is_active())
+        node_position = node.position()
         if not isinstance(node_position, QtCore.QPointF):
             node_position = QtCore.QPointF(*node_position)
 
         self.node_position_x_spinbox.setValue(node_position.x())
         self.node_position_y_spinbox.setValue(node_position.y())
-        self.node_comment_text_edit.setText(current_node.comment())
-        self.block_fields_signals(False)
+        self.node_comment_text_edit.setText(node.comment())
 
     def apply_name_edit(self):
         current_node = self.tree_view.current_node()

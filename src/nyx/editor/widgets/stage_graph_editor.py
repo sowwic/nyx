@@ -93,9 +93,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.tree_view.selection_changed.connect(self.gr_stage.on_tree_view_selection_changed)
         self.tree_view.node_doubleclicked.connect(self.set_scope_path)
         self.scope_changed.connect(self.gr_stage.rebuild_scope)
-        self.gr_stage.nodes_selection_cleared.connect(self.tree_view.clearSelection)
-        self.gr_stage.nodes_selection_changed.connect(
+        self.gr_stage.signals.nodes_selection_cleared.connect(self.tree_view.clearSelection)
+        self.gr_stage.signals.nodes_selection_changed.connect(
             lambda paths: self.tree_view.select_paths(paths, silent=True))
+        self.gr_stage.signals.nodes_selection_changed.connect(
+            self.main_window.attrib_editor.update_node_data_from_stage_graph)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Overridden close event.

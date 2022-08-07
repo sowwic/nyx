@@ -16,16 +16,19 @@ if typing.TYPE_CHECKING:
 LOGGER = get_main_logger()
 
 
-class GraphicsStage(QtWidgets.QGraphicsScene):
-
+class StageSignaller(QtCore.QObject):
     nodes_selection_cleared = QtCore.Signal()
     nodes_selection_changed = QtCore.Signal(list)
+
+
+class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def __init__(self, graph_editor: "StageGraphEditor", parent=None):
         super().__init__(parent=parent)
 
         self.__graph_editor = graph_editor
         self._previous_selected_paths: list[pathlib.PurePosixPath] = []
+        self.signals = StageSignaller()
 
         # Settings
         self.grid_size = 20
@@ -163,14 +166,16 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def on_selection_changed(self):
         selected_paths = self.list_selected_node_paths()
+
         if not selected_paths:
-            self.nodes_selection_cleared.emit()
+            self.signals.nodes_selection_cleared.emit()
             self._previous_selected_paths.clear()
-        elif set(selected_paths) == set(self._previous_selected_paths):
-            pass
-        else:
+            return
+
+        if set(selected_paths) != set(self._previous_selected_paths):
             self._previous_selected_paths = selected_paths
-            self.nodes_selection_changed.emit(selected_paths)
+            self.signals.nodes_selection_changed.emit(selected_paths)
+            LOGGER.debug("Emitted {}".format(selected_paths))
 
     def on_tree_view_selection_changed(self):
         self.blockSignals(True)

@@ -22,8 +22,8 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     def __init__(self, node: "Node", parent=None):
         super().__init__(parent)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
 
         self.__node = None
         self.gr_attribs: "deque[GraphicsNodeAttribute]" = deque()
