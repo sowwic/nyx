@@ -460,17 +460,10 @@ class PasteNodesCommand(NyxCommand):
 
     def redo(self) -> None:
         self.created_node_paths.clear()
+        self.filter_serialized_nodes()
 
-        # Filter child paths
-        serialized_paths = [
-            pathlib.PurePosixPath(node_data["path"]) for node_data in self.serialized_nodes]
-        serialized_paths_set = set(serialized_paths)
         for node_data in self.serialized_nodes:
             node_path = pathlib.PurePosixPath(node_data["path"])
-            # Prevent pasting nodes that are already in the stage
-            if set(node_path.parents).intersection(serialized_paths_set):
-                LOGGER.debug(f"Skipping paste: {node_path}")
-                continue
             # Create new node and store it's path
             LOGGER.debug(f"Adding {node_path}")
             new_node = Node(name="pasted_node")
@@ -478,7 +471,6 @@ class PasteNodesCommand(NyxCommand):
             new_node.deserialize(node_data, restore_id=False)
             paste_position = self.get_paste_position(new_node.position())
             new_node.set_position(paste_position)
-
             self.created_node_paths.append(new_node.cached_path)
         return super().redo()
 
@@ -486,8 +478,28 @@ class PasteNodesCommand(NyxCommand):
         self.stage.delete_node(self.created_node_paths)
         return super().undo()
 
+    def filter_serialized_nodes(self):
+        """Filter out nodes that are already in the stage.
+
+        If parent of copied node is about to be pasted child will be skipped to avoid duplication.
+        """
+        serialized_paths = [
+            pathlib.PurePosixPath(node_data["path"]) for node_data in self.serialized_nodes]
+        serialized_paths_set = set(serialized_paths)
+        indexes_to_remove = []
+        # Iterate over all serialized nodes and check if any of their parents are about to be pasted
+        for index, node_data in enumerate(self.serialized_nodes):
+            node_path = pathlib.PurePosixPath(node_data["path"])
+            # Check if parents of serialized node are serizalized as well.
+            if set(node_path.parents).intersection(serialized_paths_set):
+                LOGGER.debug(f"Skipping paste: {node_path}")
+                indexes_to_remove.append(index)
+        # Remove nodes that are about to be pasted as children
+        for index in reversed(indexes_to_remove):
+            self.serialized_nodes.pop(index)
+
     def get_paste_position(self, serialized_node_position: QtCore.QPointF):
-        min_x, max_x, min_y, max_y = 10000000, -10000000, 10000000, -10000000
+        min_x, max_x, min_y, max_y = 10_000_000, -10_000_000, 10_000_000, -10_000_000
         pos_x = serialized_node_position.x()
         pos_y = serialized_node_position.y()
         min_x = min(pos_x, min_x)
