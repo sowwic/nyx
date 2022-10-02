@@ -467,6 +467,7 @@ class PasteNodesCommand(NyxCommand):
         serialized_paths_set = set(serialized_paths)
         for node_data in self.serialized_nodes:
             node_path = pathlib.PurePosixPath(node_data["path"])
+            # Prevent pasting nodes that are already in the stage
             if set(node_path.parents).intersection(serialized_paths_set):
                 LOGGER.debug(f"Skipping paste: {node_path}")
                 continue
@@ -474,7 +475,7 @@ class PasteNodesCommand(NyxCommand):
             LOGGER.debug(f"Adding {node_path}")
             new_node = Node(name="pasted_node")
             self.stage.add_node(new_node, parent=self.parent_path)
-            new_node.deserialize(node_data, hashmap={}, restore_id=False)
+            new_node.deserialize(node_data, restore_id=False)
             paste_position = self.get_paste_position(new_node.position())
             new_node.set_position(paste_position)
 

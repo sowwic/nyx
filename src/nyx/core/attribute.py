@@ -167,8 +167,8 @@ class Attribute(Serializable):
         data.update(new_data)
         return data
 
-    def deserialize(self, data: dict, hashmap: dict, restore_id=False):
-        super().deserialize(data, hashmap, restore_id)
+    def deserialize(self, data: dict, restore_id=False):
+        super().deserialize(data, restore_id)
         self.set(data.get("value", self.value))
 
     def resolve(self):

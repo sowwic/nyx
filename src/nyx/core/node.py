@@ -527,10 +527,8 @@ class Node(QtGui.QStandardItem, Serializable):
         data["comment"] = self.comment()
         return data
 
-    def deserialize(self, data: OrderedDict, hashmap: dict, restore_id=True):
-        super().deserialize(data, hashmap, restore_id=restore_id)
-        if not hashmap:
-            hashmap = {}
+    def deserialize(self, data: OrderedDict, restore_id=True):
+        super().deserialize(data, restore_id=restore_id)
 
         # ? Maybe use rename() ?
         if self.name != data.get("name", self.name):
@@ -545,19 +543,18 @@ class Node(QtGui.QStandardItem, Serializable):
         self.set_position(QtCore.QPointF(*data.get("position", [0.0, 0.0])))
         self.set_comment(data.get("comment", ""))
 
-        hashmap[self.uuid] = self
         self._update_pathmap_entry()
 
         # Attributes
         for attr_data in data.get("attribs", {}):
             attr_name = attr_data["name"]
             self.set_attr(attr_name, attr_data.get("value"))
-            self[attr_name].deserialize(attr_data, hashmap, restore_id=True)
+            self[attr_name].deserialize(attr_data, restore_id=True)
 
         # Children
         for child_data in data.get("children", {}):
             child_node = Node(parent=self)
-            child_node.deserialize(child_data, hashmap, restore_id=True)
+            child_node.deserialize(child_data, restore_id=True)
 
     def export_to_json(self, file_path: pathlib.Path):
         """Export node to json file.

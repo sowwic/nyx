@@ -111,12 +111,10 @@ def test_attr_deserialize():
 
     node2 = Node("node2")
     stage.add_node(node)
-    hashmap = {}
     node2["test"] = None
-    node2["test"].deserialize(serial_data, hashmap=hashmap, restore_id=True)
+    node2["test"].deserialize(serial_data, restore_id=True)
     new_attr = node2["test"]
     TEST_LOGGER.debug(f"Deserialized: {new_attr}")
-    TEST_LOGGER.debug(f"Hashmap: {hashmap}")
 
     assert new_attr.uuid == node["test"].uuid
     assert new_attr.name == node["test"].name

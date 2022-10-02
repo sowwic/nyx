@@ -243,13 +243,13 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         data["execution_start_path"] = self.get_execution_start_path(None, serializable=True)
         return data
 
-    def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
-        super().deserialize(data, hashmap, restore_id=restore_id)
+    def deserialize(self, data: OrderedDict, restore_id=True):
+        super().deserialize(data, restore_id=restore_id)
         # Deserialize nodes
         for top_node_data in data.get("nodes", {}):
             top_node = Node()
             self.add_node(top_node)
-            top_node.deserialize(top_node_data, hashmap, restore_id=True)
+            top_node.deserialize(top_node_data, restore_id=True)
         # Extra data
         self.set_execution_start_path(None, data.get("execution_start_path"))
 
