@@ -1,4 +1,5 @@
 import typing
+import time
 import pathlib
 from collections import deque
 from collections import OrderedDict
@@ -398,14 +399,30 @@ class Node(QtGui.QStandardItem, Serializable):
         stacked_attrs.update(self.attribs)
         return stacked_attrs
 
-    def get_input_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | None":
-        path = self.data(role=Node.INPUT_EXEC_ROLE)
+    def get_input_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
+        """Get path for the node that is set as execution dependency.
+
+        Args:
+            serializable (bool, optional): Return value is serializable. Defaults to False.
+
+        Returns:
+            pathlib.PurePosixPath | str | None: Execution dependency node path.
+        """
+        path: pathlib.PurePosixPath = self.data(role=Node.INPUT_EXEC_ROLE)
         if path is None or not serializable:
             return path
         return path.as_posix()
 
-    def get_output_exec_path(self, serializable=False) -> "str":
-        path = self.data(role=Node.OUTPUT_EXEC_ROLE)
+    def get_output_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
+        """Get path for the node that is execution dependee of this node.
+
+        Args:
+            serializable (bool, optional): Return value is serializable. Defaults to False.
+
+        Returns:
+            pathlib.PurePosixPath | str | None: Execution dependee node path.
+        """
+        path: pathlib.PurePosixPath = self.data(role=Node.OUTPUT_EXEC_ROLE)
         if path is None or not serializable:
             return path
         return path.as_posix()
@@ -415,6 +432,16 @@ class Node(QtGui.QStandardItem, Serializable):
         return other_node.get_input_exec_path() == self.path
 
     def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
+        """Set given node as execution dependency.
+
+        Args:
+            path (pathlib.PurePosixPath | str | Node): Node instance or path.
+            silent (bool, optional): Do not notify other nodes of the change,
+            and just set data. Defaults to False.
+
+        Raises:
+            TypeError: Invalid input provided.
+        """
         if isinstance(path, Node):
             path = path.path
         elif isinstance(path, pathlib.PurePosixPath):
@@ -459,6 +486,16 @@ class Node(QtGui.QStandardItem, Serializable):
         self.signals.input_exec_changed.emit()
 
     def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
+        """Set given node as execution dependee.
+
+        Args:
+            path (pathlib.PurePosixPath | str | Node): Dependee node instance or path.
+            silent (bool, optional): Do not notify other nodes of the change,
+            and just set data. Defaults to False.
+
+        Raises:
+            TypeError: Invalid input provided.
+        """
         if isinstance(path, Node):
             path = path.path
         elif isinstance(path, pathlib.PurePosixPath):
@@ -528,6 +565,12 @@ class Node(QtGui.QStandardItem, Serializable):
         return data
 
     def deserialize(self, data: OrderedDict, restore_id=True):
+        """Deserialize node from serialized node dictionary.
+
+        Args:
+            data (OrderedDict): Node data dictionary.
+            restore_id (bool, optional): Restore node uuid. Defaults to True.
+        """
         super().deserialize(data, restore_id=restore_id)
 
         # ? Maybe use rename() ?
@@ -641,7 +684,12 @@ class Node(QtGui.QStandardItem, Serializable):
             path = path.as_posix()
         return path
 
-    def build_execution_queue(self):
+    def build_execution_queue(self) -> "deque[pathlib.PurePosixPath]":
+        """Build execution queue from given node.
+
+        Returns:
+            deque[pathlib.PurePosixPath]: Execution queue.
+        """
         exec_queue = deque()
         if self.is_active():
             exec_queue.append(self.cached_path)
@@ -664,9 +712,15 @@ class Node(QtGui.QStandardItem, Serializable):
         return exec_queue
 
     def execute(self):
+        """Execute this node.
+
+        Raises:
+            err: run time exception raised during code execution.
+        """
         if not self.is_active():
             return
 
+        start_time = time.perf_counter()
         try:
             self.signals.execution_started.emit()
             self.cache_attributes_values()
@@ -675,5 +729,7 @@ class Node(QtGui.QStandardItem, Serializable):
             LOGGER.exception(f"{self} | Execution error.")
             self.signals.execution_failed.emit()
             raise err
-        else:
-            self.signals.execution_succeed.emit()
+
+        self.signals.execution_succeed.emit()
+        total_time = time.perf_counter() - start_time
+        LOGGER.info(f"Executed in {total_time:.4f}: {self.cached_path}")

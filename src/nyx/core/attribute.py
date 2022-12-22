@@ -193,10 +193,7 @@ class Attribute(Serializable):
     def _resolve_string(self, raw_str: str):
         LOGGER.debug(f"Resolving string value: {raw_str}")
         other_attr = self.stage.attribute(raw_str)
-        if not other_attr:
-            return raw_str
-
-        return other_attr
+        return other_attr if other_attr else raw_str
 
     def connect(self, other_attr: "Attribute", resolve=True):
         other_attr.set(self.as_path().as_posix(), resolve=resolve)
