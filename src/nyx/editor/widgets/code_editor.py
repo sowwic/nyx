@@ -42,16 +42,19 @@ class CodeEditor(QtWidgets.QWidget):
 
     def create_widgets(self):
         self.text_edit = CodeTextEdit()
+        self.run_code_button = QtWidgets.QPushButton("Run code")
 
     def create_layouts(self):
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(self.text_edit)
+        self.main_layout.addWidget(self.run_code_button)
 
     def create_connections(self):
         self.tree_view.nodes_selected.connect(self.update_text_edit)
         self.text_edit.lost_focus.connect(self.set_node_python_code)
+        self.run_code_button.clicked.connect(self.run_node_python_code)
         self.main_window.undo_group.indexChanged.connect(self.update_text_edit)
 
     @property
@@ -80,3 +83,9 @@ class CodeEditor(QtWidgets.QWidget):
         edit_cmd = commands.EditNodePythonCodeCommand(
             stage=self.stage, node=current_node, new_code=new_code)
         self.stage.undo_stack.push(edit_cmd)
+
+    def run_node_python_code(self):
+        current_node = self.tree_view.current_node()
+        if not current_node:
+            return
+        current_node.execute_code()
