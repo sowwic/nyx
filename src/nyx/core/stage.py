@@ -115,7 +115,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 LOGGER.warning(f"{node} is already in the stage.")
                 continue
 
-            unique_name = self.generate_unique_node_name(node.name, parent_node=node.parent())
+            unique_name = self.generate_unique_node_name(
+                node.name, parent_node=node.parent())
             new_path = self.ROOT_ITEM_PATH / unique_name
             if new_path in self.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
@@ -205,7 +206,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         for node in nodes:
             node = self.node(node)
             if node is None:
-                LOGGER.exception(f"{self} | Failed to delete node.")
+                LOGGER.exception(
+                    f"{self} | Failed to delete node.", stack_info=True)
                 return
 
             # Removed paths
@@ -240,7 +242,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes
-        data["execution_start_path"] = self.get_execution_start_path(None, serializable=True)
+        data["execution_start_path"] = self.get_execution_start_path(
+            None, serializable=True)
         return data
 
     def deserialize(self, data: OrderedDict, restore_id=True):
@@ -286,7 +289,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             OrderedDict: imported json data
         """
         try:
-            json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
+            json_data = file_fn.load_json(
+                file_path, object_pairs_hook=OrderedDict)
         except Exception:
             LOGGER.exception("Failed to load stage from json.")
             return
@@ -313,7 +317,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return self.list_top_nodes()
 
         if node_path not in self.path_map:
-            LOGGER.warning(f"Can't get children of node with given path: {node_path}")
+            LOGGER.warning(
+                f"Can't get children of node with given path: {node_path}")
             return []
 
         return self.path_map[node_path].list_children()
@@ -332,7 +337,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             elif start_path is None:
                 pass
             else:
-                LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
+                LOGGER.exception(
+                    f"{self} | Invalid execution start path object: {start_path}")
                 return
 
         self.__execution_start_path = start_path
@@ -355,18 +361,21 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             elif start_path is None:
                 pass
             else:
-                LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
+                LOGGER.exception(
+                    f"{self} | Invalid execution start path object: {start_path}")
                 return
 
         if for_node is None:
-            self.set_stage_execution_start_path(start_path)  # Set path for stage if node is None
+            # Set path for stage if node is None
+            self.set_stage_execution_start_path(start_path)
             return
 
         if not isinstance(for_node, Node):
             if isinstance(for_node, (str, pathlib.PurePosixPath)):
                 for_node = self.node(for_node)
             else:
-                LOGGER.exception(f"{self} | Invalid argument type for_node: {for_node}")
+                LOGGER.exception(
+                    f"{self} | Invalid argument type for_node: {for_node}")
                 return
 
         for_node.set_execution_start_path(start_path)
@@ -395,11 +404,13 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             if isinstance(for_node, (str, pathlib.PurePosixPath)):
                 for_node = self.node(for_node)
             else:
-                LOGGER.exception(f"{self} | Invalid execution start path object: {for_node}")
+                LOGGER.exception(
+                    f"{self} | Invalid execution start path object: {for_node}")
                 return
 
         if not isinstance(for_node, Node):
-            LOGGER.exception(f"{self} | Failed to execution start path from {original_for_node}")
+            LOGGER.exception(
+                f"{self} | Failed to execution start path from {original_for_node}")
             return
 
         return for_node.get_execution_start_path(serializable=serializable)

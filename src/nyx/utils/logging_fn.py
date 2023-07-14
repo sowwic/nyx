@@ -84,16 +84,26 @@ def get_logger(name: str,
             try:
                 LOGS_DIRECTORY.mkdir(exist_ok=True)
                 log_file_path = LOGS_DIRECTORY / file_name
-                file_hander = logging.handlers.TimedRotatingFileHandler(
+                file_handler = logging.handlers.TimedRotatingFileHandler(
                     log_file_path, when="midnight", interval=1)
-                file_hander.suffix = "%Y%m%d.log"
-                file_hander.setLevel(file_level)
+                file_handler.suffix = "%Y%m%d.log"
+                file_handler.setLevel(file_level)
                 file_formatter = logging.Formatter(file_format)
-                file_hander.setFormatter(file_formatter)
-                logger.addHandler(file_hander)
+                file_handler.setFormatter(file_formatter)
+                logger.addHandler(file_handler)
+                logger.info(f"Log file: {log_file_path}")
             except Exception:
-                logger.warning(f"Unable to create filehandler for logger: {name}")
+                logger.warning(
+                    f"Unable to create filehandler for logger: {name}")
     return logger
+
+
+def get_log_file_path(logger: logging.Logger, handler_type=logging.FileHandler):
+    file_handler = next(iter(
+        [handler for handler in logger.handlers if isinstance(handler, handler_type)]), None)
+    if not file_handler:
+        return None
+    return file_handler.baseFilename
 
 
 def get_main_logger():
