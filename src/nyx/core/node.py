@@ -206,7 +206,8 @@ class Node(QtGui.QStandardItem, Serializable):
             items = [items]
 
         for node in items:
-            unique_name = self.stage.generate_unique_node_name(node.name, parent_node=self)
+            unique_name = self.stage.generate_unique_node_name(
+                node.name, parent_node=self)
             new_path = self.path / unique_name
             if new_path in self.stage.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
@@ -232,7 +233,8 @@ class Node(QtGui.QStandardItem, Serializable):
             return
 
         old_path = self.cached_path
-        new_name = self.stage.generate_unique_node_name(new_name, parent_node=self.parent())
+        new_name = self.stage.generate_unique_node_name(
+            new_name, parent_node=self.parent())
         self.setText(new_name)
         self._update_pathmap_entry()
         self.signals.renamed.emit(old_path, self.cached_path)
@@ -356,7 +358,8 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         data = self.attribs
         if name not in data.keys():
-            LOGGER.warning(f"Can't delete attribute {name} that doesn't exist!")
+            LOGGER.warning(
+                f"Can't delete attribute {name} that doesn't exist!")
             return
         data.pop(name)
         self.setData(data, role=Node.ATTRIBUTES_ROLE)
@@ -376,7 +379,8 @@ class Node(QtGui.QStandardItem, Serializable):
 
         data = self.attribs
         if name not in data.keys():
-            LOGGER.warning(f"Can't rename attribute {name} that doesn't exist!")
+            LOGGER.warning(
+                f"Can't rename attribute {name} that doesn't exist!")
             return
 
         new_name = self.generate_unique_attr_name(new_name)
@@ -465,7 +469,8 @@ class Node(QtGui.QStandardItem, Serializable):
             return
 
         if new_input_exec_node and new_input_exec_node.scope != self.scope:
-            LOGGER.error(f"{self} | Invalid new input scope: {new_input_exec_node.scope}")
+            LOGGER.error(
+                f"{self} | Invalid new input scope: {new_input_exec_node.scope}")
             return
 
         # Set connections
@@ -513,13 +518,15 @@ class Node(QtGui.QStandardItem, Serializable):
             return
 
         new_output_exec_node = self.stage.node(path)
-        previous_output_exec_node = self.stage.node(self.get_output_exec_path())
+        previous_output_exec_node = self.stage.node(
+            self.get_output_exec_path())
         if new_output_exec_node == previous_output_exec_node:
             LOGGER.debug(f"{self} | exec output set to {path}")
             return
 
         if new_output_exec_node and new_output_exec_node.scope != self.scope:
-            LOGGER.error(f"{self} | Invalid new output scope: {new_output_exec_node.scope}")
+            LOGGER.error(
+                f"{self} | Invalid new output scope: {new_output_exec_node.scope}")
             return
         # Set connections
         if new_output_exec_node is None:
@@ -555,7 +562,8 @@ class Node(QtGui.QStandardItem, Serializable):
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
         data["path"] = self.path.as_posix()
-        data["execution_start_path"] = self.get_execution_start_path(serializable=True)
+        data["execution_start_path"] = self.get_execution_start_path(
+            serializable=True)
         data["input_exec"] = self.get_input_exec_path(serializable=True)
         data["output_exec"] = self.get_output_exec_path(serializable=True)
         data["attribs"] = attribs
@@ -616,7 +624,7 @@ class Node(QtGui.QStandardItem, Serializable):
             as_reference (bool, optional): if node should be locked. Defaults to False.
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
-        self.deserialize(json_data, {}, restore_id=False)
+        self.deserialize(json_data, restore_id=False)
 
     def get_python_code(self) -> str:
         """Node python code.
@@ -699,7 +707,8 @@ class Node(QtGui.QStandardItem, Serializable):
                 if child_node:
                     exec_queue.extend(child_node.build_execution_queue())
                 else:
-                    LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
+                    LOGGER.warning(
+                        f"{self} | start path doesn't exist: {child_path}")
 
         output_path = self.get_output_exec_path()
         if output_path:
@@ -707,7 +716,8 @@ class Node(QtGui.QStandardItem, Serializable):
             if output_node:
                 exec_queue.extend(output_node.build_execution_queue())
             else:
-                LOGGER.warning(f"{self} | output exec path doesn't exist: {output_path} ")
+                LOGGER.warning(
+                    f"{self} | output exec path doesn't exist: {output_path} ")
 
         return exec_queue
 

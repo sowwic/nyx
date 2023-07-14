@@ -69,11 +69,10 @@ class DeleteNodeCommand(NyxCommand):
             self.serialized_nodes.append(each_node.serialize())
         self.deleted_paths = deque()
 
-        if not command_text:
-            if len(nodes) == 1:
-                self.setText(f"Delete node ({nodes[-1].path.as_posix()})")
-            else:
-                self.setText("Deleted nodes")
+        if len(nodes) == 1:
+            self.setText(f"Delete node ({nodes[-1].path.as_posix()})")
+        else:
+            self.setText("Deleted nodes")
 
     def redo(self) -> None:
         self.deleted_paths.clear()
@@ -92,13 +91,14 @@ class DeleteNodeCommand(NyxCommand):
 
     def undo(self) -> None:
         for node_data in self.serialized_nodes:
-            node_path: pathlib.PurePosixPath = pathlib.PurePosixPath(node_data.get("path"))
+            node_path: pathlib.PurePosixPath = pathlib.PurePosixPath(
+                node_data.get("path"))
             if node_path not in self.deleted_paths:
                 continue
             parent_path = node_path.parent
             new_node = Node()
             self.stage.add_node(new_node, parent=parent_path)
-            new_node.deserialize(node_data, {}, restore_id=True)
+            new_node.deserialize(node_data, restore_id=True)
         return super().undo()
 
 
@@ -116,7 +116,8 @@ class RenameNodeCommand(NyxCommand):
         self.old_name = node.name
         self.node_data = node.serialize()
 
-        self.setText(f"Rename node ({node.path.as_posix()} -> {self.new_name})")
+        self.setText(
+            f"Rename node ({node.path.as_posix()} -> {self.new_name})")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_data.get("path"))
@@ -143,11 +144,13 @@ class AddNodeAttributeCommand(NyxCommand):
         self.attr_name = attr_name
         self.attr_value = attr_value
         self.attr_resolve = attr_resolve
-        self.setText(f"{self.text()} {self.node_path.as_posix()} ({self.attr_name})")
+        self.setText(
+            f"{self.text()} {self.node_path.as_posix()} ({self.attr_name})")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
-        new_attr = node.add_attr(self.attr_name, value=self.attr_value, resolve=self.attr_resolve)
+        new_attr = node.add_attr(
+            self.attr_name, value=self.attr_value, resolve=self.attr_resolve)
         self.attr_name = new_attr.name
         return super().redo()
 
@@ -167,12 +170,14 @@ class DeleteNodeAttributeCommand(NyxCommand):
         self.node_path = self.stage.node(node).path
         self.attr_names = attr_names
         self.attrs_serialized = []
-        self.setText(f"{self.text()} {self.node_path.as_posix()} {self.attr_names}")
+        self.setText(
+            f"{self.text()} {self.node_path.as_posix()} {self.attr_names}")
 
     def redo(self) -> None:
         self.attrs_serialized.clear()
         node = self.stage.node(self.node_path)
-        self.attrs_serialized = [node.attr(name).serialize() for name in self.attr_names]
+        self.attrs_serialized = [
+            node.attr(name).serialize() for name in self.attr_names]
         for name in self.attr_names:
             node.delete_attr(name)
 
@@ -181,7 +186,7 @@ class DeleteNodeAttributeCommand(NyxCommand):
         for attr_data in self.attrs_serialized:
             attr_name = attr_data["name"]
             node.add_attr(attr_name)
-            node.attr(attr_name).deserialize(attr_data, {}, restore_id=True)
+            node.attr(attr_name).deserialize(attr_data, restore_id=True)
         return super().undo()
 
 
@@ -201,7 +206,8 @@ class RenameNodeAttributeCommand(NyxCommand):
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
-        self.new_attr_name = node.rename_attr(self.attr_name, self.new_attr_name).name
+        self.new_attr_name = node.rename_attr(
+            self.attr_name, self.new_attr_name).name
         return super().redo()
 
     def undo(self) -> None:
@@ -330,7 +336,8 @@ class ConnectNodeExecCommand(NyxCommand):
         self.input_node_path = self.stage.node(input_node).path
         self.old_output_node_exec_value = None
         self.old_input_node_exec_value = None
-        self.setText(f"{self.text()} {self.output_node_path} -> {self.input_node_path}")
+        self.setText(
+            f"{self.text()} {self.output_node_path} -> {self.input_node_path}")
 
     def redo(self) -> None:
         output_node = self.stage.node(self.output_node_path)
@@ -525,10 +532,12 @@ class MoveNodeCommand(NyxCommand):
             new_positions = [new_positions]
 
         self.node_paths = [self.stage.node(node).path for node in nodes]
-        self.old_positions = [self.stage.node(node).position() for node in nodes]
+        self.old_positions = [self.stage.node(
+            node).position() for node in nodes]
         self.new_positions = new_positions
 
-        self.setText(f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
+        self.setText(
+            f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
 
     def redo(self) -> None:
         for node, new_pos in zip([self.stage.node(path) for path in self.node_paths], self.new_positions):
