@@ -13,13 +13,17 @@ if typing.TYPE_CHECKING:
 LOGGER = get_main_logger()
 
 
-class StageExecutor:
+class StageHandler:
 
     def __repr__(self) -> str:
-        return "Executor"
+        return f"StageHandler ({self.stage})"
 
     def __init__(self, stage: "Stage") -> None:
-        self.stage = stage
+        self.__stage = stage
+
+    @property
+    def stage(self):
+        return self.__stage
 
     def build_execution_queue(self,
                               start_path: "Node | str | pathlib.PurePosixPath | None" = None) -> "deque[pathlib.PurePosixPath]":
@@ -35,7 +39,8 @@ class StageExecutor:
         if not start_node:
             start_path = self.stage.get_execution_start_path(start_path)
         if start_path is None:
-            LOGGER.warning(f"{self} | No execution start path specified. Start path: {start_path}")
+            LOGGER.warning(
+                f"{self} | No execution start path specified. Start path: {start_path}")
             return
         else:
             start_node = self.stage.node(start_path)
@@ -66,4 +71,5 @@ class StageExecutor:
                 LOGGER.error("Error raised during graph execution.")
                 break
         if success:
-            LOGGER.info("Executed graph in {0:.2f}s".format(timeit.default_timer() - start_time))
+            LOGGER.info("Executed graph in {0:.2f}s".format(
+                timeit.default_timer() - start_time))

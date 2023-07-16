@@ -11,7 +11,7 @@ from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
 from nyx.core import Node
 from nyx.core.attribute import Attribute
-from nyx.core.stage_executor import StageExecutor
+from nyx.core.stage_handler import StageHandler
 from nyx.core import nyx_exceptions
 
 
@@ -35,7 +35,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self.__execution_start_path: pathlib.PurePosixPath = None
-        self.__executor = StageExecutor(self)
+        self.__handler = StageHandler(self)
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
@@ -45,8 +45,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return self._path_map
 
     @property
-    def executor(self):
-        return self.__executor
+    def handler(self):
+        return self.__handler
 
     @property
     def execution_start_path(self):

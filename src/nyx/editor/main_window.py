@@ -80,7 +80,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.execute_from_selected_node_action = QtWidgets.QAction(
             pyside_fn.get_standard_icon(self, "SP_MediaSkipForward"), "Execute from selected node", self)
         self.execute_stage_action.triggered.connect(self.execute_stage_graph)
-        self.execute_from_selected_node_action.triggered.connect(self.execute_from_selected_node)
+        self.execute_from_selected_node_action.triggered.connect(
+            self.execute_from_selected_node)
 
     def create_menubar(self):
         self.menubar_file_menu = menubar_menus.FileMenu(self)
@@ -112,9 +113,12 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.mdi_area.setTabsMovable(True)
 
         # Dock Widgets
-        self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
-        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.West)
-        self.setTabPosition(QtCore.Qt.BottomDockWidgetArea, QtWidgets.QTabWidget.North)
+        self.setTabPosition(QtCore.Qt.RightDockWidgetArea,
+                            QtWidgets.QTabWidget.East)
+        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea,
+                            QtWidgets.QTabWidget.West)
+        self.setTabPosition(QtCore.Qt.BottomDockWidgetArea,
+                            QtWidgets.QTabWidget.North)
         # Tree dock
         self.stage_tree_dock = QtWidgets.QDockWidget("Tree View")
         self.stage_tree_dock.setWidget(self.stage_tree_view)
@@ -140,15 +144,18 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.attrib_editor_dock)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.code_editor_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
+                           self.attrib_editor_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
+                           self.code_editor_dock)
         self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.toolbar_dock)
 
     def create_layouts(self):
         pass
 
     def create_connections(self):
-        self.mdi_area.subWindowActivated.connect(self.on_node_graph_window_activated)
+        self.mdi_area.subWindowActivated.connect(
+            self.on_node_graph_window_activated)
         self.mdi_area.subWindowActivated.connect(self.update_title)
         self.undo_group.indexChanged.connect(self.update_title)
 
@@ -179,7 +186,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         if not self.config.window_position:
             center_position: QtCore.QPoint = self.pos(
             ) + QtWidgets.QApplication.primaryScreen().geometry().center() - self.geometry().center()
-            self.config.window_position = (center_position.x(), center_position.y())
+            self.config.window_position = (
+                center_position.x(), center_position.y())
         self.move(QtCore.QPoint(*self.config.window_position))
 
         # TODO: add always on top toggle
@@ -196,7 +204,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             graph_widget = StageGraphEditor.from_json_file(file_path)
         else:
             graph_widget = StageGraphEditor(stage)
-        sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(graph_widget)
+        sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(
+            graph_widget)
         return sub_wnd
 
     # Slots
@@ -249,7 +258,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def execute_stage_graph(self):
         if not self.current_stage_graph:
             return
-        self.current_stage_graph.stage.executor.run()
+        self.current_stage_graph.stage.handler.run()
 
     def execute_from_selected_node(self):
         if not self.current_stage_graph:
@@ -260,4 +269,4 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             LOGGER.warning("No node selected for execution")
             return
 
-        self.current_stage_graph.stage.executor.run(selected_gr_node.node)
+        self.current_stage_graph.stage.handler.run(selected_gr_node.node)
