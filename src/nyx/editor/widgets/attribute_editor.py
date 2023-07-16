@@ -40,8 +40,10 @@ class AttributeEditor(QtWidgets.QWidget):
         self.node_comment_text_edit = NyxTextEdit()
         self.node_position_x_spinbox = QtWidgets.QDoubleSpinBox()
         self.node_position_y_spinbox = QtWidgets.QDoubleSpinBox()
-        self.node_position_x_spinbox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
-        self.node_position_y_spinbox.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        self.node_position_x_spinbox.setButtonSymbols(
+            QtWidgets.QAbstractSpinBox.NoButtons)
+        self.node_position_y_spinbox.setButtonSymbols(
+            QtWidgets.QAbstractSpinBox.NoButtons)
         self.node_position_x_spinbox.setRange(-64000, 64000)
         self.node_position_y_spinbox.setRange(-64000, 64000)
 
@@ -59,8 +61,10 @@ class AttributeEditor(QtWidgets.QWidget):
         basic_properties_layout.addRow(self.node_isactive_checkbox)
         basic_properties_layout.addRow("Name:", self.node_name_lineedit)
         basic_properties_layout.addRow("Path:", self.node_path_lineedit)
-        basic_properties_layout.addRow("Exec Input:", self.node_exec_input_line_edit)
-        basic_properties_layout.addRow("Execution start:", self.node_execution_start_lineedit)
+        basic_properties_layout.addRow(
+            "Exec Input:", self.node_exec_input_line_edit)
+        basic_properties_layout.addRow(
+            "Execution start:", self.node_execution_start_lineedit)
         basic_properties_layout.addRow("Position:", position_layout)
         basic_properties_layout.addRow("Comment:", self.node_comment_text_edit)
 
@@ -71,15 +75,22 @@ class AttributeEditor(QtWidgets.QWidget):
         self.main_layout.addWidget(self.attributes_table)
 
     def create_connections(self):
-        self.tree_view.selection_changed.connect(self.update_node_data_from_treeview)
-        self.main_window.undo_group.indexChanged.connect(self.update_node_data_from_treeview)
+        self.tree_view.selection_changed.connect(
+            self.update_node_data_from_treeview)
+        self.main_window.undo_group.indexChanged.connect(
+            self.update_node_data_from_treeview)
         self.node_name_lineedit.editingFinished.connect(self.apply_name_edit)
-        self.node_exec_input_line_edit.editingFinished.connect(self.apply_exec_input_edit)
-        self.node_execution_start_lineedit.editingFinished.connect(self.apply_execution_start_edit)
+        self.node_exec_input_line_edit.editingFinished.connect(
+            self.apply_exec_input_edit)
+        self.node_execution_start_lineedit.editingFinished.connect(
+            self.apply_execution_start_edit)
         self.node_isactive_checkbox.toggled.connect(self.apply_active_toggle)
-        self.node_comment_text_edit.editingFinished.connect(self.apply_comment_edit)
-        self.node_position_x_spinbox.editingFinished .connect(self.apply_position_edit)
-        self.node_position_y_spinbox.editingFinished .connect(self.apply_position_edit)
+        self.node_comment_text_edit.editingFinished.connect(
+            self.apply_comment_edit)
+        self.node_position_x_spinbox.editingFinished .connect(
+            self.apply_position_edit)
+        self.node_position_y_spinbox.editingFinished .connect(
+            self.apply_position_edit)
 
     @property
     def tree_view(self):
@@ -130,6 +141,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.block_fields_signals(True)
         self.set_fields_enabled(True)
         self.set_data_from_node(last_selected_node)
+        self.attributes_table.update_node_data()
         self.block_fields_signals(False)
 
     def update_node_data_from_treeview(self):
@@ -141,6 +153,7 @@ class AttributeEditor(QtWidgets.QWidget):
         self.block_fields_signals(True)
         self.set_fields_enabled(True)
         self.set_data_from_node(current_node)
+        self.attributes_table.update_node_data()
         self.block_fields_signals(False)
 
     def set_data_from_node(self, node):
@@ -191,7 +204,8 @@ class AttributeEditor(QtWidgets.QWidget):
                                                                          node=current_node)
         else:
             if current_node.is_input_exec_cyclic(source_node) or current_node is source_node:
-                LOGGER.warning(f"Cyclic exec path: {source_node.path} <-> {current_node.path}")
+                LOGGER.warning(
+                    f"Cyclic exec path: {source_node.path} <-> {current_node.path}")
                 self.update_node_data_from_treeview()
                 return
             set_exec_input_cmd = commands.ConnectNodeExecCommand(stage=current_node.stage,
@@ -204,7 +218,8 @@ class AttributeEditor(QtWidgets.QWidget):
         if not current_node:
             return
 
-        new_path = pathlib.PurePosixPath(self.node_execution_start_lineedit.text())
+        new_path = pathlib.PurePosixPath(
+            self.node_execution_start_lineedit.text())
         if new_path == pathlib.PurePosixPath("."):
             new_path = None
 
@@ -213,7 +228,8 @@ class AttributeEditor(QtWidgets.QWidget):
 
         # if new_path and current_node.path not in new_path.parents:
         if new_path and not current_node.is_parent_of(new_path):
-            LOGGER.warning(f"Node({new_path}) is not a child of {current_node}")
+            LOGGER.warning(
+                f"Node({new_path}) is not a child of {current_node}")
             self.update_node_data_from_treeview()
             return
 

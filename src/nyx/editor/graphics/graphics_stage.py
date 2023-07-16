@@ -175,13 +175,13 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         if set(selected_paths) != set(self._previous_selected_paths):
             self._previous_selected_paths = selected_paths
             self.signals.nodes_selection_changed.emit(selected_paths)
-            LOGGER.debug("Emitted {}".format(selected_paths))
 
     def on_tree_view_selection_changed(self):
         self.blockSignals(True)
         self.clearSelection()
         tree_view_selected_nodes = self.graph_editor.tree_view.selected_nodes()
-        current_scope_node = self.stage.node(self.graph_editor.get_scope_path())
+        current_scope_node = self.stage.node(
+            self.graph_editor.get_scope_path())
         scope_child_nodes = self.stage.list_children(current_scope_node)
         scope_selected_nodes = list(
             set(tree_view_selected_nodes).intersection(set(scope_child_nodes)))
@@ -190,7 +190,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
         for node in scope_selected_nodes:
             if node.gr_node is None:
-                LOGGER.exception(f"Missing graphics node for selection: {node}")
+                LOGGER.exception(
+                    f"Missing graphics node for selection: {node}")
                 continue
             node.gr_node.setSelected(True)
 

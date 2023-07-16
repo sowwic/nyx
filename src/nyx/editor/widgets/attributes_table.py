@@ -64,7 +64,8 @@ class AttrRawValueTableItem(AttrTableItem):
     def __init__(self, node_attr: "Attribute") -> None:
         super().__init__(node_attr, str(node_attr.value))
         self.setData(QtCore.Qt.UserRole, node_attr.value)
-        self.setToolTip(f"Value : {self.node_attr.value} ({type(self.node_attr.value)})")
+        self.setToolTip(
+            f"Value : {self.node_attr.value} ({type(self.node_attr.value)})")
 
     def set_node_attr_value(self):
         old_value = self.node_attr.value
@@ -122,21 +123,25 @@ class AttributesTable(QtWidgets.QTableWidget):
 
     def create_actions(self):
         self.add_attr_action = QtWidgets.QAction("Add new attribute", self)
-        self.delete_selected_attr_action = QtWidgets.QAction("Delete selected", self)
+        self.delete_selected_attr_action = QtWidgets.QAction(
+            "Delete selected", self)
         self.update_action = QtWidgets.QAction("Update", self)
-        self.copy_selected_attr_path_action = QtWidgets.QAction("Copy as path", self)
-        self.clear_cache_for_selected_action = QtWidgets.QAction("Clear cached value", self)
+        self.copy_selected_attr_path_action = QtWidgets.QAction(
+            "Copy as path", self)
+        self.clear_cache_for_selected_action = QtWidgets.QAction(
+            "Clear cached value", self)
 
         self.add_attr_action.triggered.connect(self.add_new_attribute)
         self.update_action.triggered.connect(self.update_node_data)
-        self.delete_selected_attr_action.triggered.connect(self.delete_selected_attr)
-        self.copy_selected_attr_path_action.triggered.connect(self.copy_selected_attr_path)
-        self.clear_cache_for_selected_action.triggered.connect(self.clear_cache_for_selected_attrs)
+        self.delete_selected_attr_action.triggered.connect(
+            self.delete_selected_attr)
+        self.copy_selected_attr_path_action.triggered.connect(
+            self.copy_selected_attr_path)
+        self.clear_cache_for_selected_action.triggered.connect(
+            self.clear_cache_for_selected_attrs)
 
     def create_connections(self):
         self.itemChanged.connect(self.apply_item_edits)
-        self.tree_view.selection_changed.connect(self.update_node_data)
-        self.main_window.undo_group.indexChanged.connect(self.update_node_data)
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     def update_node_data(self):
@@ -216,7 +221,8 @@ class AttributesTable(QtWidgets.QTableWidget):
         for row in selected_rows:
             attrib_name_item: AttrNameTableItem = self.item(row, 0)
             attrib_name_item.node_attr.clear_cache()
-            LOGGER.info(f"Cleared cache for: {attrib_name_item.node_attr.as_path()}")
+            LOGGER.info(
+                f"Cleared cache for: {attrib_name_item.node_attr.as_path()}")
         self.update_node_data()
 
     def show_context_menu(self, point: QtCore.QPoint):

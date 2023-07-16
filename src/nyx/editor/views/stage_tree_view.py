@@ -44,15 +44,21 @@ class StageTreeView(QtWidgets.QTreeView):
         self.delete_selected_node_action = QtWidgets.QAction(pyside_fn.get_standard_icon(self, "SP_DialogDiscardButton"),
                                                              "Delete node",
                                                              self)
-        self.delete_selected_node_action.triggered.connect(self.delete_selected_node)
+        self.delete_selected_node_action.triggered.connect(
+            self.delete_selected_node)
         self.copy_selected_nodes_action = QtWidgets.QAction("Copy", self)
-        self.copy_selected_nodes_action.triggered.connect(self.copy_selected_nodes)
+        self.copy_selected_nodes_action.triggered.connect(
+            self.copy_selected_nodes)
         self.cut_selected_nodes_action = QtWidgets.QAction("Cut", self)
-        self.cut_selected_nodes_action.triggered.connect(self.cut_selected_nodes)
-        self.copy_selected_node_path_action = QtWidgets.QAction("Copy path to selected", self)
-        self.copy_selected_node_path_action.triggered.connect(self.copy_selected_node_path)
+        self.cut_selected_nodes_action.triggered.connect(
+            self.cut_selected_nodes)
+        self.copy_selected_node_path_action = QtWidgets.QAction(
+            "Copy path to selected", self)
+        self.copy_selected_node_path_action.triggered.connect(
+            self.copy_selected_node_path)
         self.paste_nodes_action = QtWidgets.QAction("Paste", self)
-        self.paste_nodes_action.triggered.connect(self.paste_nodes_from_clipboard)
+        self.paste_nodes_action.triggered.connect(
+            self.paste_nodes_from_clipboard)
         self.set_selected_item_as_parents_execution_start_action = QtWidgets.QAction(
             "Set as parent execution start", self)
         self.set_selected_item_as_parents_execution_start_action.triggered.connect(
@@ -103,7 +109,6 @@ class StageTreeView(QtWidgets.QTreeView):
         return nodes
 
     def select_paths(self, node_paths: "list[pathlib.PurePosixPath]", silent=False):
-        LOGGER.debug("Paths: {}".format(node_paths))
         if silent:
             self.blockSignals(True)
         indexes = []
@@ -119,8 +124,10 @@ class StageTreeView(QtWidgets.QTreeView):
 
     def selectionChanged(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
         super().selectionChanged(selected, deselected)
-        selected_items = [self.stage.itemFromIndex(index) for index in selected.indexes()]
-        deselected_items = [self.stage.itemFromIndex(index) for index in deselected.indexes()]
+        selected_items = [self.stage.itemFromIndex(
+            index) for index in selected.indexes()]
+        deselected_items = [self.stage.itemFromIndex(
+            index) for index in deselected.indexes()]
         self.nodes_selected.emit(selected_items)
         self.nodes_deselected.emit(deselected_items)
         self.selection_changed.emit()
@@ -216,7 +223,8 @@ class StageTreeView(QtWidgets.QTreeView):
         menu = QtWidgets.QMenu("", self)
         menu.addAction(self.create_new_node_action)
         if self.current_node():
-            menu.addAction(self.set_selected_item_as_parents_execution_start_action)
+            menu.addAction(
+                self.set_selected_item_as_parents_execution_start_action)
             menu.addSeparator()
             menu.addAction(self.copy_selected_nodes_action)
             menu.addAction(self.cut_selected_nodes_action)
