@@ -1,5 +1,6 @@
 import typing
-from PySide2 import QtWidgets
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
@@ -12,16 +13,20 @@ class EditMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
-        self.undo_action: QtWidgets.QAction = self.main_window.undo_group.createUndoAction(self)
-        self.redo_action: QtWidgets.QAction = self.main_window.undo_group.createRedoAction(self)
-        self.rename_selected_node_action = QtWidgets.QAction('Rename selected node', self)
+        self.undo_action: QtWidgets.QAction = self.main_window.undo_group.createUndoAction(
+            self)
+        self.redo_action: QtWidgets.QAction = self.main_window.undo_group.createRedoAction(
+            self)
+        self.rename_selected_node_action = QtGui.QAction(
+            'Rename selected node', self)
 
         self.undo_action.setShortcut("Ctrl+Z")
         self.redo_action.setShortcut("Ctrl+Y")
         self.rename_selected_node_action.setShortcut("F2")
 
     def create_connections(self):
-        self.rename_selected_node_action.triggered.connect(self.on_rename_selected_node)
+        self.rename_selected_node_action.triggered.connect(
+            self.on_rename_selected_node)
 
     def populate(self):
         self.addAction(self.undo_action)

@@ -1,6 +1,7 @@
 import typing
-from PySide2 import QtCore
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from nyx.utils import logging_fn
 
@@ -28,7 +29,8 @@ class RichLogMessageItem(QtWidgets.QListWidgetItem):
 
         super().__init__(self.log_record.message, listview)
         self.setToolTip(self.log_record.message)
-        self.setIcon(self.level_icon_map.get(self.log_record.levelname, self.icon_info))
+        self.setIcon(self.level_icon_map.get(
+            self.log_record.levelname, self.icon_info))
         self.setSizeHint(QtCore.QSize(self.sizeHint().width(), 20))
 
     @property
@@ -96,8 +98,10 @@ class LoggerWidget(QtWidgets.QWidget):
         self.main_layout.addWidget(self.tab_widget)
 
     def create_connections(self):
-        self.std_out.customContextMenuRequested.connect(self.show_raw_output_context_menu)
-        self.rich_out.customContextMenuRequested.connect(self.show_rich_output_context_menu)
+        self.std_out.customContextMenuRequested.connect(
+            self.show_raw_output_context_menu)
+        self.rich_out.customContextMenuRequested.connect(
+            self.show_rich_output_context_menu)
 
     @property
     def logger(self):
@@ -115,13 +119,16 @@ class LoggerWidget(QtWidgets.QWidget):
         self.__logger = logging_fn.get_logger(name,
                                               level=QtWidgets.QApplication.instance().config().logging_level)
         logging_fn.add_signal_handler(self.__logger)
-        self.__logger.signal_handler.emitter.message_logged.connect(self.append_raw_message)
-        self.__logger.signal_handler.emitter.record_logged.connect(self.append_rich_message)
+        self.__logger.signal_handler.emitter.message_logged.connect(
+            self.append_raw_message)
+        self.__logger.signal_handler.emitter.record_logged.connect(
+            self.append_rich_message)
 
     def append_raw_message(self, text: str):
         self.std_out.append(text)
         if self.auto_scroll:
-            self.std_out.verticalScrollBar().setValue(self.std_out.verticalScrollBar().maximum())
+            self.std_out.verticalScrollBar().setValue(
+                self.std_out.verticalScrollBar().maximum())
 
     def append_rich_message(self, record: logging_fn.logging.LogRecord):
         log_item = RichLogMessageItem(record)
@@ -131,14 +138,14 @@ class LoggerWidget(QtWidgets.QWidget):
 
     def show_raw_output_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu(self.std_out)
-        clear_action = QtWidgets.QAction("Clear", self.std_out)
+        clear_action = QtGui.QAction("Clear", self.std_out)
         clear_action.triggered.connect(self.std_out.clear)
         menu.addAction(clear_action)
         menu.exec_(self.std_out.mapToGlobal(point))
 
     def show_rich_output_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu(self.rich_out)
-        clear_action = QtWidgets.QAction("Clear", self.rich_out)
+        clear_action = QtGui.QAction("Clear", self.rich_out)
         clear_action.triggered.connect(self.rich_out.clear)
         menu.addAction(clear_action)
         menu.exec_(self.rich_out.mapToGlobal(point))

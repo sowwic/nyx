@@ -1,9 +1,9 @@
 import typing
 from collections import deque
 
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from nyx.core import commands
 from nyx.editor.graphics.graphics_node_title import GraphicsNodeTitle
@@ -103,7 +103,8 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         path_content.setFillRule(QtCore.Qt.WindingFill)
         path_content.addRoundedRect(0, self.title_height, self.width,
                                     self.height - self.title_height, self.edge_roundness, self.edge_roundness)
-        path_content.addRect(0, self.title_height, self.edge_roundness, self.edge_roundness)
+        path_content.addRect(0, self.title_height,
+                             self.edge_roundness, self.edge_roundness)
         path_content.addRect(self.width - self.edge_roundness, self.title_height,
                              self.edge_roundness, self.edge_roundness)
         painter.setPen(QtCore.Qt.NoPen)
@@ -115,7 +116,8 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         path_outline = QtGui.QPainterPath()
         path_outline.addRoundedRect(-1, -1, self.width + 2, self.height + 2,
                                     self.edge_roundness, self.edge_roundness)
-        painter.setPen(self._pen_default if not self.isSelected() else self._pen_selected)
+        painter.setPen(self._pen_default if not self.isSelected()
+                       else self._pen_selected)
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.drawPath(path_outline.simplified())
 

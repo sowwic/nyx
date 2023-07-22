@@ -1,7 +1,7 @@
 import typing
 import pathlib
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
@@ -28,7 +28,8 @@ class GraphScopeWidget(QtWidgets.QWidget):
         self.path_line_edit = QtWidgets.QLineEdit()
         self.scope_back_btn = QtWidgets.QPushButton(self.icon_scope_back, "")
         self.scope_root_btn = QtWidgets.QPushButton(self.icon_scope_root, "")
-        self.path_line_edit.setText(self.graph_editor.get_scope_path().as_posix())
+        self.path_line_edit.setText(
+            self.graph_editor.get_scope_path().as_posix())
 
     def create_layouts(self):
         self.main_layout = QtWidgets.QHBoxLayout()

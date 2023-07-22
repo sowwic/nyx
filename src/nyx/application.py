@@ -1,6 +1,6 @@
 import os
 import sys
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core.config import Config
@@ -58,10 +58,12 @@ class NyxEditorApplication(NyxApplication):
         stage.undo_stack.push(create_cmd5)
 
         # Renamed parent
-        rename_cmd1 = commands.RenameNodeCommand(stage, "/node", new_name="parent_node")
+        rename_cmd1 = commands.RenameNodeCommand(
+            stage, "/node", new_name="parent_node")
         stage.undo_stack.push(rename_cmd1)
 
-        rename_cmd2 = commands.RenameNodeCommand(stage, "/parent_node/node", new_name="child_node")
+        rename_cmd2 = commands.RenameNodeCommand(
+            stage, "/parent_node/node", new_name="child_node")
         stage.undo_stack.push(rename_cmd2)
 
         # Attributes
@@ -88,7 +90,8 @@ class NyxEditorApplication(NyxApplication):
         stage.undo_stack.push(rename_attr_cmd)
 
         # Exec starts
-        stage_exec_start_cmd = commands.SetStageExecStartCommand(stage, "/test_node")
+        stage_exec_start_cmd = commands.SetStageExecStartCommand(
+            stage, "/test_node")
         stage.undo_stack.push(stage_exec_start_cmd)
 
         node_exec_start_cmd = commands.SetNodeExecStartCommand(stage,

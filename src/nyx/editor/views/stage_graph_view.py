@@ -1,9 +1,9 @@
 import typing
 import enum
 # import pathlib
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core import commands
@@ -74,21 +74,23 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def update_render_hints(self):
         if self.zoom > self.HIGH_QUALITY_ZOOM:
-            self.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.HighQualityAntialiasing |
-                                QtGui.QPainter.TextAntialiasing | QtGui.QPainter.SmoothPixmapTransform)
+            self.setRenderHints(QtGui.QPainter.RenderHint.Antialiasing |
+                                QtGui.QPainter.RenderHint.TextAntialiasing | QtGui.QPainter.RenderHint.SmoothPixmapTransform)
         else:
-            self.setRenderHints(QtGui.QPainter.Antialiasing |
-                                QtGui.QPainter.TextAntialiasing | QtGui.QPainter.SmoothPixmapTransform)
+            self.setRenderHints(QtGui.QPainter.RenderHint.Antialiasing |
+                                QtGui.QPainter.RenderHint.SmoothPixmapTransform)
 
     def create_actions(self):
-        self.create_node_action = QtWidgets.QAction("Create Node", self.gr_stage)
-        self.copy_selected_action = QtWidgets.QAction("Copy", self.gr_stage)
-        self.cut_selected_action = QtWidgets.QAction("Cut", self.gr_stage)
-        self.paste_action = QtWidgets.QAction("Paste", self.gr_stage)
-        self.delete_selected_action = QtWidgets.QAction("Delete", self.gr_stage)
-        self.focus_on_selected_nodes_action = QtWidgets.QAction(
+        self.create_node_action = QtGui.QAction(
+            "Create Node", self.gr_stage)
+        self.copy_selected_action = QtGui.QAction("Copy", self.gr_stage)
+        self.cut_selected_action = QtGui.QAction("Cut", self.gr_stage)
+        self.paste_action = QtGui.QAction("Paste", self.gr_stage)
+        self.delete_selected_action = QtGui.QAction(
+            "Delete", self.gr_stage)
+        self.focus_on_selected_nodes_action = QtGui.QAction(
             "Focus on selected nodes", self.gr_stage)
-        self.set_selected_node_as_parent_execution_start_action = QtWidgets.QAction(
+        self.set_selected_node_as_parent_execution_start_action = QtGui.QAction(
             "Set selected node as parent execution start", self.gr_stage)
 
         self.create_node_action.triggered.connect(self.create_new_node)
@@ -96,7 +98,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.cut_selected_action.triggered.connect(self.cut_selected_nodes)
         self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
         self.delete_selected_action.triggered.connect(self.delete_selected)
-        self.focus_on_selected_nodes_action.triggered.connect(self.focus_on_selected_nodes)
+        self.focus_on_selected_nodes_action.triggered.connect(
+            self.focus_on_selected_nodes)
         self.set_selected_node_as_parent_execution_start_action.triggered.connect(
             self.set_selected_node_as_parent_execution_start)
 
@@ -117,7 +120,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def update_actions(self):
         is_selection_empty = self.gr_stage.is_gr_node_selection_empty()
-        self.set_selected_node_as_parent_execution_start_action.setDisabled(is_selection_empty)
+        self.set_selected_node_as_parent_execution_start_action.setDisabled(
+            is_selection_empty)
         self.copy_selected_action.setDisabled(is_selection_empty)
         self.cut_selected_action.setDisabled(is_selection_empty)
         self.delete_selected_action.setDisabled(is_selection_empty)
@@ -368,14 +372,16 @@ class StageGraphView(QtWidgets.QGraphicsView):
             return
 
         selected_gr_nodes = self.scene().selected_gr_nodes()
-        nodes_to_delete: "list[Node]" = [gr_node.node for gr_node in selected_gr_nodes]
+        nodes_to_delete: "list[Node]" = [
+            gr_node.node for gr_node in selected_gr_nodes]
         del_cmd = commands.DeleteNodeCommand(stage=self.stage,
                                              nodes=nodes_to_delete)
         self.stage.undo_stack.push(del_cmd)
         self.scene().rebuild_current_scope()
 
     def copy_selected_nodes(self):
-        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
+        selected_nodes = [
+            gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
         if not selected_nodes:
             return
 
@@ -383,7 +389,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         LOGGER.info("Copied selected nodes")
 
     def cut_selected_nodes(self):
-        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
+        selected_nodes = [
+            gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
         if not selected_nodes:
             return
 

@@ -1,7 +1,7 @@
 import typing
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from nyx.core import commands
 if typing.TYPE_CHECKING:
@@ -30,7 +30,8 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         line_edit = QtWidgets.QLineEdit()
         line_edit_proxy = QtWidgets.QGraphicsProxyWidget(self)
         line_edit_proxy.setWidget(line_edit)
-        line_edit.editingFinished.connect(lambda: self.apply_edit(line_edit.text()))
+        line_edit.editingFinished.connect(
+            lambda: self.apply_edit(line_edit.text()))
         line_edit.editingFinished.connect(line_edit_proxy.deleteLater)
         line_edit.setFont(self.font())
 

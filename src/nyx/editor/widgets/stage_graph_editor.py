@@ -1,8 +1,8 @@
 import typing
 import pathlib
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from nyx.core import Stage
 from nyx import get_main_logger
@@ -84,16 +84,20 @@ class StageGraphEditor(QtWidgets.QWidget):
     def create_stage_connections(self):
         """Create connections between graph widgets and stage."""
         self.stage.undo_stack.indexChanged.connect(self.update_title)
-        self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope)
-        self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
+        self.stage.undo_stack.indexChanged.connect(
+            self.gr_stage.rebuild_current_scope)
+        self.stage.node_deleted.connect(
+            self._handle_scope_path_at_node_deletion)
 
     def create_connections(self):
         """Create signal to slot connections."""
         self.create_stage_connections()
-        self.tree_view.selection_changed.connect(self.gr_stage.on_tree_view_selection_changed)
+        self.tree_view.selection_changed.connect(
+            self.gr_stage.on_tree_view_selection_changed)
         self.tree_view.node_doubleclicked.connect(self.set_scope_path)
         self.scope_changed.connect(self.gr_stage.rebuild_scope)
-        self.gr_stage.signals.nodes_selection_cleared.connect(self.tree_view.clearSelection)
+        self.gr_stage.signals.nodes_selection_cleared.connect(
+            self.tree_view.clearSelection)
         self.gr_stage.signals.nodes_selection_changed.connect(
             lambda paths: self.tree_view.select_paths(paths, silent=True))
         self.gr_stage.signals.nodes_selection_changed.connect(

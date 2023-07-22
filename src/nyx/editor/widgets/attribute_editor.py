@@ -1,16 +1,16 @@
 import typing
 import pathlib
-from PySide2 import QtCore
-# from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+# from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from nyx import get_main_logger
+from nyx.core import Node
 from nyx.core import commands
 from nyx.editor.widgets.attributes_table import AttributesTable
 from nyx.editor.widgets.text_edit_widget import NyxTextEdit
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
     from nyx.editor.main_window import NyxEditorMainWindow
 
 LOGGER = get_main_logger()
@@ -19,6 +19,7 @@ LOGGER = get_main_logger()
 class AttributeEditor(QtWidgets.QWidget):
     def __init__(self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
+        self.__node: Node = None
         self.main_window: "NyxEditorMainWindow" = main_window
 
         self.create_actions()
@@ -100,6 +101,28 @@ class AttributeEditor(QtWidgets.QWidget):
     def current_stage_graph(self):
         return self.main_window.current_stage_graph
 
+    @property
+    def code_editor(self):
+        return self.main_window.code_editor
+
+    @property
+    def node(self):
+        return self.__node
+
+    @node.setter
+    def node(self, node: Node):
+        self.__node = node
+        if self.__node is None:
+            self.set_fields_enabled(False)
+            return
+
+        self.block_fields_signals(True)
+        self.set_fields_enabled(True)
+        self.set_data_from_node(self.node)
+        self.attributes_table.update_node_data()
+        self.code_editor.current_node = node
+        self.block_fields_signals(False)
+
     def set_fields_enabled(self, state: bool):
         for field in [self.node_name_lineedit,
                       self.node_path_lineedit,
@@ -109,9 +132,11 @@ class AttributeEditor(QtWidgets.QWidget):
             if not state:
                 field.clear()
             field.setEnabled(state)
+        self.code_editor.setEnabled(state)
 
         if not state:
             self.node_isactive_checkbox.setChecked(False)
+            self.attributes_table.setRowCount(0)
         self.node_isactive_checkbox.setEnabled(state)
 
         for spinbox in [self.node_position_x_spinbox,
@@ -132,29 +157,12 @@ class AttributeEditor(QtWidgets.QWidget):
             widget.blockSignals(state)
 
     def update_node_data_from_stage_graph(self, selected_paths):
-        if not selected_paths:
-            self.set_fields_enabled(False)
-            return
-
-        last_selected_node = self.current_stage_graph.stage.node(
-            selected_paths[-1])  # type: Node
-        self.block_fields_signals(True)
-        self.set_fields_enabled(True)
-        self.set_data_from_node(last_selected_node)
-        self.attributes_table.update_node_data()
-        self.block_fields_signals(False)
+        current_stage_node = self.current_stage_graph.stage.node(
+            selected_paths[-1])
+        self.node = None or current_stage_node
 
     def update_node_data_from_treeview(self):
-        current_node = self.tree_view.current_node()
-        if not current_node:
-            self.set_fields_enabled(False)
-            return
-
-        self.block_fields_signals(True)
-        self.set_fields_enabled(True)
-        self.set_data_from_node(current_node)
-        self.attributes_table.update_node_data()
-        self.block_fields_signals(False)
+        self.node = self.tree_view.current_node()
 
     def set_data_from_node(self, node):
         self.node_name_lineedit.setText(node.name)
