@@ -3,8 +3,8 @@ import time
 import pathlib
 from collections import deque
 from collections import OrderedDict
-from PySide6 import QtCore
-from PySide6 import QtGui
+from PySide2 import QtCore
+from PySide2 import QtGui
 
 from nyx.core.attribute import Attribute
 from nyx.core.serializable import Serializable

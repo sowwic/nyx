@@ -1,8 +1,8 @@
 import typing
 import pathlib
-from PySide6 import QtCore
-# from PySide6 import QtGui
-from PySide6 import QtWidgets
+from PySide2 import QtCore
+# from PySide2 import QtGui
+from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core import Node

@@ -5,7 +5,7 @@ try:
     from collections import Sequence
 except ImportError:
     from collections.abc import Sequence
-from PySide6 import QtWidgets
+from PySide2 import QtWidgets
 
 from nyx.core import commands
 from nyx import get_main_logger

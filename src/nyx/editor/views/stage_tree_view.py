@@ -1,9 +1,9 @@
 import typing
 from collections import deque
 
-from PySide6 import QtCore
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+from PySide2 import QtCore
+from PySide2 import QtGui
+from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core import commands
@@ -39,27 +39,27 @@ class StageTreeView(QtWidgets.QTreeView):
         self.create_connections()
 
     def create_actions(self):
-        self.create_new_node_action = QtGui.QAction("Create node", self)
+        self.create_new_node_action = QtWidgets.QAction("Create node", self)
         self.create_new_node_action.triggered.connect(self.create_new_node)
-        self.delete_selected_node_action = QtGui.QAction(pyside_fn.get_standard_icon(self, "SP_DialogDiscardButton"),
-                                                         "Delete node",
-                                                         self)
+        self.delete_selected_node_action = QtWidgets.QAction(pyside_fn.get_standard_icon(self, "SP_DialogDiscardButton"),
+                                                             "Delete node",
+                                                             self)
         self.delete_selected_node_action.triggered.connect(
             self.delete_selected_node)
-        self.copy_selected_nodes_action = QtGui.QAction("Copy", self)
+        self.copy_selected_nodes_action = QtWidgets.QAction("Copy", self)
         self.copy_selected_nodes_action.triggered.connect(
             self.copy_selected_nodes)
-        self.cut_selected_nodes_action = QtGui.QAction("Cut", self)
+        self.cut_selected_nodes_action = QtWidgets.QAction("Cut", self)
         self.cut_selected_nodes_action.triggered.connect(
             self.cut_selected_nodes)
-        self.copy_selected_node_path_action = QtGui.QAction(
+        self.copy_selected_node_path_action = QtWidgets.QAction(
             "Copy path to selected", self)
         self.copy_selected_node_path_action.triggered.connect(
             self.copy_selected_node_path)
-        self.paste_nodes_action = QtGui.QAction("Paste", self)
+        self.paste_nodes_action = QtWidgets.QAction("Paste", self)
         self.paste_nodes_action.triggered.connect(
             self.paste_nodes_from_clipboard)
-        self.set_selected_item_as_parents_execution_start_action = QtGui.QAction(
+        self.set_selected_item_as_parents_execution_start_action = QtWidgets.QAction(
             "Set as parent execution start", self)
         self.set_selected_item_as_parents_execution_start_action.triggered.connect(
             self.set_selected_item_as_parents_execution_start)

@@ -1,6 +1,5 @@
 import typing
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+from PySide2 import QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
@@ -17,7 +16,7 @@ class EditMenu(BaseMenu):
             self)
         self.redo_action: QtWidgets.QAction = self.main_window.undo_group.createRedoAction(
             self)
-        self.rename_selected_node_action = QtGui.QAction(
+        self.rename_selected_node_action = QtWidgets.QAction(
             'Rename selected node', self)
 
         self.undo_action.setShortcut("Ctrl+Z")

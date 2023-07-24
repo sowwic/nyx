@@ -1,9 +1,9 @@
 import typing
 import enum
 # import pathlib
-from PySide6 import QtCore
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+from PySide2 import QtCore
+from PySide2 import QtGui
+from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core import commands
@@ -81,16 +81,16 @@ class StageGraphView(QtWidgets.QGraphicsView):
                                 QtGui.QPainter.RenderHint.SmoothPixmapTransform)
 
     def create_actions(self):
-        self.create_node_action = QtGui.QAction(
+        self.create_node_action = QtWidgets.QAction(
             "Create Node", self.gr_stage)
-        self.copy_selected_action = QtGui.QAction("Copy", self.gr_stage)
-        self.cut_selected_action = QtGui.QAction("Cut", self.gr_stage)
-        self.paste_action = QtGui.QAction("Paste", self.gr_stage)
-        self.delete_selected_action = QtGui.QAction(
+        self.copy_selected_action = QtWidgets.QAction("Copy", self.gr_stage)
+        self.cut_selected_action = QtWidgets.QAction("Cut", self.gr_stage)
+        self.paste_action = QtWidgets.QAction("Paste", self.gr_stage)
+        self.delete_selected_action = QtWidgets.QAction(
             "Delete", self.gr_stage)
-        self.focus_on_selected_nodes_action = QtGui.QAction(
+        self.focus_on_selected_nodes_action = QtWidgets.QAction(
             "Focus on selected nodes", self.gr_stage)
-        self.set_selected_node_as_parent_execution_start_action = QtGui.QAction(
+        self.set_selected_node_as_parent_execution_start_action = QtWidgets.QAction(
             "Set selected node as parent execution start", self.gr_stage)
 
         self.create_node_action.triggered.connect(self.create_new_node)

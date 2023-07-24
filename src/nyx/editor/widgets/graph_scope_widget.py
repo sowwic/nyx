@@ -1,7 +1,7 @@
 import typing
 import pathlib
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+from PySide2 import QtGui
+from PySide2 import QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow

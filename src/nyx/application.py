@@ -1,6 +1,6 @@
 import os
 import sys
-from PySide6 import QtWidgets
+from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core.config import Config

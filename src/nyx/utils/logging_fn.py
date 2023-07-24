@@ -1,7 +1,7 @@
 import logging
 import logging.handlers
 import enum
-from PySide6 import QtCore
+from PySide2 import QtCore
 
 from nyx.utils import file_fn
 
