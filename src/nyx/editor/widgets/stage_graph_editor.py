@@ -219,3 +219,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         current_scope = self.get_scope_path()
         if current_scope == deleted_node_path or deleted_node_path in current_scope.parents:
             self.set_scope_path(self.stage.ROOT_ITEM_PATH)
+
+    def list_selected_nodes(self) -> list[Node]:
+        """List selected nodes.
+
+        Returns:
+            list[Node]: selected nodes
+        """
+        return [self.stage.node(path) for path in self.gr_stage.list_selected_node_paths()]
