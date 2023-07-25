@@ -3,6 +3,8 @@ import pathlib
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
+from nyx.utils import pyside_fn
+
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
@@ -49,7 +51,7 @@ class GraphScopeWidget(QtWidgets.QWidget):
     def icon_scope_back(self):
         if self.__icon_scope_back:
             return self.__icon_scope_back
-        main_window: "NyxEditorMainWindow" = QtWidgets.QApplication.instance().main_window()
+        main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
         pixmap = QtWidgets.QStyle.SP_FileDialogBack
         self.__icon_scope_back = main_window.style().standardIcon(pixmap)
         return self.__icon_scope_back
@@ -58,7 +60,7 @@ class GraphScopeWidget(QtWidgets.QWidget):
     def icon_scope_root(self):
         if self.__icon_scope_root:
             return self.__icon_scope_root
-        main_window: "NyxEditorMainWindow" = QtWidgets.QApplication.instance().main_window()
+        main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
         pixmap = QtWidgets.QStyle.SP_DirHomeIcon
         self.__icon_scope_root = main_window.style().standardIcon(pixmap)
         return self.__icon_scope_root

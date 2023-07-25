@@ -7,6 +7,7 @@ from PySide2 import QtWidgets
 
 from nyx._version import _version
 from nyx import get_main_logger
+from nyx.core.config import Config
 from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 from nyx.editor.widgets.logger_widget import LoggerWidget
@@ -47,6 +48,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
+        self._is_nyx_editor_window = True
         self.setWindowTitle(self.DEFAULT_TITLE)
         self.setMinimumSize(*self.MINIMUM_SIZE)
         self.undo_group = QtWidgets.QUndoGroup(self)
@@ -62,7 +64,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @property
     def config(self) -> "Config":
-        return QtWidgets.QApplication.instance().config()
+        return Config.load()
 
     @property
     def current_stage_graph(self) -> "StageGraphEditor | None":
@@ -196,7 +198,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def reset_application_config(self):
         """Reset application config and apply changes."""
-        QtWidgets.QApplication.instance().reset_config()
+        self.config.reset()
         self.apply_config_values()
 
     def create_stage_node_graph(self, stage=None, file_path: "pathlib.Path | str" = None):

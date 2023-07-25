@@ -9,6 +9,7 @@ from nyx import get_main_logger
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
+from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -26,7 +27,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def __init__(self, stage: Stage = None, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent=parent)
-        self.main_window: "NyxEditorMainWindow" = QtWidgets.QApplication.instance().main_window()
+        self.main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
         self.last_saved_undo_index = 0
         self.__stage: Stage = None

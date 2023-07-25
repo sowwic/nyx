@@ -1,6 +1,10 @@
+import typing
 from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
+
+if typing.TYPE_CHECKING:
+    from nyx.editor.main_window import NyxEditorMainWindow
 
 
 def move_window_to_screen_center(window: QtWidgets.QWidget):
@@ -52,3 +56,20 @@ def get_standard_icon(widget, icon_name: str):
     pixmap = getattr(QtWidgets.QStyle, icon_name)
     icon = widget.style().standardIcon(pixmap)
     return icon
+
+
+def find_nyx_editor_window() -> "NyxEditorMainWindow":
+    """Find nyx editor main window.
+
+    Raises:
+        RuntimeError: no window found
+
+    Returns:
+        NyxEditorMainWindow: editor's main window
+    """
+    top_widgets = QtWidgets.QApplication.topLevelWidgets()
+    for widget in top_widgets:
+        if hasattr(widget, "_is_nyx_editor_window"):
+            return widget
+    else:
+        raise RuntimeError("Failed to find nyx editor main window.")

@@ -8,8 +8,17 @@ LOGGER = get_main_logger()
 CONFIG_FILE_PATH = file_fn.get_nyx_data_dir() / "config.json"
 
 
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
 @dataclasses.dataclass
-class Config:
+class Config(metaclass=Singleton):
     window_size: "tuple[int]" = (600, 400)
     window_position: "tuple[int]" = tuple()
     window_always_on_top: bool = True
@@ -66,6 +75,9 @@ class Config:
         Returns:
             Config: new instance
         """
+        if cls._instances:
+            return cls()
+
         CONFIG_FILE_PATH.parent.mkdir(exist_ok=True)
         if not CONFIG_FILE_PATH.is_file():
             return cls.reset()

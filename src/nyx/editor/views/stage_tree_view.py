@@ -74,7 +74,7 @@ class StageTreeView(QtWidgets.QTreeView):
 
     @property
     def main_window(self) -> "NyxEditorMainWindow":
-        return QtWidgets.QApplication.instance().main_window()
+        return pyside_fn.find_nyx_editor_window()
 
     @property
     def current_stage_graph(self):

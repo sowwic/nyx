@@ -2,7 +2,9 @@ import typing
 from PySide2 import QtCore
 from PySide2 import QtWidgets
 
+from nyx.core.config import Config
 from nyx.utils import logging_fn
+from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
@@ -17,7 +19,7 @@ class RichLogMessageItem(QtWidgets.QListWidgetItem):
         self.__icon_warning = None
         self.__icon_info = None
         self.__icon_debug = None
-        self.main_window: "NyxEditorMainWindow" = QtWidgets.QApplication.instance().main_window()
+        self.main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
         self.level_icon_map = {"DEBUG": self.icon_debug,
                                "INFO": self.icon_info,
                                "WARNING": self.icon_warning,
@@ -108,7 +110,7 @@ class LoggerWidget(QtWidgets.QWidget):
 
     @property
     def config(self):
-        return QtWidgets.QApplication.instance().config()
+        return Config.load()
 
     @property
     def auto_scroll(self):
@@ -116,7 +118,7 @@ class LoggerWidget(QtWidgets.QWidget):
 
     def set_logger(self, name: str):
         self.__logger = logging_fn.get_logger(name,
-                                              level=QtWidgets.QApplication.instance().config().logging_level)
+                                              level=self.config.logging_level)
         logging_fn.add_signal_handler(self.__logger)
         self.__logger.signal_handler.emitter.message_logged.connect(
             self.append_raw_message)
