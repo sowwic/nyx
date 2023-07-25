@@ -44,15 +44,19 @@ class CodeEditor(QtWidgets.QWidget):
 
     def create_widgets(self):
         self.text_edit = CodeTextEdit()
+        self.run_code_button = QtWidgets.QPushButton("Run")
 
     def create_layouts(self):
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(self.text_edit)
+        self.main_layout.addWidget(self.run_code_button)
 
     def create_connections(self):
         self.text_edit.lost_focus.connect(self.save_current_node_python_code)
+        self.run_code_button.clicked.connect(
+            lambda: self.current_node.execute_code())
 
     @property
     def stage(self):
@@ -68,11 +72,12 @@ class CodeEditor(QtWidgets.QWidget):
         self.update_text_edit()
 
     def update_text_edit(self):
-        if not self.current_node:
-            self.text_edit.clear()
-            return
         self.text_edit.blockSignals(True)
-        self.text_edit.setPlainText(self.current_node.get_python_code())
+        self.setEnabled(self.current_node is not None)
+        if self.current_node:
+            self.text_edit.setPlainText(self.current_node.get_python_code())
+        else:
+            self.text_edit.clear()
         self.text_edit.blockSignals(False)
 
     def save_current_node_python_code(self):

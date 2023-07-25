@@ -112,6 +112,7 @@ class AttributeEditor(QtWidgets.QWidget):
     @node.setter
     def node(self, node: Node):
         self.__node = node
+        self.code_editor.current_node = node
         if self.__node is None:
             self.set_fields_enabled(False)
             return
@@ -120,7 +121,6 @@ class AttributeEditor(QtWidgets.QWidget):
         self.set_fields_enabled(True)
         self.set_data_from_node(self.node)
         self.attributes_table.update_node_data()
-        self.code_editor.current_node = node
         self.block_fields_signals(False)
 
     def set_fields_enabled(self, state: bool):
@@ -132,7 +132,6 @@ class AttributeEditor(QtWidgets.QWidget):
             if not state:
                 field.clear()
             field.setEnabled(state)
-        self.code_editor.setEnabled(state)
 
         if not state:
             self.node_isactive_checkbox.setChecked(False)
