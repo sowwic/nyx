@@ -28,6 +28,8 @@ class CodeTextEdit(QtWidgets.QPlainTextEdit):
 
 class CodeEditor(QtWidgets.QWidget):
 
+    current_node_changed = QtCore.Signal()
+
     def __init__(self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.main_window: "NyxEditorMainWindow" = main_window
@@ -57,6 +59,7 @@ class CodeEditor(QtWidgets.QWidget):
         self.text_edit.lost_focus.connect(self.save_current_node_python_code)
         self.run_code_button.clicked.connect(
             lambda: self.current_node.execute_code())
+        self.current_node_changed.connect(self.update_active_state)
 
     @property
     def stage(self):
@@ -69,9 +72,9 @@ class CodeEditor(QtWidgets.QWidget):
     @current_node.setter
     def current_node(self, node: Node):
         self.__current_node = node
-        self.update_text_edit()
+        self.current_node_changed.emit()
 
-    def update_text_edit(self):
+    def update_active_state(self):
         self.text_edit.blockSignals(True)
         self.setEnabled(self.current_node is not None)
         if self.current_node:
