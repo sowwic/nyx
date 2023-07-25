@@ -17,9 +17,6 @@ from nyx.editor.widgets.editor_toolbar import EditorToolBar
 from nyx.editor.widgets import menubar_menus
 from nyx.utils import pyside_fn
 
-if typing.TYPE_CHECKING:
-    from nyx.core.config import Config
-
 
 LOGGER = get_main_logger()
 
