@@ -1,4 +1,3 @@
-import typing
 import pathlib
 
 from PySide2 import QtCore
