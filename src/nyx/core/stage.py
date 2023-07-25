@@ -1,17 +1,23 @@
-import os
 import typing
 import pprint
 import pathlib
 from collections import OrderedDict
+try:
+    from collections import Sequence
+except ImportError:
+    from collections.abc import Sequence
+
+from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
-from nyx.utils import path_fn
 from nyx.core import Node
-from nyx.core.stage_executor import StageExecutor
+from nyx.core.attribute import Attribute
+from nyx.core.stage_handler import StageHandler
+from nyx.core import nyx_exceptions
 
 
 LOGGER = get_main_logger()
@@ -19,8 +25,10 @@ LOGGER = get_main_logger()
 
 class Stage(QtGui.QStandardItemModel, Serializable):
 
+    node_deleted = QtCore.Signal(pathlib.PurePosixPath)
+
     FILE_EXTENSION = ".nyx"
-    ROOT_ITEM_PATH = path_fn.ROOT_ITEM_PATH
+    ROOT_ITEM_PATH = pathlib.PurePosixPath("/")
 
     def __repr__(self) -> str:
         return "Stage"
@@ -31,8 +39,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.last_saved_undo_index = 0
         self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
-        self._execution_start_path: pathlib.PurePosixPath = None
-        self.__executor = StageExecutor(self)
+        self.__execution_start_path: pathlib.PurePosixPath = None
+        self.__handler = StageHandler(self)
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
@@ -42,12 +50,12 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return self._path_map
 
     @property
-    def executor(self):
-        return self.__executor
+    def handler(self):
+        return self.__handler
 
     @property
     def execution_start_path(self):
-        return self._execution_start_path
+        return self.__execution_start_path
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
@@ -59,6 +67,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return self.file_path is None or self.last_saved_undo_index != self.undo_stack.index()
 
     def list_children(self, node: "Node") -> typing.List["Node"]:
+        node = node or self.invisibleRootItem()
         if node is self.invisibleRootItem():
             return [self.invisibleRootItem().child(row) for row in range(self.invisibleRootItem().rowCount())]
         else:
@@ -75,14 +84,21 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             path = pathlib.PosixPath(path)
         return path in set(self.list_top_nodes_paths())
 
-    def generate_unique_child_name(self, name: str):
-        child_names = {node.text() for node in self.list_top_nodes()}
-        if name in child_names:
+    def generate_unique_node_name(self, base_name: str,
+                                  parent_node: "Node | pathlib.PurePosixPath | str" = None):
+        if parent_node:
+            parent_node = self.node(parent_node)
+            parent_path = parent_node.path
+        else:
+            parent_path = self.ROOT_ITEM_PATH
+
+        new_node_path = parent_path / base_name
+        if new_node_path in self.path_map:
             index = 1
-            while f"{name}{index}" in child_names:
+            while parent_path / f"{base_name}{index}" in self.path_map:
                 index += 1
-            return name + str(index)
-        return name
+            return base_name + str(index)
+        return base_name
 
     def appendRow(self, items: typing.Sequence["Node"]) -> None:
         """Overridden QStandartItemModel method.
@@ -104,22 +120,32 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 LOGGER.warning(f"{node} is already in the stage.")
                 continue
 
-            unique_name = self.generate_unique_child_name(node.name)
+            unique_name = self.generate_unique_node_name(
+                node.name, parent_node=node.parent())
             new_path = self.ROOT_ITEM_PATH / unique_name
             if new_path in self.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
                 raise ValueError
 
             # Set unique name and check if path exist
-            node.setText(self.generate_unique_child_name(node.name))
+            node.setText(unique_name)
             super().appendRow(node)
             LOGGER.debug(f"{self} | Added {node} to root")
 
-            node._cached_path = node.path
-            self._path_map[node.path] = node
-        return
+            node.cache_current_path()
+            self._path_map[node.cached_path] = node
 
-    def node(self, node):
+    def node(self, node: "Node | pathlib.PurePosixPath | str | None") -> "Node | None":
+        """Get node instance.
+
+        Args:
+            node (Node | pathlib.PurePosixPath | str | None): node or full path.
+
+        Returns:
+            Node | None: node instance if found
+        """
+        if node is None:
+            return node
         if isinstance(node, Node):
             return node
         elif isinstance(node, pathlib.PurePosixPath):
@@ -129,6 +155,32 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         else:
             LOGGER.exception(f"{self} | Invalid argument type: {type(node)}")
             return None
+
+    def attribute(self, attr: "Attribute | pathlib.PurePosixPath | str | None") -> "Attribute | None":
+        """Get attribute instance.
+
+        Args:
+            attr (Attribute | pathlib.PurePosixPath | str | None): attribute or path.
+
+        Returns:
+            Attribute | None: attribute instance if found
+        """
+        if attr is None:
+            return attr
+        if isinstance(attr, Attribute):
+            return attr
+        if isinstance(attr, str):
+            attr = pathlib.PurePosixPath(attr)
+        if isinstance(attr, pathlib.PurePosixPath):
+            node_path = attr.with_suffix("")
+            node = self.node(node_path)
+            attr_name = attr.suffix.replace(".", "")
+            if not node:
+                return None
+            try:
+                return node.attr(attr_name)
+            except nyx_exceptions.NodeNoAttributeExistError:
+                return None
 
     def add_node(self, node: "Node | list[Node]", parent: "Node | pathlib.PurePosixPath | str" = None):
         """Adds new node as root node.
@@ -148,23 +200,30 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             else:
                 self.appendRow(each_node)
 
-    def delete_node(self, node: "Node | pathlib.PurePosixPath | str"):
+    def delete_node(self, nodes: "Sequence[Node | pathlib.PurePosixPath | str]"):
         """Delete node from stage.
 
         Args:
             node (Node): node to delete.
         """
-        node = self.node(node)
-        if node is None:
-            LOGGER.exception(f"{self} | Failed to delete node.")
-            return
+        if isinstance(nodes, (Node, str, pathlib.PurePosixPath)):
+            nodes = [nodes]
+        for node in nodes:
+            node = self.node(node)
+            if node is None:
+                LOGGER.exception(
+                    f"{self} | Failed to delete node.", stack_info=True)
+                return
 
-        # Removed paths
-        self._delete_from_path_map(node)
-        self.beginResetModel()
-        parent = node.parent() or self.invisibleRootItem()
-        self.removeRow(node.row(), parent.index())
-        self.endResetModel()
+            # Removed paths
+            node = self.node(node)
+            node_path_to_emit = node.path
+            self._delete_from_path_map(node)
+            self.beginResetModel()
+            parent = node.parent() or self.invisibleRootItem()
+            self.removeRow(node.row(), parent.index())
+            self.endResetModel()
+            self.node_deleted.emit(node_path_to_emit)
 
     def _delete_from_path_map(self, node: "Node", children=True):
         """Remove node's path from path map.
@@ -188,16 +247,17 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes
-        data["execution_start_path"] = self.get_execution_start_path(None, serializable=True)
+        data["execution_start_path"] = self.get_execution_start_path(
+            None, serializable=True)
         return data
 
-    def deserialize(self, data: OrderedDict, hashmap: dict = None, restore_id=True):
-        super().deserialize(data, hashmap, restore_id=restore_id)
+    def deserialize(self, data: OrderedDict, restore_id=True):
+        super().deserialize(data, restore_id=restore_id)
         # Deserialize nodes
         for top_node_data in data.get("nodes", {}):
             top_node = Node()
             self.add_node(top_node)
-            top_node.deserialize(top_node_data, hashmap, restore_id=True)
+            top_node.deserialize(top_node_data, restore_id=True)
         # Extra data
         self.set_execution_start_path(None, data.get("execution_start_path"))
 
@@ -220,6 +280,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             file_fn.write_json(file_path, self.serialize(), sort_keys=False)
             self.file_path = pathlib.Path(file_path)
             self.last_saved_undo_index = self.undo_stack.index()
+            LOGGER.info(f"Exported stage: {self.file_path}")
         except Exception:
             LOGGER.exception("Failed to save stage to file.")
 
@@ -233,7 +294,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             OrderedDict: imported json data
         """
         try:
-            json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
+            json_data = file_fn.load_json(
+                file_path, object_pairs_hook=OrderedDict)
         except Exception:
             LOGGER.exception("Failed to load stage from json.")
             return
@@ -241,66 +303,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.deserialize(json_data, restore_id=True)
         self.file_path = pathlib.Path(file_path)
         self.last_saved_undo_index = self.undo_stack.index()
+        LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
-
-    def get_node_from_absolute_path(self, path: "pathlib.PurePosixPath | str") -> "Node | None":
-        if isinstance(path, str):
-            path = pathlib.PurePosixPath(path)
-        if not isinstance(path, pathlib.PurePosixPath):
-            LOGGER.exception(f"{self} | Invalid absolute path: {path}")
-            return None
-        return self.path_map.get(path, None)
-
-    def get_node_from_relative_path(self, anchor_node: "Node", relative_path: "pathlib.PurePosixPath | str") -> "Node | None":
-        """Get node from anchor node and relative to it path.
-
-        If path is invalid will return None.
-
-        top_node
-
-        |- child1
-
-        |--- leaf1
-
-        |- child2
-
-        |--- leaf2
-
-        leaf1 -> leaf2 path: ../../child2/leaf2
-        child1 -> leaf1 path: ./leaf1
-        child1 -> child2 path: ../child2
-
-        Args:
-            anchor_node (Node): node for find start search from.
-            relative_path (pathlib.PurePosixPath | str): relative path.
-
-        Returns:
-            _type_: _description_
-        """
-        try:
-            absolute_path = path_fn.get_absolute_path_from_relative(anchor_node.path, relative_path)
-        except IndexError:
-            LOGGER.warning(f"Invalid path: {relative_path}")
-            return None
-        except Exception:
-            LOGGER.error(f"Failed to get absolute path from: {anchor_node.path}, {relative_path}")
-            raise
-
-        return self.path_map.get(absolute_path)
-
-    def get_relative_path_to(self, from_node: "Node", to_node: "Node"):
-        """Get relative path between nodes.
-
-        Args:
-            from_node (Node): From this node.
-            to_node (Node): To this node.
-
-        Returns:
-            pathlib.PurePosixPath: relative path
-        """
-        path_str = os.path.relpath(to_node.path.as_posix(), from_node.path.as_posix())
-        path_str = path_str.replace(os.sep, "/")
-        return pathlib.PurePosixPath(path_str)
 
     def get_node_children_from_path(self, node_path: "pathlib.PurePosixPath | str") -> "list[Node]":
         """Get children of node with given full path.
@@ -318,7 +322,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return self.list_top_nodes()
 
         if node_path not in self.path_map:
-            LOGGER.warning(f"Can't get children of node with given path: {node_path}")
+            LOGGER.warning(
+                f"Can't get children of node with given path: {node_path}")
             return []
 
         return self.path_map[node_path].list_children()
@@ -337,10 +342,11 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             elif start_path is None:
                 pass
             else:
-                LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
+                LOGGER.exception(
+                    f"{self} | Invalid execution start path object: {start_path}")
                 return
 
-        self._execution_start_path = start_path
+        self.__execution_start_path = start_path
         LOGGER.info(f"{self} | Set execution start path to {start_path}")
 
     def set_execution_start_path(self,
@@ -360,18 +366,21 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             elif start_path is None:
                 pass
             else:
-                LOGGER.exception(f"{self} | Invalid execution start path object: {start_path}")
+                LOGGER.exception(
+                    f"{self} | Invalid execution start path object: {start_path}")
                 return
 
         if for_node is None:
-            self.set_stage_execution_start_path(start_path)  # Set path for stage if node is None
+            # Set path for stage if node is None
+            self.set_stage_execution_start_path(start_path)
             return
 
         if not isinstance(for_node, Node):
             if isinstance(for_node, (str, pathlib.PurePosixPath)):
-                for_node = self.get_node_from_absolute_path(for_node)
+                for_node = self.node(for_node)
             else:
-                LOGGER.exception(f"{self} | Invalid argument type for_node: {for_node}")
+                LOGGER.exception(
+                    f"{self} | Invalid argument type for_node: {for_node}")
                 return
 
         for_node.set_execution_start_path(start_path)
@@ -398,17 +407,19 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         elif not isinstance(for_node, Node):
             if isinstance(for_node, (str, pathlib.PurePosixPath)):
-                for_node = self.get_node_from_absolute_path(for_node)
+                for_node = self.node(for_node)
             else:
-                LOGGER.exception(f"{self} | Invalid execution start path object: {for_node}")
+                LOGGER.exception(
+                    f"{self} | Invalid execution start path object: {for_node}")
                 return
 
         if not isinstance(for_node, Node):
-            LOGGER.exception(f"{self} | Failed to execution start path from {original_for_node}")
+            LOGGER.exception(
+                f"{self} | Failed to execution start path from {original_for_node}")
             return
 
         return for_node.get_execution_start_path(serializable=serializable)
 
     def execute_node_from_path(self, path):
-        node = self.get_node_from_absolute_path(path)
+        node = self.node(path)
         node.execute()

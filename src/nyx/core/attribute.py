@@ -1,10 +1,8 @@
 import typing
-import string
 from collections import OrderedDict
 
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
-from nyx.core import nyx_exceptions
 from nyx.utils import file_fn
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -23,7 +21,7 @@ class Attribute(Serializable):
         self.__cached_value = None
 
     def __repr__(self) -> str:
-        return f"Attribute {self.name}, raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value}"
+        return f"Attribute {self.name} (raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value})"
 
     def __eq__(self, other_attr):
         # type: (Attribute) -> bool
@@ -90,11 +88,8 @@ class Attribute(Serializable):
         LOGGER.error(f"Failed to get name for attribute of {self.node}")
         raise ValueError
 
-    def as_fmt_string(self):
-        node_path_fmt = "{" + self.node.path.as_posix() + "}"
-        attr_name_fmt = "{" + self.name + "}"
-        full_fmt_str = node_path_fmt + attr_name_fmt
-        return full_fmt_str
+    def as_path(self):
+        return self.node.path.with_suffix("." + self.name)
 
     def get(self, raw=False, resolved=False) -> typing.Any:
         """Get attribute value. If no arguments were specified - will return cached value.
@@ -172,8 +167,8 @@ class Attribute(Serializable):
         data.update(new_data)
         return data
 
-    def deserialize(self, data: dict, hashmap: dict, restore_id=False):
-        super().deserialize(data, hashmap, restore_id)
+    def deserialize(self, data: dict, restore_id=False):
+        super().deserialize(data, restore_id)
         self.set(data.get("value", self.value))
 
     def resolve(self):
@@ -197,31 +192,9 @@ class Attribute(Serializable):
 
     def _resolve_string(self, raw_str: str):
         LOGGER.debug(f"Resolving string value: {raw_str}")
-        str_tokens = [tup[1] for tup in string.Formatter().parse(raw_str) if tup[1] is not None]
-        if not str_tokens or len(str_tokens) != 2:
-            return raw_str
-
-        path, attr_name = str_tokens
-        # Resolve node path
-        if path.startswith("."):
-            other_node: "Node" = self.node.get_node_from_relative_path(path)
-        elif path.startswith("/"):
-            other_node = self.stage.get_node_from_absolute_path(path)
-        else:
-            other_node = None
-
-        if not other_node:
-            return raw_str
-
-        # Get attr value
-        try:
-            attr: "Attribute" = other_node[attr_name]
-        except nyx_exceptions.NodeNoAttributeExistError:
-            LOGGER.warning(f"{other_node} has no attr: {attr_name}")
-            return raw_str
-
-        return attr
+        other_attr = self.stage.attribute(raw_str)
+        return other_attr if other_attr else raw_str
 
     def connect(self, other_attr: "Attribute", resolve=True):
-        other_attr.set(self.as_fmt_string(), resolve=resolve)
+        other_attr.set(self.as_path().as_posix(), resolve=resolve)
         LOGGER.info(f"Connected {self} -> {other_attr}")

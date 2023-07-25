@@ -14,9 +14,14 @@ class FileMenu(BaseMenu):
     def create_actions(self):
         self.new_stage_action = QtWidgets.QAction("New Stage", self)
         self.open_stage_action = QtWidgets.QAction("Open Stage", self)
-        self.open_stage_as_new_tab_action = QtWidgets.QAction("Open Stage As New Tab", self)
+        self.open_stage_as_new_tab_action = QtWidgets.QAction(
+            "Open Stage As New Tab", self)
         self.save_stage_action = QtWidgets.QAction("Save Stage", self)
         self.save_stage_as_action = QtWidgets.QAction("Save Stage As...", self)
+
+        self.new_stage_action.setShortcut("Ctrl+Shift+N")
+        self.open_stage_action.setShortcut("Ctrl+Shift+O")
+        self.save_stage_action.setShortcut("Ctrl+Shift+S")
 
     def populate(self):
         self.addAction(self.new_stage_action)
@@ -27,7 +32,11 @@ class FileMenu(BaseMenu):
 
     def create_connections(self):
         self.new_stage_action.triggered.connect(self.main_window.on_stage_new)
-        self.open_stage_action.triggered.connect(self.main_window.on_stage_open)
-        self.open_stage_as_new_tab_action.triggered.connect(self.main_window.on_stage_open_tabbed)
-        self.save_stage_action.triggered.connect(self.main_window.on_stage_save)
-        self.save_stage_as_action.triggered.connect(self.main_window.on_stage_save_as)
+        self.open_stage_action.triggered.connect(
+            self.main_window.on_stage_open)
+        self.open_stage_as_new_tab_action.triggered.connect(
+            self.main_window.on_stage_open_tabbed)
+        self.save_stage_action.triggered.connect(
+            self.main_window.on_stage_save)
+        self.save_stage_as_action.triggered.connect(
+            self.main_window.on_stage_save_as)

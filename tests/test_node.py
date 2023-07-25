@@ -60,7 +60,7 @@ def test_node_delete_mid_children():
     assert parent_node.list_children() == [first, fourth]
 
 
-def test_node_execute_code_while_active():
+def test_node_execute_while_active():
     stage = Stage()
     node = Node("node")
     stage.add_node(node)
@@ -69,7 +69,7 @@ def test_node_execute_code_while_active():
 
     code = 'self["test"].push(5)'
     node.set_python_code(code)
-    node.execute_code()
+    node.execute()
 
     assert node.is_active()
     assert node["test"].value is None
@@ -77,7 +77,7 @@ def test_node_execute_code_while_active():
     assert node["test"].cached_value == 5
 
 
-def test_node_execute_code_while_not_active():
+def test_node_execute_while_not_active():
     stage = Stage()
     node = Node("node")
     stage.add_node(node)
@@ -87,7 +87,7 @@ def test_node_execute_code_while_not_active():
 
     code = 'self["test"].push(5)'
     node.set_python_code(code)
-    node.execute_code()
+    node.execute()
 
     assert not node.is_active()
     assert node["test"].value is None
@@ -213,8 +213,8 @@ def test_node_set_exec_input():
     stage.add_node(node2)
 
     node2.set_input_exec_path(node1)
-    assert node2.get_input_exec_path() == node1.path.as_posix()
-    assert node1.get_output_exec_path() == node2.path.as_posix()
+    assert node2.get_input_exec_path() == node1.path
+    assert node1.get_output_exec_path() == node2.path
 
 
 def test_node_set_exec_input_deep_hierarchy():
@@ -228,8 +228,8 @@ def test_node_set_exec_input_deep_hierarchy():
     node2 = Node(parent=child2)
 
     node2.set_input_exec_path(node1)
-    assert node2.get_input_exec_path() == node1.path.as_posix()
-    assert node1.get_output_exec_path() == node2.path.as_posix()
+    assert node2.get_input_exec_path() == node1.path
+    assert node1.get_output_exec_path() == node2.path
 
 
 def test_node_set_exec_output():
@@ -240,8 +240,8 @@ def test_node_set_exec_output():
     stage.add_node(node2)
 
     node1.set_output_exec_path(node2)
-    assert node2.get_input_exec_path() == node1.path.as_posix()
-    assert node1.get_output_exec_path() == node2.path.as_posix()
+    assert node2.get_input_exec_path() == node1.path
+    assert node1.get_output_exec_path() == node2.path
 
 
 def test_node_set_input_exec_reconnect():
@@ -255,9 +255,9 @@ def test_node_set_input_exec_reconnect():
 
     node2.set_input_exec_path(node1)
     node2.set_input_exec_path(node3)
-    assert node2.get_input_exec_path() == node3.path.as_posix()
-    assert node3.get_output_exec_path() == node2.path.as_posix()
-    assert node1.get_output_exec_path() == ""
+    assert node2.get_input_exec_path() == node3.path
+    assert node3.get_output_exec_path() == node2.path
+    assert node1.get_output_exec_path() is None
 
 
 def test_node_set_exec_input_out_of_scope():
@@ -274,8 +274,8 @@ def test_node_set_exec_input_out_of_scope():
     leaf2 = Node(name="leaf2", parent=node2)
 
     leaf1.set_input_exec_path(leaf2)
-    assert leaf1.get_input_exec_path() == ""
-    assert leaf2.get_output_exec_path() == ""
+    assert leaf1.get_input_exec_path() is None
+    assert leaf2.get_output_exec_path() is None
 
 
 def test_node_set_execution_start():

@@ -1,17 +1,20 @@
-import typing
 import pathlib
 
 from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
+from nyx._version import _version
 from nyx import get_main_logger
-from nyx.editor.views.stage_graph_view import StageGraphView
+from nyx.core.config import Config
 from nyx.editor.views.stage_tree_view import StageTreeView
+from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
+from nyx.editor.widgets.logger_widget import LoggerWidget
+from nyx.editor.widgets.attribute_editor import AttributeEditor
+from nyx.editor.widgets.code_editor import CodeEditor
+from nyx.editor.widgets.editor_toolbar import EditorToolBar
 from nyx.editor.widgets import menubar_menus
-
-if typing.TYPE_CHECKING:
-    from nyx.core.config import Config
+from nyx.utils import pyside_fn
 
 
 LOGGER = get_main_logger()
@@ -21,7 +24,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     __INSTANCE: "NyxEditorMainWindow" = None
 
-    DEFAULT_TITLE = "Nyx Editor"
+    DEFAULT_TITLE = f"Nyx Editor v{_version}"
     MINIMUM_SIZE = (500, 400)
 
     @classmethod
@@ -41,6 +44,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
+        self._is_nyx_editor_window = True
         self.setWindowTitle(self.DEFAULT_TITLE)
         self.setMinimumSize(*self.MINIMUM_SIZE)
         self.undo_group = QtWidgets.QUndoGroup(self)
@@ -56,10 +60,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @property
     def config(self) -> "Config":
-        return QtWidgets.QApplication.instance().config()
+        return Config.load()
 
     @property
-    def current_stage_graph(self) -> "StageGraphView | None":
+    def current_stage_graph(self) -> "StageGraphEditor | None":
         if not self.current_mdi_window:
             return None
         return self.current_mdi_window.widget()
@@ -69,7 +73,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return self.mdi_area.currentSubWindow()
 
     def create_actions(self):
-        pass
+        self.execute_stage_action = QtWidgets.QAction(
+            pyside_fn.get_standard_icon(self, "SP_MediaPlay"), "Execute stage", self)
+        self.execute_from_selected_node_action = QtWidgets.QAction(
+            pyside_fn.get_standard_icon(self, "SP_MediaSkipForward"), "Execute from selected node", self)
+        self.execute_stage_action.triggered.connect(self.execute_stage_graph)
+        self.execute_from_selected_node_action.triggered.connect(
+            self.execute_from_selected_node)
 
     def create_menubar(self):
         self.menubar_file_menu = menubar_menus.FileMenu(self)
@@ -82,9 +92,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(self.menubar_window_menu)
 
     def create_widgets(self):
+        self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
+        self.code_editor = CodeEditor(self)
+        self.attrib_editor = AttributeEditor(self)
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
+        self.tool_bar = EditorToolBar(self)
 
         # mdi area
         self.mdi_area = QtWidgets.QMdiArea()
@@ -97,29 +111,61 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.mdi_area.setTabsMovable(True)
 
         # Dock Widgets
-        self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
-        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.North)
+        self.setTabPosition(QtCore.Qt.RightDockWidgetArea,
+                            QtWidgets.QTabWidget.East)
+        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea,
+                            QtWidgets.QTabWidget.West)
+        self.setTabPosition(QtCore.Qt.BottomDockWidgetArea,
+                            QtWidgets.QTabWidget.North)
         # Tree dock
         self.stage_tree_dock = QtWidgets.QDockWidget("Tree View")
         self.stage_tree_dock.setWidget(self.stage_tree_view)
-        # Undo view
+        # Undo view dock
         self.undo_dock = QtWidgets.QDockWidget("Undo History")
         self.undo_dock.setWidget(self.undo_view)
+        # Logger dock
+        self.logger_dock = QtWidgets.QDockWidget("Output Log")
+        self.logger_dock.setWidget(self.logger_widget)
+        # Code editor dock
+        self.code_editor_dock = QtWidgets.QDockWidget("Code Editor")
+        self.code_editor_dock.setWidget(self.code_editor)
+        # Toolbar dock
+        self.toolbar_dock = QtWidgets.QDockWidget("Tools")
+        self.toolbar_dock.setAllowedAreas(
+            QtCore.Qt.TopDockWidgetArea | QtCore.Qt.BottomDockWidgetArea)
+        self.toolbar_dock.setWidget(self.tool_bar)
+        # Attribute editor dock
+        self.attrib_editor_dock = QtWidgets.QDockWidget("Attribute Editor")
+        self.attrib_editor_dock.setWidget(self.attrib_editor)
 
         # Add dock widgets
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
+                           self.attrib_editor_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
+                           self.code_editor_dock)
+        self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.toolbar_dock)
 
     def create_layouts(self):
         pass
 
     def create_connections(self):
-        self.mdi_area.subWindowActivated.connect(self.on_node_graph_window_activated)
+        self.mdi_area.subWindowActivated.connect(
+            self.on_node_graph_window_activated)
         self.mdi_area.subWindowActivated.connect(self.update_title)
         self.undo_group.indexChanged.connect(self.update_title)
 
     # Events
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        for sub_window in self.mdi_area.subWindowList():
+            graph_editor: StageGraphEditor = sub_window.widget()
+            result = graph_editor.maybe_save()
+            if not result:
+                event.ignore()
+                return
+
         try:
             self.save_config_value()
         except Exception:
@@ -138,7 +184,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         if not self.config.window_position:
             center_position: QtCore.QPoint = self.pos(
             ) + QtWidgets.QApplication.primaryScreen().geometry().center() - self.geometry().center()
-            self.config.window_position = (center_position.x(), center_position.y())
+            self.config.window_position = (
+                center_position.x(), center_position.y())
         self.move(QtCore.QPoint(*self.config.window_position))
 
         # TODO: add always on top toggle
@@ -147,24 +194,16 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def reset_application_config(self):
         """Reset application config and apply changes."""
-        QtWidgets.QApplication.instance().reset_config()
+        self.config.reset()
         self.apply_config_values()
 
     def create_stage_node_graph(self, stage=None, file_path: "pathlib.Path | str" = None):
-
         if file_path:
-            graph_widget = StageGraphView.from_json_file(file_path)
+            graph_widget = StageGraphEditor.from_json_file(file_path)
         else:
-            graph_widget = StageGraphView(stage)
-        sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(graph_widget)
-        # Signal connections
-        # graph_widget.scene.signals.file_name_changed.connect(self.update_title)
-        # graph_widget.scene.signals.modified.connect(self.update_title)
-        # graph_widget.scene.signals.item_selected.connect(
-        # self.attrib_editor.update_current_node_widget)
-        # graph_widget.scene.signals.items_deselected.connect(self.attrib_editor.clear)
-        # graph_widget.signals.about_to_close.connect(self.on_sub_window_close)
-        # graph_widget.scene.signals.file_load_finished.connect(self.vars_widget.update_var_list)
+            graph_widget = StageGraphEditor(stage)
+        sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(
+            graph_widget)
         return sub_wnd
 
     # Slots
@@ -183,18 +222,18 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             self.undo_group.setActiveStack(None)
             return
 
-        stage_graph: StageGraphView = mdi_window.widget()
+        stage_graph: StageGraphEditor = mdi_window.widget()
         self.stage_tree_view.set_stage(stage_graph.stage)
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
 
     def on_stage_open(self):
         sub_wnd = self.current_mdi_window if self.current_mdi_window else self.create_stage_node_graph()
-        stage_graph: StageGraphView = sub_wnd.widget()
+        stage_graph: StageGraphEditor = sub_wnd.widget()
         stage_graph.on_stage_open()
 
     def on_stage_open_tabbed(self):
         sub_wnd = self.create_stage_node_graph()
-        stage_graph: StageGraphView = sub_wnd.widget()
+        stage_graph: StageGraphEditor = sub_wnd.widget()
         file_opened: bool = stage_graph.on_stage_open()
         if not file_opened:
             self.mdi_area.removeSubWindow(sub_wnd)
@@ -213,3 +252,19 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def on_stage_save_as(self):
         if self.current_stage_graph:
             self.current_stage_graph.on_stage_save_as()
+
+    def execute_stage_graph(self):
+        if not self.current_stage_graph:
+            return
+        self.current_stage_graph.stage.handler.run()
+
+    def execute_from_selected_node(self):
+        if not self.current_stage_graph:
+            return
+
+        selected_gr_node = self.current_stage_graph.gr_stage.get_last_selected_gr_node()
+        if not selected_gr_node:
+            LOGGER.warning("No node selected for execution")
+            return
+
+        self.current_stage_graph.stage.handler.run(selected_gr_node.node)
