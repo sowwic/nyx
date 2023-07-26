@@ -432,7 +432,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             name (str, optional): new node name. Defaults to "stage".
 
         Returns:
-            Node: stage as node.
+            OrderedDict: stage as serialized node.
         """
         node = Node(name=name)
         serialized_node = node.serialize()
@@ -445,7 +445,4 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         serialized_node["children"] = serialized_stage.get(
             "nodes", [])
-        dummy_stage = Stage()
-        dummy_stage.add_node(node)
-        node.deserialize(serialized_node, restore_id=True)
-        return node
+        return serialized_node

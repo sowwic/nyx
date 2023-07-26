@@ -53,10 +53,8 @@ def _import_nodes(
             node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
         elif path.suffix == NyxFileExtensions.NYX_STAGE_FILE.value:
             stage_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
-            stage_node = Stage.convert_stage_to_node(
+            node_data = Stage.convert_stage_to_node(
                 stage_data, name=path.name)
-            node_data = stage_node.serialize()
-            stage_node.stage.deleteLater()
         serialized_nodes.append(node_data)
 
     paste_position = stage_graph.gr_view.get_center_position()
