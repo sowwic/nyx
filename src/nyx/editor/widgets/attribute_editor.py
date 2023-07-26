@@ -119,6 +119,7 @@ class AttributeEditor(QtWidgets.QWidget):
 
         self.block_fields_signals(True)
         self.set_fields_enabled(True)
+        self.update_referenced_fields(self.__node.is_referenced)
         self.set_data_from_node(self.node)
         self.attributes_table.update_node_data()
         self.block_fields_signals(False)
@@ -143,6 +144,13 @@ class AttributeEditor(QtWidgets.QWidget):
             if not state:
                 spinbox.setValue(0.0)
             spinbox.setEnabled(state)
+
+    def update_referenced_fields(self, is_referenced: bool):
+        for field in [self.node_name_lineedit,
+                      self.node_path_lineedit,
+                      self.node_execution_start_lineedit,
+                      self.node_comment_text_edit]:
+            field.setEnabled(not is_referenced)
 
     def block_fields_signals(self, state: bool):
         for widget in [self.node_name_lineedit,

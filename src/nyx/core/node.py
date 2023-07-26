@@ -156,7 +156,9 @@ class Node(QtGui.QStandardItem, Serializable):
 
     @property
     def is_referenced(self):
-        return self.reference_file_path is not None
+        nodes = [self]
+        nodes += self.list_parents()
+        return any([node.reference_file_path is not None for node in nodes])
 
     def cache_current_path(self):
         """Store current path in cache."""
@@ -586,7 +588,7 @@ class Node(QtGui.QStandardItem, Serializable):
         data["path"] = self.path.as_posix()
         data["input_exec"] = self.get_input_exec_path(serializable=True)
         data["output_exec"] = self.get_output_exec_path(serializable=True)
-        if self.is_referenced:
+        if self.reference_file_path is not None:
             data["reference_file_path"] = self.reference_file_path.as_posix()
         else:
             data["execution_start_path"] = self.get_execution_start_path(
@@ -743,6 +745,7 @@ class Node(QtGui.QStandardItem, Serializable):
             exec_queue.append(self.cached_path)
             child_path = self.get_execution_start_path()
             if child_path:
+                # TODO: check if relative and convert to abs
                 child_node = self.stage.node(child_path)
                 if child_node:
                     exec_queue.extend(child_node.build_execution_queue())

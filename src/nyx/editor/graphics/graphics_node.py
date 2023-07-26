@@ -19,6 +19,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     MIN_WIDTH = 100
     MIN_HEIGHT = 100
     TITLE_COLOR = QtGui.QColor("#FF313131")
+    REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
 
     def __init__(self, node: "Node", parent=None):
         super().__init__(parent)
@@ -71,6 +72,8 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._pen_default = QtGui.QPen(QtGui.QColor("#7F000000"))
         self._pen_selected = QtGui.QPen(QtGui.QColor("#FFA637"))
         self._brush_background = QtGui.QBrush(QtGui.QColor("#E3212121"))
+        if self.node.is_referenced:
+            self._brush_background = self.REFERENCE_NODE_BACKGROUND
         self._brush_title = QtGui.QBrush(self.TITLE_COLOR)
 
     def _init_title(self):

@@ -20,7 +20,7 @@ class AttrTableItem(QtWidgets.QTableWidgetItem):
     def __init__(self, node_attr: "Attribute", text: str) -> None:
         super().__init__(text)
         self.node_attr = node_attr
-        if not self.EDITABLE:
+        if not self.EDITABLE or self.node_attr.node.is_referenced:
             self.setFlags(self.flags() ^ QtCore.Qt.ItemIsEditable)
 
     def set_node_attr_value(self):
