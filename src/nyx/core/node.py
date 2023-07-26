@@ -205,7 +205,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def set_comment(self, text: str):
         self.setData(text, role=Node.Roles.COMMENT.value)
 
-    def set_reference_file(self, path: pathlib.Path | str):
+    def set_reference_file(self, path: "pathlib.Path | str"):
         self.setData(pathlib.Path(path),
                      role=Node.Roles.REFERENCE_FILE_PATH.value)
 
