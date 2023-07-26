@@ -4,6 +4,7 @@ from collections import OrderedDict
 from PySide2 import QtWidgets
 from nyx import get_main_logger
 from nyx.core.constants import NyxFileExtensions, NyxFileFilters
+from nyx.core import Stage
 from nyx.core import commands
 from nyx.utils import file_fn
 from nyx.utils import pyside_fn
@@ -47,7 +48,15 @@ def _import_nodes(
 ):
     serialized_nodes = []
     for path in file_paths:
-        node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
+        path = pathlib.Path(path)
+        if path.suffix == NyxFileExtensions.NYX_NODE_FILE.value:
+            node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
+        elif path.suffix == NyxFileExtensions.NYX_STAGE_FILE.value:
+            stage_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
+            stage_node = Stage.convert_stage_to_node(
+                stage_data, name=path.name)
+            node_data = stage_node.serialize()
+            stage_node.stage.deleteLater()
         serialized_nodes.append(node_data)
 
     paste_position = stage_graph.gr_view.get_center_position()
@@ -75,7 +84,7 @@ def import_nodes_from_explorer():
 
     file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(parent=main_window,
                                                            caption="Import nodes",
-                                                           filter=NyxFileFilters.NYX_NODE_FILTER.value)
+                                                           filter=NyxFileFilters.NYX_STAGE_AND_NODES.value)
     if not file_paths:
         return
 
