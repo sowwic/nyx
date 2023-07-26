@@ -425,7 +425,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         node.execute()
 
     @classmethod
-    def convert_stage_to_node(cls, stage: "Stage | OrderedDict", name="stage") -> Node:
+    def convert_stage_to_node(cls, stage: "Stage | OrderedDict", name="stage") -> OrderedDict:
         """Convert this stage to node.
 
         Args:

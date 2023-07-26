@@ -44,7 +44,8 @@ def export_selected_nodes():
 
 def _import_nodes(
     stage_graph: "StageGraphEditor",
-    file_paths: "Collection[str] | Collection[pathlib.Path]"
+    file_paths: "Collection[str] | Collection[pathlib.Path]",
+    as_reference=False
 ):
     serialized_nodes = []
     for path in file_paths:
@@ -55,6 +56,8 @@ def _import_nodes(
             stage_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
             node_data = Stage.convert_stage_to_node(
                 stage_data, name=path.name)
+        if as_reference:
+            node_data["reference_file_path"] = path.as_posix()
         serialized_nodes.append(node_data)
 
     paste_position = stage_graph.gr_view.get_center_position()
@@ -73,7 +76,7 @@ def _import_nodes(
     stage_graph.stage.undo_stack.push(paste_command)
 
 
-def import_nodes_from_explorer():
+def import_nodes_from_explorer(as_reference=False):
     """Select nodes from file explorer and import."""
     main_window = pyside_fn.find_nyx_editor_window()
     stage_graph = main_window.current_stage_graph
@@ -81,9 +84,9 @@ def import_nodes_from_explorer():
         return
 
     file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(parent=main_window,
-                                                           caption="Import nodes",
+                                                           caption="Select nodes",
                                                            filter=NyxFileFilters.NYX_STAGE_AND_NODES.value)
     if not file_paths:
         return
 
-    _import_nodes(stage_graph, file_paths)
+    _import_nodes(stage_graph, file_paths, as_reference=as_reference)
