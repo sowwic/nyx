@@ -126,7 +126,6 @@ class AttributeEditor(QtWidgets.QWidget):
 
     def set_fields_enabled(self, state: bool):
         for field in [self.node_name_lineedit,
-                      self.node_path_lineedit,
                       self.node_exec_input_line_edit,
                       self.node_execution_start_lineedit,
                       self.node_comment_text_edit]:
@@ -146,8 +145,7 @@ class AttributeEditor(QtWidgets.QWidget):
             spinbox.setEnabled(state)
 
     def update_referenced_fields(self, is_referenced: bool):
-        for field in [self.node_name_lineedit,
-                      self.node_path_lineedit,
+        for field in [self.node_path_lineedit,
                       self.node_execution_start_lineedit,
                       self.node_comment_text_edit]:
             field.setEnabled(not is_referenced)

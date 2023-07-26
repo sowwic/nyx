@@ -3,7 +3,7 @@ import pathlib
 from collections import OrderedDict
 from PySide2 import QtWidgets
 from nyx import get_main_logger
-from nyx.core.constants import NyxFileExtensions, NyxFileFilters
+from nyx.core import constants
 from nyx.core import Stage
 from nyx.core import commands
 from nyx.utils import file_fn
@@ -27,7 +27,7 @@ def export_selected_nodes():
     elif len(selected_nodes) == 1:
         node = selected_nodes[-1]
         file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=main_window, caption=f"Export {node.name} as...", filter=NyxFileFilters.NYX_NODE_FILTER.value)
+            parent=main_window, caption=f"Export {node.name} as...", filter=constants.NYX_FILE_FILTER)
         if not file_path:
             return
         node.export_to_json(file_path)
@@ -37,7 +37,7 @@ def export_selected_nodes():
             parent=main_window, caption="Select export directory")
         for node in selected_nodes:
             file_path = (pathlib.Path(
-                dir_path) / node.name).with_suffix(NyxFileExtensions.NYX_NODE_FILE.value)
+                dir_path) / node.name).with_suffix(constants.NYX_FILE_EXTENSION)
             node.export_to_json(file_path)
             LOGGER.info(f"Exported node {file_path}")
 
@@ -50,16 +50,19 @@ def _import_nodes(
     serialized_nodes = []
     for path in file_paths:
         path = pathlib.Path(path)
-        if path.suffix == NyxFileExtensions.NYX_NODE_FILE.value:
-            node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
-        elif path.suffix == NyxFileExtensions.NYX_STAGE_FILE.value:
-            stage_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
+        node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
+        if node_data["metadata"]["type"] == "stage":
             node_data = Stage.convert_stage_to_node(
-                stage_data, name=path.name)
+                node_data, name=path.stem)
+        # Add ref file path to node data.
         if as_reference:
+            if stage_graph.stage.file_path == path:
+                LOGGER.error(f"Can't reference file into itself: {path}")
+                return
             node_data["reference_file_path"] = path.as_posix()
         serialized_nodes.append(node_data)
 
+    # Paste command
     paste_position = stage_graph.gr_view.get_center_position()
     parent_node_path = stage_graph.get_scope_path()
     paste_command = commands.PasteNodesCommand(
@@ -68,11 +71,12 @@ def _import_nodes(
         position=paste_position,
         parent_node=parent_node_path
     )
+    command_name = "Reference" if as_reference else "Import"
     if len(serialized_nodes) == 1:
         paste_command.setText(
-            f"Import node ({parent_node_path / serialized_nodes[0].get('name')})")
+            f"{command_name} node ({parent_node_path / serialized_nodes[0].get('name')})")
     else:
-        paste_command.setText("Import nodes")
+        paste_command.setText(f"{command_name} nodes")
     stage_graph.stage.undo_stack.push(paste_command)
 
 
@@ -85,7 +89,7 @@ def import_nodes_from_explorer(as_reference=False):
 
     file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(parent=main_window,
                                                            caption="Select nodes",
-                                                           filter=NyxFileFilters.NYX_STAGE_AND_NODES.value)
+                                                           filter=constants.NYX_FILE_FILTER)
     if not file_paths:
         return
 

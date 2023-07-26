@@ -244,6 +244,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def serialize(self) -> OrderedDict:
         data = super().serialize()
+        metadata = {
+            "type": "stage"
+        }
+        data["metadata"].update(metadata)
         top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes

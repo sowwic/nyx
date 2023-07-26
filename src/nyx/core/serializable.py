@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from nyx._version import _version
 import uuid
 
 
@@ -14,6 +15,7 @@ class Serializable:
         """
         data = OrderedDict()
         data["uuid"] = self.uuid
+        data["metadata"] = {"nyx_version": _version}
         return data
 
     def deserialize(self, data: OrderedDict, restore_id=True):

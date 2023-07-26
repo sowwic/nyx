@@ -8,7 +8,7 @@ from PySide2 import QtCore
 from PySide2 import QtGui
 
 from nyx.core.attribute import Attribute
-from nyx.core.constants import NyxFileExtensions
+from nyx.core import constants
 from nyx.core.serializable import Serializable
 from nyx.core import nyx_exceptions
 from nyx.utils import inspect_fn
@@ -581,7 +581,10 @@ class Node(QtGui.QStandardItem, Serializable):
         data = super().serialize()
         children = [child.serialize() for child in self.list_children()]
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
-
+        metadata = {
+            "type": "node"
+        }
+        data["metadata"].update(metadata)
         data["name"] = self.text()
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
@@ -620,16 +623,9 @@ class Node(QtGui.QStandardItem, Serializable):
         # Get data from reference
         reference_file_path = data.get("reference_file_path")
         if reference_file_path:
-            self.set_reference_file(reference_file_path)
             reference_file_path = pathlib.Path(reference_file_path)
-            if reference_file_path.suffix == NyxFileExtensions.NYX_NODE_FILE.value:
-                data = file_fn.load_json(
-                    reference_file_path, object_pairs_hook=OrderedDict)
-            elif reference_file_path.suffix == NyxFileExtensions.NYX_STAGE_FILE.value:
-                stage_data = file_fn.load_json(
-                    reference_file_path, object_pairs_hook=OrderedDict)
-                data = self.stage.convert_stage_to_node(
-                    stage=stage_data, name=reference_file_path.stem)
+            self.set_reference_file(reference_file_path)
+            data = self._load_reference_file_data()
 
         self.set_execution_start_path(data.get("execution_start_path"))
         self.set_python_code(data.get("code", ""))
@@ -647,6 +643,23 @@ class Node(QtGui.QStandardItem, Serializable):
         for child_data in data.get("children", {}):
             child_node = Node(parent=self)
             child_node.deserialize(child_data, restore_id=True)
+
+    def _load_reference_file_data(self) -> OrderedDict:
+        data = OrderedDict()
+        try:
+            if self.reference_file_path.suffix == constants.NYX_FILE_EXTENSION:
+                data = file_fn.load_json(
+                    self.reference_file_path, object_pairs_hook=OrderedDict)
+                if data["metadata"]["type"] == "stage":
+                    data = self.stage.convert_stage_to_node(
+                        stage=data, name=self.reference_file_path.stem)
+            else:
+                raise ValueError(
+                    f"Invalid file type: {self.reference_file_path}")
+        except FileNotFoundError:
+            LOGGER.exception(
+                f"Reference file doesn't exist: {self.reference_file_path}")
+        return data
 
     def export_to_json(self, file_path: pathlib.Path):
         """Export node to json file.
