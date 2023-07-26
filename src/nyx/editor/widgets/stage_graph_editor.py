@@ -220,7 +220,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         if current_scope == deleted_node_path or deleted_node_path in current_scope.parents:
             self.set_scope_path(self.stage.ROOT_ITEM_PATH)
 
-    def list_selected_nodes(self) -> list[Node]:
+    def list_selected_nodes(self) -> "list[Node]":
         """List selected nodes.
 
         Returns:

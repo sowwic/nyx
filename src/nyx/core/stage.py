@@ -423,3 +423,26 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def execute_node_from_path(self, path):
         node = self.node(path)
         node.execute()
+
+    @classmethod
+    def convert_stage_to_node(cls, stage: "Stage | OrderedDict", name="stage") -> Node:
+        """Convert this stage to node.
+
+        Args:
+            name (str, optional): new node name. Defaults to "stage".
+
+        Returns:
+            OrderedDict: stage as serialized node.
+        """
+        node = Node(name=name)
+        serialized_node = node.serialize()
+        if isinstance(stage, cls):
+            serialized_stage = stage.serialize()
+        elif isinstance(stage, OrderedDict):
+            serialized_stage = stage
+        else:
+            raise TypeError(f"Invalid stage type: {type(stage)}")
+
+        serialized_node["children"] = serialized_stage.get(
+            "nodes", [])
+        return serialized_node
