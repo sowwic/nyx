@@ -17,6 +17,7 @@ from nyx.utils import file_fn
 from nyx.core import Node
 from nyx.core.attribute import Attribute
 from nyx.core.stage_handler import StageHandler
+from nyx.core.resolver import Resolver
 from nyx.core import nyx_exceptions
 
 
@@ -40,6 +41,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self.__execution_start_path: pathlib.PurePosixPath = None
+        self.__resolver = Resolver(self)
         self.__handler = StageHandler(self)
         self.undo_stack = QtWidgets.QUndoStack(self)
 
@@ -52,6 +54,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     @property
     def handler(self):
         return self.__handler
+
+    @property
+    def resolver(self):
+        return self.__resolver
 
     @property
     def execution_start_path(self):
