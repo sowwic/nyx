@@ -455,4 +455,9 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         serialized_node["children"] = serialized_stage.get(
             "nodes", [])
+        stage_exec_start_path = serialized_stage["execution_start_path"]
+        if stage_exec_start_path:
+            rel_exec_start_path = Resolver.compute_relative_path(
+                Stage.ROOT_ITEM_PATH, stage_exec_start_path)
+            serialized_node["execution_start_path"] = rel_exec_start_path
         return serialized_node

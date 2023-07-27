@@ -312,6 +312,10 @@ class Node(QtGui.QStandardItem, Serializable):
         Returns:
             bool: if path belongs to one of children.
         """
+        if isinstance(other_node, (str, pathlib.PurePosixPath)) and self.stage.resolver.is_relative_path(other_node):
+            other_node = self.stage.resolver.computer_absolute_path(
+                self.cached_path, other_node)
+
         other_node = self.stage.node(other_node)
         return other_node in set(self.list_children())
 
@@ -759,6 +763,9 @@ class Node(QtGui.QStandardItem, Serializable):
             child_path = self.get_execution_start_path()
             if child_path:
                 # TODO: check if relative and convert to abs
+                if self.stage.resolver.is_relative_path(child_path):
+                    child_path = self.stage.resolver.computer_absolute_path(
+                        self.cached_path, child_path)
                 child_node = self.stage.node(child_path)
                 if child_node:
                     exec_queue.extend(child_node.build_execution_queue())
