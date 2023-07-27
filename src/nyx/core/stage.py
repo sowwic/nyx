@@ -41,7 +41,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self.__execution_start_path: pathlib.PurePosixPath = None
-        self.__resolver = Resolver(self)
+        self.__resolver = Resolver()
         self.__handler = StageHandler(self)
         self.undo_stack = QtWidgets.QUndoStack(self)
 
