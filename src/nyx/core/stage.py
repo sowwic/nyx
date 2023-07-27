@@ -181,7 +181,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             node_path = attr.with_suffix("")
             node = self.node(node_path)
             attr_name = attr.suffix.replace(".", "")
-            if not node:
+            if not (node and attr_name):
                 return None
             try:
                 return node.attr(attr_name)

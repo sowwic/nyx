@@ -133,7 +133,8 @@ def test_attr_same_scope():
     child1.add_attr("count", value=5)
     child2.add_attr("len", value=10)
 
-    TEST_LOGGER.debug(f"{child1['count']} | Scope: {child1['count'].node.scope}")
+    TEST_LOGGER.debug(
+        f"{child1['count']} | Scope: {child1['count'].node.scope}")
     TEST_LOGGER.debug(f"{child2['len']} | Scope: {child2['len'].node.scope}")
     TEST_LOGGER.debug(f"{node['test']} | Scope: {node['test'].node.scope}")
 
@@ -168,11 +169,22 @@ def test_attr_resolve_non_existing_attr():
     node.add_attr("test", value=5)
 
     child = Node(name="child", parent=node)
-    child["test_rel"] = ""
-    child["test_rel"].set("{..}{bad_attr}")
+    child.add_attr("test_rel", value="")
+    child.attr("test_rel").set("../node.test")
 
-    assert child["test_rel"].resolved_value != node["test"].value
-    assert child["test_rel"].resolved_value == child["test_rel"].value
+    assert child.attr("test_rel").resolved_value != node["test"].value
+    assert child.attr("test_rel").resolved_value == child["test_rel"].value
+
+
+def test_attr_resolve_relative_attr():
+    stage = Stage()
+    node = Node("node")
+    stage.add_node(node)
+    node.add_attr("test", value=5)
+    child = Node(name="child", parent=node)
+    child.add_attr("test_rel", value="../../node.test")
+
+    assert child.attr("test_rel").resolved_value == node.attr("test").value
 
 
 def test_attr_resolve_recursive_path():
@@ -211,7 +223,8 @@ def test_attr_resolve_from_absolute_path():
     leaf1.add_attr("test1", value="test_value")
     leaf2.add_attr("test2", value="/node/child1/leaf1.test1", resolve=True)
 
-    assert leaf2.attr("test2").resolved_value == leaf1.attr("test1").resolved_value
+    assert leaf2.attr("test2").resolved_value == leaf1.attr(
+        "test1").resolved_value
 
 
 def test_attr_connect():
