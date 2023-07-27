@@ -1,10 +1,6 @@
 import os
-import typing
 import pathlib
 from nyx import get_main_logger
-
-if typing.TYPE_CHECKING:
-    from nyx.core import Stage
 
 
 LOGGER = get_main_logger()
