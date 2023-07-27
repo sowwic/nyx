@@ -3,3 +3,4 @@ pytest-cov==2.12.1
 tox==3.24.3
 PySide2==5.15.2.1
 shiboken2==5.15.2.1
+sphinx==7.1.1
