@@ -24,6 +24,8 @@ class FileMenu(BaseMenu):
             "Export Selected Nodes As...", self)
         self.import_nodes_from_file_action = QtWidgets.QAction(
             "Import Nodes", self)
+        self.reference_nodes_from_file_action = QtWidgets.QAction(
+            "Reference Nodes", self)
 
         self.new_stage_action.setShortcut("Ctrl+Shift+N")
         self.open_stage_action.setShortcut("Ctrl+Shift+O")
@@ -37,6 +39,7 @@ class FileMenu(BaseMenu):
         self.addAction(self.save_stage_as_action)
         self.addSection("Nodes")
         self.addAction(self.import_nodes_from_file_action)
+        self.addAction(self.reference_nodes_from_file_action)
         self.addAction(self.export_selected_nodes_action)
 
     def create_connections(self):
@@ -53,3 +56,5 @@ class FileMenu(BaseMenu):
             export_selected_nodes)
         self.import_nodes_from_file_action.triggered.connect(
             import_nodes_from_explorer)
+        self.reference_nodes_from_file_action.triggered.connect(
+            lambda: import_nodes_from_explorer(as_reference=True))

@@ -76,7 +76,8 @@ class CodeEditor(QtWidgets.QWidget):
 
     def update_active_state(self):
         self.text_edit.blockSignals(True)
-        self.setEnabled(self.current_node is not None)
+        self.setEnabled(
+            self.current_node is not None and not self.current_node.is_referenced)
         if self.current_node:
             self.text_edit.setPlainText(self.current_node.get_python_code())
         else:

@@ -17,6 +17,7 @@ from nyx.utils import file_fn
 from nyx.core import Node
 from nyx.core.attribute import Attribute
 from nyx.core.stage_handler import StageHandler
+from nyx.core.resolver import Resolver
 from nyx.core import nyx_exceptions
 
 
@@ -40,6 +41,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self.__execution_start_path: pathlib.PurePosixPath = None
+        self.__resolver = Resolver()
         self.__handler = StageHandler(self)
         self.undo_stack = QtWidgets.QUndoStack(self)
 
@@ -52,6 +54,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     @property
     def handler(self):
         return self.__handler
+
+    @property
+    def resolver(self):
+        return self.__resolver
 
     @property
     def execution_start_path(self):
@@ -175,7 +181,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             node_path = attr.with_suffix("")
             node = self.node(node_path)
             attr_name = attr.suffix.replace(".", "")
-            if not node:
+            if not (node and attr_name):
                 return None
             try:
                 return node.attr(attr_name)
@@ -244,6 +250,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def serialize(self) -> OrderedDict:
         data = super().serialize()
+        metadata = {
+            "type": "stage"
+        }
+        data["metadata"].update(metadata)
         top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes
@@ -425,7 +435,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         node.execute()
 
     @classmethod
-    def convert_stage_to_node(cls, stage: "Stage | OrderedDict", name="stage") -> Node:
+    def convert_stage_to_node(cls, stage: "Stage | OrderedDict", name="stage") -> OrderedDict:
         """Convert this stage to node.
 
         Args:
@@ -445,4 +455,9 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         serialized_node["children"] = serialized_stage.get(
             "nodes", [])
+        stage_exec_start_path = serialized_stage["execution_start_path"]
+        if stage_exec_start_path:
+            rel_exec_start_path = Resolver.compute_relative_path(
+                Stage.ROOT_ITEM_PATH, stage_exec_start_path)
+            serialized_node["execution_start_path"] = rel_exec_start_path
         return serialized_node
