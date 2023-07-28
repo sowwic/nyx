@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.core.attribute &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.attribute</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.core.attribute</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.core.serializable</span> <span class="kn">import</span> <span class="n">Serializable</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">file_fn</span>
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Attribute"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute">[docs]</a><span class="k">class</span> <span class="nc">Attribute</span><span class="p">(</span><span class="n">Serializable</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__resolved</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__cached_value</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Attribute </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (raw: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">, resolved: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">resolved_value</span><span class="si">}</span><span class="s2">, cached: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cached_value</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_attr</span><span class="p">):</span>
+        <span class="c1"># type: (Attribute) -&gt; bool</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other_attr</span><span class="p">,</span> <span class="n">Attribute</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t compare with not attribute.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="ow">is</span> <span class="n">other_attr</span><span class="o">.</span><span class="n">node</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other_attr</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">other_attr</span><span class="o">.</span><span class="n">value</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__node</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">stage</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Raw attribute value.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            typing.Any: stored value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resolved_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cached value.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            typing.Any: stored cached value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resolved</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cached_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cached value.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            typing.Any: stored cached value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__cached_value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attribute name.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: error when getting attr from node.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">all_node_attribs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">attribs</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">all_node_attribs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">attr</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">name</span>
+
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to get name for attribute of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span>
+
+<div class="viewcode-block" id="Attribute.as_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.as_path">[docs]</a>    <span class="k">def</span> <span class="nf">as_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Attribute.get"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resolved</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get attribute value. If no arguments were specified - will return cached value.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            raw (bool, optional): get raw value. Defaults to False.</span>
+<span class="sd">            resolved (bool, optional): get resolved value. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            typing.Any: stored value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">raw</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">elif</span> <span class="n">resolved</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_value</span></div>
+
+<div class="viewcode-block" id="Attribute.set"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.set">[docs]</a>    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set raw attribute value&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">resolve</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Attribute.push"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.push">[docs]</a>    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Push given value to cache&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__cached_value</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="Attribute.clear_cache"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.clear_cache">[docs]</a>    <span class="k">def</span> <span class="nf">clear_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set cache value to None.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__cached_value</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Attribute.is_cached"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.is_cached">[docs]</a>    <span class="k">def</span> <span class="nf">is_cached</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Is value equal to cached value</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: cached</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_value</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_value</span></div>
+
+<div class="viewcode-block" id="Attribute.same_scope_with"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.same_scope_with">[docs]</a>    <span class="k">def</span> <span class="nf">same_scope_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if this and other attribute are in the same scope.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other_attr (Attribute): attribute to compare to</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: in same scope.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">scope</span> <span class="o">==</span> <span class="n">other_attr</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">scope</span></div>
+
+<div class="viewcode-block" id="Attribute.cache_current_value"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.cache_current_value">[docs]</a>    <span class="k">def</span> <span class="nf">cache_current_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Push current value to cache.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="c1"># If value resolves to attribute push that attribute resolved value to cache instead.</span>
+        <span class="n">value_to_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_value</span><span class="o">.</span><span class="n">resolved_value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolved_value</span><span class="p">,</span> <span class="n">Attribute</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_value</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">value_to_cache</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Attribute.get_name"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.get_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get attribute name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: attribute name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span></div>
+
+<div class="viewcode-block" id="Attribute.serialize"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="n">file_fn</span><span class="o">.</span><span class="n">is_jsonable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">new_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">}</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="Attribute.deserialize"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.deserialize">[docs]</a>    <span class="k">def</span> <span class="nf">deserialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">restore_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Attribute.resolve"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.resolve">[docs]</a>    <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Resolving...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__resolved</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">resolved</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">Attribute</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">resolved</span><span class="o">.</span><span class="n">resolved_value</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">resolved</span><span class="o">.</span><span class="n">cached_value</span><span class="p">:</span>
+                    <span class="n">resolved</span> <span class="o">=</span> <span class="n">resolved</span><span class="o">.</span><span class="n">resolved_value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">resolved</span> <span class="o">=</span> <span class="n">resolved</span><span class="o">.</span><span class="n">cached_value</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">__resolved</span> <span class="o">=</span> <span class="n">resolved</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__resolved</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resolved value: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">resolved_value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_resolve_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resolving string value: </span><span class="si">{</span><span class="n">raw_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">is_relative_path</span><span class="p">(</span><span class="n">raw_str</span><span class="p">):</span>
+            <span class="n">abs_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">computer_absolute_path</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">cached_path</span><span class="p">,</span> <span class="n">raw_str</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+            <span class="n">other_attr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">attribute</span><span class="p">(</span><span class="n">abs_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">other_attr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">attribute</span><span class="p">(</span><span class="n">raw_str</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">other_attr</span> <span class="k">if</span> <span class="n">other_attr</span> <span class="k">else</span> <span class="n">raw_str</span>
+
+<div class="viewcode-block" id="Attribute.connect"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.attribute.Attribute.connect">[docs]</a>    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">other_attr</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">as_path</span><span class="p">()</span><span class="o">.</span><span class="n">as_posix</span><span class="p">(),</span> <span class="n">resolve</span><span class="o">=</span><span class="n">resolve</span><span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connected </span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">other_attr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.attribute</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

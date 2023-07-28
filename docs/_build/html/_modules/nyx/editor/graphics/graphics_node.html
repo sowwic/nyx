@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.graphics.graphics_node &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.graphics.graphics_node</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.graphics.graphics_node</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">commands</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.graphics.graphics_node_title</span> <span class="kn">import</span> <span class="n">GraphicsNodeTitle</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.graphics.graphics_attribute</span> <span class="kn">import</span> <span class="n">GraphicsNodeAttribute</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.graphics.graphics_stage</span> <span class="kn">import</span> <span class="n">GraphicsStage</span>
+
+
+<div class="viewcode-block" id="GraphicsNode"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode">[docs]</a><span class="k">class</span> <span class="nc">GraphicsNode</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QGraphicsItem</span><span class="p">):</span>
+
+    <span class="n">MIN_WIDTH</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">MIN_HEIGHT</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">TITLE_COLOR</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#FF313131&quot;</span><span class="p">)</span>
+    <span class="n">REFERENCE_NODE_BACKGROUND</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#2182CF&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setFlag</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QGraphicsItem</span><span class="o">.</span><span class="n">ItemIsSelectable</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setFlag</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QGraphicsItem</span><span class="o">.</span><span class="n">ItemIsMovable</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__node</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_attribs</span><span class="p">:</span> <span class="s2">&quot;deque[GraphicsNodeAttribute]&quot;</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setPos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">position</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_sizes</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_assets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_title</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_gr_attributes</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GraphicsNode.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | None&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">node</span><span class="p">:</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="c1"># Connect signals</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Disconnect signals</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__node</span><span class="o">.</span><span class="n">gr_node</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__node</span> <span class="o">=</span> <span class="n">node</span>
+
+    <span class="k">def</span> <span class="nf">_create_gr_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">gr_attrib</span> <span class="o">=</span> <span class="n">GraphicsNodeAttribute</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gr_attribs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gr_attrib</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MIN_WIDTH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MIN_HEIGHT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">one_side_horizontal_padding</span> <span class="o">=</span> <span class="mf">20.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_padding</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title_horizontal_padding</span> <span class="o">=</span> <span class="mf">4.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title_vertical_padding</span> <span class="o">=</span> <span class="mf">4.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower_padding</span> <span class="o">=</span> <span class="mf">8.0</span>
+
+    <span class="k">def</span> <span class="nf">_init_assets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Pens, Brushes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pen_default</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPen</span><span class="p">(</span><span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#7F000000&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pen_selected</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPen</span><span class="p">(</span><span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#FFA637&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_brush_background</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QBrush</span><span class="p">(</span><span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#E3212121&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">is_referenced</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_brush_background</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">REFERENCE_NODE_BACKGROUND</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_brush_title</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QBrush</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TITLE_COLOR</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title_item</span> <span class="o">=</span> <span class="n">GraphicsNodeTitle</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GraphicsNode.boundingRect"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.boundingRect">[docs]</a>    <span class="k">def</span> <span class="nf">boundingRect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QRectF</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span>
+                             <span class="mi">0</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">)</span><span class="o">.</span><span class="n">normalized</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GraphicsNode.paint"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.paint">[docs]</a>    <span class="k">def</span> <span class="nf">paint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">painter</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPainter</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QStyleOptionGraphicsItem</span><span class="p">,</span> <span class="n">widget</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># self.title_item.setVisible(self.node.scene.view.zoom &gt; self.TEXT_ZOOM_OUT_LIMIT)</span>
+
+        <span class="c1"># title</span>
+        <span class="n">path_title</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPainterPath</span><span class="p">()</span>
+        <span class="n">path_title</span><span class="o">.</span><span class="n">setFillRule</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">WindingFill</span><span class="p">)</span>
+        <span class="n">path_title</span><span class="o">.</span><span class="n">addRoundedRect</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_height</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">)</span>
+        <span class="n">path_title</span><span class="o">.</span><span class="n">addRect</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">)</span>
+        <span class="n">path_title</span><span class="o">.</span><span class="n">addRect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">title_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setPen</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">NoPen</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setBrush</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_brush_title</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">drawPath</span><span class="p">(</span><span class="n">path_title</span><span class="o">.</span><span class="n">simplified</span><span class="p">())</span>
+
+        <span class="c1"># content</span>
+        <span class="n">path_content</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPainterPath</span><span class="p">()</span>
+        <span class="n">path_content</span><span class="o">.</span><span class="n">setFillRule</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">WindingFill</span><span class="p">)</span>
+        <span class="n">path_content</span><span class="o">.</span><span class="n">addRoundedRect</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">)</span>
+        <span class="n">path_content</span><span class="o">.</span><span class="n">addRect</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_height</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">)</span>
+        <span class="n">path_content</span><span class="o">.</span><span class="n">addRect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_height</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setPen</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">NoPen</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setBrush</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_brush_background</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">drawPath</span><span class="p">(</span><span class="n">path_content</span><span class="o">.</span><span class="n">simplified</span><span class="p">())</span>
+
+        <span class="c1"># outline</span>
+        <span class="c1"># TODO: Paint prominent outline if exec input is connected</span>
+        <span class="n">path_outline</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPainterPath</span><span class="p">()</span>
+        <span class="n">path_outline</span><span class="o">.</span><span class="n">addRoundedRect</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_roundness</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setPen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pen_default</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSelected</span><span class="p">()</span>
+                       <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pen_selected</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setBrush</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">NoBrush</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">drawPath</span><span class="p">(</span><span class="n">path_outline</span><span class="o">.</span><span class="n">simplified</span><span class="p">())</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__node</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">gr_stage</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GraphicsStage&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">title_height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_item</span><span class="o">.</span><span class="n">height</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">title_width</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title_item</span><span class="o">.</span><span class="n">width</span>
+
+    <span class="c1"># Events</span>
+<div class="viewcode-block" id="GraphicsNode.mouseMoveEvent"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.mouseMoveEvent">[docs]</a>    <span class="k">def</span> <span class="nf">mouseMoveEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">mouseMoveEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+        <span class="c1"># for node in self.scene().scene.selected_nodes:</span>
+        <span class="c1">#     node.update_connected_edges()</span>
+
+<div class="viewcode-block" id="GraphicsNode.mouseReleaseEvent"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.mouseReleaseEvent">[docs]</a>    <span class="k">def</span> <span class="nf">mouseReleaseEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">mouseReleaseEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="n">moved_nodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_positions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">gr_node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">selected_gr_nodes</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">gr_node</span><span class="o">.</span><span class="n">pos</span><span class="p">()</span> <span class="o">!=</span> <span class="n">gr_node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">position</span><span class="p">():</span>
+                <span class="n">moved_nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gr_node</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
+                <span class="n">new_positions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gr_node</span><span class="o">.</span><span class="n">pos</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">moved_nodes</span><span class="p">:</span>
+            <span class="n">move_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">MoveNodeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                <span class="n">nodes</span><span class="o">=</span><span class="n">moved_nodes</span><span class="p">,</span>
+                                                <span class="n">new_positions</span><span class="o">=</span><span class="n">new_positions</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">move_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsNode.mouseDoubleClickEvent"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.mouseDoubleClickEvent">[docs]</a>    <span class="k">def</span> <span class="nf">mouseDoubleClickEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QGraphicsSceneMouseEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">mouseDoubleClickEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.graphics.graphics_node</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

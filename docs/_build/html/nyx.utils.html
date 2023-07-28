@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>nyx.utils package &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="nyx-utils-package">
+<h1>nyx.utils package<a class="headerlink" href="#nyx-utils-package" title="Permalink to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-nyx.utils.file_fn">
+<span id="nyx-utils-file-fn-module"></span><h2>nyx.utils.file_fn module<a class="headerlink" href="#module-nyx.utils.file_fn" title="Permalink to this heading">¶</a></h2>
+<p>Common file operations</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.DirectoryStruct">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nyx.utils.file_fn.</span></span><span class="sig-name descname"><span class="pre">DirectoryStruct</span></span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#DirectoryStruct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.DirectoryStruct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.DirectoryStruct.list_dirs">
+<span class="sig-name descname"><span class="pre">list_dirs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#DirectoryStruct.list_dirs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.DirectoryStruct.list_dirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>List paths to directories in this struct.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of directories paths.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[pathlib.Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.DirectoryStruct.make_dirs">
+<span class="sig-name descname"><span class="pre">make_dirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exist_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#DirectoryStruct.make_dirs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.DirectoryStruct.make_dirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create directory for each path field.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>exist_ok</strong> (<em>bool</em><em>, </em><em>optional</em>) – Skip directory if already exists. Defaults to True.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.get_data_dir">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.file_fn.</span></span><span class="sig-name descname"><span class="pre">get_data_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#get_data_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.get_data_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get user data direcotory for current machine OS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>user app data directory path.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pathlib.Path</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.get_nyx_data_dir">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.file_fn.</span></span><span class="sig-name descname"><span class="pre">get_nyx_data_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#get_nyx_data_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.get_nyx_data_dir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.is_jsonable">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.file_fn.</span></span><span class="sig-name descname"><span class="pre">is_jsonable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#is_jsonable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.is_jsonable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.load_json">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.file_fn.</span></span><span class="sig-name descname"><span class="pre">load_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_pairs_hook</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#load_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.load_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load json data from file or string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>pathlib.Path</em><em> | </em><em>str</em><em>, </em><em>optional</em>) – path to json file. Defaults to None.</p></li>
+<li><p><strong>input_str</strong> (<em>str</em><em>, </em><em>optional</em>) – json string. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If no file path or string were provided.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>loaded json data.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.file_fn.write_json">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.file_fn.</span></span><span class="sig-name descname"><span class="pre">write_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_string</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/file_fn.html#write_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.file_fn.write_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write json file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>pathlib.Path</em><em> | </em><em>str</em>) – path to json file.</p></li>
+<li><p><strong>data</strong> (<em>dict</em>) – data to write.</p></li>
+<li><p><strong>as_string</strong> (<em>bool</em><em>, </em><em>optional</em>) – write data as json string. Defaults to False.</p></li>
+<li><p><strong>sort_keys</strong> (<em>bool</em><em>, </em><em>optional</em>) – sort data keys. Defaults to True.</p></li>
+<li><p><strong>indent</strong> (<em>int</em><em>, </em><em>optional</em>) – indentation inside written file. Defaults to 4.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>path to written file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pathlib.Path</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-nyx.utils.inspect_fn">
+<span id="nyx-utils-inspect-fn-module"></span><h2>nyx.utils.inspect_fn module<a class="headerlink" href="#module-nyx.utils.inspect_fn" title="Permalink to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.inspect_fn.class_string">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.inspect_fn.</span></span><span class="sig-name descname"><span class="pre">class_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/nyx/utils/inspect_fn.html#class_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.inspect_fn.class_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get string representation of the class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>full_path</strong> (<em>bool</em><em>, </em><em>optional</em>) – Full module path to the class. Defaults to False.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>class string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-nyx.utils.logging_fn">
+<span id="nyx-utils-logging-fn-module"></span><h2>nyx.utils.logging_fn module<a class="headerlink" href="#module-nyx.utils.logging_fn" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.LogFormat">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">LogFormat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#LogFormat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.LogFormat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enum of log format strings.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.LogFormat.basic">
+<span class="sig-name descname"><span class="pre">basic</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'[%(levelname)s][%(name)s]</span> <span class="pre">%(message)s'</span></em><a class="headerlink" href="#nyx.utils.logging_fn.LogFormat.basic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.LogFormat.minimal">
+<span class="sig-name descname"><span class="pre">minimal</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'[%(levelname)s]</span> <span class="pre">%(message)s'</span></em><a class="headerlink" href="#nyx.utils.logging_fn.LogFormat.minimal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.LogFormat.verbose">
+<span class="sig-name descname"><span class="pre">verbose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'%(asctime)s</span> <span class="pre">|</span> <span class="pre">%(levelname)s</span> <span class="pre">|</span> <span class="pre">%(name)s</span> <span class="pre">|</span> <span class="pre">%(message)s'</span></em><a class="headerlink" href="#nyx.utils.logging_fn.LogFormat.verbose" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.QSignalHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">QSignalHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#QSignalHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.QSignalHandler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Handler</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.QSignalHandler.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#QSignalHandler.emit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.QSignalHandler.emit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do whatever it takes to actually log the specified logging record.</p>
+<p>This version is intended to be implemented by subclasses and so
+raises a NotImplementedError.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.QSignaler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">QSignaler</span></span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#QSignaler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.QSignaler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">QObject</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.QSignaler.message_logged">
+<span class="sig-name descname"><span class="pre">message_logged</span></span><a class="headerlink" href="#nyx.utils.logging_fn.QSignaler.message_logged" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.QSignaler.record_logged">
+<span class="sig-name descname"><span class="pre">record_logged</span></span><a class="headerlink" href="#nyx.utils.logging_fn.QSignaler.record_logged" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.QSignaler.staticMetaObject">
+<span class="sig-name descname"><span class="pre">staticMetaObject</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;PySide2.QtCore.QMetaObject</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#nyx.utils.logging_fn.QSignaler.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.add_signal_handler">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">add_signal_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#nyx.utils.logging_fn.LogFormat" title="nyx.utils.logging_fn.LogFormat"><span class="pre">LogFormat</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Formatter</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">LogFormat.minimal</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#nyx.utils.logging_fn.QSignalHandler" title="nyx.utils.logging_fn.QSignalHandler"><span class="pre">QSignalHandler</span></a></span></span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#add_signal_handler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.add_signal_handler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.get_log_file_path">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">get_log_file_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger:</span> <span class="pre">~logging.Logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handler_type=&lt;class</span> <span class="pre">'logging.FileHandler'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#get_log_file_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.get_log_file_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.get_log_files">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">get_log_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'*'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#get_log_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.get_log_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>_summary_</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pattern</strong> (<em>str</em><em>, </em><em>optional</em>) – expression match pattern. Defaults to “*”.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>generator for paths matching given pattern.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Generator[pathlib.Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.get_logger">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">40</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'nyx.log'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'[%(levelname)s][%(name)s]</span> <span class="pre">%(message)s'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'%(asctime)s</span> <span class="pre">|</span> <span class="pre">%(levelname)s</span> <span class="pre">|</span> <span class="pre">%(name)s</span> <span class="pre">|</span> <span class="pre">%(message)s'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.get_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get logger object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – logger name.</p></li>
+<li><p><strong>level</strong> (<em>int</em><em>, </em><em>optional</em>) – logging level. Defaults to logging.DEBUG.</p></li>
+<li><p><strong>file_level</strong> (<em>int</em><em>, </em><em>optional</em>) – logging level for file handler. Defaults to logging.ERROR.</p></li>
+<li><p><strong>file_name</strong> (<em>str</em><em>, </em><em>optional</em>) – base logging file name. Defaults to const.MAIN_LOGGER_NAME.</p></li>
+<li><p><strong>std_format</strong> (<em>str</em><em>, </em><em>optional</em>) – logging format string for stream handler. Defaults to LogFormat.basic.value.</p></li>
+<li><p><strong>file_format</strong> (<em>str</em><em>, </em><em>optional</em>) – logging format string for file handler. Defaults to LogFormat.verbose.value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>logger object with given name.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>logging.Logger</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.get_main_logger">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">get_main_logger</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#get_main_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.get_main_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get main nyx logger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nyx logger.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>logging.Logger</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.logging_fn.logger_exists">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.logging_fn.</span></span><span class="sig-name descname"><span class="pre">logger_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/logging_fn.html#logger_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.logging_fn.logger_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if logger with given name exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – logger name.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>logger exists.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-nyx.utils.pyside_fn">
+<span id="nyx-utils-pyside-fn-module"></span><h2>nyx.utils.pyside_fn module<a class="headerlink" href="#module-nyx.utils.pyside_fn" title="Permalink to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.pyside_fn.dark_fusion_palette">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.pyside_fn.</span></span><span class="sig-name descname"><span class="pre">dark_fusion_palette</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">QPalette</span></span></span><a class="reference internal" href="_modules/nyx/utils/pyside_fn.html#dark_fusion_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.pyside_fn.dark_fusion_palette" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.pyside_fn.find_nyx_editor_window">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.pyside_fn.</span></span><span class="sig-name descname"><span class="pre">find_nyx_editor_window</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow" title="nyx.editor.main_window.NyxEditorMainWindow"><span class="pre">NyxEditorMainWindow</span></a></span></span><a class="reference internal" href="_modules/nyx/utils/pyside_fn.html#find_nyx_editor_window"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.pyside_fn.find_nyx_editor_window" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find nyx editor main window.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – no window found</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>editor’s main window</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow" title="nyx.editor.main_window.NyxEditorMainWindow">NyxEditorMainWindow</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.pyside_fn.get_standard_icon">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.pyside_fn.</span></span><span class="sig-name descname"><span class="pre">get_standard_icon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">icon_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/pyside_fn.html#get_standard_icon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.pyside_fn.get_standard_icon" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.pyside_fn.min_bounding_rect">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.pyside_fn.</span></span><span class="sig-name descname"><span class="pre">min_bounding_rect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rects</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">PySide2.QtCore.QRect</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/pyside_fn.html#min_bounding_rect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.pyside_fn.min_bounding_rect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.pyside_fn.move_window_to_screen_center">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.pyside_fn.</span></span><span class="sig-name descname"><span class="pre">move_window_to_screen_center</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QWidget</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/pyside_fn.html#move_window_to_screen_center"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.pyside_fn.move_window_to_screen_center" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nyx.utils.pyside_fn.set_dark_fusion_palette">
+<span class="sig-prename descclassname"><span class="pre">nyx.utils.pyside_fn.</span></span><span class="sig-name descname"><span class="pre">set_dark_fusion_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QApplication</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/utils/pyside_fn.html#set_dark_fusion_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.utils.pyside_fn.set_dark_fusion_palette" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-nyx.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-nyx.utils" title="Permalink to this heading">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">nyx</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Dmitrii Shevchenko.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/nyx.utils.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

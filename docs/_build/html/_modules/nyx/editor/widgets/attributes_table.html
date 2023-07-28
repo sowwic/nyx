@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.widgets.attributes_table &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.attributes_table</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.widgets.attributes_table</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">commands</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="c1"># from nyx.core import Node</span>
+    <span class="kn">from</span> <span class="nn">nyx.core.attribute</span> <span class="kn">import</span> <span class="n">Attribute</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.widgets.attribute_editor</span> <span class="kn">import</span> <span class="n">AttributeEditor</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="AttrTableItem"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTableItem">[docs]</a><span class="k">class</span> <span class="nc">AttrTableItem</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTableWidgetItem</span><span class="p">):</span>
+    <span class="n">EDITABLE</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span> <span class="o">=</span> <span class="n">node_attr</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">EDITABLE</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">is_referenced</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setFlags</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">()</span> <span class="o">^</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">ItemIsEditable</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AttrTableItem.set_node_attr_value"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTableItem.set_node_attr_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_node_attr_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="AttrNameTableItem"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrNameTableItem">[docs]</a><span class="k">class</span> <span class="nc">AttrNameTableItem</span><span class="p">(</span><span class="n">AttrTableItem</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">node_attr</span><span class="p">,</span> <span class="n">node_attr</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setToolTip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AttrNameTableItem.set_node_attr_value"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrNameTableItem.set_node_attr_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_node_attr_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">old_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">new_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">old_name</span> <span class="o">==</span> <span class="n">new_name</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">node</span>
+        <span class="n">rename_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">RenameNodeAttributeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                         <span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
+                                                         <span class="n">attr_name</span><span class="o">=</span><span class="n">old_name</span><span class="p">,</span>
+                                                         <span class="n">new_attr_name</span><span class="o">=</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">rename_cmd</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="AttrTypeTableItem"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTypeTableItem">[docs]</a><span class="k">class</span> <span class="nc">AttrTypeTableItem</span><span class="p">(</span><span class="n">AttrTableItem</span><span class="p">):</span>
+    <span class="n">EDITABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">node_attr</span><span class="o">.</span><span class="n">resolved_value</span>
+        <span class="k">if</span> <span class="n">node_attr</span><span class="o">.</span><span class="n">cached_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">node_attr</span><span class="o">.</span><span class="n">cached_value</span> <span class="o">!=</span> <span class="n">value</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">node_attr</span><span class="o">.</span><span class="n">cached_value</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">node_attr</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">resolved_value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setToolTip</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AttrRawValueTableItem"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrRawValueTableItem">[docs]</a><span class="k">class</span> <span class="nc">AttrRawValueTableItem</span><span class="p">(</span><span class="n">AttrTableItem</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">node_attr</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">node_attr</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">,</span> <span class="n">node_attr</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setToolTip</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Value : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AttrRawValueTableItem.set_node_attr_value"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrRawValueTableItem.set_node_attr_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_node_attr_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">old_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">text_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">new_value</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">text_value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">new_value</span> <span class="o">=</span> <span class="n">text_value</span>
+
+        <span class="k">if</span> <span class="n">old_value</span> <span class="o">==</span> <span class="n">new_value</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">node</span>
+        <span class="n">set_attr_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">SetNodeAttributeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                        <span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
+                                                        <span class="n">attr_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                                        <span class="n">attr_value</span><span class="o">=</span><span class="n">new_value</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">set_attr_cmd</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="AttrResolvedValueTableItem"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrResolvedValueTableItem">[docs]</a><span class="k">class</span> <span class="nc">AttrResolvedValueTableItem</span><span class="p">(</span><span class="n">AttrTableItem</span><span class="p">):</span>
+    <span class="n">EDITABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">node_attr</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">node_attr</span><span class="o">.</span><span class="n">resolved_value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">resolved_value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setToolTip</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Resolved: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">resolved_value</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">resolved_value</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AttrCachedValueTableItem"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrCachedValueTableItem">[docs]</a><span class="k">class</span> <span class="nc">AttrCachedValueTableItem</span><span class="p">(</span><span class="n">AttrTableItem</span><span class="p">):</span>
+    <span class="n">EDITABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_attr</span><span class="p">:</span> <span class="s2">&quot;Attribute&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">node_attr</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">node_attr</span><span class="o">.</span><span class="n">cached_value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span><span class="p">,</span> <span class="n">node_attr</span><span class="o">.</span><span class="n">cached_value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setToolTip</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Cached: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">cached_value</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">cached_value</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AttributesTable"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable">[docs]</a><span class="k">class</span> <span class="nc">AttributesTable</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTableWidget</span><span class="p">):</span>
+
+    <span class="n">COLUMNS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="s2">&quot;Type&quot;</span><span class="p">,</span> <span class="s2">&quot;Raw&quot;</span><span class="p">,</span> <span class="s2">&quot;Resolved&quot;</span><span class="p">,</span> <span class="s2">&quot;Cached&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrib_editor</span><span class="p">:</span> <span class="s2">&quot;AttributeEditor&quot;</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">COLUMNS</span><span class="p">),</span> <span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span> <span class="o">=</span> <span class="n">attrib_editor</span><span class="o">.</span><span class="n">main_window</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">stage_tree_view</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setHorizontalHeaderLabels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">COLUMNS</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setContextMenuPolicy</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">CustomContextMenu</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_actions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+<div class="viewcode-block" id="AttributesTable.create_actions"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.create_actions">[docs]</a>    <span class="k">def</span> <span class="nf">create_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_attr_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Add new attribute&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_attr_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span>
+            <span class="s2">&quot;Delete selected&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Update&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_attr_path_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span>
+            <span class="s2">&quot;Copy as path&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_cache_for_selected_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span>
+            <span class="s2">&quot;Clear cached value&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_attr_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_new_attribute</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_node_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_attr_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_attr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_attr_path_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_attr_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_cache_for_selected_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clear_cache_for_selected_attrs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributesTable.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">itemChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_item_edits</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">customContextMenuRequested</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">show_context_menu</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributesTable.update_node_data"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.update_node_data">[docs]</a>    <span class="k">def</span> <span class="nf">update_node_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setRowCount</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_data_from_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributesTable.set_data_from_node"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.set_data_from_node">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_from_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="c1"># LOGGER.debug(&quot;Updating attr table&quot;)</span>
+        <span class="n">row_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">attr</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setRowCount</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rowCount</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">name_item</span> <span class="o">=</span> <span class="n">AttrNameTableItem</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            <span class="n">type_item</span> <span class="o">=</span> <span class="n">AttrTypeTableItem</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            <span class="n">raw_value_item</span> <span class="o">=</span> <span class="n">AttrRawValueTableItem</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            <span class="n">resolved_value_item</span> <span class="o">=</span> <span class="n">AttrResolvedValueTableItem</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            <span class="n">cached_value_item</span> <span class="o">=</span> <span class="n">AttrCachedValueTableItem</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">setItem</span><span class="p">(</span><span class="n">row_index</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">name_item</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setItem</span><span class="p">(</span><span class="n">row_index</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">type_item</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setItem</span><span class="p">(</span><span class="n">row_index</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">raw_value_item</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setItem</span><span class="p">(</span><span class="n">row_index</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">resolved_value_item</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setItem</span><span class="p">(</span><span class="n">row_index</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">cached_value_item</span><span class="p">)</span>
+
+            <span class="n">row_index</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="AttributesTable.apply_item_edits"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.apply_item_edits">[docs]</a>    <span class="k">def</span> <span class="nf">apply_item_edits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">AttrTableItem</span><span class="p">):</span>
+        <span class="n">item</span><span class="o">.</span><span class="n">set_node_attr_value</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_node_data</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AttributesTable.add_new_attribute"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.add_new_attribute">[docs]</a>    <span class="k">def</span> <span class="nf">add_new_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">add_attr_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">AddNodeAttributeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                        <span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
+                                                        <span class="n">attr_name</span><span class="o">=</span><span class="s2">&quot;attr&quot;</span><span class="p">,</span>
+                                                        <span class="n">attr_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                        <span class="n">attr_resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">add_attr_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributesTable.delete_selected_attr"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.delete_selected_attr">[docs]</a>    <span class="k">def</span> <span class="nf">delete_selected_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_rows</span> <span class="o">=</span> <span class="p">{</span><span class="n">item</span><span class="o">.</span><span class="n">row</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selectedItems</span><span class="p">()}</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_rows</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">attr_to_del_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">selected_rows</span><span class="p">:</span>
+            <span class="n">attrib_name_item</span><span class="p">:</span> <span class="n">AttrNameTableItem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span><span class="p">:</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="n">attrib_name_item</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">node</span>
+            <span class="n">attr_to_del_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attrib_name_item</span><span class="o">.</span><span class="n">text</span><span class="p">())</span>
+
+        <span class="n">del_attr_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">DeleteNodeAttributeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                           <span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
+                                                           <span class="n">attr_names</span><span class="o">=</span><span class="n">attr_to_del_names</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">del_attr_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributesTable.copy_selected_attr_path"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.copy_selected_attr_path">[docs]</a>    <span class="k">def</span> <span class="nf">copy_selected_attr_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selectedItems</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_items</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">last_row</span><span class="p">:</span> <span class="n">AttrTableItem</span> <span class="o">=</span> <span class="n">selected_items</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">attr_path</span> <span class="o">=</span> <span class="n">last_row</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">as_path</span><span class="p">()</span>
+        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QApplication</span><span class="o">.</span><span class="n">clipboard</span><span class="p">()</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">attr_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Copied path: </span><span class="si">{</span><span class="n">attr_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributesTable.clear_cache_for_selected_attrs"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.clear_cache_for_selected_attrs">[docs]</a>    <span class="k">def</span> <span class="nf">clear_cache_for_selected_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_rows</span> <span class="o">=</span> <span class="p">{</span><span class="n">item</span><span class="o">.</span><span class="n">row</span><span class="p">()</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selectedItems</span><span class="p">()}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">selected_rows</span><span class="p">:</span>
+            <span class="n">attrib_name_item</span><span class="p">:</span> <span class="n">AttrNameTableItem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">attrib_name_item</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cleared cache for: </span><span class="si">{</span><span class="n">attrib_name_item</span><span class="o">.</span><span class="n">node_attr</span><span class="o">.</span><span class="n">as_path</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_node_data</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AttributesTable.show_context_menu"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.show_context_menu">[docs]</a>    <span class="k">def</span> <span class="nf">show_context_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPoint</span><span class="p">):</span>
+        <span class="n">menu</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMenu</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">add_attr_action</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selectedIndexes</span><span class="p">():</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_attr_path_action</span><span class="p">)</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_attr_action</span><span class="p">)</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clear_cache_for_selected_action</span><span class="p">)</span>
+
+        <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_action</span><span class="p">)</span>
+        <span class="n">menu</span><span class="o">.</span><span class="n">exec_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mapToGlobal</span><span class="p">(</span><span class="n">point</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="AttributesTable.keyPressEvent"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.keyPressEvent">[docs]</a>    <span class="k">def</span> <span class="nf">keyPressEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QKeyEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span><span class="p">()</span> <span class="o">==</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">Key_Delete</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_attr_action</span><span class="o">.</span><span class="n">trigger</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">keyPressEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.attributes_table</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

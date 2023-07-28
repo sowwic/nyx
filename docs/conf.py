@@ -18,11 +18,17 @@ author = 'Dmitrii Shevchenko'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['autodoc']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
+]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db',
                     '.DS_Store', '.vscode', '.tox', '.venv', '.test_output', '.pytest_cache', '.github', 'tests']
+pygments_style = 'sphinx'
 
 
 # -- Options for HTML output -------------------------------------------------

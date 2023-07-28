@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.views.stage_tree_view &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.views.stage_tree_view</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.views.stage_tree_view</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">commands</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.utils</span> <span class="kn">import</span> <span class="n">clipboard</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">pyside_fn</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pathlib</span>
+    <span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Stage</span>
+    <span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.main_window</span> <span class="kn">import</span> <span class="n">NyxEditorMainWindow</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="StageTreeView"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView">[docs]</a><span class="k">class</span> <span class="nc">StageTreeView</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTreeView</span><span class="p">):</span>
+
+    <span class="n">selection_changed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+    <span class="n">nodes_selected</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">nodes_deselected</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">node_doubleclicked</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">QtGui</span><span class="o">.</span><span class="n">QStandardItem</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setModel</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setContextMenuPolicy</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">CustomContextMenu</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setHeaderHidden</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setSelectionMode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SelectionMode</span><span class="o">.</span><span class="n">ExtendedSelection</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setExpandsOnDoubleClick</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setEditTriggers</span><span class="p">(</span><span class="n">StageTreeView</span><span class="o">.</span><span class="n">NoEditTriggers</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_actions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+<div class="viewcode-block" id="StageTreeView.create_actions"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.create_actions">[docs]</a>    <span class="k">def</span> <span class="nf">create_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_new_node_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Create node&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_new_node_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_new_node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_node_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="n">pyside_fn</span><span class="o">.</span><span class="n">get_standard_icon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;SP_DialogDiscardButton&quot;</span><span class="p">),</span>
+                                                             <span class="s2">&quot;Delete node&quot;</span><span class="p">,</span>
+                                                             <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_node_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_nodes_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Copy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_nodes_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_nodes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cut_selected_nodes_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Cut&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cut_selected_nodes_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cut_selected_nodes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_node_path_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span>
+            <span class="s2">&quot;Copy path to selected&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_node_path_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">paste_nodes_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Paste&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">paste_nodes_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">paste_nodes_from_clipboard</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_selected_item_as_parents_execution_start_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span>
+            <span class="s2">&quot;Set as parent execution start&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_selected_item_as_parents_execution_start_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_selected_item_as_parents_execution_start</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doubleClicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__emit_doubledclicked_item</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">customContextMenuRequested</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">show_context_menu</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stage</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Stage&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">main_window</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pyside_fn</span><span class="o">.</span><span class="n">find_nyx_editor_window</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_stage_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">current_stage_graph</span>
+
+<div class="viewcode-block" id="StageTreeView.set_stage"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.set_stage">[docs]</a>    <span class="k">def</span> <span class="nf">set_stage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setModel</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__emit_doubledclicked_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">itemFromIndex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_doubleclicked</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StageTreeView.current_node"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.current_node">[docs]</a>    <span class="k">def</span> <span class="nf">current_node</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Node&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Treeview | Failed to get current item&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="StageTreeView.selected_nodes"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.selected_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">selected_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;deque[Node]&quot;</span><span class="p">:</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selectedIndexes</span><span class="p">():</span>
+            <span class="n">nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">itemFromIndex</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">nodes</span></div>
+
+<div class="viewcode-block" id="StageTreeView.select_paths"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.select_paths">[docs]</a>    <span class="k">def</span> <span class="nf">select_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_paths</span><span class="p">:</span> <span class="s2">&quot;list[pathlib.PurePosixPath]&quot;</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">node_paths</span><span class="p">:</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">index</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">each_index</span> <span class="ow">in</span> <span class="n">indexes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">selectionModel</span><span class="p">()</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">each_index</span><span class="p">,</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QItemSelectionModel</span><span class="o">.</span><span class="n">ClearAndSelect</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.selectionChanged"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.selectionChanged">[docs]</a>    <span class="k">def</span> <span class="nf">selectionChanged</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selected</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QItemSelection</span><span class="p">,</span> <span class="n">deselected</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QItemSelection</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">selectionChanged</span><span class="p">(</span><span class="n">selected</span><span class="p">,</span> <span class="n">deselected</span><span class="p">)</span>
+        <span class="n">selected_items</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">itemFromIndex</span><span class="p">(</span>
+            <span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">selected</span><span class="o">.</span><span class="n">indexes</span><span class="p">()]</span>
+        <span class="n">deselected_items</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">itemFromIndex</span><span class="p">(</span>
+            <span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">deselected</span><span class="o">.</span><span class="n">indexes</span><span class="p">()]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes_selected</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">selected_items</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes_deselected</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">deselected_items</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selection_changed</span><span class="o">.</span><span class="n">emit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="StageTreeView.keyPressEvent"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.keyPressEvent">[docs]</a>    <span class="k">def</span> <span class="nf">keyPressEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QKeyEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span><span class="p">()</span> <span class="o">==</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">Key_Delete</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_node</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">keyPressEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.mousePressEvent"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.mousePressEvent">[docs]</a>    <span class="k">def</span> <span class="nf">mousePressEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QMouseEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">button</span><span class="p">()</span> <span class="o">==</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">LeftButton</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">indexAt</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">pos</span><span class="p">())</span><span class="o">.</span><span class="n">isValid</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">selectionModel</span><span class="p">()</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">mousePressEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.create_new_node"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.create_new_node">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">parent_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">selected_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">selected_nodes</span><span class="p">:</span>
+            <span class="n">parent_path</span> <span class="o">=</span> <span class="n">selected_nodes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">path</span>
+
+        <span class="n">view_center_position</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">gr_view</span><span class="o">.</span><span class="n">get_center_position</span><span class="p">()</span>
+        <span class="n">create_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">CreateNodeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                <span class="n">node_name</span><span class="o">=</span><span class="s2">&quot;node&quot;</span><span class="p">,</span>
+                                                <span class="n">parent_path</span><span class="o">=</span><span class="n">parent_path</span><span class="p">,</span>
+                                                <span class="n">position</span><span class="o">=</span><span class="n">view_center_position</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">create_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.delete_selected_node"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.delete_selected_node">[docs]</a>    <span class="k">def</span> <span class="nf">delete_selected_node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">delete_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">DeleteNodeCommand</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">(),</span> <span class="n">command_text</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">delete_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.copy_selected_nodes"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">copy_selected_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_nodes</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">clipboard</span><span class="o">.</span><span class="n">serialize_nodes_to_clipboard</span><span class="p">(</span><span class="n">selected_nodes</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Copied selected nodes&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.cut_selected_nodes"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.cut_selected_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">cut_selected_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_nodes</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">clipboard</span><span class="o">.</span><span class="n">serialize_nodes_to_clipboard</span><span class="p">(</span><span class="n">selected_nodes</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cut selected nodes&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.paste_nodes_from_clipboard"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.paste_nodes_from_clipboard">[docs]</a>    <span class="k">def</span> <span class="nf">paste_nodes_from_clipboard</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">serialized_nodes</span> <span class="o">=</span> <span class="n">clipboard</span><span class="o">.</span><span class="n">get_serialized_nodes_from_clipboard</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">serialized_nodes</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No nodes found in the clipboard!&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">gr_view_center_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">gr_view</span><span class="o">.</span><span class="n">get_center_position</span><span class="p">()</span>
+        <span class="n">parent_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="n">paste_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">PasteNodesCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                               <span class="n">serialize_nodes</span><span class="o">=</span><span class="n">serialized_nodes</span><span class="p">,</span>
+                                               <span class="n">position</span><span class="o">=</span><span class="n">gr_view_center_position</span><span class="p">,</span>
+                                               <span class="n">parent_node</span><span class="o">=</span><span class="n">parent_node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">paste_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.copy_selected_node_path"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_node_path">[docs]</a>    <span class="k">def</span> <span class="nf">copy_selected_node_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_node</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QApplication</span><span class="o">.</span><span class="n">clipboard</span><span class="p">()</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">selected_node</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Copied node path: </span><span class="si">{</span><span class="n">selected_node</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.set_selected_item_as_parents_execution_start"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.set_selected_item_as_parents_execution_start">[docs]</a>    <span class="k">def</span> <span class="nf">set_selected_item_as_parents_execution_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">current_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_node</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">current_node</span><span class="o">.</span><span class="n">parent</span><span class="p">():</span>
+            <span class="n">set_execution_start_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">SetNodeExecStartCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                                       <span class="n">node</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">parent</span><span class="p">(),</span>
+                                                                       <span class="n">path</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">set_execution_start_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">SetStageExecStartCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                                        <span class="n">path</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">set_execution_start_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageTreeView.show_context_menu"><a class="viewcode-back" href="../../../../nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.show_context_menu">[docs]</a>    <span class="k">def</span> <span class="nf">show_context_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPoint</span><span class="p">):</span>
+        <span class="n">menu</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMenu</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_new_node_action</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span><span class="p">():</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_selected_item_as_parents_execution_start_action</span><span class="p">)</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addSeparator</span><span class="p">()</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_nodes_action</span><span class="p">)</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cut_selected_nodes_action</span><span class="p">)</span>
+
+        <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">paste_nodes_action</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span><span class="p">():</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addSeparator</span><span class="p">()</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">copy_selected_node_path_action</span><span class="p">)</span>
+            <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delete_selected_node_action</span><span class="p">)</span>
+
+        <span class="n">menu</span><span class="o">.</span><span class="n">exec_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mapToGlobal</span><span class="p">(</span><span class="n">point</span><span class="p">))</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.views.stage_tree_view</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

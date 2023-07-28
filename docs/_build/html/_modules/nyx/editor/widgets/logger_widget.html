@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.widgets.logger_widget &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.logger_widget</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.widgets.logger_widget</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx.core.config</span> <span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">logging_fn</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">pyside_fn</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.main_window</span> <span class="kn">import</span> <span class="n">NyxEditorMainWindow</span>
+
+
+<div class="viewcode-block" id="RichLogMessageItem"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.RichLogMessageItem">[docs]</a><span class="k">class</span> <span class="nc">RichLogMessageItem</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QListWidgetItem</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">log_record</span><span class="p">:</span> <span class="n">logging_fn</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">,</span>
+                 <span class="n">listview</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QListWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_error</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_warning</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_debug</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="p">:</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span> <span class="o">=</span> <span class="n">pyside_fn</span><span class="o">.</span><span class="n">find_nyx_editor_window</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">level_icon_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">icon_debug</span><span class="p">,</span>
+                               <span class="s2">&quot;INFO&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">icon_info</span><span class="p">,</span>
+                               <span class="s2">&quot;WARNING&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">icon_warning</span><span class="p">,</span>
+                               <span class="s2">&quot;ERROR&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">icon_error</span><span class="p">,</span>
+                               <span class="s2">&quot;CRITICAL&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">icon_error</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_record</span> <span class="o">=</span> <span class="n">log_record</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_record</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">listview</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setToolTip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_record</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">level_icon_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_record</span><span class="o">.</span><span class="n">levelname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">icon_info</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setSizeHint</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sizeHint</span><span class="p">()</span><span class="o">.</span><span class="n">width</span><span class="p">(),</span> <span class="mi">20</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">icon_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_error</span>
+        <span class="n">pixmap</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QStyle</span><span class="o">.</span><span class="n">SP_MessageBoxCritical</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">pixmap</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_error</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">icon_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_warning</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_warning</span>
+        <span class="n">pixmap</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QStyle</span><span class="o">.</span><span class="n">SP_MessageBoxWarning</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_warning</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">pixmap</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_warning</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">icon_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_info</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_info</span>
+        <span class="n">pixmap</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QStyle</span><span class="o">.</span><span class="n">SP_MessageBoxInformation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">pixmap</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_info</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">icon_debug</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_debug</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_debug</span>
+        <span class="n">pixmap</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QStyle</span><span class="o">.</span><span class="n">SP_DialogHelpButton</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_debug</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">pixmap</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_debug</span></div>
+
+
+<div class="viewcode-block" id="LoggerWidget"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget">[docs]</a><span class="k">class</span> <span class="nc">LoggerWidget</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="n">logging_fn</span><span class="o">.</span><span class="n">MAIN_LOGGER_NAME</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_actions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_layouts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LoggerWidget.create_actions"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_actions">[docs]</a>    <span class="k">def</span> <span class="nf">create_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="LoggerWidget.create_widgets"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_widgets">[docs]</a>    <span class="k">def</span> <span class="nf">create_widgets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTextEdit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">setReadOnly</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">setContextMenuPolicy</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">CustomContextMenu</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QListWidget</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="o">.</span><span class="n">setWordWrap</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="o">.</span><span class="n">setContextMenuPolicy</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">CustomContextMenu</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tab_widget</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTabWidget</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tab_widget</span><span class="o">.</span><span class="n">setContentsMargins</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tab_widget</span><span class="o">.</span><span class="n">addTab</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="p">,</span> <span class="s2">&quot;Rich&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tab_widget</span><span class="o">.</span><span class="n">addTab</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="p">,</span> <span class="s2">&quot;Raw&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LoggerWidget.create_layouts"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_layouts">[docs]</a>    <span class="k">def</span> <span class="nf">create_layouts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QVBoxLayout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setContentsMargins</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tab_widget</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LoggerWidget.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">customContextMenuRequested</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">show_raw_output_context_menu</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="o">.</span><span class="n">customContextMenuRequested</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">show_rich_output_context_menu</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">logger</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__logger</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Config</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">auto_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">logger_autoscroll</span>
+
+<div class="viewcode-block" id="LoggerWidget.set_logger"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.set_logger">[docs]</a>    <span class="k">def</span> <span class="nf">set_logger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__logger</span> <span class="o">=</span> <span class="n">logging_fn</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                                              <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">logging_level</span><span class="p">)</span>
+        <span class="n">logging_fn</span><span class="o">.</span><span class="n">add_signal_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__logger</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__logger</span><span class="o">.</span><span class="n">signal_handler</span><span class="o">.</span><span class="n">emitter</span><span class="o">.</span><span class="n">message_logged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_raw_message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__logger</span><span class="o">.</span><span class="n">signal_handler</span><span class="o">.</span><span class="n">emitter</span><span class="o">.</span><span class="n">record_logged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_rich_message</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LoggerWidget.append_raw_message"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.append_raw_message">[docs]</a>    <span class="k">def</span> <span class="nf">append_raw_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_scroll</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">verticalScrollBar</span><span class="p">()</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">verticalScrollBar</span><span class="p">()</span><span class="o">.</span><span class="n">maximum</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="LoggerWidget.append_rich_message"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.append_rich_message">[docs]</a>    <span class="k">def</span> <span class="nf">append_rich_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">logging_fn</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">):</span>
+        <span class="n">log_item</span> <span class="o">=</span> <span class="n">RichLogMessageItem</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="o">.</span><span class="n">addItem</span><span class="p">(</span><span class="n">log_item</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_scroll</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="o">.</span><span class="n">scrollToBottom</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LoggerWidget.show_raw_output_context_menu"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.show_raw_output_context_menu">[docs]</a>    <span class="k">def</span> <span class="nf">show_raw_output_context_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPoint</span><span class="p">):</span>
+        <span class="n">menu</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMenu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="p">)</span>
+        <span class="n">clear_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Clear&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="p">)</span>
+        <span class="n">clear_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">clear</span><span class="p">)</span>
+        <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="n">clear_action</span><span class="p">)</span>
+        <span class="n">menu</span><span class="o">.</span><span class="n">exec_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_out</span><span class="o">.</span><span class="n">mapToGlobal</span><span class="p">(</span><span class="n">point</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="LoggerWidget.show_rich_output_context_menu"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.show_rich_output_context_menu">[docs]</a>    <span class="k">def</span> <span class="nf">show_rich_output_context_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPoint</span><span class="p">):</span>
+        <span class="n">menu</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMenu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="p">)</span>
+        <span class="n">clear_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span><span class="s2">&quot;Clear&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="p">)</span>
+        <span class="n">clear_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="o">.</span><span class="n">clear</span><span class="p">)</span>
+        <span class="n">menu</span><span class="o">.</span><span class="n">addAction</span><span class="p">(</span><span class="n">clear_action</span><span class="p">)</span>
+        <span class="n">menu</span><span class="o">.</span><span class="n">exec_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rich_out</span><span class="o">.</span><span class="n">mapToGlobal</span><span class="p">(</span><span class="n">point</span><span class="p">))</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.logger_widget</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

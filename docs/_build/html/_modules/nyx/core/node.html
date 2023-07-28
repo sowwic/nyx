@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.core.node &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.node</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.core.node</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+
+<span class="kn">from</span> <span class="nn">nyx.core.attribute</span> <span class="kn">import</span> <span class="n">Attribute</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">from</span> <span class="nn">nyx.core.serializable</span> <span class="kn">import</span> <span class="n">Serializable</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">nyx_exceptions</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">inspect_fn</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">file_fn</span>
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Stage</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.graphics.graphics_node</span> <span class="kn">import</span> <span class="n">GraphicsNode</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="NodeSignals"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.NodeSignals">[docs]</a><span class="k">class</span> <span class="nc">NodeSignals</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QObject</span><span class="p">):</span>
+    <span class="n">renamed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">)</span>
+    <span class="n">active_state_changed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">execution_started</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+    <span class="n">execution_succeed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+    <span class="n">execution_failed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+    <span class="n">attr_added</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">Attribute</span><span class="p">)</span>
+    <span class="n">attr_deleted</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">attr_renamed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">input_exec_changed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+    <span class="n">output_exec_changed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Node"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node">[docs]</a><span class="k">class</span> <span class="nc">Node</span><span class="p">(</span><span class="n">QtGui</span><span class="o">.</span><span class="n">QStandardItem</span><span class="p">,</span> <span class="n">Serializable</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Node.Roles"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.Roles">[docs]</a>    <span class="k">class</span> <span class="nc">Roles</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+        <span class="n">ATTRIBUTES</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">UserRole</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">PYTHON_CODE</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+        <span class="n">INPUT_EXEC</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+        <span class="n">OUTPUT_EXEC</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+        <span class="n">ACTIVE_ROLE</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+        <span class="n">EXECUTION_START_PATH</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+        <span class="n">POSITION</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+        <span class="n">COMMENT</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+        <span class="n">REFERENCE_FILE_PATH</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;node&quot;</span><span class="p">,</span>
+                 <span class="n">parent</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str | None&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">QtGui</span><span class="o">.</span><span class="n">QStandardItem</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">Serializable</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_node</span><span class="p">:</span> <span class="s2">&quot;GraphicsNode&quot;</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span> <span class="o">=</span> <span class="n">NodeSignals</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_default_role_values</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">parent</span><span class="p">:</span>
+            <span class="n">parent</span><span class="o">.</span><span class="n">appendRow</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">inspect_fn</span><span class="o">.</span><span class="n">class_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Attribute</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">nyx_exceptions</span><span class="o">.</span><span class="n">NodeNoAttributeExistError</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Added </span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ATTRIBUTES</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_default_role_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">OrderedDict</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ATTRIBUTES</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="nb">str</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">PYTHON_CODE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">INPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">OUTPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ACTIVE_ROLE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">EXECUTION_START_PATH</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">POSITION</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="nb">str</span><span class="p">(),</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">COMMENT</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">REFERENCE_FILE_PATH</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Node name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">parents</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get current node path.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pathlib.PurePosixPath: absolute node path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">path</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">()</span><span class="o">.</span><span class="n">path</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cached_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_path</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stage</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Stage&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Utility method pointing to node&#39;s stage (model).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Stage: stage node belongs to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attribs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;OrderedDict[str, Attribute]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Node attributes dictionnary.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            OrderedDict[str, Attribute]: Node attributes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ATTRIBUTES</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">python_code</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Node python code.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: python code string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">PYTHON_CODE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">REFERENCE_FILE_PATH</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_referenced</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span>
+        <span class="n">nodes</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_parents</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">node</span><span class="o">.</span><span class="n">reference_file_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">])</span>
+
+<div class="viewcode-block" id="Node.cache_current_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.cache_current_path">[docs]</a>    <span class="k">def</span> <span class="nf">cache_current_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Store current path in cache.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cached_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span></div>
+
+<div class="viewcode-block" id="Node.is_active"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.is_active">[docs]</a>    <span class="k">def</span> <span class="nf">is_active</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Query if node&#39;s active state.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: current active state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ACTIVE_ROLE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.set_active"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_active">[docs]</a>    <span class="k">def</span> <span class="nf">set_active</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set active state.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            state (bool): new active state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ACTIVE_ROLE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">active_state_changed</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.deactivate"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.deactivate">[docs]</a>    <span class="k">def</span> <span class="nf">deactivate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set node&#39;s active state to False.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_active</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.activate"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.activate">[docs]</a>    <span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set node&#39;s active state to True.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_active</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.position"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.position">[docs]</a>    <span class="k">def</span> <span class="nf">position</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">POSITION</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.serializable_position"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.serializable_position">[docs]</a>    <span class="k">def</span> <span class="nf">serializable_position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">position</span><span class="o">.</span><span class="n">x</span><span class="p">(),</span> <span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">()]</span></div>
+
+<div class="viewcode-block" id="Node.set_position"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_position">[docs]</a>    <span class="k">def</span> <span class="nf">set_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">POSITION</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.comment"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.comment">[docs]</a>    <span class="k">def</span> <span class="nf">comment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">COMMENT</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.set_comment"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_comment">[docs]</a>    <span class="k">def</span> <span class="nf">set_comment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">COMMENT</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.set_reference_file"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_reference_file">[docs]</a>    <span class="k">def</span> <span class="nf">set_reference_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="s2">&quot;pathlib.Path | str&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+                     <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">REFERENCE_FILE_PATH</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.appendRow"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.appendRow">[docs]</a>    <span class="k">def</span> <span class="nf">appendRow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="s2">&quot;Node&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Override Qt method.</span>
+
+<span class="sd">        - Generates new unique name.</span>
+<span class="sd">        - Set cached path to current.</span>
+<span class="sd">        - Store path into stage path map.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            items (typing.Sequence): items to append.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: path exists in stage path map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">items</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="n">unique_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">generate_unique_node_name</span><span class="p">(</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">parent_node</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">new_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">/</span> <span class="n">unique_name</span>
+            <span class="k">if</span> <span class="n">new_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">path_map</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Duplicate path: </span><span class="si">{</span><span class="n">new_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span>
+
+            <span class="n">node</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">unique_name</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">appendRow</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">node</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="n">new_path</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | added child node </span><span class="si">{</span><span class="n">new_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">node</span><span class="o">.</span><span class="n">cache_current_path</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">_path_map</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span></div>
+
+<div class="viewcode-block" id="Node.rename"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.rename">[docs]</a>    <span class="k">def</span> <span class="nf">rename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rename node.</span>
+
+<span class="sd">        - Also update path for self and children in path map.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_name (str): new node name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">new_name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">old_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span>
+        <span class="n">new_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">generate_unique_node_name</span><span class="p">(</span>
+            <span class="n">new_name</span><span class="p">,</span> <span class="n">parent_node</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_pathmap_entry</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">renamed</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">old_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_update_pathmap_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update path stored for in stage path map.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">_path_map</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">_path_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_current_path</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">child_node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_children</span><span class="p">():</span>
+            <span class="n">child_node</span><span class="o">.</span><span class="n">_update_pathmap_entry</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Node.child_names_set"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.child_names_set">[docs]</a>    <span class="k">def</span> <span class="nf">child_names_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get set of existing child names.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            set[str]: child names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_children</span><span class="p">()}</span></div>
+
+<div class="viewcode-block" id="Node.list_children"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.list_children">[docs]</a>    <span class="k">def</span> <span class="nf">list_children</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[Node]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List child nodes.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[Node]: child nodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rowCount</span><span class="p">())]</span>
+        <span class="k">return</span> <span class="n">children</span></div>
+
+<div class="viewcode-block" id="Node.list_children_paths"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.list_children_paths">[docs]</a>    <span class="k">def</span> <span class="nf">list_children_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[pathlib.PurePosixPath]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List of child paths.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[pathlib.PurePosixPath]: child paths.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">child_node</span><span class="o">.</span><span class="n">cached_path</span> <span class="k">for</span> <span class="n">child_node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_children</span><span class="p">()]</span></div>
+
+<div class="viewcode-block" id="Node.list_children_tree"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.list_children_tree">[docs]</a>    <span class="k">def</span> <span class="nf">list_children_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[Node]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List children tree recursively.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[Node]: child nodes tree.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_children</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+            <span class="n">children</span> <span class="o">+=</span> <span class="n">child</span><span class="o">.</span><span class="n">list_children</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">children</span></div>
+
+<div class="viewcode-block" id="Node.is_parent_of"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.is_parent_of">[docs]</a>    <span class="k">def</span> <span class="nf">is_parent_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_node</span><span class="p">:</span> <span class="s2">&quot;Node | str | pathlib.PurePosixPath&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if given path is path of one of the child nodes.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str | pathlib.PurePosixPath): path to test.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: if path belongs to one of children.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other_node</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">))</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">is_relative_path</span><span class="p">(</span><span class="n">other_node</span><span class="p">):</span>
+            <span class="n">other_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">computer_absolute_path</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span><span class="p">,</span> <span class="n">other_node</span><span class="p">)</span>
+
+        <span class="n">other_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">other_node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">other_node</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_children</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Node.list_parents"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.list_parents">[docs]</a>    <span class="k">def</span> <span class="nf">list_parents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">as_queue</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[Node] | deque[Node]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List parents recursively.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            as_queue (bool, optional): if result should be returned as deque. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[Node] | deque[Node]: parent nodes collection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parents</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">():</span>
+            <span class="n">parents</span><span class="o">.</span><span class="n">appendleft</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">())</span>
+            <span class="n">parents</span><span class="o">.</span><span class="n">extendleft</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">()</span><span class="o">.</span><span class="n">list_parents</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">parents</span> <span class="k">if</span> <span class="n">as_queue</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">parents</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.delete"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete this node from stage.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">delete_node</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.add_attr"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.add_attr">[docs]</a>    <span class="k">def</span> <span class="nf">add_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_unique_attr_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">resolve</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">attr_added</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Node.generate_unique_attr_name"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.generate_unique_attr_name">[docs]</a>    <span class="k">def</span> <span class="nf">generate_unique_attr_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">while</span> <span class="n">name</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">name</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">name</span></div>
+
+<div class="viewcode-block" id="Node.attr"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.attr">[docs]</a>    <span class="k">def</span> <span class="nf">attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Attribute</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get attribute with name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): attribute name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Attribute: attribute instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Node.set_attr"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_attr">[docs]</a>    <span class="k">def</span> <span class="nf">set_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set raw attribute value.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): attribute name.</span>
+<span class="sd">            value (typing.Any): new value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="Node.delete_attr"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.delete_attr">[docs]</a>    <span class="k">def</span> <span class="nf">delete_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete attribute.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): attribute name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Can&#39;t delete attribute </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> that doesn&#39;t exist!&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ATTRIBUTES</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">attr_deleted</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | deleted attr </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.rename_attr"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.rename_attr">[docs]</a>    <span class="k">def</span> <span class="nf">rename_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rename attribute.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): attribute name.</span>
+<span class="sd">            new_name (str): new attribute name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">new_name</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;New attribute name can&#39;t be empty string!&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Can&#39;t rename attribute </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> that doesn&#39;t exist!&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">new_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_unique_attr_name</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">new_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">ATTRIBUTES</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">attr_renamed</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="n">new_name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Node.stacked_attribs"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.stacked_attribs">[docs]</a>    <span class="k">def</span> <span class="nf">stacked_attribs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dictionary of merged dictionaries.</span>
+
+<span class="sd">        parent: {a: 5, b: 10}, child: {a: 15} -&gt; result: {a: 15, b: 10}</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            OrderedDict: merged dictionary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">stacked_attrs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_parents</span><span class="p">(</span><span class="n">as_queue</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">stacked_attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">attribs</span><span class="p">)</span>
+        <span class="n">stacked_attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stacked_attrs</span></div>
+
+<div class="viewcode-block" id="Node.get_input_exec_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.get_input_exec_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_input_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pathlib.PurePosixPath | str | None&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get path for the node that is set as execution dependency.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            serializable (bool, optional): Return value is serializable. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pathlib.PurePosixPath | str | None: Execution dependency node path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">INPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">serializable</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">path</span>
+        <span class="k">return</span> <span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Node.get_output_exec_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.get_output_exec_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pathlib.PurePosixPath | str | None&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get path for the node that is execution dependee of this node.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            serializable (bool, optional): Return value is serializable. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pathlib.PurePosixPath | str | None: Execution dependee node path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">OUTPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">serializable</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">path</span>
+        <span class="k">return</span> <span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Node.is_input_exec_cyclic"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.is_input_exec_cyclic">[docs]</a>    <span class="k">def</span> <span class="nf">is_input_exec_cyclic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">other_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">other_node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">other_node</span><span class="o">.</span><span class="n">get_input_exec_path</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span></div>
+
+<div class="viewcode-block" id="Node.set_input_exec_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_input_exec_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_input_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str | Node&quot;</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set given node as execution dependency.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (pathlib.PurePosixPath | str | Node): Node instance or path.</span>
+<span class="sd">            silent (bool, optional): Do not notify other nodes of the change,</span>
+<span class="sd">            and just set data. Defaults to False.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: Invalid input provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">path</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid input exec path: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid input exec path type&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">INPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">new_input_exec_node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">previous_input_exec_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_input_exec_path</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">new_input_exec_node</span> <span class="o">==</span> <span class="n">previous_input_exec_node</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | exec output set to </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">new_input_exec_node</span> <span class="ow">and</span> <span class="n">new_input_exec_node</span><span class="o">.</span><span class="n">scope</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scope</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid new input scope: </span><span class="si">{</span><span class="n">new_input_exec_node</span><span class="o">.</span><span class="n">scope</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Set connections</span>
+        <span class="k">if</span> <span class="n">new_input_exec_node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">INPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">new_input_exec_node</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                         <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">INPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># Reset old input node</span>
+        <span class="k">if</span> <span class="n">previous_input_exec_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">previous_input_exec_node</span><span class="o">.</span><span class="n">set_output_exec_path</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Get path from new node to self</span>
+        <span class="c1"># If its different from self.path -&gt; store new path</span>
+        <span class="k">if</span> <span class="n">new_input_exec_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">new_input_exec_node</span><span class="o">.</span><span class="n">get_output_exec_path</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+                <span class="n">new_input_exec_node</span><span class="o">.</span><span class="n">set_output_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">input_exec_changed</span><span class="o">.</span><span class="n">emit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Node.set_output_exec_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_output_exec_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_output_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str | Node&quot;</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set given node as execution dependee.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (pathlib.PurePosixPath | str | Node): Dependee node instance or path.</span>
+<span class="sd">            silent (bool, optional): Do not notify other nodes of the change,</span>
+<span class="sd">            and just set data. Defaults to False.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: Invalid input provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">path</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid output exec path: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid output exec path type&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">OUTPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">new_output_exec_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">previous_output_exec_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_output_exec_path</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">new_output_exec_node</span> <span class="o">==</span> <span class="n">previous_output_exec_node</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | exec output set to </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">new_output_exec_node</span> <span class="ow">and</span> <span class="n">new_output_exec_node</span><span class="o">.</span><span class="n">scope</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scope</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid new output scope: </span><span class="si">{</span><span class="n">new_output_exec_node</span><span class="o">.</span><span class="n">scope</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="c1"># Set connections</span>
+        <span class="k">if</span> <span class="n">new_output_exec_node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">OUTPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">new_output_exec_node</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                         <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">OUTPUT_EXEC</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># Reset old output node</span>
+        <span class="k">if</span> <span class="n">previous_output_exec_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">previous_output_exec_node</span><span class="o">.</span><span class="n">set_input_exec_path</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Get path from new node to self</span>
+        <span class="c1"># If its different from self.path -&gt; store new path</span>
+        <span class="k">if</span> <span class="n">new_output_exec_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">new_output_exec_node</span><span class="o">.</span><span class="n">get_output_exec_path</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+                <span class="n">new_output_exec_node</span><span class="o">.</span><span class="n">set_input_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">output_exec_changed</span><span class="o">.</span><span class="n">emit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Node.on_changed"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.on_changed">[docs]</a>    <span class="k">def</span> <span class="nf">on_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Node.serialize"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize node to dict.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            OrderedDict: serialized data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="n">child</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_children</span><span class="p">()]</span>
+        <span class="n">attribs</span> <span class="o">=</span> <span class="p">[</span><span class="n">attr</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;node&quot;</span>
+        <span class="p">}</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;active&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_active</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;position&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serializable_position</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;input_exec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_input_exec_path</span><span class="p">(</span><span class="n">serializable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;output_exec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_exec_path</span><span class="p">(</span><span class="n">serializable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_file_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;reference_file_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_file_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;execution_start_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">(</span>
+                <span class="n">serializable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;attribs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attribs</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;children&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">children</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">python_code</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comment</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="Node.deserialize"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.deserialize">[docs]</a>    <span class="k">def</span> <span class="nf">deserialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deserialize node from serialized node dictionary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (OrderedDict): Node data dictionary.</span>
+<span class="sd">            restore_id (bool, optional): Restore node uuid. Defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="n">restore_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Roles that should exist for normal and reference nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_active</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_input_exec_path</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input_exec&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_output_exec_path</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_exec&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_position</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])))</span>
+
+        <span class="c1"># Get data from reference</span>
+        <span class="n">reference_file_path</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reference_file_path&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reference_file_path</span><span class="p">:</span>
+            <span class="n">reference_file_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">reference_file_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_reference_file</span><span class="p">(</span><span class="n">reference_file_path</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_reference_file_data</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_execution_start_path</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;execution_start_path&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_python_code</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_comment</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;comment&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_pathmap_entry</span><span class="p">()</span>
+
+        <span class="c1"># Attributes</span>
+        <span class="k">for</span> <span class="n">attr_data</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attribs&quot;</span><span class="p">,</span> <span class="p">{}):</span>
+            <span class="n">attr_name</span> <span class="o">=</span> <span class="n">attr_data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">attr_name</span><span class="p">]</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">attr_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Children</span>
+        <span class="k">for</span> <span class="n">child_data</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;children&quot;</span><span class="p">,</span> <span class="p">{}):</span>
+            <span class="n">child_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">child_node</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">child_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_load_reference_file_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_file_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="n">constants</span><span class="o">.</span><span class="n">NYX_FILE_EXTENSION</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">file_fn</span><span class="o">.</span><span class="n">load_json</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reference_file_path</span><span class="p">,</span> <span class="n">object_pairs_hook</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;stage&quot;</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">convert_stage_to_node</span><span class="p">(</span>
+                        <span class="n">stage</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_file_path</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Invalid file type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reference file doesn&#39;t exist: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="Node.export_to_json"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.export_to_json">[docs]</a>    <span class="k">def</span> <span class="nf">export_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Export node to json file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (pathlib.Path): json file path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="n">file_fn</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.load_from_json"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.load_from_json">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load node from json file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (pathlib.Path): json file path.</span>
+<span class="sd">            as_reference (bool, optional): if node should be locked. Defaults to False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">json_data</span> <span class="o">=</span> <span class="n">file_fn</span><span class="o">.</span><span class="n">load_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">object_pairs_hook</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">json_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.get_python_code"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.get_python_code">[docs]</a>    <span class="k">def</span> <span class="nf">get_python_code</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Node python code.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: python code.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">python_code</span></div>
+
+<div class="viewcode-block" id="Node.set_python_code"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_python_code">[docs]</a>    <span class="k">def</span> <span class="nf">set_python_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code_str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set python code string.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            code_str (str): python code.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span><span class="n">code_str</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">PYTHON_CODE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.resolve_python_code"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.resolve_python_code">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_python_code</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Node.resolve"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.resolve">[docs]</a>    <span class="k">def</span> <span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">attr</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Node.execute_code"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.execute_code">[docs]</a>    <span class="k">def</span> <span class="nf">execute_code</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute code string.&quot;&quot;&quot;</span>
+        <span class="n">exec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">python_code</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;self&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="Node.clear_attributes_caches"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.clear_attributes_caches">[docs]</a>    <span class="k">def</span> <span class="nf">clear_attributes_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear all attributes caches.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">attr</span><span class="o">.</span><span class="n">clear_cache</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Node.cache_attributes_values"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.cache_attributes_values">[docs]</a>    <span class="k">def</span> <span class="nf">cache_attributes_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Push current attributes values to cache.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attribs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">attr</span><span class="o">.</span><span class="n">cache_current_value</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Node.set_execution_start_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.set_execution_start_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_execution_start_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">child_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str | None&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set execution start path to one of the child node&#39;s path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            child_path (pathlib.PurePosixPath | None): execution start node path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child_path</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+            <span class="n">child_path</span> <span class="o">=</span> <span class="n">child_path</span><span class="o">.</span><span class="n">cached_path</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">child_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">child_path</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setData</span><span class="p">(</span>
+            <span class="n">child_path</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">EXECUTION_START_PATH</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Set execution start path to: </span><span class="si">{</span><span class="n">child_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Node.get_execution_start_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.get_execution_start_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_execution_start_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pathlib.PurePosixPath | str | None&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get execution start path. Can be child path or None.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            serializable (bool, optional): get path as jsonable str or None. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pathlib.PurePosixPath | str | None: execution start path</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">Node</span><span class="o">.</span><span class="n">Roles</span><span class="o">.</span><span class="n">EXECUTION_START_PATH</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">serializable</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">path</span></div>
+
+<div class="viewcode-block" id="Node.build_execution_queue"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.build_execution_queue">[docs]</a>    <span class="k">def</span> <span class="nf">build_execution_queue</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;deque[pathlib.PurePosixPath]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build execution queue from given node.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            deque[pathlib.PurePosixPath]: Execution queue.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">exec_queue</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_active</span><span class="p">():</span>
+            <span class="n">exec_queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span><span class="p">)</span>
+            <span class="n">child_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">child_path</span><span class="p">:</span>
+                <span class="c1"># TODO: check if relative and convert to abs</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">is_relative_path</span><span class="p">(</span><span class="n">child_path</span><span class="p">):</span>
+                    <span class="n">child_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">resolver</span><span class="o">.</span><span class="n">computer_absolute_path</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span><span class="p">,</span> <span class="n">child_path</span><span class="p">)</span>
+                <span class="n">child_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">child_path</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">child_node</span><span class="p">:</span>
+                    <span class="n">exec_queue</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">child_node</span><span class="o">.</span><span class="n">build_execution_queue</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | start path doesn&#39;t exist: </span><span class="si">{</span><span class="n">child_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">output_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_exec_path</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">output_path</span><span class="p">:</span>
+            <span class="n">output_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">output_node</span><span class="p">:</span>
+                <span class="n">exec_queue</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">output_node</span><span class="o">.</span><span class="n">build_execution_queue</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | output exec path doesn&#39;t exist: </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">exec_queue</span></div>
+
+<div class="viewcode-block" id="Node.execute"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.node.Node.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute this node.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            err: run time exception raised during code execution.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_active</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">execution_started</span><span class="o">.</span><span class="n">emit</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache_attributes_values</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">execute_code</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Execution error.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">execution_failed</span><span class="o">.</span><span class="n">emit</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">err</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">execution_succeed</span><span class="o">.</span><span class="n">emit</span><span class="p">()</span>
+        <span class="n">total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Executed in </span><span class="si">{</span><span class="n">total_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cached_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.node</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

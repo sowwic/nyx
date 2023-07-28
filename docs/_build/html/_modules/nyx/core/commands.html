@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.core.commands &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.commands</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.core.commands</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Stage</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="NyxCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.NyxCommand">[docs]</a><span class="k">class</span> <span class="nc">NyxCommand</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">parent_command</span><span class="o">=</span><span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span> <span class="o">=</span> <span class="n">stage</span></div>
+
+
+<div class="viewcode-block" id="CreateNodeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.CreateNodeCommand">[docs]</a><span class="k">class</span> <span class="nc">CreateNodeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="n">Stage</span><span class="p">,</span>
+                 <span class="n">node_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;node&quot;</span><span class="p">,</span>
+                 <span class="n">parent_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">position</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">(),</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Create Node&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="o">=</span><span class="n">parent_command</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">,</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPoint</span><span class="p">)):</span>
+            <span class="n">position</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">(</span><span class="o">*</span><span class="n">position</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent_path</span> <span class="o">=</span> <span class="n">parent_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_name</span> <span class="o">=</span> <span class="n">node_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">:</span> <span class="n">OrderedDict</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="CreateNodeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.CreateNodeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">:</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">set_position</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Create node (</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CreateNodeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.CreateNodeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">delete_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="DeleteNodeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DeleteNodeCommand">[docs]</a><span class="k">class</span> <span class="nc">DeleteNodeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="n">Stage</span><span class="p">,</span>
+                 <span class="n">nodes</span><span class="p">:</span> <span class="s2">&quot;list[Node | pathlib.PurePosixPath | str]&quot;</span><span class="p">,</span>
+                 <span class="n">command_text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Delete node&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">command_text</span><span class="p">,</span> <span class="n">parent_command</span><span class="o">=</span><span class="n">parent_command</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodes</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">each_node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="n">each_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">each_node</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">each_node</span><span class="o">.</span><span class="n">serialize</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deleted_paths</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Delete node (</span><span class="si">{</span><span class="n">nodes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Deleted nodes&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DeleteNodeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DeleteNodeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deleted_paths</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">serialized_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">node_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">))</span>
+                            <span class="k">for</span> <span class="n">node_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span><span class="p">]</span>
+        <span class="n">serialized_paths_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">serialized_paths</span><span class="p">)</span>
+
+        <span class="c1"># Filter paths to delete, so that only parent paths are deleted.</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">serialized_paths</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">parents</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">serialized_paths_set</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">deleted_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">delete_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deleted_paths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DeleteNodeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DeleteNodeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span><span class="p">:</span>
+            <span class="n">node_path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span>
+                <span class="n">node_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">node_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted_paths</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">parent_path</span> <span class="o">=</span> <span class="n">node_path</span><span class="o">.</span><span class="n">parent</span>
+            <span class="n">new_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent_path</span><span class="p">)</span>
+            <span class="n">new_node</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">node_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="RenameNodeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.RenameNodeCommand">[docs]</a><span class="k">class</span> <span class="nc">RenameNodeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="n">Stage</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">new_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Rename node&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="o">=</span><span class="n">parent_command</span><span class="p">)</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_name</span> <span class="o">=</span> <span class="n">new_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renamed_node_data</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Rename node (</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">new_name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RenameNodeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.RenameNodeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">))</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">renamed_node_data</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="RenameNodeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.RenameNodeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">renamed_node_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">))</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">old_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="AddNodeAttributeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.AddNodeAttributeCommand">[docs]</a><span class="k">class</span> <span class="nc">AddNodeAttributeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">attr_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">attr_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">attr_resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Add attr&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span> <span class="o">=</span> <span class="n">attr_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_value</span> <span class="o">=</span> <span class="n">attr_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_resolve</span> <span class="o">=</span> <span class="n">attr_resolve</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AddNodeAttributeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.AddNodeAttributeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">new_attr</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">add_attr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_value</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_resolve</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span> <span class="o">=</span> <span class="n">new_attr</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AddNodeAttributeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.AddNodeAttributeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">delete_attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="DeleteNodeAttributeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DeleteNodeAttributeCommand">[docs]</a><span class="k">class</span> <span class="nc">DeleteNodeAttributeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">attr_names</span><span class="p">:</span> <span class="s2">&quot;list[str]&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Delete attrs&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_names</span> <span class="o">=</span> <span class="n">attr_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs_serialized</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_names</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DeleteNodeAttributeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DeleteNodeAttributeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs_serialized</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs_serialized</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr_names</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr_names</span><span class="p">:</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">delete_attr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DeleteNodeAttributeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DeleteNodeAttributeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attr_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs_serialized</span><span class="p">:</span>
+            <span class="n">attr_name</span> <span class="o">=</span> <span class="n">attr_data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">add_attr</span><span class="p">(</span><span class="n">attr_name</span><span class="p">)</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="n">attr_name</span><span class="p">)</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">attr_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="RenameNodeAttributeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.RenameNodeAttributeCommand">[docs]</a><span class="k">class</span> <span class="nc">RenameNodeAttributeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">attr_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">new_attr_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Rename attr&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span> <span class="o">=</span> <span class="n">attr_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_attr_name</span> <span class="o">=</span> <span class="n">new_attr_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="si">}</span><span class="s2">) -&gt; &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">new_attr_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RenameNodeAttributeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.RenameNodeAttributeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_attr_name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">rename_attr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_attr_name</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="RenameNodeAttributeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.RenameNodeAttributeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">rename_attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_attr_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SetNodeAttributeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeAttributeCommand">[docs]</a><span class="k">class</span> <span class="nc">SetNodeAttributeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">attr_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">attr_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Set attr&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span> <span class="o">=</span> <span class="n">attr_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attr_value</span> <span class="o">=</span> <span class="n">attr_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_attr_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="si">}</span><span class="s2">) -&gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SetNodeAttributeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeAttributeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_attr_value</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr_value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SetNodeAttributeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeAttributeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_attr_value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="ConnectAttributeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.ConnectAttributeCommand">[docs]</a><span class="k">class</span> <span class="nc">ConnectAttributeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">source_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">destination_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">source_attr_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">destination_attr_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">resolve_on_connect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Connect attr&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">source_node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination_node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">destination_node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_attr_name</span> <span class="o">=</span> <span class="n">source_attr_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_name</span> <span class="o">=</span> <span class="n">destination_attr_name</span>
+
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">destination_attr_name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_old_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolve_on_connect</span> <span class="o">=</span> <span class="n">resolve_on_connect</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source_node_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source_attr_name</span><span class="si">}</span><span class="s2">) -&gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_node_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>  <span class="c1"># noqa: E501</span>
+
+<div class="viewcode-block" id="ConnectAttributeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.ConnectAttributeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">source_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_node_path</span><span class="p">)</span>
+        <span class="n">destination_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_old_value</span> <span class="o">=</span> <span class="n">destination_node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_name</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">source_node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_attr_name</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="n">destination_node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_name</span><span class="p">),</span> <span class="n">resolve</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">resolve_on_connect</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ConnectAttributeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.ConnectAttributeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">destination_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_node_path</span><span class="p">)</span>
+        <span class="n">destination_node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_name</span><span class="p">)</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">destination_attr_old_value</span><span class="p">,</span> <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SetNodeExecStartCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeExecStartCommand">[docs]</a><span class="k">class</span> <span class="nc">SetNodeExecStartCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str | None&quot;</span><span class="p">,</span>
+                 <span class="n">path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str | Node&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Set exec start -&gt;&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_exec_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="si">}</span><span class="s2"> exec start -&gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SetNodeExecStartCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeExecStartCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_exec_path</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">set_execution_start_path</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SetNodeExecStartCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeExecStartCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">set_execution_start_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_exec_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SetStageExecStartCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetStageExecStartCommand">[docs]</a><span class="k">class</span> <span class="nc">SetStageExecStartCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str | Node&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Set stage exec start -&gt; &quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_exec_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SetStageExecStartCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetStageExecStartCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_exec_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">set_execution_start_path</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SetStageExecStartCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetStageExecStartCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">set_execution_start_path</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_exec_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="ConnectNodeExecCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.ConnectNodeExecCommand">[docs]</a><span class="k">class</span> <span class="nc">ConnectNodeExecCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">output_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">input_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Connect exec&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">output_node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">input_node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_output_node_exec_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_input_node_exec_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_node_path</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_node_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ConnectNodeExecCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.ConnectNodeExecCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_node_path</span><span class="p">)</span>
+        <span class="n">input_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_output_node_exec_value</span> <span class="o">=</span> <span class="n">output_node</span><span class="o">.</span><span class="n">get_output_exec_path</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_input_node_exec_value</span> <span class="o">=</span> <span class="n">input_node</span><span class="o">.</span><span class="n">get_input_exec_path</span><span class="p">()</span>
+        <span class="n">input_node</span><span class="o">.</span><span class="n">set_input_exec_path</span><span class="p">(</span><span class="n">output_node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ConnectNodeExecCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.ConnectNodeExecCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_node_path</span><span class="p">)</span>
+        <span class="n">input_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_node_path</span><span class="p">)</span>
+        <span class="n">output_node</span><span class="o">.</span><span class="n">set_output_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">old_output_node_exec_value</span><span class="p">)</span>
+        <span class="n">input_node</span><span class="o">.</span><span class="n">set_input_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">old_input_node_exec_value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="DisconnectNodeInputExecCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DisconnectNodeInputExecCommand">[docs]</a><span class="k">class</span> <span class="nc">DisconnectNodeInputExecCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Disconnect exec input&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_input_exec_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="DisconnectNodeInputExecCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DisconnectNodeInputExecCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_input_exec_path</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_input_exec_path</span><span class="p">()</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_input_exec_path</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DisconnectNodeInputExecCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.DisconnectNodeInputExecCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_input_exec_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">previous_input_exec_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="EditNodePythonCodeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.EditNodePythonCodeCommand">[docs]</a><span class="k">class</span> <span class="nc">EditNodePythonCodeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str | None&quot;</span><span class="p">,</span>
+                 <span class="n">new_code</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Edit code&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_code</span> <span class="o">=</span> <span class="n">new_code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_code</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_python_code</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Edit code (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EditNodePythonCodeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.EditNodePythonCodeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_python_code</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="EditNodePythonCodeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.EditNodePythonCodeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_python_code</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">old_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SetNodeActiveStateCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeActiveStateCommand">[docs]</a><span class="k">class</span> <span class="nc">SetNodeActiveStateCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str | None&quot;</span><span class="p">,</span>
+                 <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Set active state&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_state</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_state</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">new_state</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SetNodeActiveStateCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeActiveStateCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_state</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">is_active</span><span class="p">()</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_active</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SetNodeActiveStateCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeActiveStateCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_active</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">old_state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SetNodeCommentCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeCommentCommand">[docs]</a><span class="k">class</span> <span class="nc">SetNodeCommentCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str | None&quot;</span><span class="p">,</span>
+                 <span class="n">comment</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Edit comment for&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_comment</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_comment</span> <span class="o">=</span> <span class="n">comment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SetNodeCommentCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeCommentCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_comment</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">comment</span><span class="p">()</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_comment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_comment</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SetNodeCommentCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.SetNodeCommentCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">set_comment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">old_comment</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="PasteNodesCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.PasteNodesCommand">[docs]</a><span class="k">class</span> <span class="nc">PasteNodesCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">serialize_nodes</span><span class="p">:</span> <span class="s2">&quot;list[OrderedDict]&quot;</span><span class="p">,</span>
+                 <span class="n">position</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">,</span>
+                 <span class="n">parent_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str | None&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Paste nodes&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span> <span class="o">=</span> <span class="n">serialize_nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">created_node_paths</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">parent_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">parent_node</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parent_node</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent_path</span> <span class="o">=</span> <span class="n">parent_node</span><span class="o">.</span><span class="n">path</span>
+
+<div class="viewcode-block" id="PasteNodesCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.PasteNodesCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">created_node_paths</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_serialized_nodes</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">node_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span><span class="p">:</span>
+            <span class="n">node_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">node_data</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+            <span class="c1"># Create new node and store it&#39;s path</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adding </span><span class="si">{</span><span class="n">node_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">new_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;pasted_node&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">new_node</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parent_path</span><span class="p">)</span>
+            <span class="n">new_node</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">node_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">paste_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_paste_position</span><span class="p">(</span><span class="n">new_node</span><span class="o">.</span><span class="n">position</span><span class="p">())</span>
+            <span class="n">new_node</span><span class="o">.</span><span class="n">set_position</span><span class="p">(</span><span class="n">paste_position</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">created_node_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_node</span><span class="o">.</span><span class="n">cached_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PasteNodesCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.PasteNodesCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">delete_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">created_node_paths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PasteNodesCommand.filter_serialized_nodes"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.PasteNodesCommand.filter_serialized_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">filter_serialized_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Filter out nodes that are already in the stage.</span>
+
+<span class="sd">        If parent of copied node is about to be pasted child will be skipped to avoid duplication.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">serialized_paths</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">node_data</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">node_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span><span class="p">]</span>
+        <span class="n">serialized_paths_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">serialized_paths</span><span class="p">)</span>
+        <span class="n">indexes_to_remove</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Iterate over all serialized nodes and check if any of their parents are about to be pasted</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">node_data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span><span class="p">):</span>
+            <span class="n">node_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">node_data</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+            <span class="c1"># Check if parents of serialized node are serizalized as well.</span>
+            <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">node_path</span><span class="o">.</span><span class="n">parents</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">serialized_paths_set</span><span class="p">):</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping paste: </span><span class="si">{</span><span class="n">node_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">indexes_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="c1"># Remove nodes that are about to be pasted as children</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">indexes_to_remove</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">serialized_nodes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PasteNodesCommand.get_paste_position"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.PasteNodesCommand.get_paste_position">[docs]</a>    <span class="k">def</span> <span class="nf">get_paste_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serialized_node_position</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">):</span>
+        <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">,</span> <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span> <span class="o">=</span> <span class="mi">10_000_000</span><span class="p">,</span> <span class="o">-</span><span class="mi">10_000_000</span><span class="p">,</span> <span class="mi">10_000_000</span><span class="p">,</span> <span class="o">-</span><span class="mi">10_000_000</span>
+        <span class="n">pos_x</span> <span class="o">=</span> <span class="n">serialized_node_position</span><span class="o">.</span><span class="n">x</span><span class="p">()</span>
+        <span class="n">pos_y</span> <span class="o">=</span> <span class="n">serialized_node_position</span><span class="o">.</span><span class="n">y</span><span class="p">()</span>
+        <span class="n">min_x</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">pos_x</span><span class="p">,</span> <span class="n">min_x</span><span class="p">)</span>
+        <span class="n">max_x</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">pos_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">)</span>
+        <span class="n">min_y</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">pos_y</span><span class="p">,</span> <span class="n">min_y</span><span class="p">)</span>
+        <span class="n">max_y</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">pos_y</span><span class="p">,</span> <span class="n">max_y</span><span class="p">)</span>
+
+        <span class="n">new_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span><span class="p">()</span> <span class="o">+</span> <span class="n">pos_x</span> <span class="o">-</span> <span class="n">min_x</span>
+        <span class="n">new_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">()</span> <span class="o">+</span> <span class="n">pos_y</span> <span class="o">-</span> <span class="n">min_y</span>
+        <span class="k">return</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">(</span><span class="n">new_x</span><span class="p">,</span> <span class="n">new_y</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MoveNodeCommand"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.MoveNodeCommand">[docs]</a><span class="k">class</span> <span class="nc">MoveNodeCommand</span><span class="p">(</span><span class="n">NyxCommand</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span>
+                 <span class="n">nodes</span><span class="p">:</span> <span class="s2">&quot;list[Node] | list[pathlib.PurePosixPath] | list[str]&quot;</span><span class="p">,</span>
+                 <span class="n">new_positions</span><span class="p">:</span> <span class="s2">&quot;list[QtCore.QPointF]&quot;</span><span class="p">,</span>
+                 <span class="n">parent_command</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoCommand</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="s2">&quot;Moved nodes&quot;</span><span class="p">,</span> <span class="n">parent_command</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">deque</span><span class="p">)):</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodes</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_positions</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">deque</span><span class="p">)):</span>
+            <span class="n">new_positions</span> <span class="o">=</span> <span class="p">[</span><span class="n">new_positions</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_paths</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">path</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">old_positions</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">position</span><span class="p">()</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_positions</span> <span class="o">=</span> <span class="n">new_positions</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">node_paths</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MoveNodeCommand.redo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.MoveNodeCommand.redo">[docs]</a>    <span class="k">def</span> <span class="nf">redo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">new_pos</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_paths</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_positions</span><span class="p">):</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">set_position</span><span class="p">(</span><span class="n">new_pos</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span><span class="o">.</span><span class="n">pos</span><span class="p">()</span> <span class="o">!=</span> <span class="n">new_pos</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span><span class="o">.</span><span class="n">setPos</span><span class="p">(</span><span class="n">new_pos</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">redo</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MoveNodeCommand.undo"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.commands.MoveNodeCommand.undo">[docs]</a>    <span class="k">def</span> <span class="nf">undo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">old_pos</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_paths</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_positions</span><span class="p">):</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">set_position</span><span class="p">(</span><span class="n">old_pos</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span><span class="o">.</span><span class="n">pos</span><span class="p">()</span> <span class="o">!=</span> <span class="n">old_pos</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span><span class="o">.</span><span class="n">setPos</span><span class="p">(</span><span class="n">old_pos</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">undo</span><span class="p">()</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.commands</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

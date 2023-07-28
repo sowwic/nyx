@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>nyx.editor.views package &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="nyx-editor-views-package">
+<h1>nyx.editor.views package<a class="headerlink" href="#nyx-editor-views-package" title="Permalink to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-nyx.editor.views.stage_graph_view">
+<span id="nyx-editor-views-stage-graph-view-module"></span><h2>nyx.editor.views.stage_graph_view module<a class="headerlink" href="#module-nyx.editor.views.stage_graph_view" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nyx.editor.views.stage_graph_view.</span></span><span class="sig-name descname"><span class="pre">StageGraphView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph_editor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor" title="nyx.editor.widgets.stage_graph_editor.StageGraphEditor"><span class="pre">StageGraphEditor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QWidget</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">QGraphicsView</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.EDGE_DRAG_START_THRESHOLD">
+<span class="sig-name descname"><span class="pre">EDGE_DRAG_START_THRESHOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">50</span></em><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.EDGE_DRAG_START_THRESHOLD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.HIGH_QUALITY_ZOOM">
+<span class="sig-name descname"><span class="pre">HIGH_QUALITY_ZOOM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.HIGH_QUALITY_ZOOM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">InteractionMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.InteractionMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode.EDGE_CUT">
+<span class="sig-name descname"><span class="pre">EDGE_CUT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode.EDGE_CUT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode.EDGE_DRAG">
+<span class="sig-name descname"><span class="pre">EDGE_DRAG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode.EDGE_DRAG" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode.NOOP">
+<span class="sig-name descname"><span class="pre">NOOP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode.NOOP" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.copy_selected_nodes">
+<span class="sig-name descname"><span class="pre">copy_selected_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.copy_selected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.copy_selected_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.create_actions">
+<span class="sig-name descname"><span class="pre">create_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.create_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.create_actions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.create_connections">
+<span class="sig-name descname"><span class="pre">create_connections</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.create_connections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.create_connections" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.create_layouts">
+<span class="sig-name descname"><span class="pre">create_layouts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.create_layouts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.create_layouts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.create_new_node">
+<span class="sig-name descname"><span class="pre">create_new_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.create_new_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.create_new_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.create_widgets">
+<span class="sig-name descname"><span class="pre">create_widgets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.create_widgets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.create_widgets" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.cut_intersecting_edges">
+<span class="sig-name descname"><span class="pre">cut_intersecting_edges</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.cut_intersecting_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.cut_intersecting_edges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.cut_selected_nodes">
+<span class="sig-name descname"><span class="pre">cut_selected_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.cut_selected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.cut_selected_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.delete_selected">
+<span class="sig-name descname"><span class="pre">delete_selected</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.delete_selected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.delete_selected" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.dragEnterEvent">
+<span class="sig-name descname"><span class="pre">dragEnterEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QDragEnterEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.dragEnterEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.dragEnterEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.dropEvent">
+<span class="sig-name descname"><span class="pre">dropEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QDropEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.dropEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.dropEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.focus_on_selected_nodes">
+<span class="sig-name descname"><span class="pre">focus_on_selected_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.focus_on_selected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.focus_on_selected_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.get_center_position">
+<span class="sig-name descname"><span class="pre">get_center_position</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">QPointF</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.get_center_position"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.get_center_position" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.get_item_at_click">
+<span class="sig-name descname"><span class="pre">get_item_at_click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMouseEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">QGraphicsItem</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.get_item_at_click"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.get_item_at_click" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object at click event position</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.gr_stage">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">gr_stage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage" title="nyx.editor.graphics.graphics_stage.GraphicsStage"><span class="pre">GraphicsStage</span></a></em><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.gr_stage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.interaction_mode">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">interaction_mode</span></span><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.interaction_mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.is_dragging">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_dragging</span></span><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.is_dragging" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.item_drag_entered">
+<span class="sig-name descname"><span class="pre">item_drag_entered</span></span><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.item_drag_entered" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.item_dropped">
+<span class="sig-name descname"><span class="pre">item_dropped</span></span><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.item_dropped" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.left_mouse_press">
+<span class="sig-name descname"><span class="pre">left_mouse_press</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMouseEvent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.left_mouse_press"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.left_mouse_press" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.left_mouse_release">
+<span class="sig-name descname"><span class="pre">left_mouse_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMouseEvent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.left_mouse_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.left_mouse_release" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.middle_mouse_press">
+<span class="sig-name descname"><span class="pre">middle_mouse_press</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMouseEvent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.middle_mouse_press"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.middle_mouse_press" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.middle_mouse_release">
+<span class="sig-name descname"><span class="pre">middle_mouse_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMouseEvent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.middle_mouse_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.middle_mouse_release" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.mouseDoubleClickEvent">
+<span class="sig-name descname"><span class="pre">mouseDoubleClickEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QMouseEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.mouseDoubleClickEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.mouseDoubleClickEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.mouseMoveEvent">
+<span class="sig-name descname"><span class="pre">mouseMoveEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QMouseEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.mouseMoveEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.mouseMoveEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.mousePressEvent">
+<span class="sig-name descname"><span class="pre">mousePressEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QMouseEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.mousePressEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.mousePressEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.mouseReleaseEvent">
+<span class="sig-name descname"><span class="pre">mouseReleaseEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QMouseEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.mouseReleaseEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.mouseReleaseEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.paste_nodes_from_clipboard">
+<span class="sig-name descname"><span class="pre">paste_nodes_from_clipboard</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.paste_nodes_from_clipboard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.paste_nodes_from_clipboard" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.right_mouse_press">
+<span class="sig-name descname"><span class="pre">right_mouse_press</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMouseEvent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.right_mouse_press"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.right_mouse_press" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.right_mouse_release">
+<span class="sig-name descname"><span class="pre">right_mouse_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMouseEvent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.right_mouse_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.right_mouse_release" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.set_interaction_mode">
+<span class="sig-name descname"><span class="pre">set_interaction_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode" title="nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode"><span class="pre">InteractionMode</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.set_interaction_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.set_interaction_mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.set_selected_node_as_parent_execution_start">
+<span class="sig-name descname"><span class="pre">set_selected_node_as_parent_execution_start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.set_selected_node_as_parent_execution_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.set_selected_node_as_parent_execution_start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.show_context_menu">
+<span class="sig-name descname"><span class="pre">show_context_menu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QPoint</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.show_context_menu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.show_context_menu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.stage">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stage</span></span><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.stage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.staticMetaObject">
+<span class="sig-name descname"><span class="pre">staticMetaObject</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;PySide2.QtCore.QMetaObject</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.update_actions">
+<span class="sig-name descname"><span class="pre">update_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.update_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.update_actions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.update_render_hints">
+<span class="sig-name descname"><span class="pre">update_render_hints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.update_render_hints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.update_render_hints" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_graph_view.StageGraphView.wheelEvent">
+<span class="sig-name descname"><span class="pre">wheelEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QWheelEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_graph_view.html#StageGraphView.wheelEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_graph_view.StageGraphView.wheelEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-nyx.editor.views.stage_tree_view">
+<span id="nyx-editor-views-stage-tree-view-module"></span><h2>nyx.editor.views.stage_tree_view module<a class="headerlink" href="#module-nyx.editor.views.stage_tree_view" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nyx.editor.views.stage_tree_view.</span></span><span class="sig-name descname"><span class="pre">StageTreeView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QWidget</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">QTreeView</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_node_path">
+<span class="sig-name descname"><span class="pre">copy_selected_node_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.copy_selected_node_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_node_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_nodes">
+<span class="sig-name descname"><span class="pre">copy_selected_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.copy_selected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.create_actions">
+<span class="sig-name descname"><span class="pre">create_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.create_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.create_actions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.create_connections">
+<span class="sig-name descname"><span class="pre">create_connections</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.create_connections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.create_connections" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.create_new_node">
+<span class="sig-name descname"><span class="pre">create_new_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.create_new_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.create_new_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.current_node">
+<span class="sig-name descname"><span class="pre">current_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="nyx.core.html#nyx.core.node.Node" title="nyx.core.node.Node"><span class="pre">Node</span></a></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.current_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.current_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.current_stage_graph">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">current_stage_graph</span></span><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.current_stage_graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.cut_selected_nodes">
+<span class="sig-name descname"><span class="pre">cut_selected_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.cut_selected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.cut_selected_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.delete_selected_node">
+<span class="sig-name descname"><span class="pre">delete_selected_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.delete_selected_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.delete_selected_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.keyPressEvent">
+<span class="sig-name descname"><span class="pre">keyPressEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QKeyEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.keyPressEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.keyPressEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.main_window">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">main_window</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow" title="nyx.editor.main_window.NyxEditorMainWindow"><span class="pre">NyxEditorMainWindow</span></a></em><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.main_window" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.mousePressEvent">
+<span class="sig-name descname"><span class="pre">mousePressEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QMouseEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.mousePressEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.mousePressEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.node_doubleclicked">
+<span class="sig-name descname"><span class="pre">node_doubleclicked</span></span><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.node_doubleclicked" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.nodes_deselected">
+<span class="sig-name descname"><span class="pre">nodes_deselected</span></span><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.nodes_deselected" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.nodes_selected">
+<span class="sig-name descname"><span class="pre">nodes_selected</span></span><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.nodes_selected" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.paste_nodes_from_clipboard">
+<span class="sig-name descname"><span class="pre">paste_nodes_from_clipboard</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.paste_nodes_from_clipboard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.paste_nodes_from_clipboard" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.select_paths">
+<span class="sig-name descname"><span class="pre">select_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.PurePosixPath</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.select_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.select_paths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.selected_nodes">
+<span class="sig-name descname"><span class="pre">selected_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">deque</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="nyx.core.html#nyx.core.node.Node" title="nyx.core.node.Node"><span class="pre">Node</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.selected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.selected_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.selectionChanged">
+<span class="sig-name descname"><span class="pre">selectionChanged</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtCore.QItemSelection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deselected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtCore.QItemSelection</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.selectionChanged"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.selectionChanged" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.selection_changed">
+<span class="sig-name descname"><span class="pre">selection_changed</span></span><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.selection_changed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.set_selected_item_as_parents_execution_start">
+<span class="sig-name descname"><span class="pre">set_selected_item_as_parents_execution_start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.set_selected_item_as_parents_execution_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.set_selected_item_as_parents_execution_start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.set_stage">
+<span class="sig-name descname"><span class="pre">set_stage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.set_stage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.set_stage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.show_context_menu">
+<span class="sig-name descname"><span class="pre">show_context_menu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QPoint</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/views/stage_tree_view.html#StageTreeView.show_context_menu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.show_context_menu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.stage">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="nyx.core.html#nyx.core.stage.Stage" title="nyx.core.stage.Stage"><span class="pre">Stage</span></a></em><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.stage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.views.stage_tree_view.StageTreeView.staticMetaObject">
+<span class="sig-name descname"><span class="pre">staticMetaObject</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;PySide2.QtCore.QMetaObject</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#nyx.editor.views.stage_tree_view.StageTreeView.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-nyx.editor.views">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-nyx.editor.views" title="Permalink to this heading">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">nyx</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Dmitrii Shevchenko.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/nyx.editor.views.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

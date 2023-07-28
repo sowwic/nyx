@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.widgets.graph_scope_widget &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.graph_scope_widget</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.widgets.graph_scope_widget</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">pyside_fn</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.main_window</span> <span class="kn">import</span> <span class="n">NyxEditorMainWindow</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.widgets.stage_graph_editor</span> <span class="kn">import</span> <span class="n">StageGraphEditor</span>
+
+
+<div class="viewcode-block" id="GraphScopeWidget"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget">[docs]</a><span class="k">class</span> <span class="nc">GraphScopeWidget</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph_editor</span><span class="p">:</span> <span class="s2">&quot;StageGraphEditor&quot;</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_back</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QIcon</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_root</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QIcon</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="p">:</span> <span class="s2">&quot;StageGraphEditor&quot;</span> <span class="o">=</span> <span class="n">graph_editor</span>
+
+        <span class="c1"># Initialize ui</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_actions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_layouts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GraphScopeWidget.create_actions"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_actions">[docs]</a>    <span class="k">def</span> <span class="nf">create_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="GraphScopeWidget.create_widgets"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_widgets">[docs]</a>    <span class="k">def</span> <span class="nf">create_widgets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QLineEdit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scope_back_btn</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QPushButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">icon_scope_back</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scope_root_btn</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QPushButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">icon_scope_root</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">get_scope_path</span><span class="p">()</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="GraphScopeWidget.create_layouts"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_layouts">[docs]</a>    <span class="k">def</span> <span class="nf">create_layouts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QHBoxLayout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">setContentsMargins</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scope_back_btn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scope_root_btn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphScopeWidget.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">scope_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_scope_text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span><span class="o">.</span><span class="n">returnPressed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_editor_scope</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scope_back_btn</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">scope_back</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scope_root_btn</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">scope_root</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">icon_scope_back</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_back</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_back</span>
+        <span class="n">main_window</span><span class="p">:</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span> <span class="o">=</span> <span class="n">pyside_fn</span><span class="o">.</span><span class="n">find_nyx_editor_window</span><span class="p">()</span>
+        <span class="n">pixmap</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QStyle</span><span class="o">.</span><span class="n">SP_FileDialogBack</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_back</span> <span class="o">=</span> <span class="n">main_window</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">pixmap</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_back</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">icon_scope_root</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_root</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_root</span>
+        <span class="n">main_window</span><span class="p">:</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span> <span class="o">=</span> <span class="n">pyside_fn</span><span class="o">.</span><span class="n">find_nyx_editor_window</span><span class="p">()</span>
+        <span class="n">pixmap</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QStyle</span><span class="o">.</span><span class="n">SP_DirHomeIcon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_root</span> <span class="o">=</span> <span class="n">main_window</span><span class="o">.</span><span class="n">style</span><span class="p">()</span><span class="o">.</span><span class="n">standardIcon</span><span class="p">(</span><span class="n">pixmap</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__icon_scope_root</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">stage</span>
+
+<div class="viewcode-block" id="GraphScopeWidget.update_scope_text"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.update_scope_text">[docs]</a>    <span class="k">def</span> <span class="nf">update_scope_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">scope_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">scope_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">scope_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphScopeWidget.set_editor_scope"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.set_editor_scope">[docs]</a>    <span class="k">def</span> <span class="nf">set_editor_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">set_scope_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path_line_edit</span><span class="o">.</span><span class="n">text</span><span class="p">())</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.graph_scope_widget</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

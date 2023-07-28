@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.widgets.stage_graph_editor &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.stage_graph_editor</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.widgets.stage_graph_editor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Stage</span>
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.graphics.graphics_stage</span> <span class="kn">import</span> <span class="n">GraphicsStage</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.views.stage_graph_view</span> <span class="kn">import</span> <span class="n">StageGraphView</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.graph_scope_widget</span> <span class="kn">import</span> <span class="n">GraphScopeWidget</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">pyside_fn</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.main_window</span> <span class="kn">import</span> <span class="n">NyxEditorMainWindow</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="StageGraphEditor"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor">[docs]</a><span class="k">class</span> <span class="nc">StageGraphEditor</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span><span class="p">):</span>
+
+    <span class="n">DEFAULT_TITLE</span> <span class="o">=</span> <span class="s2">&quot;Untitled&quot;</span>
+
+    <span class="n">scope_changed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="p">:</span> <span class="n">Stage</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="p">:</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span> <span class="o">=</span> <span class="n">pyside_fn</span><span class="o">.</span><span class="n">find_nyx_editor_window</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">stage_tree_view</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_saved_undo_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__stage</span><span class="p">:</span> <span class="n">Stage</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_stage</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">create_connections</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__scope_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_actions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_layouts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">rebuild_current_scope</span><span class="p">()</span>
+
+<div class="viewcode-block" id="StageGraphEditor.from_json_file"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.from_json_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_json_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.Path | str&quot;</span><span class="p">):</span>
+        <span class="n">stage</span> <span class="o">=</span> <span class="n">Stage</span><span class="p">()</span>
+        <span class="n">stage</span><span class="o">.</span><span class="n">import_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">widget</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">widget</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__stage</span>
+
+<div class="viewcode-block" id="StageGraphEditor.set_stage"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.set_stage">[docs]</a>    <span class="k">def</span> <span class="nf">set_stage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="p">:</span> <span class="n">Stage</span><span class="p">,</span> <span class="n">create_connections</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">old_stage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span>
+        <span class="k">if</span> <span class="n">stage</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stage</span> <span class="o">=</span> <span class="n">Stage</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__stage</span> <span class="o">=</span> <span class="n">stage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_title</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">create_connections</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">create_stage_connections</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">old_stage</span><span class="p">:</span>
+            <span class="n">old_stage</span><span class="o">.</span><span class="n">deleteLater</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.create_actions"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_actions">[docs]</a>    <span class="k">def</span> <span class="nf">create_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and setup actions.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.create_widgets"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_widgets">[docs]</a>    <span class="k">def</span> <span class="nf">create_widgets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and setup widgets.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_scope_widget</span> <span class="o">=</span> <span class="n">GraphScopeWidget</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span> <span class="o">=</span> <span class="n">GraphicsStage</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_view</span> <span class="o">=</span> <span class="n">StageGraphView</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.create_layouts"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_layouts">[docs]</a>    <span class="k">def</span> <span class="nf">create_layouts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create and populate layouts.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QVBoxLayout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">setContentsMargins</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph_scope_widget</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gr_view</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.create_stage_connections"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_stage_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_stage_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create connections between graph widgets and stage.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">indexChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_title</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">indexChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">rebuild_current_scope</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node_deleted</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_scope_path_at_node_deletion</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create signal to slot connections.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_stage_connections</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">selection_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">on_tree_view_selection_changed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">node_doubleclicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_scope_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scope_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">rebuild_scope</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">nodes_selection_cleared</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">clearSelection</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">nodes_selection_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">paths</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">select_paths</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">nodes_selection_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">attrib_editor</span><span class="o">.</span><span class="n">update_node_data_from_stage_graph</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.closeEvent"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.closeEvent">[docs]</a>    <span class="k">def</span> <span class="nf">closeEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QCloseEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Overridden close event.</span>
+
+<span class="sd">        - Prompts stage save.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            event (QtGui.QCloseEvent): close event.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None: super return call.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">maybe_save</span><span class="p">():</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">ignore</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">closeEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.update_title"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.update_title">[docs]</a>    <span class="k">def</span> <span class="nf">update_title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">file_path</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_TITLE</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">file_path</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">is_modified</span><span class="p">():</span>
+            <span class="n">title</span> <span class="o">+=</span> <span class="s2">&quot;*&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="n">title</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.maybe_save"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.maybe_save">[docs]</a>    <span class="k">def</span> <span class="nf">maybe_save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prompt user to save current scene it is new or has been modified.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if user saved the scene or chose discard option.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">is_new</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">is_modified</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">stage_title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_TITLE</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">file_path</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">file_path</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Stage is not saved&#39;</span><span class="p">,</span>
+                                            <span class="sa">f</span><span class="s1">&#39;Save changes to &quot;</span><span class="si">{</span><span class="n">stage_title</span><span class="si">}</span><span class="s1">&quot;?&#39;</span><span class="p">,</span>
+                                            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Save</span> <span class="o">|</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Discard</span> <span class="o">|</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Cancel</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="o">==</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Save</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_stage_save</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="o">==</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Cancel</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.on_stage_new"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_new">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_new</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">maybe_save</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_stage</span><span class="p">(</span><span class="n">Stage</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.on_stage_open"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_open">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">maybe_save</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">file_filter</span> <span class="o">=</span> <span class="s2">&quot;Nyx Stage (*.nyx)&quot;</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QFileDialog</span><span class="o">.</span><span class="n">getOpenFileName</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;Open Stage&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">file_filter</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">scope_root</span><span class="p">()</span>
+        <span class="n">new_stage</span> <span class="o">=</span> <span class="n">Stage</span><span class="p">()</span>
+        <span class="n">new_stage</span><span class="o">.</span><span class="n">import_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_stage</span><span class="p">(</span><span class="n">new_stage</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">rebuild_current_scope</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.on_stage_save"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_save">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">file_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">export_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_stage_save_as</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_title</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.on_stage_save_as"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_save_as">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_save_as</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">file_filter</span> <span class="o">=</span> <span class="s2">&quot;Nyx Stage (*.nyx)&quot;</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QFileDialog</span><span class="o">.</span><span class="n">getSaveFileName</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Save stage to file&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">file_filter</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">export_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_title</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.get_scope_path"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.get_scope_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_scope_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__scope_path</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.set_scope_path"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.set_scope_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_scope_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">previous_scope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_scope_path</span><span class="p">()</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">node</span><span class="p">:</span>
+            <span class="n">new_scope</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">path</span>
+        <span class="k">elif</span> <span class="n">scope</span> <span class="ow">and</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span><span class="p">:</span>
+            <span class="n">new_scope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_scope</span> <span class="o">=</span> <span class="n">previous_scope</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__scope_path</span> <span class="o">=</span> <span class="n">new_scope</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set scope to: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">__scope_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scope_changed</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__scope_path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.scope_back"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.scope_back">[docs]</a>    <span class="k">def</span> <span class="nf">scope_back</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_scope_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_scope_path</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageGraphEditor.scope_root"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.scope_root">[docs]</a>    <span class="k">def</span> <span class="nf">scope_root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_scope_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_handle_scope_path_at_node_deletion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deleted_node_path</span><span class="p">):</span>
+        <span class="n">current_scope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_scope_path</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">current_scope</span> <span class="o">==</span> <span class="n">deleted_node_path</span> <span class="ow">or</span> <span class="n">deleted_node_path</span> <span class="ow">in</span> <span class="n">current_scope</span><span class="o">.</span><span class="n">parents</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_scope_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StageGraphEditor.list_selected_nodes"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.list_selected_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">list_selected_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[Node]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List selected nodes.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list[Node]: selected nodes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">list_selected_node_paths</span><span class="p">()]</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.stage_graph_editor</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

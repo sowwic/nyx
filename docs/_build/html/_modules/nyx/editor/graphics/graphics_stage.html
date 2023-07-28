@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.graphics.graphics_stage &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.graphics.graphics_stage</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.graphics.graphics_stage</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.graphics.graphics_node</span> <span class="kn">import</span> <span class="n">GraphicsNode</span>
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.widgets.stage_graph_editor</span> <span class="kn">import</span> <span class="n">StageGraphEditor</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="StageSignaller"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.StageSignaller">[docs]</a><span class="k">class</span> <span class="nc">StageSignaller</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QObject</span><span class="p">):</span>
+    <span class="n">nodes_selection_cleared</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">()</span>
+    <span class="n">nodes_selection_changed</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GraphicsStage"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage">[docs]</a><span class="k">class</span> <span class="nc">GraphicsStage</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QGraphicsScene</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph_editor</span><span class="p">:</span> <span class="s2">&quot;StageGraphEditor&quot;</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__graph_editor</span> <span class="o">=</span> <span class="n">graph_editor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_previous_selected_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signals</span> <span class="o">=</span> <span class="n">StageSignaller</span><span class="p">()</span>
+
+        <span class="c1"># Settings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_squares</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scene_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scene_height</span> <span class="o">=</span> <span class="mi">64000</span>
+        <span class="c1"># ? Note: calling self.setSceneRect(QtCore.QRect) again disables QGraphicsView scrolling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_scene_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scene_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scene_height</span><span class="p">)</span>
+        <span class="c1"># Colors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color_background</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#393939&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color_light</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#2f2f2f&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color_dark</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QColor</span><span class="p">(</span><span class="s2">&quot;#292929&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pen_light</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_color_light</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pen_light</span><span class="o">.</span><span class="n">setWidth</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pen_dark</span> <span class="o">=</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QPen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_color_dark</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pen_dark</span><span class="o">.</span><span class="n">setWidth</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setBackgroundBrush</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_color_background</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GraphicsStage.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selectionChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_selection_changed</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">graph_editor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__graph_editor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">stage</span>
+
+    <span class="c1"># ======== Events ========= #</span>
+
+<div class="viewcode-block" id="GraphicsStage.dragMoveEvent"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.dragMoveEvent">[docs]</a>    <span class="k">def</span> <span class="nf">dragMoveEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="c1"># Disable parent event</span>
+        <span class="k">pass</span></div>
+
+    <span class="c1"># ======== Methods ========= #</span>
+
+<div class="viewcode-block" id="GraphicsStage.set_scene_size"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.set_scene_size">[docs]</a>    <span class="k">def</span> <span class="nf">set_scene_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setSceneRect</span><span class="p">(</span><span class="o">-</span><span class="n">width</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="n">height</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.drawBackground"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.drawBackground">[docs]</a>    <span class="k">def</span> <span class="nf">drawBackground</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">painter</span><span class="p">,</span> <span class="n">rect</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">drawBackground</span><span class="p">(</span><span class="n">painter</span><span class="p">,</span> <span class="n">rect</span><span class="p">)</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">left</span><span class="p">()))</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">right</span><span class="p">()))</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">top</span><span class="p">()))</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">bottom</span><span class="p">()))</span>
+
+        <span class="n">first_left</span> <span class="o">=</span> <span class="n">left</span> <span class="o">-</span> <span class="p">(</span><span class="n">left</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">)</span>
+        <span class="n">first_top</span> <span class="o">=</span> <span class="n">top</span> <span class="o">-</span> <span class="p">(</span><span class="n">top</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">)</span>
+
+        <span class="c1"># Compute line drawing</span>
+        <span class="n">lines_light</span><span class="p">,</span> <span class="n">lines_dark</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_squares</span><span class="p">)):</span>
+                <span class="n">lines_light</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QLine</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">bottom</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lines_dark</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QLine</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">bottom</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_top</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">y</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_squares</span><span class="p">)):</span>
+                <span class="n">lines_light</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QLine</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lines_dark</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QLine</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+
+        <span class="c1"># Draw lines</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setPen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pen_light</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">drawLines</span><span class="p">(</span><span class="n">lines_light</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">setPen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pen_dark</span><span class="p">)</span>
+        <span class="n">painter</span><span class="o">.</span><span class="n">drawLines</span><span class="p">(</span><span class="n">lines_dark</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.gr_nodes"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.gr_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">gr_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">GraphicsNode</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.get_gr_node"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.get_gr_node">[docs]</a>    <span class="k">def</span> <span class="nf">get_gr_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">):</span>
+        <span class="n">input_node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to find gr node for </span><span class="si">{</span><span class="n">input_node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">return</span> <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.selected_gr_nodes"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.selected_gr_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">selected_gr_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selectedItems</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">GraphicsNode</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.list_selected_node_paths"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.list_selected_node_paths">[docs]</a>    <span class="k">def</span> <span class="nf">list_selected_node_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">gr_node</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">cached_path</span> <span class="k">for</span> <span class="n">gr_node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selected_gr_nodes</span><span class="p">()]</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.is_gr_node_selection_empty"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.is_gr_node_selection_empty">[docs]</a>    <span class="k">def</span> <span class="nf">is_gr_node_selection_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selected_gr_nodes</span><span class="p">(),</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.get_last_selected_gr_node"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.get_last_selected_gr_node">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_selected_gr_node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_gr_node_selection_empty</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">deque</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selected_gr_nodes</span><span class="p">(),</span> <span class="n">maxlen</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.clear_nodes"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.clear_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">clear_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">gr_node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gr_nodes</span><span class="p">():</span>
+            <span class="n">gr_node</span><span class="o">.</span><span class="n">_set_node</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">removeItem</span><span class="p">(</span><span class="n">gr_node</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.clear_edges"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.clear_edges">[docs]</a>    <span class="k">def</span> <span class="nf">clear_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;TODO: cleaning edges&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.add_node"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.add_node">[docs]</a>    <span class="k">def</span> <span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="n">gr_node</span> <span class="o">=</span> <span class="n">GraphicsNode</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addItem</span><span class="p">(</span><span class="n">gr_node</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.build_nodes"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.build_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">build_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope_node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span><span class="p">):</span>
+        <span class="n">child_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">list_children</span><span class="p">(</span><span class="n">scope_node</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">child_nodes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.build_edges"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.build_edges">[docs]</a>    <span class="k">def</span> <span class="nf">build_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope_node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span><span class="p">):</span>
+        <span class="c1"># TODO: Build graphics edges</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.rebuild_scope"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.rebuild_scope">[docs]</a>    <span class="k">def</span> <span class="nf">rebuild_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope_path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Rebuilding scope: </span><span class="si">{</span><span class="n">scope_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">previous_selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_selected_node_paths</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_edges</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_nodes</span><span class="p">()</span>
+        <span class="n">scope_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">scope_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_nodes</span><span class="p">(</span><span class="n">scope_node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_edges</span><span class="p">(</span><span class="n">scope_node</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">previous_selection</span><span class="p">:</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span><span class="o">.</span><span class="n">setSelected</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.rebuild_current_scope"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.rebuild_current_scope">[docs]</a>    <span class="k">def</span> <span class="nf">rebuild_current_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rebuild_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">get_scope_path</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.on_selection_changed"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.on_selection_changed">[docs]</a>    <span class="k">def</span> <span class="nf">on_selection_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_selected_node_paths</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_paths</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">nodes_selection_cleared</span><span class="o">.</span><span class="n">emit</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_previous_selected_paths</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">selected_paths</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_previous_selected_paths</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_previous_selected_paths</span> <span class="o">=</span> <span class="n">selected_paths</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">signals</span><span class="o">.</span><span class="n">nodes_selection_changed</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">selected_paths</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.on_tree_view_selection_changed"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.on_tree_view_selection_changed">[docs]</a>    <span class="k">def</span> <span class="nf">on_tree_view_selection_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clearSelection</span><span class="p">()</span>
+        <span class="n">tree_view_selected_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">selected_nodes</span><span class="p">()</span>
+        <span class="n">current_scope_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph_editor</span><span class="o">.</span><span class="n">get_scope_path</span><span class="p">())</span>
+        <span class="n">scope_child_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">list_children</span><span class="p">(</span><span class="n">current_scope_node</span><span class="p">)</span>
+        <span class="n">scope_selected_nodes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="n">tree_view_selected_nodes</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">scope_child_nodes</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">scope_selected_nodes</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">scope_selected_nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Missing graphics node for selection: </span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">gr_node</span><span class="o">.</span><span class="n">setSelected</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphicsStage.start_selected_node_rename"><a class="viewcode-back" href="../../../../nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.start_selected_node_rename">[docs]</a>    <span class="k">def</span> <span class="nf">start_selected_node_rename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">gr_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_selected_gr_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">gr_node</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">gr_node</span><span class="o">.</span><span class="n">title_item</span><span class="o">.</span><span class="n">edit</span><span class="p">()</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.graphics.graphics_stage</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

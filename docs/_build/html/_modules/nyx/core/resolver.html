@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.core.resolver &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.resolver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.core.resolver</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Resolver"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.resolver.Resolver">[docs]</a><span class="k">class</span> <span class="nc">Resolver</span><span class="p">:</span>
+
+<div class="viewcode-block" id="Resolver.is_absolute_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.resolver.Resolver.is_absolute_path">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_absolute_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Is given path absolute.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (pathlib.PurePosixPath | str): path to test</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: is absolute</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Resolver.is_relative_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.resolver.Resolver.is_relative_path">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_relative_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Is given path relative.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (pathlib.PurePosixPath | str): path to test</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: is relative</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">Resolver</span><span class="o">.</span><span class="n">is_absolute_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Resolver.compute_relative_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.resolver.Resolver.compute_relative_path">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">compute_relative_path</span><span class="p">(</span>
+        <span class="n">source_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+        <span class="n">destination_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute a relative path from source to destination paths.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source_path (pathlib.PurePosixPath | str): start path</span>
+<span class="sd">            destination_path (pathlib.PurePosixPath | str): target path</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: source_path is not absolute</span>
+<span class="sd">            ValueError: destination_path is not absolute</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PurePosixPath: relative path</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Resolver</span><span class="o">.</span><span class="n">is_absolute_path</span><span class="p">(</span><span class="n">source_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Source path is not absolute: </span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Resolver</span><span class="o">.</span><span class="n">is_absolute_path</span><span class="p">(</span><span class="n">destination_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Destination path is not absolute: </span><span class="si">{</span><span class="n">destination_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">destination_path</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">rel_path</span><span class="p">:</span>
+            <span class="n">rel_path</span> <span class="o">=</span> <span class="n">rel_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">rel_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
+            <span class="n">rel_path</span> <span class="o">=</span> <span class="s2">&quot;./&quot;</span> <span class="o">+</span> <span class="n">rel_path</span>
+        <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">rel_path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Resolver.computer_absolute_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.resolver.Resolver.computer_absolute_path">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">computer_absolute_path</span><span class="p">(</span>
+        <span class="n">anchor_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+        <span class="n">rel_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute absolute path from given anchor and relative paths.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            anchor_path (pathlib.PurePosixPath | str): anchor path to start computation from</span>
+<span class="sd">            rel_path (pathlib.PurePosixPath | str): relative path</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: anchor_path is not absolute</span>
+<span class="sd">            ValueError: rel_path is not relative</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PurePosixPath: absolute path</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Resolver</span><span class="o">.</span><span class="n">is_absolute_path</span><span class="p">(</span><span class="n">anchor_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Source path is not absolute: </span><span class="si">{</span><span class="n">anchor_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">Resolver</span><span class="o">.</span><span class="n">is_relative_path</span><span class="p">(</span><span class="n">rel_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Relative path is not relative: </span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">anchor_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">anchor_path</span><span class="p">)</span>
+        <span class="n">rel_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">rel_path</span><span class="p">)</span>
+
+        <span class="c1"># Child case</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">rel_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;..&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">anchor_path</span> <span class="o">/</span> <span class="n">rel_path</span>
+        <span class="c1"># Other node</span>
+        <span class="n">new_abs_parts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">anchor_path</span><span class="o">.</span><span class="n">parts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">rel_path</span><span class="o">.</span><span class="n">parts</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">token</span> <span class="o">==</span> <span class="s2">&quot;..&quot;</span><span class="p">:</span>
+                <span class="n">new_abs_parts</span> <span class="o">=</span> <span class="n">new_abs_parts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_abs_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+        <span class="n">abs_string</span> <span class="o">=</span> <span class="n">new_abs_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_abs_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">abs_string</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.resolver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

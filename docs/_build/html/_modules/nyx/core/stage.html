@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.core.stage &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.stage</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.core.stage</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">pprint</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.core.serializable</span> <span class="kn">import</span> <span class="n">Serializable</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">file_fn</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+<span class="kn">from</span> <span class="nn">nyx.core.attribute</span> <span class="kn">import</span> <span class="n">Attribute</span>
+<span class="kn">from</span> <span class="nn">nyx.core.stage_handler</span> <span class="kn">import</span> <span class="n">StageHandler</span>
+<span class="kn">from</span> <span class="nn">nyx.core.resolver</span> <span class="kn">import</span> <span class="n">Resolver</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">nyx_exceptions</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Stage"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage">[docs]</a><span class="k">class</span> <span class="nc">Stage</span><span class="p">(</span><span class="n">QtGui</span><span class="o">.</span><span class="n">QStandardItemModel</span><span class="p">,</span> <span class="n">Serializable</span><span class="p">):</span>
+
+    <span class="n">node_deleted</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Signal</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">)</span>
+
+    <span class="n">FILE_EXTENSION</span> <span class="o">=</span> <span class="s2">&quot;.nyx&quot;</span>
+    <span class="n">ROOT_ITEM_PATH</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;Stage&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">QtGui</span><span class="o">.</span><span class="n">QStandardItemModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">Serializable</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_saved_undo_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_path_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">,</span> <span class="n">Node</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__execution_start_path</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__resolver</span> <span class="o">=</span> <span class="n">Resolver</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__handler</span> <span class="o">=</span> <span class="n">StageHandler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_stack</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoStack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">path_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path_map</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__handler</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resolver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resolver</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">execution_start_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__execution_start_path</span>
+
+<div class="viewcode-block" id="Stage.create_connections"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">itemChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_node_changed</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Stage.is_new"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.is_new">[docs]</a>    <span class="k">def</span> <span class="nf">is_new</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">count</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="ow">is</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Stage.is_modified"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.is_modified">[docs]</a>    <span class="k">def</span> <span class="nf">is_modified</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_saved_undo_index</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">index</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Stage.list_children"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.list_children">[docs]</a>    <span class="k">def</span> <span class="nf">list_children</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="s2">&quot;Node&quot;</span><span class="p">]:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">node</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">invisibleRootItem</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">invisibleRootItem</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">invisibleRootItem</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invisibleRootItem</span><span class="p">()</span><span class="o">.</span><span class="n">rowCount</span><span class="p">())]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">node</span><span class="o">.</span><span class="n">list_children</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Stage.list_top_nodes"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.list_top_nodes">[docs]</a>    <span class="k">def</span> <span class="nf">list_top_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[Node]&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_children</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invisibleRootItem</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Stage.list_top_nodes_paths"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.list_top_nodes_paths">[docs]</a>    <span class="k">def</span> <span class="nf">list_top_nodes_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[pathlib.PurePosixPath]&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">cached_path</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_top_nodes</span><span class="p">()]</span></div>
+
+<div class="viewcode-block" id="Stage.is_top_node_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.is_top_node_path">[docs]</a>    <span class="k">def</span> <span class="nf">is_top_node_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="s2">&quot;str | pathlib.PurePosixPath&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PosixPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_top_nodes_paths</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Stage.generate_unique_node_name"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.generate_unique_node_name">[docs]</a>    <span class="k">def</span> <span class="nf">generate_unique_node_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                  <span class="n">parent_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">parent_node</span><span class="p">:</span>
+            <span class="n">parent_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">parent_node</span><span class="p">)</span>
+            <span class="n">parent_path</span> <span class="o">=</span> <span class="n">parent_node</span><span class="o">.</span><span class="n">path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parent_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span>
+
+        <span class="n">new_node_path</span> <span class="o">=</span> <span class="n">parent_path</span> <span class="o">/</span> <span class="n">base_name</span>
+        <span class="k">if</span> <span class="n">new_node_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_map</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">while</span> <span class="n">parent_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_name</span><span class="si">}{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_map</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">base_name</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base_name</span></div>
+
+<div class="viewcode-block" id="Stage.appendRow"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.appendRow">[docs]</a>    <span class="k">def</span> <span class="nf">appendRow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="s2">&quot;Node&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Overridden QStandartItemModel method.</span>
+
+<span class="sd">        This method will generate a unique path for each item its about to append.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            items (typing.Sequence): sequence of nodes.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: node path is not unique.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">items</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">stage</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2"> is already in the stage.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">unique_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_unique_node_name</span><span class="p">(</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">parent_node</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">parent</span><span class="p">())</span>
+            <span class="n">new_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span> <span class="o">/</span> <span class="n">unique_name</span>
+            <span class="k">if</span> <span class="n">new_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_map</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Duplicate path: </span><span class="si">{</span><span class="n">new_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span>
+
+            <span class="c1"># Set unique name and check if path exist</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">unique_name</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">appendRow</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Added </span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2"> to root&quot;</span><span class="p">)</span>
+
+            <span class="n">node</span><span class="o">.</span><span class="n">cache_current_path</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_path_map</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">cached_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span></div>
+
+<div class="viewcode-block" id="Stage.node"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.node">[docs]</a>    <span class="k">def</span> <span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str | None&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Node | None&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get node instance.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            node (Node | pathlib.PurePosixPath | str | None): node or full path.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Node | None: node instance if found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">node</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">node</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid argument type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Stage.attribute"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.attribute">[docs]</a>    <span class="k">def</span> <span class="nf">attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="s2">&quot;Attribute | pathlib.PurePosixPath | str | None&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Attribute | None&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get attribute instance.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            attr (Attribute | pathlib.PurePosixPath | str | None): attribute or path.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Attribute | None: attribute instance if found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">attr</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">Attribute</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">attr</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+            <span class="n">node_path</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node_path</span><span class="p">)</span>
+            <span class="n">attr_name</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">node</span> <span class="ow">and</span> <span class="n">attr_name</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">node</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="n">attr_name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">nyx_exceptions</span><span class="o">.</span><span class="n">NodeNoAttributeExistError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Stage.add_node"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.add_node">[docs]</a>    <span class="k">def</span> <span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node | list[Node]&quot;</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds new node as root node.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            node (Node): _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">each_node</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">parent</span><span class="p">:</span>
+                <span class="n">parent</span><span class="o">.</span><span class="n">appendRow</span><span class="p">(</span><span class="n">each_node</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">appendRow</span><span class="p">(</span><span class="n">each_node</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Stage.delete_node"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.delete_node">[docs]</a>    <span class="k">def</span> <span class="nf">delete_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="s2">&quot;Sequence[Node | pathlib.PurePosixPath | str]&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete node from stage.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            node (Node): node to delete.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="p">(</span><span class="n">Node</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">)):</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodes</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Failed to delete node.&quot;</span><span class="p">,</span> <span class="n">stack_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="c1"># Removed paths</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="n">node_path_to_emit</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delete_from_path_map</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beginResetModel</span><span class="p">()</span>
+            <span class="n">parent</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">parent</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">invisibleRootItem</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">removeRow</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">row</span><span class="p">(),</span> <span class="n">parent</span><span class="o">.</span><span class="n">index</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">endResetModel</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_deleted</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">node_path_to_emit</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_delete_from_path_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove node&#39;s path from path map.</span>
+
+<span class="sd">        Also handles removal of all children paths.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            node (Node): node to remove path for.</span>
+<span class="sd">            children (bool, optional): delete children paths. Defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_path_map</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">children</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">list_children_tree</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_path_map</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Stage.on_node_changed"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.on_node_changed">[docs]</a>    <span class="k">def</span> <span class="nf">on_node_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="s2">&quot;Node&quot;</span><span class="p">):</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">on_changed</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Stage.serialize"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;stage&quot;</span>
+        <span class="p">}</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="n">top_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_top_nodes</span><span class="p">()</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">top_nodes</span><span class="p">]</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;execution_start_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">(</span>
+            <span class="kc">None</span><span class="p">,</span> <span class="n">serializable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="Stage.deserialize"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.deserialize">[docs]</a>    <span class="k">def</span> <span class="nf">deserialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="n">restore_id</span><span class="p">)</span>
+        <span class="c1"># Deserialize nodes</span>
+        <span class="k">for</span> <span class="n">top_node_data</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="p">{}):</span>
+            <span class="n">top_node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">top_node</span><span class="p">)</span>
+            <span class="n">top_node</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">top_node_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Extra data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_execution_start_path</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;execution_start_path&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Stage.describe"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.describe">[docs]</a>    <span class="k">def</span> <span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pretty format serialized scene.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: formatted serialized scene.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">pprint</span><span class="o">.</span><span class="n">pformat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Stage.export_json"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.export_json">[docs]</a>    <span class="k">def</span> <span class="nf">export_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.Path | str&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize scene and write it to json file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (pathlib.Path | str): export file path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">file_fn</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">(),</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_saved_undo_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exported stage: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Failed to save stage to file.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Stage.import_json"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.import_json">[docs]</a>    <span class="k">def</span> <span class="nf">import_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.Path | str&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Import stage data from json.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (pathlib.Path | str): file to import.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            OrderedDict: imported json data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">json_data</span> <span class="o">=</span> <span class="n">file_fn</span><span class="o">.</span><span class="n">load_json</span><span class="p">(</span>
+                <span class="n">file_path</span><span class="p">,</span> <span class="n">object_pairs_hook</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Failed to load stage from json.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">json_data</span><span class="p">,</span> <span class="n">restore_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_saved_undo_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Imported stage: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">json_data</span></div>
+
+<div class="viewcode-block" id="Stage.get_node_children_from_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.get_node_children_from_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_node_children_from_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.PurePosixPath | str&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;list[Node]&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get children of node with given full path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            node_path (pathlib.PurePosixPath | str): full node path.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            _type_: _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node_path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+            <span class="n">node_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">node_path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">node_path</span> <span class="o">==</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_top_nodes</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">node_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_map</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Can&#39;t get children of node with given path: </span><span class="si">{</span><span class="n">node_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_map</span><span class="p">[</span><span class="n">node_path</span><span class="p">]</span><span class="o">.</span><span class="n">list_children</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Stage.set_stage_execution_start_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.set_stage_execution_start_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_stage_execution_start_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_path</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set execution start path for this stage.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            start_path (Node | pathlib.PurePosixPath | str): node path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">start_path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">)</span> <span class="ow">or</span> <span class="n">start_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_path</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+                <span class="n">start_path</span> <span class="o">=</span> <span class="n">start_path</span><span class="o">.</span><span class="n">cached_path</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">start_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">start_path</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">start_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid execution start path object: </span><span class="si">{</span><span class="n">start_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__execution_start_path</span> <span class="o">=</span> <span class="n">start_path</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Set execution start path to </span><span class="si">{</span><span class="n">start_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Stage.set_execution_start_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.set_execution_start_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_execution_start_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">for_node</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">,</span>
+                                 <span class="n">start_path</span><span class="p">:</span> <span class="s2">&quot;Node | pathlib.PurePosixPath | str&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Utility method for setting execution for either stage or node.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            for_node (Node | pathlib.PurePosixPath | str): set execution path for this node. If None - path will be set for stage.</span>
+<span class="sd">            start_path (Node | pathlib.PurePosixPath | str): new execution start path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_path</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+                <span class="n">start_path</span> <span class="o">=</span> <span class="n">start_path</span><span class="o">.</span><span class="n">cached_path</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">start_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">start_path</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">start_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid execution start path object: </span><span class="si">{</span><span class="n">start_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">for_node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Set path for stage if node is None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_stage_execution_start_path</span><span class="p">(</span><span class="n">start_path</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">for_node</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">for_node</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">)):</span>
+                <span class="n">for_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">for_node</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid argument type for_node: </span><span class="si">{</span><span class="n">for_node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+        <span class="n">for_node</span><span class="o">.</span><span class="n">set_execution_start_path</span><span class="p">(</span><span class="n">start_path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Stage.get_execution_start_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.get_execution_start_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_execution_start_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">for_node</span><span class="p">:</span> <span class="s2">&quot;Node | str | pathlib.PurePosixPath | None&quot;</span><span class="p">,</span>
+                                 <span class="n">serializable</span><span class="o">=</span><span class="kc">False</span>
+                                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pathlib.PurePosixPath | str | None&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get execution start path for stage or node.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            for_node (Node | str | pathlib.PurePosixPath | None): Object to get start execution path for. None will get stage&#39;s path.</span>
+<span class="sd">            serializable (bool, optional): get resulting path in jsonable form. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            : _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">original_for_node</span> <span class="o">=</span> <span class="n">for_node</span>
+        <span class="k">if</span> <span class="n">for_node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execution_start_path</span>
+            <span class="k">if</span> <span class="n">serializable</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">):</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">path</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">for_node</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">for_node</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">)):</span>
+                <span class="n">for_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">for_node</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Invalid execution start path object: </span><span class="si">{</span><span class="n">for_node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">for_node</span><span class="p">,</span> <span class="n">Node</span><span class="p">):</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> | Failed to execution start path from </span><span class="si">{</span><span class="n">original_for_node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">return</span> <span class="n">for_node</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">(</span><span class="n">serializable</span><span class="o">=</span><span class="n">serializable</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Stage.execute_node_from_path"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.execute_node_from_path">[docs]</a>    <span class="k">def</span> <span class="nf">execute_node_from_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Stage.convert_stage_to_node"><a class="viewcode-back" href="../../../nyx.core.html#nyx.core.stage.Stage.convert_stage_to_node">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">convert_stage_to_node</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">stage</span><span class="p">:</span> <span class="s2">&quot;Stage | OrderedDict&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;stage&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert this stage to node.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str, optional): new node name. Defaults to &quot;stage&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            OrderedDict: stage as serialized node.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">serialized_node</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+            <span class="n">serialized_stage</span> <span class="o">=</span> <span class="n">stage</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">):</span>
+            <span class="n">serialized_stage</span> <span class="o">=</span> <span class="n">stage</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid stage type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">serialized_node</span><span class="p">[</span><span class="s2">&quot;children&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">serialized_stage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">stage_exec_start_path</span> <span class="o">=</span> <span class="n">serialized_stage</span><span class="p">[</span><span class="s2">&quot;execution_start_path&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">stage_exec_start_path</span><span class="p">:</span>
+            <span class="n">rel_exec_start_path</span> <span class="o">=</span> <span class="n">Resolver</span><span class="o">.</span><span class="n">compute_relative_path</span><span class="p">(</span>
+                <span class="n">Stage</span><span class="o">.</span><span class="n">ROOT_ITEM_PATH</span><span class="p">,</span> <span class="n">stage_exec_start_path</span><span class="p">)</span>
+            <span class="n">serialized_node</span><span class="p">[</span><span class="s2">&quot;execution_start_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rel_exec_start_path</span>
+        <span class="k">return</span> <span class="n">serialized_node</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.core.stage</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

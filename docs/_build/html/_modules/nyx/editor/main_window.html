@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.main_window &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.main_window</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.main_window</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pathlib</span>
+
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx._version</span> <span class="kn">import</span> <span class="n">_version</span>
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.core.config</span> <span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.views.stage_tree_view</span> <span class="kn">import</span> <span class="n">StageTreeView</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.stage_graph_editor</span> <span class="kn">import</span> <span class="n">StageGraphEditor</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.logger_widget</span> <span class="kn">import</span> <span class="n">LoggerWidget</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.attribute_editor</span> <span class="kn">import</span> <span class="n">AttributeEditor</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.code_editor</span> <span class="kn">import</span> <span class="n">CodeEditor</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.editor_toolbar</span> <span class="kn">import</span> <span class="n">EditorToolBar</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets</span> <span class="kn">import</span> <span class="n">menubar_menus</span>
+<span class="kn">from</span> <span class="nn">nyx.utils</span> <span class="kn">import</span> <span class="n">pyside_fn</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="NyxEditorMainWindow"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow">[docs]</a><span class="k">class</span> <span class="nc">NyxEditorMainWindow</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMainWindow</span><span class="p">):</span>
+
+    <span class="n">__INSTANCE</span><span class="p">:</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">DEFAULT_TITLE</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Nyx Editor v</span><span class="si">{</span><span class="n">_version</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">MINIMUM_SIZE</span> <span class="o">=</span> <span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.instance"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.instance">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">instance</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__INSTANCE</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.display"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.display">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">display</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__INSTANCE</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__INSTANCE</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__INSTANCE</span><span class="o">.</span><span class="n">isHidden</span><span class="p">():</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__INSTANCE</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__INSTANCE</span><span class="o">.</span><span class="n">raise_</span><span class="p">()</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__INSTANCE</span><span class="o">.</span><span class="n">activateWindow</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_nyx_editor_window</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_TITLE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setMinimumSize</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">MINIMUM_SIZE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_group</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoGroup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Initialize ui</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_actions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_menubar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_layouts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_config_values</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Config&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Config</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_stage_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;StageGraphEditor | None&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_mdi_window</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_mdi_window</span><span class="o">.</span><span class="n">widget</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_mdi_window</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;QtWidgets.QMdiSubWindow | None&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">currentSubWindow</span><span class="p">()</span>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.create_actions"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.create_actions">[docs]</a>    <span class="k">def</span> <span class="nf">create_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_stage_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span>
+            <span class="n">pyside_fn</span><span class="o">.</span><span class="n">get_standard_icon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;SP_MediaPlay&quot;</span><span class="p">),</span> <span class="s2">&quot;Execute stage&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_from_selected_node_action</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAction</span><span class="p">(</span>
+            <span class="n">pyside_fn</span><span class="o">.</span><span class="n">get_standard_icon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;SP_MediaSkipForward&quot;</span><span class="p">),</span> <span class="s2">&quot;Execute from selected node&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_stage_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">execute_stage_graph</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_from_selected_node_action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">execute_from_selected_node</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.create_menubar"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.create_menubar">[docs]</a>    <span class="k">def</span> <span class="nf">create_menubar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">menubar_file_menu</span> <span class="o">=</span> <span class="n">menubar_menus</span><span class="o">.</span><span class="n">FileMenu</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">menubar_edit_menu</span> <span class="o">=</span> <span class="n">menubar_menus</span><span class="o">.</span><span class="n">EditMenu</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">menubar_window_menu</span> <span class="o">=</span> <span class="n">menubar_menus</span><span class="o">.</span><span class="n">WindowMenu</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">menuBar</span><span class="p">()</span><span class="o">.</span><span class="n">setNativeMenuBar</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">menuBar</span><span class="p">()</span><span class="o">.</span><span class="n">addMenu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">menubar_file_menu</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">menuBar</span><span class="p">()</span><span class="o">.</span><span class="n">addMenu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">menubar_edit_menu</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">menuBar</span><span class="p">()</span><span class="o">.</span><span class="n">addMenu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">menubar_window_menu</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.create_widgets"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.create_widgets">[docs]</a>    <span class="k">def</span> <span class="nf">create_widgets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger_widget</span> <span class="o">=</span> <span class="n">LoggerWidget</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_tree_view</span> <span class="o">=</span> <span class="n">StageTreeView</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code_editor</span> <span class="o">=</span> <span class="n">CodeEditor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrib_editor</span> <span class="o">=</span> <span class="n">AttributeEditor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_view</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QUndoView</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">undo_group</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_view</span><span class="o">.</span><span class="n">setEmptyLabel</span><span class="p">(</span><span class="s2">&quot;Stage initial state&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tool_bar</span> <span class="o">=</span> <span class="n">EditorToolBar</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># mdi area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMdiArea</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setCentralWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">setHorizontalScrollBarPolicy</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">ScrollBarAsNeeded</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">setVerticalScrollBarPolicy</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">ScrollBarAsNeeded</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">setViewMode</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMdiArea</span><span class="o">.</span><span class="n">TabbedView</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">setDocumentMode</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">setTabsClosable</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">setTabsMovable</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Dock Widgets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setTabPosition</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">RightDockWidgetArea</span><span class="p">,</span>
+                            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTabWidget</span><span class="o">.</span><span class="n">East</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setTabPosition</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">LeftDockWidgetArea</span><span class="p">,</span>
+                            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTabWidget</span><span class="o">.</span><span class="n">West</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setTabPosition</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">BottomDockWidgetArea</span><span class="p">,</span>
+                            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QTabWidget</span><span class="o">.</span><span class="n">North</span><span class="p">)</span>
+        <span class="c1"># Tree dock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_tree_dock</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDockWidget</span><span class="p">(</span><span class="s2">&quot;Tree View&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_tree_dock</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage_tree_view</span><span class="p">)</span>
+        <span class="c1"># Undo view dock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_dock</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDockWidget</span><span class="p">(</span><span class="s2">&quot;Undo History&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_dock</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">undo_view</span><span class="p">)</span>
+        <span class="c1"># Logger dock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger_dock</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDockWidget</span><span class="p">(</span><span class="s2">&quot;Output Log&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger_dock</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logger_widget</span><span class="p">)</span>
+        <span class="c1"># Code editor dock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code_editor_dock</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDockWidget</span><span class="p">(</span><span class="s2">&quot;Code Editor&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code_editor_dock</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">code_editor</span><span class="p">)</span>
+        <span class="c1"># Toolbar dock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toolbar_dock</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDockWidget</span><span class="p">(</span><span class="s2">&quot;Tools&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toolbar_dock</span><span class="o">.</span><span class="n">setAllowedAreas</span><span class="p">(</span>
+            <span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">TopDockWidgetArea</span> <span class="o">|</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">BottomDockWidgetArea</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toolbar_dock</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tool_bar</span><span class="p">)</span>
+        <span class="c1"># Attribute editor dock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrib_editor_dock</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDockWidget</span><span class="p">(</span><span class="s2">&quot;Attribute Editor&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrib_editor_dock</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attrib_editor</span><span class="p">)</span>
+
+        <span class="c1"># Add dock widgets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">LeftDockWidgetArea</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage_tree_dock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">LeftDockWidgetArea</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">undo_dock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">BottomDockWidgetArea</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_dock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">RightDockWidgetArea</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">attrib_editor_dock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">RightDockWidgetArea</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">code_editor_dock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">addDockWidget</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">Qt</span><span class="o">.</span><span class="n">TopDockWidgetArea</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">toolbar_dock</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.create_layouts"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.create_layouts">[docs]</a>    <span class="k">def</span> <span class="nf">create_layouts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.create_connections"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">subWindowActivated</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_node_graph_window_activated</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">subWindowActivated</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_title</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_group</span><span class="o">.</span><span class="n">indexChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_title</span><span class="p">)</span></div>
+
+    <span class="c1"># Events</span>
+<div class="viewcode-block" id="NyxEditorMainWindow.closeEvent"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.closeEvent">[docs]</a>    <span class="k">def</span> <span class="nf">closeEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">QtGui</span><span class="o">.</span><span class="n">QCloseEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">sub_window</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">subWindowList</span><span class="p">():</span>
+            <span class="n">graph_editor</span><span class="p">:</span> <span class="n">StageGraphEditor</span> <span class="o">=</span> <span class="n">sub_window</span><span class="o">.</span><span class="n">widget</span><span class="p">()</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">graph_editor</span><span class="o">.</span><span class="n">maybe_save</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">ignore</span><span class="p">()</span>
+                <span class="k">return</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_config_value</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Failed to save config values&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">closeEvent</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+    <span class="c1"># Config methods</span>
+<div class="viewcode-block" id="NyxEditorMainWindow.save_config_value"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.save_config_value">[docs]</a>    <span class="k">def</span> <span class="nf">save_config_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">window_position</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">()</span><span class="o">.</span><span class="n">x</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">()</span><span class="o">.</span><span class="n">y</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">())</span></div>
+        <span class="c1"># self.config.window_always_on_top = self.pin_window_btn.isChecked()</span>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.apply_config_values"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.apply_config_values">[docs]</a>    <span class="k">def</span> <span class="nf">apply_config_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply values from application config.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QSize</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">window_size</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">window_position</span><span class="p">:</span>
+            <span class="n">center_position</span><span class="p">:</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span>
+            <span class="p">)</span> <span class="o">+</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QApplication</span><span class="o">.</span><span class="n">primaryScreen</span><span class="p">()</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">center</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">center</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">window_position</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">center_position</span><span class="o">.</span><span class="n">x</span><span class="p">(),</span> <span class="n">center_position</span><span class="o">.</span><span class="n">y</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">QtCore</span><span class="o">.</span><span class="n">QPoint</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">window_position</span><span class="p">))</span>
+
+        <span class="c1"># TODO: add always on top toggle</span>
+        <span class="c1"># self.toggle_always_on_top(self.config.window_always_on_top)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">logging_level</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.reset_application_config"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.reset_application_config">[docs]</a>    <span class="k">def</span> <span class="nf">reset_application_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset application config and apply changes.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_config_values</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.create_stage_node_graph"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.create_stage_node_graph">[docs]</a>    <span class="k">def</span> <span class="nf">create_stage_node_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="s2">&quot;pathlib.Path | str&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">file_path</span><span class="p">:</span>
+            <span class="n">graph_widget</span> <span class="o">=</span> <span class="n">StageGraphEditor</span><span class="o">.</span><span class="n">from_json_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">graph_widget</span> <span class="o">=</span> <span class="n">StageGraphEditor</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
+        <span class="n">sub_wnd</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMdiSubWindow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">addSubWindow</span><span class="p">(</span>
+            <span class="n">graph_widget</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sub_wnd</span></div>
+
+    <span class="c1"># Slots</span>
+<div class="viewcode-block" id="NyxEditorMainWindow.update_title"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.update_title">[docs]</a>    <span class="k">def</span> <span class="nf">update_title</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_TITLE</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">title</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_TITLE</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">windowTitle</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="n">title</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.on_node_graph_window_activated"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.on_node_graph_window_activated">[docs]</a>    <span class="nd">@QtCore</span><span class="o">.</span><span class="n">Slot</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMdiSubWindow</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">on_node_graph_window_activated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mdi_window</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMdiSubWindow</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mdi_window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_tree_view</span><span class="o">.</span><span class="n">set_stage</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">undo_group</span><span class="o">.</span><span class="n">setActiveStack</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">stage_graph</span><span class="p">:</span> <span class="n">StageGraphEditor</span> <span class="o">=</span> <span class="n">mdi_window</span><span class="o">.</span><span class="n">widget</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_tree_view</span><span class="o">.</span><span class="n">set_stage</span><span class="p">(</span><span class="n">stage_graph</span><span class="o">.</span><span class="n">stage</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">undo_group</span><span class="o">.</span><span class="n">setActiveStack</span><span class="p">(</span><span class="n">stage_graph</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.on_stage_open"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.on_stage_open">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sub_wnd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_mdi_window</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_mdi_window</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_stage_node_graph</span><span class="p">()</span>
+        <span class="n">stage_graph</span><span class="p">:</span> <span class="n">StageGraphEditor</span> <span class="o">=</span> <span class="n">sub_wnd</span><span class="o">.</span><span class="n">widget</span><span class="p">()</span>
+        <span class="n">stage_graph</span><span class="o">.</span><span class="n">on_stage_open</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.on_stage_open_tabbed"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.on_stage_open_tabbed">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_open_tabbed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sub_wnd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_stage_node_graph</span><span class="p">()</span>
+        <span class="n">stage_graph</span><span class="p">:</span> <span class="n">StageGraphEditor</span> <span class="o">=</span> <span class="n">sub_wnd</span><span class="o">.</span><span class="n">widget</span><span class="p">()</span>
+        <span class="n">file_opened</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">stage_graph</span><span class="o">.</span><span class="n">on_stage_open</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_opened</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mdi_area</span><span class="o">.</span><span class="n">removeSubWindow</span><span class="p">(</span><span class="n">sub_wnd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.on_stage_new"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.on_stage_new">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_new</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sub_wnd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_stage_node_graph</span><span class="p">()</span>
+            <span class="n">sub_wnd</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Failed to create new stage view window&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.on_stage_save"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.on_stage_save">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">on_stage_save</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.on_stage_save_as"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.on_stage_save_as">[docs]</a>    <span class="k">def</span> <span class="nf">on_stage_save_as</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">on_stage_save_as</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.execute_stage_graph"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.execute_stage_graph">[docs]</a>    <span class="k">def</span> <span class="nf">execute_stage_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NyxEditorMainWindow.execute_from_selected_node"><a class="viewcode-back" href="../../../nyx.editor.html#nyx.editor.main_window.NyxEditorMainWindow.execute_from_selected_node">[docs]</a>    <span class="k">def</span> <span class="nf">execute_from_selected_node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">selected_gr_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">gr_stage</span><span class="o">.</span><span class="n">get_last_selected_gr_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_gr_node</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No node selected for execution&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">handler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">selected_gr_node</span><span class="o">.</span><span class="n">node</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.main_window</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

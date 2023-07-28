@@ -26,8 +26,12 @@ install-nyx:
 
 dev: venv install-dep install-nyx
 
-documentation:
-	sphinx-apidoc -o docs .
+doc:
+	sphinx-apidoc -o docs src/nyx
+	cd docs && make html
+
+docs-check:
+	sphinx-build docs -W -b linkcheck -d _build/doctrees _build/html
 
 test:
 	python -m pytest

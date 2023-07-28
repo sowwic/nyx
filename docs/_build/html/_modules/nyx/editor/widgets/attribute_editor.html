@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nyx.editor.widgets.attribute_editor &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/classic.css?v=89b800e6" />
+    
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.attribute_editor</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for nyx.editor.widgets.attribute_editor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtCore</span>
+<span class="c1"># from PySide2 import QtGui</span>
+<span class="kn">from</span> <span class="nn">PySide2</span> <span class="kn">import</span> <span class="n">QtWidgets</span>
+
+<span class="kn">from</span> <span class="nn">nyx</span> <span class="kn">import</span> <span class="n">get_main_logger</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">Node</span>
+<span class="kn">from</span> <span class="nn">nyx.core</span> <span class="kn">import</span> <span class="n">commands</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.attributes_table</span> <span class="kn">import</span> <span class="n">AttributesTable</span>
+<span class="kn">from</span> <span class="nn">nyx.editor.widgets.text_edit_widget</span> <span class="kn">import</span> <span class="n">NyxTextEdit</span>
+
+<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">nyx.editor.main_window</span> <span class="kn">import</span> <span class="n">NyxEditorMainWindow</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">get_main_logger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="AttributeEditor"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor">[docs]</a><span class="k">class</span> <span class="nc">AttributeEditor</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">main_window</span><span class="p">:</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QWidget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__node</span><span class="p">:</span> <span class="n">Node</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="p">:</span> <span class="s2">&quot;NyxEditorMainWindow&quot;</span> <span class="o">=</span> <span class="n">main_window</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_actions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_widgets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_layouts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_connections</span><span class="p">()</span>
+
+<div class="viewcode-block" id="AttributeEditor.create_actions"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_actions">[docs]</a>    <span class="k">def</span> <span class="nf">create_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.create_widgets"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_widgets">[docs]</a>    <span class="k">def</span> <span class="nf">create_widgets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># TODO: Add scroll area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_name_lineedit</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QLineEdit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path_lineedit</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QLineEdit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path_lineedit</span><span class="o">.</span><span class="n">setReadOnly</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_exec_input_line_edit</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QLineEdit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QLineEdit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QCheckBox</span><span class="p">(</span><span class="s2">&quot;Active&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span> <span class="o">=</span> <span class="n">NyxTextEdit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDoubleSpinBox</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QDoubleSpinBox</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="o">.</span><span class="n">setButtonSymbols</span><span class="p">(</span>
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAbstractSpinBox</span><span class="o">.</span><span class="n">NoButtons</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="o">.</span><span class="n">setButtonSymbols</span><span class="p">(</span>
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QAbstractSpinBox</span><span class="o">.</span><span class="n">NoButtons</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="o">.</span><span class="n">setRange</span><span class="p">(</span><span class="o">-</span><span class="mi">64000</span><span class="p">,</span> <span class="mi">64000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="o">.</span><span class="n">setRange</span><span class="p">(</span><span class="o">-</span><span class="mi">64000</span><span class="p">,</span> <span class="mi">64000</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes_table</span> <span class="o">=</span> <span class="n">AttributesTable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.create_layouts"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_layouts">[docs]</a>    <span class="k">def</span> <span class="nf">create_layouts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">position_layout</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QHBoxLayout</span><span class="p">()</span>
+        <span class="n">position_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;X:&quot;</span><span class="p">))</span>
+        <span class="n">position_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="p">)</span>
+        <span class="n">position_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;Y:&quot;</span><span class="p">))</span>
+        <span class="n">position_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="p">)</span>
+        <span class="n">position_layout</span><span class="o">.</span><span class="n">addStretch</span><span class="p">()</span>
+
+        <span class="n">basic_properties_layout</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QFormLayout</span><span class="p">()</span>
+        <span class="n">basic_properties_layout</span><span class="o">.</span><span class="n">addRow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span><span class="p">)</span>
+        <span class="n">basic_properties_layout</span><span class="o">.</span><span class="n">addRow</span><span class="p">(</span><span class="s2">&quot;Name:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_name_lineedit</span><span class="p">)</span>
+        <span class="n">basic_properties_layout</span><span class="o">.</span><span class="n">addRow</span><span class="p">(</span><span class="s2">&quot;Path:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path_lineedit</span><span class="p">)</span>
+        <span class="n">basic_properties_layout</span><span class="o">.</span><span class="n">addRow</span><span class="p">(</span>
+            <span class="s2">&quot;Exec Input:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_exec_input_line_edit</span><span class="p">)</span>
+        <span class="n">basic_properties_layout</span><span class="o">.</span><span class="n">addRow</span><span class="p">(</span>
+            <span class="s2">&quot;Execution start:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span><span class="p">)</span>
+        <span class="n">basic_properties_layout</span><span class="o">.</span><span class="n">addRow</span><span class="p">(</span><span class="s2">&quot;Position:&quot;</span><span class="p">,</span> <span class="n">position_layout</span><span class="p">)</span>
+        <span class="n">basic_properties_layout</span><span class="o">.</span><span class="n">addRow</span><span class="p">(</span><span class="s2">&quot;Comment:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QVBoxLayout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">setContentsMargins</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addLayout</span><span class="p">(</span><span class="n">basic_properties_layout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_layout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attributes_table</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.create_connections"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_connections">[docs]</a>    <span class="k">def</span> <span class="nf">create_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">selection_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_node_data_from_treeview</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">undo_group</span><span class="o">.</span><span class="n">indexChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_node_data_from_treeview</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_name_lineedit</span><span class="o">.</span><span class="n">editingFinished</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_name_edit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_exec_input_line_edit</span><span class="o">.</span><span class="n">editingFinished</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_exec_input_edit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span><span class="o">.</span><span class="n">editingFinished</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_execution_start_edit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span><span class="o">.</span><span class="n">toggled</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_active_toggle</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span><span class="o">.</span><span class="n">editingFinished</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_comment_edit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="o">.</span><span class="n">editingFinished</span> <span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_position_edit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="o">.</span><span class="n">editingFinished</span> <span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_position_edit</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tree_view</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">stage_tree_view</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_stage_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">current_stage_graph</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">code_editor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_window</span><span class="o">.</span><span class="n">code_editor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__node</span>
+
+    <span class="nd">@node</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code_editor</span><span class="o">.</span><span class="n">current_node</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_fields_enabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_fields_signals</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_fields_enabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_referenced_fields</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__node</span><span class="o">.</span><span class="n">is_referenced</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_data_from_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attributes_table</span><span class="o">.</span><span class="n">update_node_data</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_fields_signals</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AttributeEditor.set_fields_enabled"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.set_fields_enabled">[docs]</a>    <span class="k">def</span> <span class="nf">set_fields_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name_lineedit</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">node_exec_input_line_edit</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>
+                <span class="n">field</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span><span class="o">.</span><span class="n">setChecked</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attributes_table</span><span class="o">.</span><span class="n">setRowCount</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">spinbox</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>
+                <span class="n">spinbox</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+            <span class="n">spinbox</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.update_referenced_fields"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.update_referenced_fields">[docs]</a>    <span class="k">def</span> <span class="nf">update_referenced_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_referenced</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path_lineedit</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span><span class="p">]:</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="ow">not</span> <span class="n">is_referenced</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.block_fields_signals"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.block_fields_signals">[docs]</a>    <span class="k">def</span> <span class="nf">block_fields_signals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">widget</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name_lineedit</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">node_path_lineedit</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">node_exec_input_line_edit</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="p">,</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="p">]:</span>
+            <span class="n">widget</span><span class="o">.</span><span class="n">blockSignals</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.update_node_data_from_stage_graph"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.update_node_data_from_stage_graph">[docs]</a>    <span class="k">def</span> <span class="nf">update_node_data_from_stage_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selected_paths</span><span class="p">):</span>
+        <span class="n">current_stage_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_stage_graph</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="n">selected_paths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">current_stage_node</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.update_node_data_from_treeview"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.update_node_data_from_treeview">[docs]</a>    <span class="k">def</span> <span class="nf">update_node_data_from_treeview</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.set_data_from_node"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.set_data_from_node">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_from_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_name_lineedit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path_lineedit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_exec_input_line_edit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">get_input_exec_path</span><span class="p">(</span><span class="n">serializable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">(</span><span class="n">serializable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span><span class="o">.</span><span class="n">setChecked</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">is_active</span><span class="p">())</span>
+        <span class="n">node_position</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">position</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node_position</span><span class="p">,</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">):</span>
+            <span class="n">node_position</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">(</span><span class="o">*</span><span class="n">node_position</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">node_position</span><span class="o">.</span><span class="n">x</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">node_position</span><span class="o">.</span><span class="n">y</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">comment</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.apply_name_edit"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_name_edit">[docs]</a>    <span class="k">def</span> <span class="nf">apply_name_edit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">current_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_node</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">new_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_name_lineedit</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">new_name</span> <span class="o">==</span> <span class="n">current_node</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">rename_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">RenameNodeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                <span class="n">node</span><span class="o">=</span><span class="n">current_node</span><span class="p">,</span>
+                                                <span class="n">new_name</span><span class="o">=</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">rename_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.apply_exec_input_edit"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_exec_input_edit">[docs]</a>    <span class="k">def</span> <span class="nf">apply_exec_input_edit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">current_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_node</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">new_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_exec_input_line_edit</span><span class="o">.</span><span class="n">text</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">new_path</span> <span class="o">==</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+            <span class="n">new_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">new_path</span> <span class="o">==</span> <span class="n">current_node</span><span class="o">.</span><span class="n">get_input_exec_path</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">source_node</span> <span class="o">=</span> <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">source_node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">set_exec_input_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">DisconnectNodeInputExecCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                                         <span class="n">node</span><span class="o">=</span><span class="n">current_node</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">current_node</span><span class="o">.</span><span class="n">is_input_exec_cyclic</span><span class="p">(</span><span class="n">source_node</span><span class="p">)</span> <span class="ow">or</span> <span class="n">current_node</span> <span class="ow">is</span> <span class="n">source_node</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Cyclic exec path: </span><span class="si">{</span><span class="n">source_node</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2"> &lt;-&gt; </span><span class="si">{</span><span class="n">current_node</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_node_data_from_treeview</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="n">set_exec_input_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">ConnectNodeExecCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                                 <span class="n">output_node</span><span class="o">=</span><span class="n">source_node</span><span class="p">,</span>
+                                                                 <span class="n">input_node</span><span class="o">=</span><span class="n">current_node</span><span class="p">)</span>
+        <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">set_exec_input_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.apply_execution_start_edit"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_execution_start_edit">[docs]</a>    <span class="k">def</span> <span class="nf">apply_execution_start_edit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">current_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_node</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">new_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_execution_start_lineedit</span><span class="o">.</span><span class="n">text</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">new_path</span> <span class="o">==</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+            <span class="n">new_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">new_path</span> <span class="o">==</span> <span class="n">current_node</span><span class="o">.</span><span class="n">get_execution_start_path</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="c1"># if new_path and current_node.path not in new_path.parents:</span>
+        <span class="k">if</span> <span class="n">new_path</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">current_node</span><span class="o">.</span><span class="n">is_parent_of</span><span class="p">(</span><span class="n">new_path</span><span class="p">):</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Node(</span><span class="si">{</span><span class="n">new_path</span><span class="si">}</span><span class="s2">) is not a child of </span><span class="si">{</span><span class="n">current_node</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_node_data_from_treeview</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="n">set_execution_start_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">SetNodeExecStartCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                                   <span class="n">node</span><span class="o">=</span><span class="n">current_node</span><span class="p">,</span>
+                                                                   <span class="n">path</span><span class="o">=</span><span class="n">new_path</span><span class="p">)</span>
+        <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">set_execution_start_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.apply_active_toggle"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_active_toggle">[docs]</a>    <span class="k">def</span> <span class="nf">apply_active_toggle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">current_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_node</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_isactive_checkbox</span><span class="o">.</span><span class="n">isChecked</span><span class="p">()</span>
+
+        <span class="n">set_active_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">SetNodeActiveStateCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                            <span class="n">node</span><span class="o">=</span><span class="n">current_node</span><span class="p">,</span>
+                                                            <span class="n">state</span><span class="o">=</span><span class="n">new_state</span><span class="p">)</span>
+        <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">set_active_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.apply_comment_edit"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_comment_edit">[docs]</a>    <span class="k">def</span> <span class="nf">apply_comment_edit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">current_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_node</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">new_comment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_comment_text_edit</span><span class="o">.</span><span class="n">toPlainText</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">new_comment</span> <span class="o">==</span> <span class="n">current_node</span><span class="o">.</span><span class="n">comment</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">set_comment_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">SetNodeCommentCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                                         <span class="n">node</span><span class="o">=</span><span class="n">current_node</span><span class="p">,</span>
+                                                         <span class="n">comment</span><span class="o">=</span><span class="n">new_comment</span><span class="p">)</span>
+        <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">set_comment_cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttributeEditor.apply_position_edit"><a class="viewcode-back" href="../../../../nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_position_edit">[docs]</a>    <span class="k">def</span> <span class="nf">apply_position_edit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">current_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_view</span><span class="o">.</span><span class="n">current_node</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_node</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">new_position</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QPointF</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_position_x_spinbox</span><span class="o">.</span><span class="n">value</span><span class="p">(),</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">node_position_y_spinbox</span><span class="o">.</span><span class="n">value</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">new_position</span> <span class="o">==</span> <span class="n">current_node</span><span class="o">.</span><span class="n">position</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">move_cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">MoveNodeCommand</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+                                            <span class="n">nodes</span><span class="o">=</span><span class="p">[</span><span class="n">current_node</span><span class="p">],</span>
+                                            <span class="n">new_positions</span><span class="o">=</span><span class="p">[</span><span class="n">new_position</span><span class="p">])</span>
+        <span class="n">current_node</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">undo_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">move_cmd</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">nyx  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">nyx.editor.widgets.attribute_editor</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Dmitrii Shevchenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.1.
+    </div>
+  </body>
+</html>

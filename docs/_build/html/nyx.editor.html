@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>nyx.editor package &#8212; nyx  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b76e3c8a" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="nyx-editor-package">
+<h1>nyx.editor package<a class="headerlink" href="#nyx-editor-package" title="Permalink to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="nyx.editor.graphics.html">nyx.editor.graphics package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.graphics.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.graphics.html#module-nyx.editor.graphics.graphics_attribute">nyx.editor.graphics.graphics_attribute module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_attribute.GraphicsNodeAttribute"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeAttribute</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_attribute.GraphicsNodeAttribute.HEIGHT"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeAttribute.HEIGHT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_attribute.GraphicsNodeAttribute.attr"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeAttribute.attr</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_attribute.GraphicsNodeAttribute.boundingRect"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeAttribute.boundingRect()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_attribute.GraphicsNodeAttribute.gr_node"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeAttribute.gr_node</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_attribute.GraphicsNodeAttribute.index"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeAttribute.index</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_attribute.GraphicsNodeAttribute.paint"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeAttribute.paint()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.graphics.html#module-nyx.editor.graphics.graphics_cutline">nyx.editor.graphics.graphics_cutline module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_cutline.GraphCutLine"><code class="docutils literal notranslate"><span class="pre">GraphCutLine</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_cutline.GraphCutLine.boundingRect"><code class="docutils literal notranslate"><span class="pre">GraphCutLine.boundingRect()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_cutline.GraphCutLine.paint"><code class="docutils literal notranslate"><span class="pre">GraphCutLine.paint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_cutline.GraphCutLine.shape"><code class="docutils literal notranslate"><span class="pre">GraphCutLine.shape()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.graphics.html#module-nyx.editor.graphics.graphics_node">nyx.editor.graphics.graphics_node module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode"><code class="docutils literal notranslate"><span class="pre">GraphicsNode</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.MIN_HEIGHT"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.MIN_HEIGHT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.MIN_WIDTH"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.MIN_WIDTH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.REFERENCE_NODE_BACKGROUND"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.REFERENCE_NODE_BACKGROUND</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.TITLE_COLOR"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.TITLE_COLOR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.boundingRect"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.boundingRect()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.create_connections"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.gr_stage"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.gr_stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.mouseDoubleClickEvent"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.mouseDoubleClickEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.mouseMoveEvent"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.mouseMoveEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.mouseReleaseEvent"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.mouseReleaseEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.node"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.node</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.paint"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.paint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.title_height"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.title_height</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node.GraphicsNode.title_width"><code class="docutils literal notranslate"><span class="pre">GraphicsNode.title_width</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.graphics.html#module-nyx.editor.graphics.graphics_node_title">nyx.editor.graphics.graphics_node_title module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node_title.GraphicsNodeTitle"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeTitle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node_title.GraphicsNodeTitle.TITLE_FONT"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeTitle.TITLE_FONT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node_title.GraphicsNodeTitle.apply_edit"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeTitle.apply_edit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node_title.GraphicsNodeTitle.edit"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeTitle.edit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node_title.GraphicsNodeTitle.height"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeTitle.height</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node_title.GraphicsNodeTitle.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeTitle.staticMetaObject</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_node_title.GraphicsNodeTitle.width"><code class="docutils literal notranslate"><span class="pre">GraphicsNodeTitle.width</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.graphics.html#module-nyx.editor.graphics.graphics_stage">nyx.editor.graphics.graphics_stage module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage"><code class="docutils literal notranslate"><span class="pre">GraphicsStage</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.add_node"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.add_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.build_edges"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.build_edges()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.build_nodes"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.build_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.clear_edges"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.clear_edges()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.clear_nodes"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.clear_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.create_connections"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.dragMoveEvent"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.dragMoveEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.drawBackground"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.drawBackground()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.get_gr_node"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.get_gr_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.get_last_selected_gr_node"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.get_last_selected_gr_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.gr_nodes"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.gr_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.graph_editor"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.graph_editor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.is_gr_node_selection_empty"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.is_gr_node_selection_empty()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.list_selected_node_paths"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.list_selected_node_paths()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.on_selection_changed"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.on_selection_changed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.on_tree_view_selection_changed"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.on_tree_view_selection_changed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.rebuild_current_scope"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.rebuild_current_scope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.rebuild_scope"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.rebuild_scope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.selected_gr_nodes"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.selected_gr_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.set_scene_size"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.set_scene_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.stage"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.start_selected_node_rename"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.start_selected_node_rename()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.GraphicsStage.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">GraphicsStage.staticMetaObject</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.StageSignaller"><code class="docutils literal notranslate"><span class="pre">StageSignaller</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.StageSignaller.nodes_selection_changed"><code class="docutils literal notranslate"><span class="pre">StageSignaller.nodes_selection_changed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.StageSignaller.nodes_selection_cleared"><code class="docutils literal notranslate"><span class="pre">StageSignaller.nodes_selection_cleared</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.graphics.html#nyx.editor.graphics.graphics_stage.StageSignaller.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">StageSignaller.staticMetaObject</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.graphics.html#module-nyx.editor.graphics">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="nyx.editor.views.html">nyx.editor.views package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.views.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.views.html#module-nyx.editor.views.stage_graph_view">nyx.editor.views.stage_graph_view module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView"><code class="docutils literal notranslate"><span class="pre">StageGraphView</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.EDGE_DRAG_START_THRESHOLD"><code class="docutils literal notranslate"><span class="pre">StageGraphView.EDGE_DRAG_START_THRESHOLD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.HIGH_QUALITY_ZOOM"><code class="docutils literal notranslate"><span class="pre">StageGraphView.HIGH_QUALITY_ZOOM</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.InteractionMode"><code class="docutils literal notranslate"><span class="pre">StageGraphView.InteractionMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.copy_selected_nodes"><code class="docutils literal notranslate"><span class="pre">StageGraphView.copy_selected_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.create_actions"><code class="docutils literal notranslate"><span class="pre">StageGraphView.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.create_connections"><code class="docutils literal notranslate"><span class="pre">StageGraphView.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.create_layouts"><code class="docutils literal notranslate"><span class="pre">StageGraphView.create_layouts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.create_new_node"><code class="docutils literal notranslate"><span class="pre">StageGraphView.create_new_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.create_widgets"><code class="docutils literal notranslate"><span class="pre">StageGraphView.create_widgets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.cut_intersecting_edges"><code class="docutils literal notranslate"><span class="pre">StageGraphView.cut_intersecting_edges()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.cut_selected_nodes"><code class="docutils literal notranslate"><span class="pre">StageGraphView.cut_selected_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.delete_selected"><code class="docutils literal notranslate"><span class="pre">StageGraphView.delete_selected()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.dragEnterEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphView.dragEnterEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.dropEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphView.dropEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.focus_on_selected_nodes"><code class="docutils literal notranslate"><span class="pre">StageGraphView.focus_on_selected_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.get_center_position"><code class="docutils literal notranslate"><span class="pre">StageGraphView.get_center_position()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.get_item_at_click"><code class="docutils literal notranslate"><span class="pre">StageGraphView.get_item_at_click()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.gr_stage"><code class="docutils literal notranslate"><span class="pre">StageGraphView.gr_stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.interaction_mode"><code class="docutils literal notranslate"><span class="pre">StageGraphView.interaction_mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.is_dragging"><code class="docutils literal notranslate"><span class="pre">StageGraphView.is_dragging</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.item_drag_entered"><code class="docutils literal notranslate"><span class="pre">StageGraphView.item_drag_entered</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.item_dropped"><code class="docutils literal notranslate"><span class="pre">StageGraphView.item_dropped</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.left_mouse_press"><code class="docutils literal notranslate"><span class="pre">StageGraphView.left_mouse_press()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.left_mouse_release"><code class="docutils literal notranslate"><span class="pre">StageGraphView.left_mouse_release()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.middle_mouse_press"><code class="docutils literal notranslate"><span class="pre">StageGraphView.middle_mouse_press()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.middle_mouse_release"><code class="docutils literal notranslate"><span class="pre">StageGraphView.middle_mouse_release()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.mouseDoubleClickEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphView.mouseDoubleClickEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.mouseMoveEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphView.mouseMoveEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.mousePressEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphView.mousePressEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.mouseReleaseEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphView.mouseReleaseEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.paste_nodes_from_clipboard"><code class="docutils literal notranslate"><span class="pre">StageGraphView.paste_nodes_from_clipboard()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.right_mouse_press"><code class="docutils literal notranslate"><span class="pre">StageGraphView.right_mouse_press()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.right_mouse_release"><code class="docutils literal notranslate"><span class="pre">StageGraphView.right_mouse_release()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.set_interaction_mode"><code class="docutils literal notranslate"><span class="pre">StageGraphView.set_interaction_mode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.set_selected_node_as_parent_execution_start"><code class="docutils literal notranslate"><span class="pre">StageGraphView.set_selected_node_as_parent_execution_start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.show_context_menu"><code class="docutils literal notranslate"><span class="pre">StageGraphView.show_context_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.stage"><code class="docutils literal notranslate"><span class="pre">StageGraphView.stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">StageGraphView.staticMetaObject</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.update_actions"><code class="docutils literal notranslate"><span class="pre">StageGraphView.update_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.update_render_hints"><code class="docutils literal notranslate"><span class="pre">StageGraphView.update_render_hints()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_graph_view.StageGraphView.wheelEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphView.wheelEvent()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.views.html#module-nyx.editor.views.stage_tree_view">nyx.editor.views.stage_tree_view module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView"><code class="docutils literal notranslate"><span class="pre">StageTreeView</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_node_path"><code class="docutils literal notranslate"><span class="pre">StageTreeView.copy_selected_node_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.copy_selected_nodes"><code class="docutils literal notranslate"><span class="pre">StageTreeView.copy_selected_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.create_actions"><code class="docutils literal notranslate"><span class="pre">StageTreeView.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.create_connections"><code class="docutils literal notranslate"><span class="pre">StageTreeView.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.create_new_node"><code class="docutils literal notranslate"><span class="pre">StageTreeView.create_new_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.current_node"><code class="docutils literal notranslate"><span class="pre">StageTreeView.current_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.current_stage_graph"><code class="docutils literal notranslate"><span class="pre">StageTreeView.current_stage_graph</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.cut_selected_nodes"><code class="docutils literal notranslate"><span class="pre">StageTreeView.cut_selected_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.delete_selected_node"><code class="docutils literal notranslate"><span class="pre">StageTreeView.delete_selected_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.keyPressEvent"><code class="docutils literal notranslate"><span class="pre">StageTreeView.keyPressEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.main_window"><code class="docutils literal notranslate"><span class="pre">StageTreeView.main_window</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.mousePressEvent"><code class="docutils literal notranslate"><span class="pre">StageTreeView.mousePressEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.node_doubleclicked"><code class="docutils literal notranslate"><span class="pre">StageTreeView.node_doubleclicked</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.nodes_deselected"><code class="docutils literal notranslate"><span class="pre">StageTreeView.nodes_deselected</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.nodes_selected"><code class="docutils literal notranslate"><span class="pre">StageTreeView.nodes_selected</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.paste_nodes_from_clipboard"><code class="docutils literal notranslate"><span class="pre">StageTreeView.paste_nodes_from_clipboard()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.select_paths"><code class="docutils literal notranslate"><span class="pre">StageTreeView.select_paths()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.selected_nodes"><code class="docutils literal notranslate"><span class="pre">StageTreeView.selected_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.selectionChanged"><code class="docutils literal notranslate"><span class="pre">StageTreeView.selectionChanged()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.selection_changed"><code class="docutils literal notranslate"><span class="pre">StageTreeView.selection_changed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.set_selected_item_as_parents_execution_start"><code class="docutils literal notranslate"><span class="pre">StageTreeView.set_selected_item_as_parents_execution_start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.set_stage"><code class="docutils literal notranslate"><span class="pre">StageTreeView.set_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.show_context_menu"><code class="docutils literal notranslate"><span class="pre">StageTreeView.show_context_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.stage"><code class="docutils literal notranslate"><span class="pre">StageTreeView.stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.views.html#nyx.editor.views.stage_tree_view.StageTreeView.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">StageTreeView.staticMetaObject</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.views.html#module-nyx.editor.views">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="nyx.editor.widgets.html">nyx.editor.widgets package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.menubar_menus.html">nyx.editor.widgets.menubar_menus package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.menubar_menus.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.menubar_menus.html#module-nyx.editor.widgets.menubar_menus.edit_menu">nyx.editor.widgets.menubar_menus.edit_menu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.menubar_menus.html#module-nyx.editor.widgets.menubar_menus.file_menu">nyx.editor.widgets.menubar_menus.file_menu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.menubar_menus.html#module-nyx.editor.widgets.menubar_menus.window_menu">nyx.editor.widgets.menubar_menus.window_menu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.menubar_menus.html#module-nyx.editor.widgets.menubar_menus">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.attribute_editor">nyx.editor.widgets.attribute_editor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor"><code class="docutils literal notranslate"><span class="pre">AttributeEditor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_active_toggle"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.apply_active_toggle()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_comment_edit"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.apply_comment_edit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_exec_input_edit"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.apply_exec_input_edit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_execution_start_edit"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.apply_execution_start_edit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_name_edit"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.apply_name_edit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.apply_position_edit"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.apply_position_edit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.block_fields_signals"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.block_fields_signals()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.code_editor"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.code_editor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_actions"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_connections"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_layouts"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.create_layouts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.create_widgets"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.create_widgets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.current_stage_graph"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.current_stage_graph</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.node"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.node</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.set_data_from_node"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.set_data_from_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.set_fields_enabled"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.set_fields_enabled()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.staticMetaObject</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.tree_view"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.tree_view</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.update_node_data_from_stage_graph"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.update_node_data_from_stage_graph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.update_node_data_from_treeview"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.update_node_data_from_treeview()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attribute_editor.AttributeEditor.update_referenced_fields"><code class="docutils literal notranslate"><span class="pre">AttributeEditor.update_referenced_fields()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.attributes_table">nyx.editor.widgets.attributes_table module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrCachedValueTableItem"><code class="docutils literal notranslate"><span class="pre">AttrCachedValueTableItem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrCachedValueTableItem.EDITABLE"><code class="docutils literal notranslate"><span class="pre">AttrCachedValueTableItem.EDITABLE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrNameTableItem"><code class="docutils literal notranslate"><span class="pre">AttrNameTableItem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrNameTableItem.set_node_attr_value"><code class="docutils literal notranslate"><span class="pre">AttrNameTableItem.set_node_attr_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrRawValueTableItem"><code class="docutils literal notranslate"><span class="pre">AttrRawValueTableItem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrRawValueTableItem.set_node_attr_value"><code class="docutils literal notranslate"><span class="pre">AttrRawValueTableItem.set_node_attr_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrResolvedValueTableItem"><code class="docutils literal notranslate"><span class="pre">AttrResolvedValueTableItem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrResolvedValueTableItem.EDITABLE"><code class="docutils literal notranslate"><span class="pre">AttrResolvedValueTableItem.EDITABLE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTableItem"><code class="docutils literal notranslate"><span class="pre">AttrTableItem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTableItem.EDITABLE"><code class="docutils literal notranslate"><span class="pre">AttrTableItem.EDITABLE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTableItem.set_node_attr_value"><code class="docutils literal notranslate"><span class="pre">AttrTableItem.set_node_attr_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTypeTableItem"><code class="docutils literal notranslate"><span class="pre">AttrTypeTableItem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttrTypeTableItem.EDITABLE"><code class="docutils literal notranslate"><span class="pre">AttrTypeTableItem.EDITABLE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable"><code class="docutils literal notranslate"><span class="pre">AttributesTable</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.COLUMNS"><code class="docutils literal notranslate"><span class="pre">AttributesTable.COLUMNS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.add_new_attribute"><code class="docutils literal notranslate"><span class="pre">AttributesTable.add_new_attribute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.apply_item_edits"><code class="docutils literal notranslate"><span class="pre">AttributesTable.apply_item_edits()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.clear_cache_for_selected_attrs"><code class="docutils literal notranslate"><span class="pre">AttributesTable.clear_cache_for_selected_attrs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.copy_selected_attr_path"><code class="docutils literal notranslate"><span class="pre">AttributesTable.copy_selected_attr_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.create_actions"><code class="docutils literal notranslate"><span class="pre">AttributesTable.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.create_connections"><code class="docutils literal notranslate"><span class="pre">AttributesTable.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.delete_selected_attr"><code class="docutils literal notranslate"><span class="pre">AttributesTable.delete_selected_attr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.keyPressEvent"><code class="docutils literal notranslate"><span class="pre">AttributesTable.keyPressEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.set_data_from_node"><code class="docutils literal notranslate"><span class="pre">AttributesTable.set_data_from_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.show_context_menu"><code class="docutils literal notranslate"><span class="pre">AttributesTable.show_context_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">AttributesTable.staticMetaObject</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.attributes_table.AttributesTable.update_node_data"><code class="docutils literal notranslate"><span class="pre">AttributesTable.update_node_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.code_editor">nyx.editor.widgets.code_editor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor"><code class="docutils literal notranslate"><span class="pre">CodeEditor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.create_actions"><code class="docutils literal notranslate"><span class="pre">CodeEditor.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.create_connections"><code class="docutils literal notranslate"><span class="pre">CodeEditor.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.create_layouts"><code class="docutils literal notranslate"><span class="pre">CodeEditor.create_layouts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.create_widgets"><code class="docutils literal notranslate"><span class="pre">CodeEditor.create_widgets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.current_node"><code class="docutils literal notranslate"><span class="pre">CodeEditor.current_node</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.current_node_changed"><code class="docutils literal notranslate"><span class="pre">CodeEditor.current_node_changed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.save_current_node_python_code"><code class="docutils literal notranslate"><span class="pre">CodeEditor.save_current_node_python_code()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.stage"><code class="docutils literal notranslate"><span class="pre">CodeEditor.stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">CodeEditor.staticMetaObject</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeEditor.update_active_state"><code class="docutils literal notranslate"><span class="pre">CodeEditor.update_active_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeTextEdit"><code class="docutils literal notranslate"><span class="pre">CodeTextEdit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeTextEdit.focusOutEvent"><code class="docutils literal notranslate"><span class="pre">CodeTextEdit.focusOutEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeTextEdit.lost_focus"><code class="docutils literal notranslate"><span class="pre">CodeTextEdit.lost_focus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.code_editor.CodeTextEdit.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">CodeTextEdit.staticMetaObject</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.editor_toolbar">nyx.editor.widgets.editor_toolbar module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.editor_toolbar.EditorToolBar"><code class="docutils literal notranslate"><span class="pre">EditorToolBar</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.editor_toolbar.EditorToolBar.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">EditorToolBar.staticMetaObject</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.graph_scope_widget">nyx.editor.widgets.graph_scope_widget module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_actions"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_connections"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_layouts"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.create_layouts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.create_widgets"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.create_widgets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.icon_scope_back"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.icon_scope_back</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.icon_scope_root"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.icon_scope_root</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.set_editor_scope"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.set_editor_scope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.stage"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.staticMetaObject</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.graph_scope_widget.GraphScopeWidget.update_scope_text"><code class="docutils literal notranslate"><span class="pre">GraphScopeWidget.update_scope_text()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.logger_widget">nyx.editor.widgets.logger_widget module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget"><code class="docutils literal notranslate"><span class="pre">LoggerWidget</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.append_raw_message"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.append_raw_message()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.append_rich_message"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.append_rich_message()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.auto_scroll"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.auto_scroll</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.config"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_actions"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_connections"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_layouts"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.create_layouts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.create_widgets"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.create_widgets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.logger"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.logger</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.set_logger"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.set_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.show_raw_output_context_menu"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.show_raw_output_context_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.show_rich_output_context_menu"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.show_rich_output_context_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.LoggerWidget.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">LoggerWidget.staticMetaObject</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.RichLogMessageItem"><code class="docutils literal notranslate"><span class="pre">RichLogMessageItem</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.RichLogMessageItem.icon_debug"><code class="docutils literal notranslate"><span class="pre">RichLogMessageItem.icon_debug</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.RichLogMessageItem.icon_error"><code class="docutils literal notranslate"><span class="pre">RichLogMessageItem.icon_error</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.RichLogMessageItem.icon_info"><code class="docutils literal notranslate"><span class="pre">RichLogMessageItem.icon_info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.logger_widget.RichLogMessageItem.icon_warning"><code class="docutils literal notranslate"><span class="pre">RichLogMessageItem.icon_warning</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.stage_graph_editor">nyx.editor.widgets.stage_graph_editor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.DEFAULT_TITLE"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.DEFAULT_TITLE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.closeEvent"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.closeEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_actions"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.create_actions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_connections"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.create_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_layouts"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.create_layouts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_stage_connections"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.create_stage_connections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.create_widgets"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.create_widgets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.from_json_file"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.from_json_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.get_scope_path"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.get_scope_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.list_selected_nodes"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.list_selected_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.maybe_save"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.maybe_save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_new"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.on_stage_new()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_open"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.on_stage_open()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_save"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.on_stage_save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.on_stage_save_as"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.on_stage_save_as()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.scope_back"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.scope_back()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.scope_changed"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.scope_changed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.scope_root"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.scope_root()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.set_scope_path"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.set_scope_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.set_stage"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.set_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.stage"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.stage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.staticMetaObject</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor.update_title"><code class="docutils literal notranslate"><span class="pre">StageGraphEditor.update_title()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets.text_edit_widget">nyx.editor.widgets.text_edit_widget module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.text_edit_widget.NyxTextEdit"><code class="docutils literal notranslate"><span class="pre">NyxTextEdit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.text_edit_widget.NyxTextEdit.editingFinished"><code class="docutils literal notranslate"><span class="pre">NyxTextEdit.editingFinished</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.text_edit_widget.NyxTextEdit.focusInEvent"><code class="docutils literal notranslate"><span class="pre">NyxTextEdit.focusInEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.text_edit_widget.NyxTextEdit.focusOutEvent"><code class="docutils literal notranslate"><span class="pre">NyxTextEdit.focusOutEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.text_edit_widget.NyxTextEdit.receivedFocus"><code class="docutils literal notranslate"><span class="pre">NyxTextEdit.receivedFocus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.text_edit_widget.NyxTextEdit.set_text_changed"><code class="docutils literal notranslate"><span class="pre">NyxTextEdit.set_text_changed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.text_edit_widget.NyxTextEdit.staticMetaObject"><code class="docutils literal notranslate"><span class="pre">NyxTextEdit.staticMetaObject</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nyx.editor.widgets.html#module-nyx.editor.widgets">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-nyx.editor.main_window">
+<span id="nyx-editor-main-window-module"></span><h2>nyx.editor.main_window module<a class="headerlink" href="#module-nyx.editor.main_window" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nyx.editor.main_window.</span></span><span class="sig-name descname"><span class="pre">NyxEditorMainWindow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QWidget</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">QMainWindow</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.DEFAULT_TITLE">
+<span class="sig-name descname"><span class="pre">DEFAULT_TITLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Nyx</span> <span class="pre">Editor</span> <span class="pre">v0.0.1'</span></em><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.DEFAULT_TITLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.MINIMUM_SIZE">
+<span class="sig-name descname"><span class="pre">MINIMUM_SIZE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(500,</span> <span class="pre">400)</span></em><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.MINIMUM_SIZE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.apply_config_values">
+<span class="sig-name descname"><span class="pre">apply_config_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.apply_config_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.apply_config_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply values from application config.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.closeEvent">
+<span class="sig-name descname"><span class="pre">closeEvent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PySide2.QtGui.QCloseEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.closeEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.closeEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.config">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="nyx.core.html#nyx.core.config.Config" title="nyx.core.config.Config"><span class="pre">Config</span></a></em><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.create_actions">
+<span class="sig-name descname"><span class="pre">create_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.create_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.create_actions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.create_connections">
+<span class="sig-name descname"><span class="pre">create_connections</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.create_connections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.create_connections" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.create_layouts">
+<span class="sig-name descname"><span class="pre">create_layouts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.create_layouts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.create_layouts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.create_menubar">
+<span class="sig-name descname"><span class="pre">create_menubar</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.create_menubar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.create_menubar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.create_stage_node_graph">
+<span class="sig-name descname"><span class="pre">create_stage_node_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.create_stage_node_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.create_stage_node_graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.create_widgets">
+<span class="sig-name descname"><span class="pre">create_widgets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.create_widgets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.create_widgets" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.current_mdi_window">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">current_mdi_window</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">QMdiSubWindow</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.current_mdi_window" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.current_stage_graph">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">current_stage_graph</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="nyx.editor.widgets.html#nyx.editor.widgets.stage_graph_editor.StageGraphEditor" title="nyx.editor.widgets.stage_graph_editor.StageGraphEditor"><span class="pre">StageGraphEditor</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.current_stage_graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.display">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">display</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.display"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.display" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.execute_from_selected_node">
+<span class="sig-name descname"><span class="pre">execute_from_selected_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.execute_from_selected_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.execute_from_selected_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.execute_stage_graph">
+<span class="sig-name descname"><span class="pre">execute_stage_graph</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.execute_stage_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.execute_stage_graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.instance">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instance</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.instance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.instance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.on_node_graph_window_activated">
+<span class="sig-name descname"><span class="pre">on_node_graph_window_activated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mdi_window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QMdiSubWindow</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.on_node_graph_window_activated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.on_node_graph_window_activated" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.on_stage_new">
+<span class="sig-name descname"><span class="pre">on_stage_new</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.on_stage_new"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.on_stage_new" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.on_stage_open">
+<span class="sig-name descname"><span class="pre">on_stage_open</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.on_stage_open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.on_stage_open" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.on_stage_open_tabbed">
+<span class="sig-name descname"><span class="pre">on_stage_open_tabbed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.on_stage_open_tabbed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.on_stage_open_tabbed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.on_stage_save">
+<span class="sig-name descname"><span class="pre">on_stage_save</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.on_stage_save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.on_stage_save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.on_stage_save_as">
+<span class="sig-name descname"><span class="pre">on_stage_save_as</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.on_stage_save_as"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.on_stage_save_as" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.reset_application_config">
+<span class="sig-name descname"><span class="pre">reset_application_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.reset_application_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.reset_application_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset application config and apply changes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.save_config_value">
+<span class="sig-name descname"><span class="pre">save_config_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.save_config_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.save_config_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.staticMetaObject">
+<span class="sig-name descname"><span class="pre">staticMetaObject</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;PySide2.QtCore.QMetaObject</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nyx.editor.main_window.NyxEditorMainWindow.update_title">
+<span class="sig-name descname"><span class="pre">update_title</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nyx/editor/main_window.html#NyxEditorMainWindow.update_title"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nyx.editor.main_window.NyxEditorMainWindow.update_title" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-nyx.editor">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-nyx.editor" title="Permalink to this heading">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">nyx</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Dmitrii Shevchenko.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/nyx.editor.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
