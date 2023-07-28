@@ -26,6 +26,9 @@ install-nyx:
 
 dev: venv install-dep install-nyx
 
+documentation:
+	sphinx-apidoc -o docs .
+
 test:
 	python -m pytest
 

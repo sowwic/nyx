@@ -5,6 +5,11 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(".."))
+
 
 project = 'nyx'
 copyright = '2023, Dmitrii Shevchenko'
@@ -13,11 +18,11 @@ author = 'Dmitrii Shevchenko'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = ['autodoc']
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
+exclude_patterns = ['_build', 'Thumbs.db',
+                    '.DS_Store', '.vscode', '.tox', '.venv', '.test_output', '.pytest_cache', '.github', 'tests']
 
 
 # -- Options for HTML output -------------------------------------------------
