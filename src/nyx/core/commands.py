@@ -345,6 +345,8 @@ class ConnectNodeExecCommand(NyxCommand):
     def redo(self) -> None:
         output_node = self.stage.node(self.output_node_path)
         input_node = self.stage.node(self.input_node_path)
+        output_node.link_to(source_node=output_node, destination_node=input_node)
+
         self.old_output_node_exec_value = output_node.get_output_exec_path()
         self.old_input_node_exec_value = input_node.get_input_exec_path()
         input_node.set_input_exec_path(output_node)
@@ -353,6 +355,12 @@ class ConnectNodeExecCommand(NyxCommand):
     def undo(self) -> None:
         output_node = self.stage.node(self.output_node_path)
         input_node = self.stage.node(self.input_node_path)
+        # TODO": move to method
+        if output_node.parent():
+            del output_node.parent().links[output_node.name]
+        else:
+            del output_node.stage.links[output_node.name]
+
         output_node.set_output_exec_path(self.old_output_node_exec_value)
         input_node.set_input_exec_path(self.old_input_node_exec_value)
         return super().undo()

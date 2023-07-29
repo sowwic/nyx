@@ -243,6 +243,14 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             self.endResetModel()
             self.node_deleted.emit(node_path_to_emit)
 
+    def link_child_nodes(self, source_node, destination_node):
+        if source_node not in self.list_children(node=None):
+            raise ValueError(f"{source_node} is not a child of {self}")
+        if destination_node not in self.list_children(node=None):
+            raise ValueError(f"{source_node} is not a child of {self}")
+        self.links[source_node.name] = destination_node.name
+        self.links_changed.emit()
+
     def _delete_from_path_map(self, node: "Node", children=True):
         """Remove node's path from path map.
 

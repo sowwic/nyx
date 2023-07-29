@@ -441,6 +441,22 @@ class Node(QtGui.QStandardItem, Serializable):
         stacked_attrs.update(self.attribs)
         return stacked_attrs
 
+    def link_to(self, source_node=None, destination_node=None):
+        source_node = source_node or self
+        destination_node = destination_node or self
+        if self.parent():
+            self.parent().link_child_nodes(source_node, destination_node)
+        else:
+            self.stage.link_child_nodes(source_node, destination_node)
+
+    def link_child_nodes(self, source_node, destination_node):
+        if source_node not in self.list_children():
+            raise ValueError(f"{source_node} is not a child of {self}")
+        if destination_node not in self.list_children():
+            raise ValueError(f"{source_node} is not a child of {self}")
+        self.links[source_node.name] = destination_node.name
+        self.signals.links_changed.emit()
+
     def get_input_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
         """Get path for the node that is set as execution dependency.
 
