@@ -18,6 +18,7 @@ from nyx.core import Node
 from nyx.core.attribute import Attribute
 from nyx.core.stage_handler import StageHandler
 from nyx.core.resolver import Resolver
+from nyx.core.links import Links
 from nyx.core import nyx_exceptions
 
 
@@ -27,6 +28,7 @@ LOGGER = get_main_logger()
 class Stage(QtGui.QStandardItemModel, Serializable):
 
     node_deleted = QtCore.Signal(pathlib.PurePosixPath)
+    links_changed = QtCore.Signal()
 
     FILE_EXTENSION = ".nyx"
     ROOT_ITEM_PATH = pathlib.PurePosixPath("/")
@@ -43,6 +45,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.__execution_start_path: pathlib.PurePosixPath = None
         self.__resolver = Resolver()
         self.__handler = StageHandler(self)
+        self.__links = Links()
         self.undo_stack = QtWidgets.QUndoStack(self)
 
         self.create_connections()
@@ -58,6 +61,15 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     @property
     def resolver(self):
         return self.__resolver
+
+    @property
+    def links(self):
+        return self.__links
+
+    @links.setter
+    def links(self, forward: dict):
+        self.__links = Links(forward=forward)
+        self.links_changed.emit()
 
     @property
     def execution_start_path(self):
@@ -257,6 +269,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes
+        data["links"] = self.links.serialize()
         data["execution_start_path"] = self.get_execution_start_path(
             None, serializable=True)
         return data
@@ -269,6 +282,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             self.add_node(top_node)
             top_node.deserialize(top_node_data, restore_id=True)
         # Extra data
+        self.links = data.get("links", {})
         self.set_execution_start_path(None, data.get("execution_start_path"))
 
     def describe(self):
