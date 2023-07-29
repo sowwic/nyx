@@ -11,11 +11,11 @@ KT = TypeVar("KT")
 VT = TypeVar("VT")
 
 
-class InvertibleDict(MutableMapping[KT, VT]):
+class InvertibleDict(MutableMapping):
     """Invertible 1-to-1 mapping"""
     __slots__ = ("_forward", "_backward")
-    _forward: dict[KT, VT]
-    _backward: dict[VT, KT]
+    _forward: "dict[KT, VT]"
+    _backward: "dict[VT, KT]"
 
     def __init__(
         self,
@@ -44,7 +44,7 @@ class InvertibleDict(MutableMapping[KT, VT]):
         raise ValueError(f"non-invertible: {key1}, {key2} both map to: {value}")
 
     @property
-    def inv(self) -> InvertibleDict[KT, VT]:
+    def inv(self) -> "InvertibleDict[KT, VT]":
         return self.__class__(self._backward, _backward=self._forward)
 
     def __getitem__(self, key: KT) -> VT:

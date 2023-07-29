@@ -216,6 +216,11 @@ def test_node_set_exec_input():
     assert node2.get_input_exec_path() == node1.path
     assert node1.get_output_exec_path() == node2.path
 
+    # TODO: New test
+    node1.link_to(destination_node=node2)
+    assert stage.links._forward == {"node": "node1"}
+    assert stage.links._backward == {"node1": "node"}
+
 
 def test_node_set_exec_input_deep_hierarchy():
     stage = Stage()
