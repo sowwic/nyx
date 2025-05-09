@@ -7,7 +7,7 @@ LOGGER = get_main_logger()
 
 def main():
     app = NyxEditorApplication()
-    status_code = app.exec_()
+    status_code = app.exec()
     if status_code:
         LOGGER.error(f"Application exit with code {status_code}")
     else:

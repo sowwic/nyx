@@ -229,7 +229,12 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def on_stage_open(self):
         sub_wnd = self.current_mdi_window if self.current_mdi_window else self.create_stage_node_graph()
         stage_graph: StageGraphEditor = sub_wnd.widget()
-        stage_graph.on_stage_open()
+        file_opened = stage_graph.on_stage_open()
+        if not file_opened:
+            self.mdi_area.removeSubWindow(sub_wnd)
+        else:
+            self.mdi_area.setActiveSubWindow(sub_wnd)
+            sub_wnd.show()
 
     def on_stage_open_tabbed(self):
         sub_wnd = self.create_stage_node_graph()
@@ -237,6 +242,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         file_opened: bool = stage_graph.on_stage_open()
         if not file_opened:
             self.mdi_area.removeSubWindow(sub_wnd)
+        else:
+            self.mdi_area.setActiveSubWindow(sub_wnd)
+            sub_wnd.show()
 
     def on_stage_new(self):
         try:
