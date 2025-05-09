@@ -7,9 +7,8 @@ try:
 except ImportError:
     from collections.abc import Sequence
 
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
 
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
@@ -46,7 +45,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.__resolver = Resolver()
         self.__handler = StageHandler(self)
         self.__links = Links()
-        self.undo_stack = QtWidgets.QUndoStack(self)
+        self.undo_stack = QtGui.QUndoStack(self)
 
         self.create_connections()
 

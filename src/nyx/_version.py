@@ -1,6 +1,6 @@
-import pkg_resources
+from importlib import metadata
 
 try:
-    _version = pkg_resources.get_distribution("nyx").version
-except Exception:
+    _version = metadata.version("requests")
+except metadata.PackageNotFoundError:
     _version = "unknown"

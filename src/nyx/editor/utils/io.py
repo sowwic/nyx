@@ -1,7 +1,7 @@
 import typing
 import pathlib
 from collections import OrderedDict
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 from nyx import get_main_logger
 from nyx.core import constants
 from nyx.core import Stage

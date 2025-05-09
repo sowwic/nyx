@@ -1,8 +1,8 @@
 import pathlib
 
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
 from nyx._version import _version
 from nyx import get_main_logger
@@ -47,7 +47,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self._is_nyx_editor_window = True
         self.setWindowTitle(self.DEFAULT_TITLE)
         self.setMinimumSize(*self.MINIMUM_SIZE)
-        self.undo_group = QtWidgets.QUndoGroup(self)
+        self.undo_group = QtGui.QUndoGroup(self)
 
         # Initialize ui
         self.create_actions()
@@ -73,9 +73,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return self.mdi_area.currentSubWindow()
 
     def create_actions(self):
-        self.execute_stage_action = QtWidgets.QAction(
+        self.execute_stage_action = QtGui.QAction(
             pyside_fn.get_standard_icon(self, "SP_MediaPlay"), "Execute stage", self)
-        self.execute_from_selected_node_action = QtWidgets.QAction(
+        self.execute_from_selected_node_action = QtGui.QAction(
             pyside_fn.get_standard_icon(self, "SP_MediaSkipForward"), "Execute from selected node", self)
         self.execute_stage_action.triggered.connect(self.execute_stage_graph)
         self.execute_from_selected_node_action.triggered.connect(

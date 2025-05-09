@@ -1,5 +1,5 @@
 import typing
-# from PySide2 import QtWidgets
+# from PySide6 import QtGui
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow

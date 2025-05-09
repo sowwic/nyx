@@ -1,5 +1,5 @@
 import typing
-from PySide2 import QtWidgets
+from PySide6 import QtGui
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
@@ -14,17 +14,17 @@ class FileMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
-        self.new_stage_action = QtWidgets.QAction("New Stage", self)
-        self.open_stage_action = QtWidgets.QAction("Open Stage", self)
-        self.open_stage_as_new_tab_action = QtWidgets.QAction(
+        self.new_stage_action = QtGui.QAction("New Stage", self)
+        self.open_stage_action = QtGui.QAction("Open Stage", self)
+        self.open_stage_as_new_tab_action = QtGui.QAction(
             "Open Stage As New Tab", self)
-        self.save_stage_action = QtWidgets.QAction("Save Stage", self)
-        self.save_stage_as_action = QtWidgets.QAction("Save Stage As...", self)
-        self.export_selected_nodes_action = QtWidgets.QAction(
+        self.save_stage_action = QtGui.QAction("Save Stage", self)
+        self.save_stage_as_action = QtGui.QAction("Save Stage As...", self)
+        self.export_selected_nodes_action = QtGui.QAction(
             "Export Selected Nodes As...", self)
-        self.import_nodes_from_file_action = QtWidgets.QAction(
+        self.import_nodes_from_file_action = QtGui.QAction(
             "Import Nodes", self)
-        self.reference_nodes_from_file_action = QtWidgets.QAction(
+        self.reference_nodes_from_file_action = QtGui.QAction(
             "Reference Nodes", self)
 
         self.new_stage_action.setShortcut("Ctrl+Shift+N")
