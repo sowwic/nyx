@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Nyx application",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/nyx/main.py",
             "console": "internalConsole",

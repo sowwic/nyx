@@ -14,7 +14,7 @@ lint:
 
 venv:
 	@echo "Creating virtual env..."
-	py -3.10 -m venv .venv
+	python3 -m venv .venv
 	. .venv/scripts/activate
 
 install-dep:
