@@ -10,7 +10,6 @@ from PySide6 import QtGui
 from nyx.core.attribute import Attribute
 from nyx.core import constants
 from nyx.core.serializable import Serializable
-from nyx.core.links import Links
 from nyx.core import nyx_exceptions
 from nyx.utils import inspect_fn
 from nyx.utils import file_fn
@@ -35,7 +34,6 @@ class NodeSignals(QtCore.QObject):
     attr_renamed = QtCore.Signal(str, str)
     input_exec_changed = QtCore.Signal()
     output_exec_changed = QtCore.Signal()
-    links_changed = QtCore.Signal()
 
 
 class Node(QtGui.QStandardItem, Serializable):
@@ -45,7 +43,6 @@ class Node(QtGui.QStandardItem, Serializable):
         PYTHON_CODE: int = enum.auto()
         INPUT_EXEC: int = enum.auto()
         OUTPUT_EXEC: int = enum.auto()
-        LINKS: int = enum.auto()
         ACTIVE_ROLE: int = enum.auto()
         EXECUTION_START_PATH: int = enum.auto()
         POSITION: int = enum.auto()
@@ -96,7 +93,6 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(QtCore.QPointF(), role=Node.Roles.POSITION.value)
         self.setData(str(), role=Node.Roles.COMMENT.value)
         self.setData(None, role=Node.Roles.REFERENCE_FILE_PATH.value)
-        self.setData(Links(), role=Node.Roles.LINKS.value)
 
     @property
     def name(self):
@@ -126,10 +122,6 @@ class Node(QtGui.QStandardItem, Serializable):
     @property
     def cached_path(self):
         return self._cached_path
-
-    @property
-    def links(self):
-        return self.data(role=self.Roles.LINKS.value)
 
     @property
     def stage(self) -> "Stage":
@@ -203,12 +195,6 @@ class Node(QtGui.QStandardItem, Serializable):
     def serializable_position(self):
         position = self.position()
         return [position.x(), position.y()]
-
-    def _set_links(self, forward: dict, silent=False):
-        self.setData(Links(forward=forward), role=Node.Roles.LINKS.value)
-        if not silent:
-            self.signals.links_changed.emit()
-            self.stage.links_changed.emit()
 
     def set_position(self, position: QtCore.QPointF):
         self.setData(position, role=Node.Roles.POSITION.value)
@@ -441,22 +427,6 @@ class Node(QtGui.QStandardItem, Serializable):
         stacked_attrs.update(self.attribs)
         return stacked_attrs
 
-    def link_to(self, source_node=None, destination_node=None):
-        source_node = source_node or self
-        destination_node = destination_node or self
-        if self.parent():
-            self.parent().link_child_nodes(source_node, destination_node)
-        else:
-            self.stage.link_child_nodes(source_node, destination_node)
-
-    def link_child_nodes(self, source_node, destination_node):
-        if source_node not in self.list_children():
-            raise ValueError(f"{source_node} is not a child of {self}")
-        if destination_node not in self.list_children():
-            raise ValueError(f"{source_node} is not a child of {self}")
-        self.links[source_node.name] = destination_node.name
-        self.signals.links_changed.emit()
-
     def get_input_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
         """Get path for the node that is set as execution dependency.
 
@@ -634,7 +604,6 @@ class Node(QtGui.QStandardItem, Serializable):
             data["children"] = children
             data["code"] = self.python_code
             data["comment"] = self.comment()
-            data["links"] = self.links.serialize()
         return data
 
     def deserialize(self, data: OrderedDict, restore_id=True):
@@ -662,7 +631,6 @@ class Node(QtGui.QStandardItem, Serializable):
             self.set_reference_file(reference_file_path)
             data = self._load_reference_file_data()
 
-        self._set_links(data.get("links", {}))
         self.set_execution_start_path(data.get("execution_start_path"))
         self.set_python_code(data.get("code", ""))
         self.set_comment(data.get("comment", ""))
