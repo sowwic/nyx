@@ -13,8 +13,6 @@ if typing.TYPE_CHECKING:
 class GraphScopeWidget(QtWidgets.QWidget):
     def __init__(self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-        self.__icon_scope_back: QtGui.QIcon = None
-        self.__icon_scope_root: QtGui.QIcon = None
         self.graph_editor: "StageGraphEditor" = graph_editor
 
         # Initialize ui
@@ -28,8 +26,10 @@ class GraphScopeWidget(QtWidgets.QWidget):
 
     def create_widgets(self):
         self.path_line_edit = QtWidgets.QLineEdit()
-        self.scope_back_btn = QtWidgets.QPushButton(self.icon_scope_back, "")
-        self.scope_root_btn = QtWidgets.QPushButton(self.icon_scope_root, "")
+        self.scope_back_btn = QtWidgets.QPushButton(
+            QtGui.QIcon(":/icons/arrow_back.png"), "")
+        self.scope_root_btn = QtWidgets.QPushButton(
+            QtGui.QIcon(":/icons/home.png"), "")
         self.path_line_edit.setText(
             self.graph_editor.get_scope_path().as_posix())
 
@@ -46,24 +46,6 @@ class GraphScopeWidget(QtWidgets.QWidget):
         self.path_line_edit.returnPressed.connect(self.set_editor_scope)
         self.scope_back_btn.clicked.connect(self.graph_editor.scope_back)
         self.scope_root_btn.clicked.connect(self.graph_editor.scope_root)
-
-    @property
-    def icon_scope_back(self):
-        if self.__icon_scope_back:
-            return self.__icon_scope_back
-        main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
-        pixmap = QtWidgets.QStyle.SP_FileDialogBack
-        self.__icon_scope_back = main_window.style().standardIcon(pixmap)
-        return self.__icon_scope_back
-
-    @property
-    def icon_scope_root(self):
-        if self.__icon_scope_root:
-            return self.__icon_scope_root
-        main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
-        pixmap = QtWidgets.QStyle.SP_DirHomeIcon
-        self.__icon_scope_root = main_window.style().standardIcon(pixmap)
-        return self.__icon_scope_root
 
     @property
     def stage(self):

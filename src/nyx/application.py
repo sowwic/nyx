@@ -1,5 +1,10 @@
 import sys
-from PySide6 import QtWidgets
+from PySide6 import (
+    QtGui,
+    QtWidgets
+)
+
+import resources.resources_rc  # noqa: F401
 
 from nyx.version import __version__
 from nyx import get_main_logger
@@ -16,6 +21,7 @@ class NyxApplication(QtWidgets.QApplication):
     def __init__(self) -> None:
         super().__init__(sys.argv)
         self.setApplicationDisplayName("Nyx")
+        self.setWindowIcon(QtGui.QIcon(":/icons/nyx.png"))
         self.setApplicationVersion(__version__)
         self.__config = Config.load()
         LOGGER.setLevel(self.config().logging_level)

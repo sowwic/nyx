@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/nyx.png</file>
+        <file>icons/home.png</file>
+        <file>icons/arrow_back.png</file>
+        <file>icons/plus.png</file>
+        <file>icons/delete.png</file>
+        <file>icons/exec_stage.png</file>
+        <file>icons/exec_from.png</file>
+    </qresource>
+</RCC>

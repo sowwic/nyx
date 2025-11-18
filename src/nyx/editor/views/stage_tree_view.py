@@ -39,11 +39,14 @@ class StageTreeView(QtWidgets.QTreeView):
         self.create_connections()
 
     def create_actions(self):
-        self.create_new_node_action = QtGui.QAction("Create node", self)
+        self.create_new_node_action = QtGui.QAction(
+            QtGui.QIcon(":/icons/plus.png"), "Create node", self)
         self.create_new_node_action.triggered.connect(self.create_new_node)
-        self.delete_selected_node_action = QtGui.QAction(pyside_fn.get_standard_icon(self, "SP_DialogDiscardButton"),
-                                                         "Delete node",
-                                                         self)
+        self.delete_selected_node_action = QtGui.QAction(
+            QtGui.QIcon(":/icons/delete.png"),
+            "Delete node",
+            self
+        )
         self.delete_selected_node_action.triggered.connect(
             self.delete_selected_node)
         self.copy_selected_nodes_action = QtGui.QAction("Copy", self)
@@ -120,7 +123,8 @@ class StageTreeView(QtWidgets.QTreeView):
 
         self.selectionModel().clearSelection()
         for each_index in indexes:
-            self.selectionModel().select(each_index, QtCore.QItemSelectionModel.SelectionFlag.Select)
+            self.selectionModel().select(
+                each_index, QtCore.QItemSelectionModel.SelectionFlag.Select)
         self.blockSignals(False)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:

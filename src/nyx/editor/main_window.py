@@ -82,9 +82,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def create_actions(self):
         self.execute_stage_action = QtGui.QAction(
-            pyside_fn.get_standard_icon(self, "SP_MediaPlay"), "Execute stage", self)
+            QtGui.QIcon(":/icons/exec_stage.png"), "Execute stage", self)
         self.execute_from_selected_node_action = QtGui.QAction(
-            pyside_fn.get_standard_icon(self, "SP_MediaSkipForward"), "Execute from selected node", self)
+            QtGui.QIcon(":/icons/exec_from.png"), "Execute from selected node", self)
         self.execute_stage_action.triggered.connect(self.execute_stage_graph)
         self.execute_from_selected_node_action.triggered.connect(
             self.execute_from_selected_node)
