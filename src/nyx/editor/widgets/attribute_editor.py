@@ -100,17 +100,12 @@ class AttributeEditor(QtWidgets.QWidget):
         return self.main_window.current_stage_graph
 
     @property
-    def code_editor(self):
-        return self.main_window.code_editor
-
-    @property
     def node(self):
         return self.__node
 
     @node.setter
     def node(self, node: Node):
         self.__node = node
-        self.code_editor.current_node = node
         if self.__node is None:
             self.set_fields_enabled(False)
             return

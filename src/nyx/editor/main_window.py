@@ -12,7 +12,6 @@ from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 from nyx.editor.widgets.logger_widget import LoggerWidget
 from nyx.editor.widgets.attribute_editor import AttributeEditor
-from nyx.editor.widgets.code_editor import CodeEditor
 from nyx.editor.widgets.editor_toolbar import EditorToolBar
 from nyx.editor.widgets import menubar_menus
 from nyx.utils import pyside_fn
@@ -103,7 +102,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_widgets(self):
         self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
-        self.code_editor = CodeEditor(self)
         self.attrib_editor = AttributeEditor(self)
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
@@ -135,9 +133,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Logger dock
         self.logger_dock = QtWidgets.QDockWidget("Output Log")
         self.logger_dock.setWidget(self.logger_widget)
-        # Code editor dock
-        self.code_editor_dock = QtWidgets.QDockWidget("Code Editor")
-        self.code_editor_dock.setWidget(self.code_editor)
+        # Components dock
+        # self.components_dock = QtWidgets.QDockWidget("Components")
+        # self.components_dock.setWidget(self.components_view)
         # Toolbar dock
         self.toolbar_dock = QtWidgets.QDockWidget("Tools")
         self.toolbar_dock.setAllowedAreas(
@@ -153,8 +151,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
                            self.attrib_editor_dock)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
-                           self.code_editor_dock)
+        # self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
+        #                    self.components_dock)
         self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.toolbar_dock)
 
     def create_layouts(self):
