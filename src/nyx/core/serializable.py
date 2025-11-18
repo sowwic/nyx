@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from nyx._version import __version__
+from nyx.version import __version__
 import uuid
 
 

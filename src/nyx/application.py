@@ -1,7 +1,7 @@
 import sys
 from PySide6 import QtWidgets
 
-from nyx._version import __version__
+from nyx.version import __version__
 from nyx import get_main_logger
 from nyx.core.config import Config
 from nyx.editor.main_window import NyxEditorMainWindow
