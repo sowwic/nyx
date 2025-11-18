@@ -1,6 +1,7 @@
 import sys
 from PySide6 import QtWidgets
 
+from nyx._version import __version__
 from nyx import get_main_logger
 from nyx.core.config import Config
 from nyx.editor.main_window import NyxEditorMainWindow
@@ -14,6 +15,8 @@ LOGGER = get_main_logger()
 class NyxApplication(QtWidgets.QApplication):
     def __init__(self) -> None:
         super().__init__(sys.argv)
+        self.setApplicationDisplayName("Nyx")
+        self.setApplicationVersion(__version__)
         self.__config = Config.load()
         LOGGER.setLevel(self.config().logging_level)
 

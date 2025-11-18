@@ -118,19 +118,10 @@ class StageTreeView(QtWidgets.QTreeView):
                 continue
             indexes.append(node.index())
 
+        self.selectionModel().clearSelection()
         for each_index in indexes:
-            self.selectionModel().select(each_index, QtCore.QItemSelectionModel.ClearAndSelect)
+            self.selectionModel().select(each_index, QtCore.QItemSelectionModel.SelectionFlag.Select)
         self.blockSignals(False)
-
-    def selectionChanged(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
-        super().selectionChanged(selected, deselected)
-        selected_items = [self.stage.itemFromIndex(
-            index) for index in selected.indexes()]
-        deselected_items = [self.stage.itemFromIndex(
-            index) for index in deselected.indexes()]
-        self.nodes_selected.emit(selected_items)
-        self.nodes_deselected.emit(deselected_items)
-        self.selection_changed.emit()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Delete:

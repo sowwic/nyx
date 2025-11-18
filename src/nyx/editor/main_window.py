@@ -1,10 +1,11 @@
 import pathlib
+import typing
 
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx._version import _version
+from nyx._version import __version__
 from nyx import get_main_logger
 from nyx.core.config import Config
 from nyx.editor.views.stage_tree_view import StageTreeView
@@ -16,6 +17,9 @@ from nyx.editor.widgets.editor_toolbar import EditorToolBar
 from nyx.editor.widgets import menubar_menus
 from nyx.utils import pyside_fn
 
+if typing.TYPE_CHECKING:
+    from ..application import NyxEditorApplication
+
 
 LOGGER = get_main_logger()
 
@@ -24,7 +28,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     __INSTANCE: "NyxEditorMainWindow" = None
 
-    DEFAULT_TITLE = f"Nyx Editor v{_version}"
+    DEFAULT_TITLE = f"Nyx Editor v{__version__}"
     MINIMUM_SIZE = (500, 400)
 
     @classmethod
@@ -71,6 +75,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     @property
     def current_mdi_window(self) -> "QtWidgets.QMdiSubWindow | None":
         return self.mdi_area.currentSubWindow()
+
+    @property
+    def application(self):
+        app: "NyxEditorApplication" = QtWidgets.QApplication.instance()
+        return app
 
     def create_actions(self):
         self.execute_stage_action = QtGui.QAction(
@@ -204,6 +213,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             graph_widget = StageGraphEditor(stage)
         sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(
             graph_widget)
+
+        # Connect signals
+        graph_widget.selection_model.selectionChanged.connect(
+            self.attrib_editor.update_node_data_from_selection)
         return sub_wnd
 
     # Slots
@@ -225,6 +238,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         stage_graph: StageGraphEditor = mdi_window.widget()
         self.stage_tree_view.set_stage(stage_graph.stage)
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
+        self.stage_tree_view.setSelectionModel(stage_graph.selection_model)
 
     def on_stage_open(self):
         sub_wnd = self.current_mdi_window if self.current_mdi_window else self.create_stage_node_graph()

@@ -19,11 +19,11 @@ class StageHandler:
         return f"StageHandler ({self.stage})"
 
     def __init__(self, stage: "Stage") -> None:
-        self.__stage = stage
+        self._stage = stage
 
     @property
     def stage(self):
-        return self.__stage
+        return self._stage
 
     def build_execution_queue(self,
                               start_path: "Node | str | pathlib.PurePosixPath | None" = None) -> "deque[pathlib.PurePosixPath]":

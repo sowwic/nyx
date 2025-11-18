@@ -23,6 +23,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     DEFAULT_TITLE = "Untitled"
 
+    stage_changed = QtCore.Signal(Stage)
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
 
     def __init__(self, stage: Stage = None, parent: QtWidgets.QWidget = None) -> None:
@@ -30,7 +31,8 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
         self.last_saved_undo_index = 0
-        self.__stage: Stage = None
+        self._selection_model = QtCore.QItemSelectionModel()
+        self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
         self.__scope_path = self.stage.ROOT_ITEM_PATH
 
@@ -50,14 +52,19 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     @property
     def stage(self):
-        return self.__stage
+        return self._stage
+
+    @property
+    def selection_model(self):
+        return self._selection_model
 
     def set_stage(self, stage: Stage, create_connections=True):
         old_stage = self.stage
         if stage is None:
             stage = Stage()
-        self.__stage = stage
-        self.update_title()
+        self._stage = stage
+        self._selection_model.setModel(stage)
+        self.stage_changed.emit(stage)
         if create_connections:
             self.create_stage_connections()
         if old_stage:
@@ -84,25 +91,23 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def create_stage_connections(self):
         """Create connections between graph widgets and stage."""
+        # Stage connections
         self.stage.undo_stack.indexChanged.connect(self.update_title)
         self.stage.undo_stack.indexChanged.connect(
             self.gr_stage.rebuild_current_scope)
         self.stage.node_deleted.connect(
             self._handle_scope_path_at_node_deletion)
+        # Selection model connections
+        self.selection_model.selectionChanged.connect(
+            self.gr_stage.on_selection_model_selection_changed
+        )
 
     def create_connections(self):
         """Create signal to slot connections."""
         self.create_stage_connections()
-        self.tree_view.selection_changed.connect(
-            self.gr_stage.on_tree_view_selection_changed)
+        self.stage_changed.connect(self.update_title)
         self.tree_view.node_doubleclicked.connect(self.set_scope_path)
         self.scope_changed.connect(self.gr_stage.rebuild_scope)
-        self.gr_stage.signals.nodes_selection_cleared.connect(
-            self.tree_view.clearSelection)
-        self.gr_stage.signals.nodes_selection_changed.connect(
-            lambda paths: self.tree_view.select_paths(paths, silent=True))
-        self.gr_stage.signals.nodes_selection_changed.connect(
-            self.main_window.attrib_editor.update_node_data_from_stage_graph)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Overridden close event.
@@ -215,6 +220,20 @@ class StageGraphEditor(QtWidgets.QWidget):
     def scope_root(self) -> None:
         self.set_scope_path(self.stage.ROOT_ITEM_PATH)
 
+    def filter_nodes_by_scope(self, nodes: "list[Node]") -> "list[Node]":
+        """Filter nodes by scope.
+
+        Args:
+            nodes (list[Node]): Nodes to filter.
+
+        Returns:
+            list[Node]: Filtered nodes.
+        """
+        current_scope_node = self.stage.node(self.get_scope_path())
+        scope_child_nodes = self.stage.list_children(current_scope_node)
+        filtered_nodes = list(set(nodes).intersection(set(scope_child_nodes)))
+        return filtered_nodes
+
     def _handle_scope_path_at_node_deletion(self, deleted_node_path):
         current_scope = self.get_scope_path()
         if current_scope == deleted_node_path or deleted_node_path in current_scope.parents:
@@ -226,4 +245,5 @@ class StageGraphEditor(QtWidgets.QWidget):
         Returns:
             list[Node]: selected nodes
         """
-        return [self.stage.node(path) for path in self.gr_stage.list_selected_node_paths()]
+        selected_indexes = self.selection_model.selectedIndexes()
+        return [self.stage.itemFromIndex(index) for index in selected_indexes]

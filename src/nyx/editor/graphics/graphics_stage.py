@@ -59,6 +59,10 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def stage(self):
         return self.graph_editor.stage
 
+    @property
+    def selection_model(self):
+        return self.graph_editor.selection_model
+
     # ======== Events ========= #
 
     def dragMoveEvent(self, event):
@@ -159,32 +163,16 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             node = self.stage.node(path)
             if not node or not node.gr_node:
                 continue
-            node.gr_node.setSelected(True)
+            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def rebuild_current_scope(self):
         self.rebuild_scope(self.graph_editor.get_scope_path())
 
-    def on_selection_changed(self):
-        selected_paths = self.list_selected_node_paths()
-
-        if not selected_paths:
-            self.signals.nodes_selection_cleared.emit()
-            self._previous_selected_paths.clear()
-            return
-
-        if set(selected_paths) != set(self._previous_selected_paths):
-            self._previous_selected_paths = selected_paths
-            self.signals.nodes_selection_changed.emit(selected_paths)
-
-    def on_tree_view_selection_changed(self):
+    def on_selection_model_selection_changed(self):
         self.blockSignals(True)
         self.clearSelection()
-        tree_view_selected_nodes = self.graph_editor.tree_view.selected_nodes()
-        current_scope_node = self.stage.node(
-            self.graph_editor.get_scope_path())
-        scope_child_nodes = self.stage.list_children(current_scope_node)
-        scope_selected_nodes = list(
-            set(tree_view_selected_nodes).intersection(set(scope_child_nodes)))
+        selected_nodes = [self.stage.itemFromIndex(index) for index in self.selection_model.selectedIndexes()]
+        scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(selected_nodes)
         if not scope_selected_nodes:
             return
 
@@ -194,8 +182,14 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                     f"Missing graphics node for selection: {node}")
                 continue
             node.gr_node.setSelected(True)
-
         self.blockSignals(False)
+
+    def on_selection_changed(self):
+        gr_nodes = self.selected_gr_nodes()
+        nodes = [gr_node.node for gr_node in gr_nodes]
+        self.selection_model.clearSelection()
+        for node in nodes:
+            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def start_selected_node_rename(self):
         gr_node = self.get_last_selected_gr_node()

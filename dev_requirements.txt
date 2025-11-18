@@ -1,6 +1,0 @@
-PySide6==6.9.0
-pytest-cov==6.1.1
-pytest==8.3.5
-shiboken6==6.9.0
-tox==4.25.0
-flake8==7.2.0

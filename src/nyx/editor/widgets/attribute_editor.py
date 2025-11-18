@@ -76,10 +76,8 @@ class AttributeEditor(QtWidgets.QWidget):
         self.main_layout.addWidget(self.attributes_table)
 
     def create_connections(self):
-        self.tree_view.selection_changed.connect(
-            self.update_node_data_from_treeview)
         self.main_window.undo_group.indexChanged.connect(
-            self.update_node_data_from_treeview)
+            self.update_node_data_from_selection)
         self.node_name_lineedit.editingFinished.connect(self.apply_name_edit)
         self.node_exec_input_line_edit.editingFinished.connect(
             self.apply_exec_input_edit)
@@ -161,13 +159,9 @@ class AttributeEditor(QtWidgets.QWidget):
                        self.node_position_y_spinbox]:
             widget.blockSignals(state)
 
-    def update_node_data_from_stage_graph(self, selected_paths):
-        current_stage_node = self.current_stage_graph.stage.node(
-            selected_paths[-1])
-        self.node = None or current_stage_node
-
-    def update_node_data_from_treeview(self):
-        self.node = self.tree_view.current_node()
+    def update_node_data_from_selection(self):
+        selected_nodes = self.current_stage_graph.list_selected_nodes()
+        self.node = selected_nodes[-1] if selected_nodes else None
 
     def set_data_from_node(self, node):
         self.node_name_lineedit.setText(node.name)
@@ -219,7 +213,7 @@ class AttributeEditor(QtWidgets.QWidget):
             if current_node.is_input_exec_cyclic(source_node) or current_node is source_node:
                 LOGGER.warning(
                     f"Cyclic exec path: {source_node.path} <-> {current_node.path}")
-                self.update_node_data_from_treeview()
+                self.update_node_data_from_selection()
                 return
             set_exec_input_cmd = commands.ConnectNodeExecCommand(stage=current_node.stage,
                                                                  output_node=source_node,
@@ -243,7 +237,7 @@ class AttributeEditor(QtWidgets.QWidget):
         if new_path and not current_node.is_parent_of(new_path):
             LOGGER.warning(
                 f"Node({new_path}) is not a child of {current_node}")
-            self.update_node_data_from_treeview()
+            self.update_node_data_from_selection()
             return
 
         set_execution_start_cmd = commands.SetNodeExecStartCommand(stage=current_node.stage,
