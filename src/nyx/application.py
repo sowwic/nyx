@@ -94,7 +94,11 @@ class NyxEditorApplication(NyxApplication):
         stage.undo_stack.push(conn_attr_cmd)
 
         rename_attr_cmd = commands.RenameNodeAttributeCommand(
-            stage, node="/test_node/test_child", attr_name="child_attr", new_attr_name="new_attr")
+            stage,
+            node="/test_node/test_child",
+            attr_name="child_attr",
+            new_attr_name="new_attr"
+        )
         stage.undo_stack.push(rename_attr_cmd)
 
         # Exec starts
@@ -102,15 +106,17 @@ class NyxEditorApplication(NyxApplication):
             stage, "/test_node")
         stage.undo_stack.push(stage_exec_start_cmd)
 
-        node_exec_start_cmd = commands.SetNodeExecStartCommand(stage,
-                                                               node="/parent_node",
-                                                               path="/parent_node/node1")
+        node_exec_start_cmd = commands.SetNodeExecStartCommand(
+            stage,
+            node="/parent_node",
+            path="/parent_node/node1")
         stage.undo_stack.push(node_exec_start_cmd)
 
         # Node exec connections
-        child_node_to_node1_exec_cmd = commands.ConnectNodeExecCommand(stage,
-                                                                       output_node="/parent_node/child_node",
-                                                                       input_node="/parent_node/node1")
+        child_node_to_node1_exec_cmd = commands.ConnectNodeExecCommand(
+            stage,
+            output_node="/parent_node/child_node",
+            input_node="/parent_node/node1")
         stage.undo_stack.push(child_node_to_node1_exec_cmd)
         # Deletions
         # del_attr_cmd = commands.DeleteNodeAttributeCommand(

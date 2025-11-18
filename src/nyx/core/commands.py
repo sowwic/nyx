@@ -205,7 +205,11 @@ class RenameNodeAttributeCommand(NyxCommand):
         self.attr_name = attr_name
         self.new_attr_name = new_attr_name
         self.setText(
-            f"{self.text()} {self.node_path.as_posix()} ({self.attr_name}) -> '{self.new_attr_name}'")
+            (
+                f"{self.text()} {self.node_path.as_posix()} "
+                f"({self.attr_name}) -> '{self.new_attr_name}'"
+            )
+        )
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
@@ -232,7 +236,11 @@ class SetNodeAttributeCommand(NyxCommand):
         self.attr_value = attr_value
         self.old_attr_value = None
         self.setText(
-            f"{self.text()} {self.node_path.as_posix()} ({self.attr_name}) -> {self.attr_value}")
+            (
+                f"{self.text()} {self.node_path.as_posix()} "
+                f"({self.attr_name}) -> {self.attr_value}"
+            )
+        )
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
@@ -266,7 +274,12 @@ class ConnectAttributeCommand(NyxCommand):
         self.destination_attr_old_value = None
         self.resolve_on_connect = resolve_on_connect
         self.setText(
-            f"{self.text()} {self.source_node_path.as_posix()} ({self.source_attr_name}) -> {self.destination_node_path.as_posix()} ({self.destination_attr_name})")  # noqa: E501
+            (
+                f"{self.text()} {self.source_node_path.as_posix()} "
+                f"({self.source_attr_name}) -> {self.destination_node_path.as_posix()} "
+                f"({self.destination_attr_name})"
+            )
+        )
 
     def redo(self) -> None:
         source_node = self.stage.node(self.source_node_path)
@@ -274,7 +287,9 @@ class ConnectAttributeCommand(NyxCommand):
         self.destination_attr_old_value = destination_node.attr(
             self.destination_attr_name).get(raw=True)
         source_node.attr(self.source_attr_name).connect(
-            destination_node.attr(self.destination_attr_name), resolve=self.resolve_on_connect)
+            destination_node.attr(self.destination_attr_name),
+            resolve=self.resolve_on_connect
+        )
 
         return super().redo()
 
@@ -493,13 +508,17 @@ class PasteNodesCommand(NyxCommand):
     def filter_serialized_nodes(self):
         """Filter out nodes that are already in the stage.
 
-        If parent of copied node is about to be pasted child will be skipped to avoid duplication.
+        If parent of copied node is about to be pasted child will be skipped
+        to avoid duplication.
         """
         serialized_paths = [
-            pathlib.PurePosixPath(node_data["path"]) for node_data in self.serialized_nodes]
+            pathlib.PurePosixPath(node_data["path"])
+            for node_data in self.serialized_nodes
+        ]
         serialized_paths_set = set(serialized_paths)
         indexes_to_remove = []
-        # Iterate over all serialized nodes and check if any of their parents are about to be pasted
+        # Iterate over all serialized nodes and check
+        # if any of their parents are about to be pasted
         for index, node_data in enumerate(self.serialized_nodes):
             node_path = pathlib.PurePosixPath(node_data["path"])
             # Check if parents of serialized node are serizalized as well.
@@ -545,7 +564,10 @@ class MoveNodeCommand(NyxCommand):
             f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
 
     def redo(self) -> None:
-        for node, new_pos in zip([self.stage.node(path) for path in self.node_paths], self.new_positions):
+        for node, new_pos in zip(
+            [self.stage.node(path)
+             for path in self.node_paths], self.new_positions
+        ):
             node.set_position(new_pos)
             if node.gr_node and node.gr_node.pos() != new_pos:
                 node.gr_node.setPos(new_pos)
@@ -553,7 +575,10 @@ class MoveNodeCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
-        for node, old_pos in zip([self.stage.node(path) for path in self.node_paths], self.old_positions):
+        for node, old_pos in zip(
+            [self.stage.node(path)
+             for path in self.node_paths], self.old_positions
+        ):
             node.set_position(old_pos)
             if node.gr_node and node.gr_node.pos() != old_pos:
                 node.gr_node.setPos(old_pos)

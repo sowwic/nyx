@@ -1,4 +1,4 @@
-# Based on https://github.com/mCodingLLC/VideosSampleCode/blob/master/videos/124_abc_collections/main.py
+# Based on https://github.com/mCodingLLC/VideosSampleCode/blob/master/videos/124_abc_collections/main.py. #noqa: E501
 from __future__ import annotations
 try:
     from collections.abc import MutableMapping
@@ -30,7 +30,8 @@ class InvertibleDict(MutableMapping):
             self._backward = _backward
         else:
             self._forward = forward
-            self._backward = {value: key for key, value in self._forward.items()}
+            self._backward = {value: key for key,
+                              value in self._forward.items()}
             self._check_non_invertible()
 
     def _check_non_invertible(self):

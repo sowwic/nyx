@@ -21,7 +21,12 @@ class Attribute(Serializable):
         self._cached_value = None
 
     def __repr__(self) -> str:
-        return f"Attribute {self.name} (raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value})"
+        return (
+            f"Attribute {self.name} "
+            f"(raw: {self.value}, "
+            f"resolved: {self.resolved_value}, "
+            f"cached: {self.cached_value})"
+        )
 
     def __eq__(self, other_attr):
         # type: (Attribute) -> bool
@@ -92,7 +97,9 @@ class Attribute(Serializable):
         return self.node.path.with_suffix("." + self.name)
 
     def get(self, raw=False, resolved=False) -> typing.Any:
-        """Get attribute value. If no arguments were specified - will return cached value.
+        """Get attribute value.
+
+        If no arguments were specified - will return cached value.
 
         Args:
             raw (bool, optional): get raw value. Defaults to False.
@@ -145,9 +152,10 @@ class Attribute(Serializable):
     def cache_current_value(self):
         """Push current value to cache."""
         self.resolve()
-        # If value resolves to attribute push that attribute resolved value to cache instead.
-        value_to_cache = self.resolved_value.resolved_value if isinstance(
-            self.resolved_value, Attribute) else self.resolved_value
+        if isinstance(self.resolved_value, Attribute):
+            value_to_cache = self.resolved_value.resolved_value
+        else:
+            value_to_cache = self.resolved_value
 
         self.push(value_to_cache)
 
