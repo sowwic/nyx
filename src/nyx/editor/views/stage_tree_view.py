@@ -68,7 +68,7 @@ class StageTreeView(QtWidgets.QTreeView):
             self.set_selected_item_as_parents_execution_start)
 
     def create_connections(self):
-        self.doubleClicked.connect(self.__emit_doubledclicked_item)
+        self.doubleClicked.connect(self._emit_doubledclicked_item)
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     @property
@@ -86,7 +86,7 @@ class StageTreeView(QtWidgets.QTreeView):
     def set_stage(self, stage):
         self.setModel(stage)
 
-    def __emit_doubledclicked_item(self, index):
+    def _emit_doubledclicked_item(self, index):
         if not self.stage:
             return
         node = self.stage.itemFromIndex(index)

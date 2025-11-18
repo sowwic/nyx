@@ -15,10 +15,10 @@ class Attribute(Serializable):
 
     def __init__(self, node: "Node", value=None) -> None:
         super().__init__()
-        self.__node = node
-        self.__value = value
-        self.__resolved = None
-        self.__cached_value = None
+        self._node = node
+        self._value = value
+        self._resolved = None
+        self._cached_value = None
 
     def __repr__(self) -> str:
         return f"Attribute {self.name} (raw: {self.value}, resolved: {self.resolved_value}, cached: {self.cached_value})"
@@ -37,7 +37,7 @@ class Attribute(Serializable):
 
     @property
     def node(self):
-        return self.__node
+        return self._node
 
     @property
     def stage(self):
@@ -50,7 +50,7 @@ class Attribute(Serializable):
         Returns:
             typing.Any: stored value
         """
-        return self.__value
+        return self._value
 
     @property
     def resolved_value(self):
@@ -59,7 +59,7 @@ class Attribute(Serializable):
         Returns:
             typing.Any: stored cached value
         """
-        return self.__resolved
+        return self._resolved
 
     @property
     def cached_value(self):
@@ -68,7 +68,7 @@ class Attribute(Serializable):
         Returns:
             typing.Any: stored cached value
         """
-        return self.__cached_value
+        return self._cached_value
 
     @property
     def name(self):
@@ -111,17 +111,17 @@ class Attribute(Serializable):
 
     def set(self, value, resolve=True):
         """Set raw attribute value"""
-        self.__value = value
+        self._value = value
         if resolve:
             self.resolve()
 
     def push(self, value):
         """Push given value to cache"""
-        self.__cached_value = value
+        self._cached_value = value
 
     def clear_cache(self):
         """Set cache value to None."""
-        self.__cached_value = None
+        self._cached_value = None
 
     def is_cached(self) -> bool:
         """Is value equal to cached value
@@ -173,7 +173,7 @@ class Attribute(Serializable):
 
     def resolve(self):
         LOGGER.debug(f"{self} | Resolving...")
-        self.__resolved = None
+        self._resolved = None
         if self.value is None:
             return
 
@@ -185,9 +185,9 @@ class Attribute(Serializable):
                 else:
                     resolved = resolved.cached_value
 
-            self.__resolved = resolved
+            self._resolved = resolved
         else:
-            self.__resolved = self.value
+            self._resolved = self.value
         LOGGER.debug(f"Resolved value: {self.resolved_value}")
 
     def _resolve_string(self, raw_str: str):

@@ -39,9 +39,9 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.last_saved_undo_index = 0
         self.file_path: pathlib.Path = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
-        self.__execution_start_path: pathlib.PurePosixPath = None
-        self.__resolver = Resolver()
-        self.__handler = StageHandler(self)
+        self._execution_start_path: pathlib.PurePosixPath = None
+        self._resolver = Resolver()
+        self._handler = StageHandler(self)
         self.undo_stack = QtGui.QUndoStack(self)
 
         self.create_connections()
@@ -52,15 +52,15 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     @property
     def handler(self):
-        return self.__handler
+        return self._handler
 
     @property
     def resolver(self):
-        return self.__resolver
+        return self._resolver
 
     @property
     def execution_start_path(self):
-        return self.__execution_start_path
+        return self._execution_start_path
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
@@ -355,7 +355,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                     f"{self} | Invalid execution start path object: {start_path}")
                 return
 
-        self.__execution_start_path = start_path
+        self._execution_start_path = start_path
         LOGGER.info(f"{self} | Set execution start path to {start_path}")
 
     def set_execution_start_path(self,

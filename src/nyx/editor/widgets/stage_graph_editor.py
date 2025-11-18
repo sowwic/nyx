@@ -34,7 +34,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self._selection_model = QtCore.QItemSelectionModel()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
-        self.__scope_path = self.stage.ROOT_ITEM_PATH
+        self._scope_path = self.stage.ROOT_ITEM_PATH
 
         self.create_actions()
         self.create_widgets()
@@ -196,7 +196,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         return True
 
     def get_scope_path(self) -> pathlib.PurePosixPath:
-        return self.__scope_path
+        return self._scope_path
 
     def set_scope_path(self, scope: "Node | pathlib.PurePosixPath | str", silent=False) -> None:
         previous_scope = self.get_scope_path()
@@ -209,10 +209,10 @@ class StageGraphEditor(QtWidgets.QWidget):
         else:
             new_scope = previous_scope
 
-        self.__scope_path = new_scope
-        LOGGER.debug(f"Set scope to: {self.__scope_path}")
+        self._scope_path = new_scope
+        LOGGER.debug(f"Set scope to: {self._scope_path}")
         if not silent:
-            self.scope_changed.emit(self.__scope_path)
+            self.scope_changed.emit(self._scope_path)
 
     def scope_back(self) -> None:
         self.set_scope_path(self.get_scope_path().parent)

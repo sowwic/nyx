@@ -19,7 +19,7 @@ LOGGER = get_main_logger()
 class AttributeEditor(QtWidgets.QWidget):
     def __init__(self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-        self.__node: Node = None
+        self._node: Node = None
         self.main_window: "NyxEditorMainWindow" = main_window
 
         self.create_actions()
@@ -101,18 +101,18 @@ class AttributeEditor(QtWidgets.QWidget):
 
     @property
     def node(self):
-        return self.__node
+        return self._node
 
     @node.setter
     def node(self, node: Node):
-        self.__node = node
-        if self.__node is None:
+        self._node = node
+        if self._node is None:
             self.set_fields_enabled(False)
             return
 
         self.block_fields_signals(True)
         self.set_fields_enabled(True)
-        self.update_referenced_fields(self.__node.is_referenced)
+        self.update_referenced_fields(self._node.is_referenced)
         self.set_data_from_node(self.node)
         self.attributes_table.update_node_data()
         self.block_fields_signals(False)

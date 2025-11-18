@@ -40,7 +40,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         super().__init__(graph_editor.gr_stage, parent=parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.graph_editor: "StageGraphEditor" = graph_editor
-        self.__interaction_mode = StageGraphView.InteractionMode.NOOP
+        self._interaction_mode = StageGraphView.InteractionMode.NOOP
         self.cutline = GraphCutLine()
         self.scene().addItem(self.cutline)
 
@@ -56,14 +56,14 @@ class StageGraphView(QtWidgets.QGraphicsView):
         # Toggles
         self.rubberband_dragging_rect = False
 
-        self.__setup_view()
+        self._setup_view()
         self.update_render_hints()
         self.create_actions()
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
 
-    def __setup_view(self):
+    def _setup_view(self):
         self.setInteractive(True)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -137,14 +137,14 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     @property
     def interaction_mode(self):
-        return self.__interaction_mode
+        return self._interaction_mode
 
     @property
     def gr_stage(self) -> "GraphicsStage":
         return self.scene()
 
     def set_interaction_mode(self, mode: "StageGraphView.InteractionMode"):
-        self.__interaction_mode = mode
+        self._interaction_mode = mode
         LOGGER.debug(f"Interaction mode: {mode}")
 
     def get_center_position(self) -> QtCore.QPointF:

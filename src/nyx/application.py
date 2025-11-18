@@ -23,15 +23,15 @@ class NyxApplication(QtWidgets.QApplication):
         self.setApplicationDisplayName("Nyx")
         self.setWindowIcon(QtGui.QIcon(":/icons/nyx.png"))
         self.setApplicationVersion(__version__)
-        self.__config = Config.load()
+        self._config = Config.load()
         LOGGER.setLevel(self.config().logging_level)
 
     def config(self):
-        return self.__config
+        return self._config
 
     def reset_config(self):
         """Reset application config."""
-        self.__config = self.config().reset()
+        self._config = self.config().reset()
 
 
 class NyxEditorApplication(NyxApplication):

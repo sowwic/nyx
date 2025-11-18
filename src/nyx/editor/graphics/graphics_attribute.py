@@ -15,21 +15,21 @@ class GraphicsNodeAttribute(QtWidgets.QGraphicsItem):
 
     def __init__(self, attr: "Attribute", gr_node: "GraphicsNode" = None) -> None:
         super().__init__(gr_node)
-        self.__attr = attr
-        self.__gr_node = gr_node
-        self.__index = len(gr_node.gr_attribs)
+        self._attr = attr
+        self._gr_node = gr_node
+        self._index = len(gr_node.gr_attribs)
 
     @property
     def attr(self) -> "Attribute":
-        return self.__attr
+        return self._attr
 
     @property
     def gr_node(self) -> "GraphicsNode":
-        return self.__gr_node
+        return self._gr_node
 
     @property
     def index(self) -> int:
-        return self.__index
+        return self._index
 
     def boundingRect(self) -> QtCore.QRectF:
         return QtCore.QRectF(0,

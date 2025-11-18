@@ -16,10 +16,10 @@ class RichLogMessageItem(QtWidgets.QListWidgetItem):
     def __init__(self,
                  log_record: logging_fn.logging.LogRecord,
                  listview: QtWidgets.QListWidget = None) -> None:
-        self.__icon_error = None
-        self.__icon_warning = None
-        self.__icon_info = None
-        self.__icon_debug = None
+        self._icon_error = None
+        self._icon_warning = None
+        self._icon_info = None
+        self._icon_debug = None
         self.main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
         self.level_icon_map = {"DEBUG": self.icon_debug,
                                "INFO": self.icon_info,
@@ -37,35 +37,35 @@ class RichLogMessageItem(QtWidgets.QListWidgetItem):
 
     @property
     def icon_error(self):
-        if self.__icon_error:
-            return self.__icon_error
+        if self._icon_error:
+            return self._icon_error
         pixmap = QtWidgets.QStyle.SP_MessageBoxCritical
-        self.__icon_error = self.main_window.style().standardIcon(pixmap)
-        return self.__icon_error
+        self._icon_error = self.main_window.style().standardIcon(pixmap)
+        return self._icon_error
 
     @property
     def icon_warning(self):
-        if self.__icon_warning:
-            return self.__icon_warning
+        if self._icon_warning:
+            return self._icon_warning
         pixmap = QtWidgets.QStyle.SP_MessageBoxWarning
-        self.__icon_warning = self.main_window.style().standardIcon(pixmap)
-        return self.__icon_warning
+        self._icon_warning = self.main_window.style().standardIcon(pixmap)
+        return self._icon_warning
 
     @property
     def icon_info(self):
-        if self.__icon_info:
-            return self.__icon_info
+        if self._icon_info:
+            return self._icon_info
         pixmap = QtWidgets.QStyle.SP_MessageBoxInformation
-        self.__icon_info = self.main_window.style().standardIcon(pixmap)
-        return self.__icon_info
+        self._icon_info = self.main_window.style().standardIcon(pixmap)
+        return self._icon_info
 
     @property
     def icon_debug(self):
-        if self.__icon_debug:
-            return self.__icon_debug
+        if self._icon_debug:
+            return self._icon_debug
         pixmap = QtWidgets.QStyle.SP_DialogHelpButton
-        self.__icon_debug = self.main_window.style().standardIcon(pixmap)
-        return self.__icon_debug
+        self._icon_debug = self.main_window.style().standardIcon(pixmap)
+        return self._icon_debug
 
 
 class LoggerWidget(QtWidgets.QWidget):
@@ -75,7 +75,7 @@ class LoggerWidget(QtWidgets.QWidget):
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
-        self.__logger = self.set_logger(logger_name)
+        self._logger = self.set_logger(logger_name)
 
     def create_actions(self):
         pass
@@ -107,7 +107,7 @@ class LoggerWidget(QtWidgets.QWidget):
 
     @property
     def logger(self):
-        return self.__logger
+        return self._logger
 
     @property
     def config(self):
@@ -118,12 +118,12 @@ class LoggerWidget(QtWidgets.QWidget):
         return self.config.logger_autoscroll
 
     def set_logger(self, name: str):
-        self.__logger = logging_fn.get_logger(name,
-                                              level=self.config.logging_level)
-        logging_fn.add_signal_handler(self.__logger)
-        self.__logger.signal_handler.emitter.message_logged.connect(
+        self._logger = logging_fn.get_logger(name,
+                                             level=self.config.logging_level)
+        logging_fn.add_signal_handler(self._logger)
+        self._logger.signal_handler.emitter.message_logged.connect(
             self.append_raw_message)
-        self.__logger.signal_handler.emitter.record_logged.connect(
+        self._logger.signal_handler.emitter.record_logged.connect(
             self.append_rich_message)
 
     def append_raw_message(self, text: str):

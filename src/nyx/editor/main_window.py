@@ -25,25 +25,25 @@ LOGGER = get_main_logger()
 
 class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
-    __INSTANCE: "NyxEditorMainWindow" = None
+    _INSTANCE: "NyxEditorMainWindow" = None
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
     MINIMUM_SIZE = (500, 400)
 
     @classmethod
     def instance(cls):
-        return cls.__INSTANCE
+        return cls._INSTANCE
 
     @classmethod
     def display(cls):
-        if not cls.__INSTANCE:
-            cls.__INSTANCE = cls()
+        if not cls._INSTANCE:
+            cls._INSTANCE = cls()
 
-        if cls.__INSTANCE.isHidden():
-            cls.__INSTANCE.show()
+        if cls._INSTANCE.isHidden():
+            cls._INSTANCE.show()
         else:
-            cls.__INSTANCE.raise_()
-            cls.__INSTANCE.activateWindow()
+            cls._INSTANCE.raise_()
+            cls._INSTANCE.activateWindow()
 
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)

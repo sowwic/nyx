@@ -26,7 +26,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def __init__(self, graph_editor: "StageGraphEditor", parent=None):
         super().__init__(parent=parent)
 
-        self.__graph_editor = graph_editor
+        self._graph_editor = graph_editor
         self._previous_selected_paths: list[pathlib.PurePosixPath] = []
         self.signals = StageSignaller()
 
@@ -53,7 +53,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     @property
     def graph_editor(self):
-        return self.__graph_editor
+        return self._graph_editor
 
     @property
     def stage(self):
@@ -163,7 +163,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             node = self.stage.node(path)
             if not node or not node.gr_node:
                 continue
-            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
+            self.selection_model.select(
+                node.index(), QtCore.QItemSelectionModel.Select)
 
     def rebuild_current_scope(self):
         self.rebuild_scope(self.graph_editor.get_scope_path())
@@ -171,8 +172,10 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def on_selection_model_selection_changed(self):
         self.blockSignals(True)
         self.clearSelection()
-        selected_nodes = [self.stage.itemFromIndex(index) for index in self.selection_model.selectedIndexes()]
-        scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(selected_nodes)
+        selected_nodes = [self.stage.itemFromIndex(
+            index) for index in self.selection_model.selectedIndexes()]
+        scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(
+            selected_nodes)
         if not scope_selected_nodes:
             return
 
@@ -189,7 +192,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         nodes = [gr_node.node for gr_node in gr_nodes]
         self.selection_model.clearSelection()
         for node in nodes:
-            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
+            self.selection_model.select(
+                node.index(), QtCore.QItemSelectionModel.Select)
 
     def start_selected_node_rename(self):
         gr_node = self.get_last_selected_gr_node()

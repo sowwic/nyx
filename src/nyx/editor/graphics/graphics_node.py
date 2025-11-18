@@ -26,7 +26,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
 
-        self.__node = None
+        self._node = None
         self.gr_attribs: "deque[GraphicsNodeAttribute]" = deque()
 
         self._set_node(node)
@@ -48,9 +48,9 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             # Connect signals
         else:
             # Disconnect signals
-            self.__node.gr_node = None
+            self._node.gr_node = None
 
-        self.__node = node
+        self._node = node
 
     def _create_gr_attributes(self):
         for _, attr in self.node.attribs.items():
@@ -126,7 +126,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     @property
     def node(self):
-        return self.__node
+        return self._node
 
     @property
     def gr_stage(self) -> "GraphicsStage":
