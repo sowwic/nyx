@@ -33,8 +33,12 @@ clean:
 	@printf "$(GREEN)Clean up complete.$(RESET)\n"
 
 lint:
-	$(call banner, Running flake8 linting...)
-	@poetry run flake8 src tests || true
+	$(call banner, Running Ruff linter...)
+	@poetry run ruff check src tests || true
+
+format:
+	$(call banner, Running Ruff formatter...)
+	@poetry run ruff format src tests
 
 pytest:
 	$(call banner, Running pytest...)
@@ -55,3 +59,4 @@ update-version:
 	@VERSION=$$(cat VERSION); \
 	printf "$(CYAN)==>$(RESET) Updating pyproject.toml version to %s\n" "$$VERSION"; \
 	poetry version $$VERSION
+

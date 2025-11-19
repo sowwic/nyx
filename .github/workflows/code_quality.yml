@@ -26,5 +26,5 @@ jobs:
       - name: Install dependencies
         run: poetry install --with dev
 
-      - name: Run Flake8
-        run: poetry run flake8 src tests
+      - name: Run Ruff
+        run: poetry run ruff check src tests
