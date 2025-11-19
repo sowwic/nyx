@@ -1,9 +1,10 @@
 # Based on https://github.com/mCodingLLC/VideosSampleCode/blob/master/videos/124_abc_collections/main.py. #noqa: E501
 from __future__ import annotations
+
 try:
     from collections.abc import MutableMapping
 except ImportError:
-    from collections import MutableMapping
+    from collections.abc import MutableMapping
 from typing import TypeVar
 
 
@@ -13,14 +14,15 @@ VT = TypeVar("VT")
 
 class InvertibleDict(MutableMapping):
     """Invertible 1-to-1 mapping"""
+
     __slots__ = ("_forward", "_backward")
-    _forward: "dict[KT, VT]"
-    _backward: "dict[VT, KT]"
+    _forward: dict[KT, VT]
+    _backward: dict[VT, KT]
 
     def __init__(
         self,
-        forward: "dict[KT, VT] | None" = None,
-        _backward: "dict[VT, KT] | None" = None
+        forward: dict[KT, VT] | None = None,
+        _backward: dict[VT, KT] | None = None,
     ) -> None:
         if forward is None:
             self._forward = {}
@@ -30,8 +32,7 @@ class InvertibleDict(MutableMapping):
             self._backward = _backward
         else:
             self._forward = forward
-            self._backward = {value: key for key,
-                              value in self._forward.items()}
+            self._backward = {value: key for key, value in self._forward.items()}
             self._check_non_invertible()
 
     def _check_non_invertible(self):
@@ -45,7 +46,7 @@ class InvertibleDict(MutableMapping):
         raise ValueError(f"non-invertible: {key1}, {key2} both map to: {value}")
 
     @property
-    def inv(self) -> "InvertibleDict[KT, VT]":
+    def inv(self) -> InvertibleDict[KT, VT]:
         return self.__class__(self._backward, _backward=self._forward)
 
     def __getitem__(self, key: KT) -> VT:

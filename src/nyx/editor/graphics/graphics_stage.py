@@ -9,6 +9,7 @@ from PySide6 import QtWidgets
 
 from nyx import get_main_logger
 from nyx.editor.graphics.graphics_node import GraphicsNode
+
 if typing.TYPE_CHECKING:
     from nyx.core import Node
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
@@ -22,7 +23,6 @@ class StageSignaller(QtCore.QObject):
 
 
 class GraphicsStage(QtWidgets.QGraphicsScene):
-
     def __init__(self, graph_editor: "StageGraphEditor", parent=None):
         super().__init__(parent=parent)
 
@@ -87,13 +87,13 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         # Compute line drawing
         lines_light, lines_dark = [], []
         for x in range(first_left, right, self.grid_size):
-            if (x % (self.grid_size * self.grid_squares)):
+            if x % (self.grid_size * self.grid_squares):
                 lines_light.append(QtCore.QLine(x, top, x, bottom))
             else:
                 lines_dark.append(QtCore.QLine(x, top, x, bottom))
 
         for y in range(first_top, bottom, self.grid_size):
-            if (y % (self.grid_size * self.grid_squares)):
+            if y % (self.grid_size * self.grid_squares):
                 lines_light.append(QtCore.QLine(left, y, right, y))
             else:
                 lines_dark.append(QtCore.QLine(left, y, right, y))
@@ -163,8 +163,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             node = self.stage.node(path)
             if not node or not node.gr_node:
                 continue
-            self.selection_model.select(
-                node.index(), QtCore.QItemSelectionModel.Select)
+            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def rebuild_current_scope(self):
         self.rebuild_scope(self.graph_editor.get_scope_path())
@@ -172,17 +171,17 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def on_selection_model_selection_changed(self):
         self.blockSignals(True)
         self.clearSelection()
-        selected_nodes = [self.stage.itemFromIndex(
-            index) for index in self.selection_model.selectedIndexes()]
-        scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(
-            selected_nodes)
+        selected_nodes = [
+            self.stage.itemFromIndex(index)
+            for index in self.selection_model.selectedIndexes()
+        ]
+        scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(selected_nodes)
         if not scope_selected_nodes:
             return
 
         for node in scope_selected_nodes:
             if node.gr_node is None:
-                LOGGER.exception(
-                    f"Missing graphics node for selection: {node}")
+                LOGGER.exception(f"Missing graphics node for selection: {node}")
                 continue
             node.gr_node.setSelected(True)
         self.blockSignals(False)
@@ -192,8 +191,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         nodes = [gr_node.node for gr_node in gr_nodes]
         self.selection_model.clearSelection()
         for node in nodes:
-            self.selection_model.select(
-                node.index(), QtCore.QItemSelectionModel.Select)
+            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def start_selected_node_rename(self):
         gr_node = self.get_last_selected_gr_node()

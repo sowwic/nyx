@@ -3,17 +3,17 @@ import pathlib
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
-    from nyx.editor.main_window import NyxEditorMainWindow
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 
 class GraphScopeWidget(QtWidgets.QWidget):
-    def __init__(self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None) -> None:
+    def __init__(
+        self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None
+    ) -> None:
         super().__init__(parent)
-        self.graph_editor: "StageGraphEditor" = graph_editor
+        self.graph_editor: StageGraphEditor = graph_editor
 
         # Initialize ui
         self.create_actions()
@@ -27,11 +27,10 @@ class GraphScopeWidget(QtWidgets.QWidget):
     def create_widgets(self):
         self.path_line_edit = QtWidgets.QLineEdit()
         self.scope_back_btn = QtWidgets.QPushButton(
-            QtGui.QIcon(":/icons/arrow_back.png"), "")
-        self.scope_root_btn = QtWidgets.QPushButton(
-            QtGui.QIcon(":/icons/home.png"), "")
-        self.path_line_edit.setText(
-            self.graph_editor.get_scope_path().as_posix())
+            QtGui.QIcon(":/icons/arrow_back.png"), ""
+        )
+        self.scope_root_btn = QtWidgets.QPushButton(QtGui.QIcon(":/icons/home.png"), "")
+        self.path_line_edit.setText(self.graph_editor.get_scope_path().as_posix())
 
     def create_layouts(self):
         self.main_layout = QtWidgets.QHBoxLayout()

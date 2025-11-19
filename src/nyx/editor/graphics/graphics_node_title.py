@@ -4,12 +4,12 @@ from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.core import commands
+
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_node import GraphicsNode
 
 
 class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
-
     TITLE_FONT = QtGui.QFont("Roboto", 10)
 
     def __init__(self, gr_node: "GraphicsNode"):
@@ -30,8 +30,7 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         line_edit = QtWidgets.QLineEdit()
         line_edit_proxy = QtWidgets.QGraphicsProxyWidget(self)
         line_edit_proxy.setWidget(line_edit)
-        line_edit.editingFinished.connect(
-            lambda: self.apply_edit(line_edit.text()))
+        line_edit.editingFinished.connect(lambda: self.apply_edit(line_edit.text()))
         line_edit.editingFinished.connect(line_edit_proxy.deleteLater)
         line_edit.setFont(self.font())
 
@@ -43,7 +42,7 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         new_text = new_text.strip()
         if not new_text or new_text == self.gr_node.node.name:
             return
-        rename_cmd = commands.RenameNodeCommand(stage=self.gr_node.node.stage,
-                                                node=self.gr_node.node,
-                                                new_name=new_text)
+        rename_cmd = commands.RenameNodeCommand(
+            stage=self.gr_node.node.stage, node=self.gr_node.node, new_name=new_text
+        )
         self.gr_node.node.stage.undo_stack.push(rename_cmd)

@@ -3,8 +3,7 @@ from PySide6 import QtWidgets
 
 
 class NyxTextEdit(QtWidgets.QTextEdit):
-    """
-    A TextEdit editor that sends editingFinished events
+    """A TextEdit editor that sends editingFinished events
     when the text was changed and focus is lost.
     """
 

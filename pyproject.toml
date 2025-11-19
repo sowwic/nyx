@@ -42,6 +42,7 @@ lint.select = [
     "D",
 ]
 lint.ignore = [
-    "D413",
+    "D100",
     "D104",
+    "D103",
 ]

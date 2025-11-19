@@ -11,6 +11,7 @@ LOGS_DIRECTORY = file_fn.get_nyx_data_dir() / "logs"
 
 class LogFormat(enum.Enum):
     """Enum of log format strings."""
+
     minimal: str = "[%(levelname)s] %(message)s"
     basic: str = "[%(levelname)s][%(name)s] %(message)s"
     verbose: str = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
@@ -40,16 +41,19 @@ def logger_exists(name: str):
 
     Returns:
         bool: logger exists.
+
     """
     return name in logging.Logger.manager.loggerDict.keys()
 
 
-def get_logger(name: str,
-               level: int = logging.DEBUG,
-               file_level: int = logging.ERROR,
-               file_name: str = f"{MAIN_LOGGER_NAME}.log",
-               std_format: str = LogFormat.basic.value,
-               file_format: str = LogFormat.verbose.value):
+def get_logger(
+    name: str,
+    level: int = logging.DEBUG,
+    file_level: int = logging.ERROR,
+    file_name: str = f"{MAIN_LOGGER_NAME}.log",
+    std_format: str = LogFormat.basic.value,
+    file_format: str = LogFormat.verbose.value,
+):
     """Get logger object.
 
     Args:
@@ -62,6 +66,7 @@ def get_logger(name: str,
 
     Returns:
         logging.Logger: logger object with given name.
+
     """
     if logger_exists(name):
         logger = logging.getLogger(name)
@@ -78,14 +83,19 @@ def get_logger(name: str,
     std_handler.setFormatter(std_formatter)
     # File output
     if file_name:
-        handler_exists = any([isinstance(handler, logging.handlers.RotatingFileHandler)
-                             for handler in logger.handlers])
+        handler_exists = any(
+            [
+                isinstance(handler, logging.handlers.RotatingFileHandler)
+                for handler in logger.handlers
+            ]
+        )
         if not handler_exists:
             try:
                 LOGS_DIRECTORY.mkdir(exist_ok=True)
                 log_file_path = LOGS_DIRECTORY / file_name
                 file_handler = logging.handlers.TimedRotatingFileHandler(
-                    log_file_path, when="midnight", interval=1)
+                    log_file_path, when="midnight", interval=1
+                )
                 file_handler.suffix = "%Y%m%d.log"
                 file_handler.setLevel(file_level)
                 file_formatter = logging.Formatter(file_format)
@@ -93,14 +103,17 @@ def get_logger(name: str,
                 logger.addHandler(file_handler)
                 logger.info(f"Log file: {log_file_path}")
             except Exception:
-                logger.warning(
-                    f"Unable to create filehandler for logger: {name}")
+                logger.warning(f"Unable to create filehandler for logger: {name}")
     return logger
 
 
 def get_log_file_path(logger: logging.Logger, handler_type=logging.FileHandler):
-    file_handler = next(iter(
-        [handler for handler in logger.handlers if isinstance(handler, handler_type)]), None)
+    file_handler = next(
+        iter(
+            [handler for handler in logger.handlers if isinstance(handler, handler_type)]
+        ),
+        None,
+    )
     if not file_handler:
         return None
     return file_handler.baseFilename
@@ -111,6 +124,7 @@ def get_main_logger():
 
     Returns:
         logging.Logger: nyx logger.
+
     """
     logger = get_logger(MAIN_LOGGER_NAME)
     return logger
@@ -124,12 +138,15 @@ def get_log_files(pattern: str = "*"):
 
     Returns:
         Generator[pathlib.Path]: generator for paths matching given pattern.
+
     """
     return LOGS_DIRECTORY.glob(pattern)
 
 
-def add_signal_handler(logger: logging.Logger,
-                       formatter: "LogFormat | logging.Formatter" = LogFormat.minimal) -> QSignalHandler:
+def add_signal_handler(
+    logger: logging.Logger,
+    formatter: "LogFormat | logging.Formatter" = LogFormat.minimal,
+) -> QSignalHandler:
     if hasattr(logger, "signal_handler"):
         return logger.signal_handler
 

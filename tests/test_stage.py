@@ -37,15 +37,14 @@ def test_stage_export_import_json(output_dir: pathlib.Path):
 
     # Import data and compare with stage serialized
     assert stage.serialize() == file_fn.load_json(
-        export_path, object_pairs_hook=OrderedDict)
+        export_path, object_pairs_hook=OrderedDict
+    )
 
 
 def test_stage_deserialize(output_dir: pathlib.Path):
     stage = Stage()
-    export_path = output_dir / \
-        f"test_stage_deserialize_export{stage.FILE_EXTENSION}"
-    export_path2 = output_dir / \
-        f"test_stage_deserialize_check{stage.FILE_EXTENSION}"
+    export_path = output_dir / f"test_stage_deserialize_export{stage.FILE_EXTENSION}"
+    export_path2 = output_dir / f"test_stage_deserialize_check{stage.FILE_EXTENSION}"
     for index in range(3):
         base_node = Node("node")
         base_node["count"] = 5
@@ -92,8 +91,9 @@ def test_stage_get_node_from_path():
 
 
 def test_stage_export_import_with_connections(output_dir: pathlib.Path):
-    export_path = output_dir / \
-        f"test_stage_export_import_with_connections{Stage.FILE_EXTENSION}"
+    export_path = (
+        output_dir / f"test_stage_export_import_with_connections{Stage.FILE_EXTENSION}"
+    )
 
     stage1 = Stage()
     node1 = Node()
@@ -130,13 +130,14 @@ def test_stage_set_stage_execution_start():
     stage.set_execution_start_path(None, node1)
     TEST_LOGGER.debug(stage.describe())
 
-    assert stage.get_execution_start_path(
-        None, serializable=False) == node1.path
+    assert stage.get_execution_start_path(None, serializable=False) == node1.path
 
 
 def test_stage_set_execution_start_set_export_import(output_dir: pathlib.Path):
-    export_path = output_dir / \
-        f"test_stage_set_execution_start_set_export_import{Stage.FILE_EXTENSION}"
+    export_path = (
+        output_dir
+        / f"test_stage_set_execution_start_set_export_import{Stage.FILE_EXTENSION}"
+    )
 
     stage = Stage()
     node1 = Node()
@@ -155,8 +156,9 @@ def test_stage_set_execution_start_set_export_import(output_dir: pathlib.Path):
     stage2 = Stage()
     stage2.import_json(export_path)
 
-    assert stage2.node(
-        "/node").get_execution_start_path(serializable=True) == "/node/node"
+    assert (
+        stage2.node("/node").get_execution_start_path(serializable=True) == "/node/node"
+    )
     assert stage.serialize() == stage2.serialize()
 
 
@@ -180,7 +182,9 @@ def test_stage_convert_to_node():
     stage_node.deserialize(serialized_stage_node, restore_id=True)
     TEST_LOGGER.debug(main_stage.describe())
 
-    new_child_paths = [stage_node.path /
-                       node1.path.name, stage_node.path / node2.path.name]
+    new_child_paths = [
+        stage_node.path / node1.path.name,
+        stage_node.path / node2.path.name,
+    ]
     assert stage_node.name == node_name
     assert stage_node.list_children_paths() == new_child_paths

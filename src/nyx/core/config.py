@@ -33,6 +33,7 @@ class Config(metaclass=Singleton):
 
         Returns:
             set: set of existing field names
+
         """
         return set(each_field.name for each_field in dataclasses.fields(cls))
 
@@ -45,6 +46,7 @@ class Config(metaclass=Singleton):
 
         Returns:
             Config: new instance
+
         """
         json_data = file_fn.load_json(file_path)
         field_names = cls.get_fields_names()
@@ -61,6 +63,7 @@ class Config(metaclass=Singleton):
 
         Returns:
             Config: default config instance
+
         """
         instance = cls()
         CONFIG_FILE_PATH.parent.mkdir(exist_ok=True)
@@ -74,6 +77,7 @@ class Config(metaclass=Singleton):
 
         Returns:
             Config: new instance
+
         """
         if cls._instances:
             return cls()

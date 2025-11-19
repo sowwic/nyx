@@ -14,7 +14,6 @@ LOGGER = get_main_logger()
 
 
 class StageHandler:
-
     def __repr__(self) -> str:
         return f"StageHandler ({self.stage})"
 
@@ -25,8 +24,9 @@ class StageHandler:
     def stage(self):
         return self._stage
 
-    def build_execution_queue(self,
-                              start_path: "Node | str | pathlib.PurePosixPath | None" = None) -> "deque[pathlib.PurePosixPath]":
+    def build_execution_queue(
+        self, start_path: "Node | str | pathlib.PurePosixPath | None" = None
+    ) -> "deque[pathlib.PurePosixPath]":
         """Build execution queue from given path.
 
         Args:
@@ -34,13 +34,15 @@ class StageHandler:
 
         Returns:
             deque[pathlib.PurePosixPath]: resulting queue
+
         """
         start_node = self.stage.node(start_path)
         if not start_node:
             start_path = self.stage.get_execution_start_path(start_path)
         if start_path is None:
             LOGGER.warning(
-                f"{self} | No execution start path specified. Start path: {start_path}")
+                f"{self} | No execution start path specified. Start path: {start_path}"
+            )
             return
         else:
             start_node = self.stage.node(start_path)
@@ -48,12 +50,12 @@ class StageHandler:
         exec_queue = start_node.build_execution_queue()
         return exec_queue
 
-    def run(self,
-            start_path: "Node | str | pathlib.PurePosixPath | None" = None):
+    def run(self, start_path: "Node | str | pathlib.PurePosixPath | None" = None):
         """Build queue and run it.
 
         Args:
             start_path ("Node | str | pathlib.PurePosixPath | None, optional): execution start path. Defaults to None.
+
         """
         exec_queue = self.build_execution_queue(start_path=start_path)
         if not exec_queue:
@@ -71,5 +73,6 @@ class StageHandler:
                 LOGGER.error("Error raised during graph execution.")
                 break
         if success:
-            LOGGER.info("Executed graph in {0:.2f}s".format(
-                timeit.default_timer() - start_time))
+            LOGGER.info(
+                f"Executed graph in {timeit.default_timer() - start_time:.2f}s"
+            )

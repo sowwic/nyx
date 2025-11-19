@@ -1,8 +1,9 @@
 import pathlib
 from collections import OrderedDict
 from collections import deque
+
 try:
-    from collections import Sequence
+    from collections.abc import Sequence
 except ImportError:
     from collections.abc import Sequence
 from PySide6 import QtCore
@@ -17,21 +18,22 @@ LOGGER = get_main_logger()
 
 
 class NyxCommand(QtGui.QUndoCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 text: str,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self, stage: "Stage", text: str, parent: QtGui.QUndoCommand = None
+    ) -> None:
         super().__init__(text, parent=parent)
         self.stage = stage
 
 
 class CreateNodeCommand(NyxCommand):
-    def __init__(self,
-                 stage: Stage,
-                 node_name: str = "node",
-                 parent_path: str = None,
-                 position: QtCore.QPointF = QtCore.QPointF(),
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: Stage,
+        node_name: str = "node",
+        parent_path: str = None,
+        position: QtCore.QPointF = QtCore.QPointF(),
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage=stage, text="Create Node", parent=parent)
         if not isinstance(position, (QtCore.QPointF, QtCore.QPoint)):
             position = QtCore.QPointF(*position)
@@ -58,11 +60,13 @@ class CreateNodeCommand(NyxCommand):
 
 
 class DeleteNodeCommand(NyxCommand):
-    def __init__(self,
-                 stage: Stage,
-                 nodes: "list[Node | pathlib.PurePosixPath | str]",
-                 command_text: str = "Delete node",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: Stage,
+        nodes: "list[Node | pathlib.PurePosixPath | str]",
+        command_text: str = "Delete node",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage=stage, text=command_text, parent=parent)
         if not isinstance(nodes, Sequence):
             nodes = [nodes]
@@ -79,8 +83,10 @@ class DeleteNodeCommand(NyxCommand):
 
     def redo(self) -> None:
         self.deleted_paths.clear()
-        serialized_paths = [pathlib.PurePosixPath(node_data.get("path"))
-                            for node_data in self.serialized_nodes]
+        serialized_paths = [
+            pathlib.PurePosixPath(node_data.get("path"))
+            for node_data in self.serialized_nodes
+        ]
         serialized_paths_set = set(serialized_paths)
 
         # Filter paths to delete, so that only parent paths are deleted.
@@ -95,7 +101,8 @@ class DeleteNodeCommand(NyxCommand):
     def undo(self) -> None:
         for node_data in self.serialized_nodes:
             node_path: pathlib.PurePosixPath = pathlib.PurePosixPath(
-                node_data.get("path"))
+                node_data.get("path")
+            )
             if node_path not in self.deleted_paths:
                 continue
             parent_path = node_path.parent
@@ -106,11 +113,13 @@ class DeleteNodeCommand(NyxCommand):
 
 
 class RenameNodeCommand(NyxCommand):
-    def __init__(self,
-                 stage: Stage,
-                 node: "Node | pathlib.PurePosixPath | str",
-                 new_name: str,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: Stage,
+        node: "Node | pathlib.PurePosixPath | str",
+        new_name: str,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage=stage, text="Rename node", parent=parent)
 
         node = self.stage.node(node)
@@ -119,8 +128,7 @@ class RenameNodeCommand(NyxCommand):
         self.old_name = node.name
         self.node_data = node.serialize()
 
-        self.setText(
-            f"Rename node ({node.path.as_posix()} -> {self.new_name})")
+        self.setText(f"Rename node ({node.path.as_posix()} -> {self.new_name})")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_data.get("path"))
@@ -135,25 +143,27 @@ class RenameNodeCommand(NyxCommand):
 
 
 class AddNodeAttributeCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str",
-                 attr_name: str,
-                 attr_value=None,
-                 attr_resolve=True,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str",
+        attr_name: str,
+        attr_value=None,
+        attr_resolve=True,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Add attr", parent)
         self.node_path = self.stage.node(node).path
         self.attr_name = attr_name
         self.attr_value = attr_value
         self.attr_resolve = attr_resolve
-        self.setText(
-            f"{self.text()} {self.node_path.as_posix()} ({self.attr_name})")
+        self.setText(f"{self.text()} {self.node_path.as_posix()} ({self.attr_name})")
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
         new_attr = node.add_attr(
-            self.attr_name, value=self.attr_value, resolve=self.attr_resolve)
+            self.attr_name, value=self.attr_value, resolve=self.attr_resolve
+        )
         self.attr_name = new_attr.name
         return super().redo()
 
@@ -164,23 +174,23 @@ class AddNodeAttributeCommand(NyxCommand):
 
 
 class DeleteNodeAttributeCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str",
-                 attr_names: "list[str]",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str",
+        attr_names: "list[str]",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Delete attrs", parent)
         self.node_path = self.stage.node(node).path
         self.attr_names = attr_names
         self.attrs_serialized = []
-        self.setText(
-            f"{self.text()} {self.node_path.as_posix()} {self.attr_names}")
+        self.setText(f"{self.text()} {self.node_path.as_posix()} {self.attr_names}")
 
     def redo(self) -> None:
         self.attrs_serialized.clear()
         node = self.stage.node(self.node_path)
-        self.attrs_serialized = [
-            node.attr(name).serialize() for name in self.attr_names]
+        self.attrs_serialized = [node.attr(name).serialize() for name in self.attr_names]
         for name in self.attr_names:
             node.delete_attr(name)
 
@@ -194,27 +204,28 @@ class DeleteNodeAttributeCommand(NyxCommand):
 
 
 class RenameNodeAttributeCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str",
-                 attr_name: str,
-                 new_attr_name: str,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str",
+        attr_name: str,
+        new_attr_name: str,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Rename attr", parent)
         self.node_path = self.stage.node(node).path
         self.attr_name = attr_name
         self.new_attr_name = new_attr_name
         self.setText(
-            (
+            
                 f"{self.text()} {self.node_path.as_posix()} "
                 f"({self.attr_name}) -> '{self.new_attr_name}'"
-            )
+            
         )
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
-        self.new_attr_name = node.rename_attr(
-            self.attr_name, self.new_attr_name).name
+        self.new_attr_name = node.rename_attr(self.attr_name, self.new_attr_name).name
         return super().redo()
 
     def undo(self) -> None:
@@ -224,22 +235,24 @@ class RenameNodeAttributeCommand(NyxCommand):
 
 
 class SetNodeAttributeCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str",
-                 attr_name: str,
-                 attr_value=None,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str",
+        attr_name: str,
+        attr_value=None,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Set attr", parent)
         self.node_path = self.stage.node(node).path
         self.attr_name = attr_name
         self.attr_value = attr_value
         self.old_attr_value = None
         self.setText(
-            (
+            
                 f"{self.text()} {self.node_path.as_posix()} "
                 f"({self.attr_name}) -> {self.attr_value}"
-            )
+            
         )
 
     def redo(self) -> None:
@@ -255,14 +268,16 @@ class SetNodeAttributeCommand(NyxCommand):
 
 
 class ConnectAttributeCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 source_node: "Node | pathlib.PurePosixPath | str",
-                 destination_node: "Node | pathlib.PurePosixPath | str",
-                 source_attr_name: str,
-                 destination_attr_name: str,
-                 resolve_on_connect=True,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        source_node: "Node | pathlib.PurePosixPath | str",
+        destination_node: "Node | pathlib.PurePosixPath | str",
+        source_attr_name: str,
+        destination_attr_name: str,
+        resolve_on_connect=True,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Connect attr", parent)
         self.source_node_path = self.stage.node(source_node).path
         self.destination_node_path = self.stage.node(destination_node).path
@@ -274,21 +289,22 @@ class ConnectAttributeCommand(NyxCommand):
         self.destination_attr_old_value = None
         self.resolve_on_connect = resolve_on_connect
         self.setText(
-            (
+            
                 f"{self.text()} {self.source_node_path.as_posix()} "
                 f"({self.source_attr_name}) -> {self.destination_node_path.as_posix()} "
                 f"({self.destination_attr_name})"
-            )
+            
         )
 
     def redo(self) -> None:
         source_node = self.stage.node(self.source_node_path)
         destination_node = self.stage.node(self.destination_node_path)
         self.destination_attr_old_value = destination_node.attr(
-            self.destination_attr_name).get(raw=True)
+            self.destination_attr_name
+        ).get(raw=True)
         source_node.attr(self.source_attr_name).connect(
             destination_node.attr(self.destination_attr_name),
-            resolve=self.resolve_on_connect
+            resolve=self.resolve_on_connect,
         )
 
         return super().redo()
@@ -296,16 +312,19 @@ class ConnectAttributeCommand(NyxCommand):
     def undo(self) -> None:
         destination_node = self.stage.node(self.destination_node_path)
         destination_node.attr(self.destination_attr_name).set(
-            self.destination_attr_old_value, resolve=True)
+            self.destination_attr_old_value, resolve=True
+        )
         return super().undo()
 
 
 class SetNodeExecStartCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str | None",
-                 path: "pathlib.PurePosixPath | str | Node",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str | None",
+        path: "pathlib.PurePosixPath | str | Node",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Set exec start ->", parent)
         self.node_path = self.stage.node(node).path
         self.path = path
@@ -324,10 +343,12 @@ class SetNodeExecStartCommand(NyxCommand):
 
 
 class SetStageExecStartCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 path: "pathlib.PurePosixPath | str | Node",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        path: "pathlib.PurePosixPath | str | Node",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Set stage exec start -> ", parent)
         self.path = path
         self.old_exec_path = None
@@ -344,18 +365,19 @@ class SetStageExecStartCommand(NyxCommand):
 
 
 class ConnectNodeExecCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 output_node: "Node | pathlib.PurePosixPath | str",
-                 input_node: "Node | pathlib.PurePosixPath | str",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        output_node: "Node | pathlib.PurePosixPath | str",
+        input_node: "Node | pathlib.PurePosixPath | str",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Connect exec", parent)
         self.output_node_path = self.stage.node(output_node).path
         self.input_node_path = self.stage.node(input_node).path
         self.old_output_node_exec_value = None
         self.old_input_node_exec_value = None
-        self.setText(
-            f"{self.text()} {self.output_node_path} -> {self.input_node_path}")
+        self.setText(f"{self.text()} {self.output_node_path} -> {self.input_node_path}")
 
     def redo(self) -> None:
         output_node = self.stage.node(self.output_node_path)
@@ -376,10 +398,12 @@ class ConnectNodeExecCommand(NyxCommand):
 
 
 class DisconnectNodeInputExecCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Disconnect exec input", parent)
         self.node_path = self.stage.node(node).path
         self.setText(f"{self.text()} ({self.node_path})")
@@ -398,11 +422,13 @@ class DisconnectNodeInputExecCommand(NyxCommand):
 
 
 class EditNodePythonCodeCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str | None",
-                 new_code: "str",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str | None",
+        new_code: "str",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Edit code", parent)
         self.new_code = new_code
         self.old_code = node.get_python_code()
@@ -421,11 +447,13 @@ class EditNodePythonCodeCommand(NyxCommand):
 
 
 class SetNodeActiveStateCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str | None",
-                 state: bool,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str | None",
+        state: bool,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Set active state", parent)
         self.node_path = self.stage.node(node).path
         self.old_state = None
@@ -445,11 +473,13 @@ class SetNodeActiveStateCommand(NyxCommand):
 
 
 class SetNodeCommentCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 node: "Node | pathlib.PurePosixPath | str | None",
-                 comment: str,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        node: "Node | pathlib.PurePosixPath | str | None",
+        comment: str,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Edit comment for", parent)
         self.node_path = self.stage.node(node).path
         self.old_comment = None
@@ -469,12 +499,14 @@ class SetNodeCommentCommand(NyxCommand):
 
 
 class PasteNodesCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 serialize_nodes: "list[OrderedDict]",
-                 position: QtCore.QPointF,
-                 parent_node: "Node | pathlib.PurePosixPath | str | None" = None,
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        serialize_nodes: "list[OrderedDict]",
+        position: QtCore.QPointF,
+        parent_node: "Node | pathlib.PurePosixPath | str | None" = None,
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Paste nodes", parent)
         self.serialized_nodes = serialize_nodes
         self.position = position
@@ -544,11 +576,13 @@ class PasteNodesCommand(NyxCommand):
 
 
 class MoveNodeCommand(NyxCommand):
-    def __init__(self,
-                 stage: "Stage",
-                 nodes: "list[Node] | list[pathlib.PurePosixPath] | list[str]",
-                 new_positions: "list[QtCore.QPointF]",
-                 parent: QtGui.QUndoCommand = None) -> None:
+    def __init__(
+        self,
+        stage: "Stage",
+        nodes: "list[Node] | list[pathlib.PurePosixPath] | list[str]",
+        new_positions: "list[QtCore.QPointF]",
+        parent: QtGui.QUndoCommand = None,
+    ) -> None:
         super().__init__(stage, "Moved nodes", parent)
         if not isinstance(nodes, (list, tuple, deque)):
             nodes = [nodes]
@@ -556,17 +590,14 @@ class MoveNodeCommand(NyxCommand):
             new_positions = [new_positions]
 
         self.node_paths = [self.stage.node(node).path for node in nodes]
-        self.old_positions = [self.stage.node(
-            node).position() for node in nodes]
+        self.old_positions = [self.stage.node(node).position() for node in nodes]
         self.new_positions = new_positions
 
-        self.setText(
-            f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
+        self.setText(f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
 
     def redo(self) -> None:
         for node, new_pos in zip(
-            [self.stage.node(path)
-             for path in self.node_paths], self.new_positions
+            [self.stage.node(path) for path in self.node_paths], self.new_positions
         ):
             node.set_position(new_pos)
             if node.gr_node and node.gr_node.pos() != new_pos:
@@ -576,8 +607,7 @@ class MoveNodeCommand(NyxCommand):
 
     def undo(self) -> None:
         for node, old_pos in zip(
-            [self.stage.node(path)
-             for path in self.node_paths], self.old_positions
+            [self.stage.node(path) for path in self.node_paths], self.old_positions
         ):
             node.set_position(old_pos)
             if node.gr_node and node.gr_node.pos() != old_pos:

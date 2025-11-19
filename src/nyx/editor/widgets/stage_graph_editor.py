@@ -20,7 +20,6 @@ LOGGER = get_main_logger()
 
 
 class StageGraphEditor(QtWidgets.QWidget):
-
     DEFAULT_TITLE = "Untitled"
 
     stage_changed = QtCore.Signal(Stage)
@@ -28,7 +27,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def __init__(self, stage: Stage = None, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent=parent)
-        self.main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
+        self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
         self.last_saved_undo_index = 0
         self._selection_model = QtCore.QItemSelectionModel()
@@ -93,10 +92,8 @@ class StageGraphEditor(QtWidgets.QWidget):
         """Create connections between graph widgets and stage."""
         # Stage connections
         self.stage.undo_stack.indexChanged.connect(self.update_title)
-        self.stage.undo_stack.indexChanged.connect(
-            self.gr_stage.rebuild_current_scope)
-        self.stage.node_deleted.connect(
-            self._handle_scope_path_at_node_deletion)
+        self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope)
+        self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
         # Selection model connections
         self.selection_model.selectionChanged.connect(
             self.gr_stage.on_selection_model_selection_changed
@@ -119,6 +116,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         Returns:
             None: super return call.
+
         """
         if self.maybe_save():
             event.accept()
@@ -143,14 +141,22 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         Returns:
             bool: True if user saved the scene or chose discard option.
+
         """
         if self.stage.is_new() or not self.stage.is_modified():
             return True
 
-        stage_title = self.DEFAULT_TITLE if not self.stage.file_path else self.stage.file_path.name
-        res = QtWidgets.QMessageBox.warning(self, 'Stage is not saved',
-                                            f'Save changes to "{stage_title}"?',
-                                            QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel)
+        stage_title = (
+            self.DEFAULT_TITLE if not self.stage.file_path else self.stage.file_path.name
+        )
+        res = QtWidgets.QMessageBox.warning(
+            self,
+            "Stage is not saved",
+            f'Save changes to "{stage_title}"?',
+            QtWidgets.QMessageBox.Save
+            | QtWidgets.QMessageBox.Discard
+            | QtWidgets.QMessageBox.Cancel,
+        )
         if res == QtWidgets.QMessageBox.Save:
             return self.on_stage_save()
         if res == QtWidgets.QMessageBox.Cancel:
@@ -167,7 +173,8 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         file_filter = "Nyx Stage (*.nyx)"
         file_path = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open Stage", None, file_filter)[0]
+            self, "Open Stage", None, file_filter
+        )[0]
         if not file_path:
             return False
 
@@ -188,7 +195,8 @@ class StageGraphEditor(QtWidgets.QWidget):
     def on_stage_save_as(self):
         file_filter = "Nyx Stage (*.nyx)"
         file_path = QtWidgets.QFileDialog.getSaveFileName(
-            self, 'Save stage to file', None, file_filter)[0]
+            self, "Save stage to file", None, file_filter
+        )[0]
         if not file_path:
             return False
         self.stage.export_json(file_path)
@@ -198,7 +206,9 @@ class StageGraphEditor(QtWidgets.QWidget):
     def get_scope_path(self) -> pathlib.PurePosixPath:
         return self._scope_path
 
-    def set_scope_path(self, scope: "Node | pathlib.PurePosixPath | str", silent=False) -> None:
+    def set_scope_path(
+        self, scope: "Node | pathlib.PurePosixPath | str", silent=False
+    ) -> None:
         previous_scope = self.get_scope_path()
 
         node = self.stage.node(scope)
@@ -228,6 +238,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         Returns:
             list[Node]: Filtered nodes.
+
         """
         current_scope_node = self.stage.node(self.get_scope_path())
         scope_child_nodes = self.stage.list_children(current_scope_node)
@@ -236,7 +247,10 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def _handle_scope_path_at_node_deletion(self, deleted_node_path):
         current_scope = self.get_scope_path()
-        if current_scope == deleted_node_path or deleted_node_path in current_scope.parents:
+        if (
+            current_scope == deleted_node_path
+            or deleted_node_path in current_scope.parents
+        ):
             self.set_scope_path(self.stage.ROOT_ITEM_PATH)
 
     def list_selected_nodes(self) -> "list[Node]":
@@ -244,6 +258,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         Returns:
             list[Node]: selected nodes
+
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]

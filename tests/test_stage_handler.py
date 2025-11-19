@@ -25,7 +25,8 @@ def test_handler_build_queue_from_stage():
     TEST_LOGGER.debug(f"Exec queue: {queue}")
 
     expected_queue = deque(
-        [root_node1.cached_path, root_node2.cached_path, root_node3.cached_path])
+        [root_node1.cached_path, root_node2.cached_path, root_node3.cached_path]
+    )
     assert expected_queue == queue
 
 
@@ -53,12 +54,16 @@ def test_handler_build_queue_with_children():
 
     queue = stage.handler.build_execution_queue()
     TEST_LOGGER.debug(queue)
-    expected_queue = deque([root_node1.cached_path,
-                           child1_1.cached_path,
-                           child1_2.cached_path,
-                           child1_3.cached_path,
-                           root_node2.cached_path,
-                           root_node3.cached_path])
+    expected_queue = deque(
+        [
+            root_node1.cached_path,
+            child1_1.cached_path,
+            child1_2.cached_path,
+            child1_3.cached_path,
+            root_node2.cached_path,
+            root_node3.cached_path,
+        ]
+    )
 
     assert expected_queue == queue
 

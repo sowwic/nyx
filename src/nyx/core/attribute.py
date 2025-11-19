@@ -4,6 +4,7 @@ from collections import OrderedDict
 from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
+
 if typing.TYPE_CHECKING:
     from nyx.core import Node
 
@@ -12,7 +13,6 @@ LOGGER = get_main_logger()
 
 
 class Attribute(Serializable):
-
     def __init__(self, node: "Node", value=None) -> None:
         super().__init__()
         self._node = node
@@ -36,7 +36,7 @@ class Attribute(Serializable):
             [
                 self.node is other_attr.node,
                 self.name == other_attr.name,
-                self.value == other_attr.value
+                self.value == other_attr.value,
             ]
         )
 
@@ -54,6 +54,7 @@ class Attribute(Serializable):
 
         Returns:
             typing.Any: stored value
+
         """
         return self._value
 
@@ -63,6 +64,7 @@ class Attribute(Serializable):
 
         Returns:
             typing.Any: stored cached value
+
         """
         return self._resolved
 
@@ -72,6 +74,7 @@ class Attribute(Serializable):
 
         Returns:
             typing.Any: stored cached value
+
         """
         return self._cached_value
 
@@ -84,6 +87,7 @@ class Attribute(Serializable):
 
         Returns:
             str: name
+
         """
         all_node_attribs = self.node.attribs
         for name, attr in all_node_attribs.items():
@@ -107,8 +111,8 @@ class Attribute(Serializable):
 
         Returns:
             typing.Any: stored value.
-        """
 
+        """
         if raw:
             return self.value
         elif resolved:
@@ -135,6 +139,7 @@ class Attribute(Serializable):
 
         Returns:
             bool: cached
+
         """
         return self.resolved_value == self.cached_value
 
@@ -146,6 +151,7 @@ class Attribute(Serializable):
 
         Returns:
             bool: in same scope.
+
         """
         return self.node.scope == other_attr.node.scope
 
@@ -164,14 +170,14 @@ class Attribute(Serializable):
 
         Returns:
             str: attribute name.
+
         """
         return self.name
 
     def serialize(self) -> OrderedDict:
         data = super().serialize()
         value = self.value if file_fn.is_jsonable(self.value) else None
-        new_data = {"name": self.name,
-                    "value": value}
+        new_data = {"name": self.name, "value": value}
         data.update(new_data)
         return data
 
@@ -202,7 +208,8 @@ class Attribute(Serializable):
         LOGGER.debug(f"Resolving string value: {raw_str}")
         if self.stage.resolver.is_relative_path(raw_str):
             abs_path = self.stage.resolver.computer_absolute_path(
-                self.node.cached_path, raw_str).as_posix()
+                self.node.cached_path, raw_str
+            ).as_posix()
             other_attr = self.stage.attribute(abs_path)
         else:
             other_attr = self.stage.attribute(raw_str)

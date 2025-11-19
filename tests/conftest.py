@@ -8,6 +8,7 @@ def output_dir() -> pathlib.Path:
 
     Returns:
         pathlib.Path: path to test output directory.
+
     """
     out_dir = pathlib.Path.cwd() / ".test_output"
     out_dir.mkdir(exist_ok=True)

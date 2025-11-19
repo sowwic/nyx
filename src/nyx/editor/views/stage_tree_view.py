@@ -20,7 +20,6 @@ LOGGER = get_main_logger()
 
 
 class StageTreeView(QtWidgets.QTreeView):
-
     selection_changed = QtCore.Signal()
     nodes_selected = QtCore.Signal(list)
     nodes_deselected = QtCore.Signal(list)
@@ -40,32 +39,31 @@ class StageTreeView(QtWidgets.QTreeView):
 
     def create_actions(self):
         self.create_new_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/plus.png"), "Create node", self)
+            QtGui.QIcon(":/icons/plus.png"), "Create node", self
+        )
         self.create_new_node_action.triggered.connect(self.create_new_node)
         self.delete_selected_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/delete.png"),
-            "Delete node",
-            self
+            QtGui.QIcon(":/icons/delete.png"), "Delete node", self
         )
-        self.delete_selected_node_action.triggered.connect(
-            self.delete_selected_node)
+        self.delete_selected_node_action.triggered.connect(self.delete_selected_node)
         self.copy_selected_nodes_action = QtGui.QAction("Copy", self)
-        self.copy_selected_nodes_action.triggered.connect(
-            self.copy_selected_nodes)
+        self.copy_selected_nodes_action.triggered.connect(self.copy_selected_nodes)
         self.cut_selected_nodes_action = QtGui.QAction("Cut", self)
-        self.cut_selected_nodes_action.triggered.connect(
-            self.cut_selected_nodes)
+        self.cut_selected_nodes_action.triggered.connect(self.cut_selected_nodes)
         self.copy_selected_node_path_action = QtGui.QAction(
-            "Copy path to selected", self)
+            "Copy path to selected", self
+        )
         self.copy_selected_node_path_action.triggered.connect(
-            self.copy_selected_node_path)
+            self.copy_selected_node_path
+        )
         self.paste_nodes_action = QtGui.QAction("Paste", self)
-        self.paste_nodes_action.triggered.connect(
-            self.paste_nodes_from_clipboard)
+        self.paste_nodes_action.triggered.connect(self.paste_nodes_from_clipboard)
         self.set_selected_item_as_parents_execution_start_action = QtGui.QAction(
-            "Set as parent execution start", self)
+            "Set as parent execution start", self
+        )
         self.set_selected_item_as_parents_execution_start_action.triggered.connect(
-            self.set_selected_item_as_parents_execution_start)
+            self.set_selected_item_as_parents_execution_start
+        )
 
     def create_connections(self):
         self.doubleClicked.connect(self._emit_doubledclicked_item)
@@ -124,7 +122,8 @@ class StageTreeView(QtWidgets.QTreeView):
         self.selectionModel().clearSelection()
         for each_index in indexes:
             self.selectionModel().select(
-                each_index, QtCore.QItemSelectionModel.SelectionFlag.Select)
+                each_index, QtCore.QItemSelectionModel.SelectionFlag.Select
+            )
         self.blockSignals(False)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
@@ -147,11 +146,15 @@ class StageTreeView(QtWidgets.QTreeView):
         if selected_nodes:
             parent_path = selected_nodes[-1].path
 
-        view_center_position: QtCore.QPointF = self.current_stage_graph.gr_view.get_center_position()
-        create_cmd = commands.CreateNodeCommand(stage=self.stage,
-                                                node_name="node",
-                                                parent_path=parent_path,
-                                                position=view_center_position)
+        view_center_position: QtCore.QPointF = (
+            self.current_stage_graph.gr_view.get_center_position()
+        )
+        create_cmd = commands.CreateNodeCommand(
+            stage=self.stage,
+            node_name="node",
+            parent_path=parent_path,
+            position=view_center_position,
+        )
         self.stage.undo_stack.push(create_cmd)
 
     def delete_selected_node(self):
@@ -159,7 +162,8 @@ class StageTreeView(QtWidgets.QTreeView):
             return
 
         delete_cmd = commands.DeleteNodeCommand(
-            self.stage, self.selected_nodes(), command_text=None)
+            self.stage, self.selected_nodes(), command_text=None
+        )
         self.stage.undo_stack.push(delete_cmd)
 
     def copy_selected_nodes(self):
@@ -186,10 +190,12 @@ class StageTreeView(QtWidgets.QTreeView):
 
         gr_view_center_position = self.current_stage_graph.gr_view.get_center_position()
         parent_node = self.current_node()
-        paste_cmd = commands.PasteNodesCommand(stage=self.stage,
-                                               serialize_nodes=serialized_nodes,
-                                               position=gr_view_center_position,
-                                               parent_node=parent_node)
+        paste_cmd = commands.PasteNodesCommand(
+            stage=self.stage,
+            serialize_nodes=serialized_nodes,
+            position=gr_view_center_position,
+            parent_node=parent_node,
+        )
         self.stage.undo_stack.push(paste_cmd)
 
     def copy_selected_node_path(self):
@@ -205,12 +211,15 @@ class StageTreeView(QtWidgets.QTreeView):
             return
 
         if current_node.parent():
-            set_execution_start_cmd = commands.SetNodeExecStartCommand(stage=current_node.stage,
-                                                                       node=current_node.parent(),
-                                                                       path=current_node.path)
+            set_execution_start_cmd = commands.SetNodeExecStartCommand(
+                stage=current_node.stage,
+                node=current_node.parent(),
+                path=current_node.path,
+            )
         else:
-            set_execution_start_cmd = commands.SetStageExecStartCommand(stage=current_node.stage,
-                                                                        path=current_node.path)
+            set_execution_start_cmd = commands.SetStageExecStartCommand(
+                stage=current_node.stage, path=current_node.path
+            )
 
         current_node.stage.undo_stack.push(set_execution_start_cmd)
 
@@ -218,8 +227,7 @@ class StageTreeView(QtWidgets.QTreeView):
         menu = QtWidgets.QMenu("", self)
         menu.addAction(self.create_new_node_action)
         if self.current_node():
-            menu.addAction(
-                self.set_selected_item_as_parents_execution_start_action)
+            menu.addAction(self.set_selected_item_as_parents_execution_start_action)
             menu.addSeparator()
             menu.addAction(self.copy_selected_nodes_action)
             menu.addAction(self.cut_selected_nodes_action)

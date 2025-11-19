@@ -10,7 +10,6 @@ if typing.TYPE_CHECKING:
 
 
 class GraphicsNodeAttribute(QtWidgets.QGraphicsItem):
-
     HEIGHT = 30.0
 
     def __init__(self, attr: "Attribute", gr_node: "GraphicsNode" = None) -> None:
@@ -32,10 +31,12 @@ class GraphicsNodeAttribute(QtWidgets.QGraphicsItem):
         return self._index
 
     def boundingRect(self) -> QtCore.QRectF:
-        return QtCore.QRectF(0,
-                             0,
-                             self.gr_node.width,
-                             self.HEIGHT).normalized()
+        return QtCore.QRectF(0, 0, self.gr_node.width, self.HEIGHT).normalized()
 
-    def paint(self, painter: QtGui.QPainter, option: QtWidgets.QStyleOptionGraphicsItem, widget: QtWidgets.QWidget = None) -> None:
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget = None,
+    ) -> None:
         pass

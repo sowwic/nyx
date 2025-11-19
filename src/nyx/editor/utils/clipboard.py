@@ -1,8 +1,9 @@
 import typing
 import json
 from collections import OrderedDict
+
 try:
-    from collections import Sequence
+    from collections.abc import Sequence
 except ImportError:
     from collections.abc import Sequence
 from PySide6 import QtWidgets
@@ -30,9 +31,9 @@ def serialize_nodes_to_clipboard(nodes: "Sequence[Node]", delete=False):
 
     # Cut operation
     if delete:
-        del_cmd = commands.DeleteNodeCommand(stage=stage,
-                                             nodes=nodes,
-                                             command_text="Cut nodes")
+        del_cmd = commands.DeleteNodeCommand(
+            stage=stage, nodes=nodes, command_text="Cut nodes"
+        )
         stage.undo_stack.push(del_cmd)
 
 

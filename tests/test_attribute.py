@@ -133,8 +133,7 @@ def test_attr_same_scope():
     child1.add_attr("count", value=5)
     child2.add_attr("len", value=10)
 
-    TEST_LOGGER.debug(
-        f"{child1['count']} | Scope: {child1['count'].node.scope}")
+    TEST_LOGGER.debug(f"{child1['count']} | Scope: {child1['count'].node.scope}")
     TEST_LOGGER.debug(f"{child2['len']} | Scope: {child2['len'].node.scope}")
     TEST_LOGGER.debug(f"{node['test']} | Scope: {node['test'].node.scope}")
 
@@ -223,8 +222,7 @@ def test_attr_resolve_from_absolute_path():
     leaf1.add_attr("test1", value="test_value")
     leaf2.add_attr("test2", value="/node/child1/leaf1.test1", resolve=True)
 
-    assert leaf2.attr("test2").resolved_value == leaf1.attr(
-        "test1").resolved_value
+    assert leaf2.attr("test2").resolved_value == leaf1.attr("test1").resolved_value
 
 
 def test_attr_connect():

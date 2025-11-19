@@ -40,10 +40,9 @@ class AttrNameTableItem(AttrTableItem):
             return
 
         node = self.node_attr.node
-        rename_cmd = commands.RenameNodeAttributeCommand(stage=node.stage,
-                                                         node=node,
-                                                         attr_name=old_name,
-                                                         new_attr_name=new_name)
+        rename_cmd = commands.RenameNodeAttributeCommand(
+            stage=node.stage, node=node, attr_name=old_name, new_attr_name=new_name
+        )
         node.stage.undo_stack.push(rename_cmd)
 
 
@@ -64,8 +63,7 @@ class AttrRawValueTableItem(AttrTableItem):
     def __init__(self, node_attr: "Attribute") -> None:
         super().__init__(node_attr, str(node_attr.value))
         self.setData(QtCore.Qt.UserRole, node_attr.value)
-        self.setToolTip(
-            f"Value : {self.node_attr.value} ({type(self.node_attr.value)})")
+        self.setToolTip(f"Value : {self.node_attr.value} ({type(self.node_attr.value)})")
 
     def set_node_attr_value(self):
         old_value = self.node_attr.value
@@ -79,10 +77,12 @@ class AttrRawValueTableItem(AttrTableItem):
             return
 
         node = self.node_attr.node
-        set_attr_cmd = commands.SetNodeAttributeCommand(stage=node.stage,
-                                                        node=node,
-                                                        attr_name=self.node_attr.name,
-                                                        attr_value=new_value)
+        set_attr_cmd = commands.SetNodeAttributeCommand(
+            stage=node.stage,
+            node=node,
+            attr_name=self.node_attr.name,
+            attr_value=new_value,
+        )
         node.stage.undo_stack.push(set_attr_cmd)
 
 
@@ -93,7 +93,8 @@ class AttrResolvedValueTableItem(AttrTableItem):
         super().__init__(node_attr, str(node_attr.resolved_value))
         self.setData(QtCore.Qt.UserRole, self.node_attr.resolved_value)
         self.setToolTip(
-            f"Resolved: {self.node_attr.resolved_value} ({type(self.node_attr.resolved_value)})")
+            f"Resolved: {self.node_attr.resolved_value} ({type(self.node_attr.resolved_value)})"
+        )
 
 
 class AttrCachedValueTableItem(AttrTableItem):
@@ -103,14 +104,16 @@ class AttrCachedValueTableItem(AttrTableItem):
         super().__init__(node_attr, str(node_attr.cached_value))
         self.setData(QtCore.Qt.UserRole, node_attr.cached_value)
         self.setToolTip(
-            f"Cached: {self.node_attr.cached_value} ({type(self.node_attr.cached_value)})")
+            f"Cached: {self.node_attr.cached_value} ({type(self.node_attr.cached_value)})"
+        )
 
 
 class AttributesTable(QtWidgets.QTableWidget):
-
     COLUMNS = ("Name", "Type", "Raw", "Resolved", "Cached")
 
-    def __init__(self, attrib_editor: "AttributeEditor", parent: QtWidgets.QWidget = None) -> None:
+    def __init__(
+        self, attrib_editor: "AttributeEditor", parent: QtWidgets.QWidget = None
+    ) -> None:
         super().__init__(0, len(self.COLUMNS), parent)
         self.main_window = attrib_editor.main_window
         self.tree_view = self.main_window.stage_tree_view
@@ -123,22 +126,20 @@ class AttributesTable(QtWidgets.QTableWidget):
 
     def create_actions(self):
         self.add_attr_action = QtGui.QAction("Add new attribute", self)
-        self.delete_selected_attr_action = QtGui.QAction(
-            "Delete selected", self)
+        self.delete_selected_attr_action = QtGui.QAction("Delete selected", self)
         self.update_action = QtGui.QAction("Update", self)
-        self.copy_selected_attr_path_action = QtGui.QAction(
-            "Copy as path", self)
-        self.clear_cache_for_selected_action = QtGui.QAction(
-            "Clear cached value", self)
+        self.copy_selected_attr_path_action = QtGui.QAction("Copy as path", self)
+        self.clear_cache_for_selected_action = QtGui.QAction("Clear cached value", self)
 
         self.add_attr_action.triggered.connect(self.add_new_attribute)
         self.update_action.triggered.connect(self.update_node_data)
-        self.delete_selected_attr_action.triggered.connect(
-            self.delete_selected_attr)
+        self.delete_selected_attr_action.triggered.connect(self.delete_selected_attr)
         self.copy_selected_attr_path_action.triggered.connect(
-            self.copy_selected_attr_path)
+            self.copy_selected_attr_path
+        )
         self.clear_cache_for_selected_action.triggered.connect(
-            self.clear_cache_for_selected_attrs)
+            self.clear_cache_for_selected_attrs
+        )
 
     def create_connections(self):
         self.itemChanged.connect(self.apply_item_edits)
@@ -182,11 +183,13 @@ class AttributesTable(QtWidgets.QTableWidget):
         node = self.tree_view.current_node()
         if not node:
             return
-        add_attr_cmd = commands.AddNodeAttributeCommand(stage=node.stage,
-                                                        node=node,
-                                                        attr_name="attr",
-                                                        attr_value=None,
-                                                        attr_resolve=True)
+        add_attr_cmd = commands.AddNodeAttributeCommand(
+            stage=node.stage,
+            node=node,
+            attr_name="attr",
+            attr_value=None,
+            attr_resolve=True,
+        )
         node.stage.undo_stack.push(add_attr_cmd)
 
     def delete_selected_attr(self):
@@ -202,9 +205,9 @@ class AttributesTable(QtWidgets.QTableWidget):
                 node = attrib_name_item.node_attr.node
             attr_to_del_names.append(attrib_name_item.text())
 
-        del_attr_cmd = commands.DeleteNodeAttributeCommand(stage=node.stage,
-                                                           node=node,
-                                                           attr_names=attr_to_del_names)
+        del_attr_cmd = commands.DeleteNodeAttributeCommand(
+            stage=node.stage, node=node, attr_names=attr_to_del_names
+        )
         node.stage.undo_stack.push(del_attr_cmd)
 
     def copy_selected_attr_path(self):
@@ -221,8 +224,7 @@ class AttributesTable(QtWidgets.QTableWidget):
         for row in selected_rows:
             attrib_name_item: AttrNameTableItem = self.item(row, 0)
             attrib_name_item.node_attr.clear_cache()
-            LOGGER.info(
-                f"Cleared cache for: {attrib_name_item.node_attr.as_path()}")
+            LOGGER.info(f"Cleared cache for: {attrib_name_item.node_attr.as_path()}")
         self.update_node_data()
 
     def show_context_menu(self, point: QtCore.QPoint):

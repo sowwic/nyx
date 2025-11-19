@@ -12,6 +12,7 @@ class Serializable:
 
         Returns:
             OrderedDict: serialized data
+
         """
         data = OrderedDict()
         data["uuid"] = self.uuid
@@ -24,6 +25,7 @@ class Serializable:
         Args:
             data (OrderedDict): object data.
             restore_id (bool, optional): if uuid should be restored. Defaults to True.
+
         """
         if restore_id:
             self.uuid = data["uuid"]

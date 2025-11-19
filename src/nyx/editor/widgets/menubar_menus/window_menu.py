@@ -8,7 +8,9 @@ from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
 class WindowMenu(BaseMenu):
-    def __init__(self, main_window: "NyxEditorMainWindow", title: str = "&Window", parent=None):
+    def __init__(
+        self, main_window: "NyxEditorMainWindow", title: str = "&Window", parent=None
+    ):
         super().__init__(main_window, title, parent)
 
     def populate(self):

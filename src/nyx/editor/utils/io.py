@@ -27,17 +27,22 @@ def export_selected_nodes():
     elif len(selected_nodes) == 1:
         node = selected_nodes[-1]
         file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=main_window, caption=f"Export {node.name} as...", filter=constants.NYX_FILE_FILTER)
+            parent=main_window,
+            caption=f"Export {node.name} as...",
+            filter=constants.NYX_FILE_FILTER,
+        )
         if not file_path:
             return
         node.export_to_json(file_path)
         LOGGER.info(f"Exported node {file_path}")
     else:
         dir_path = QtWidgets.QFileDialog.getExistingDirectory(
-            parent=main_window, caption="Select export directory")
+            parent=main_window, caption="Select export directory"
+        )
         for node in selected_nodes:
-            file_path = (pathlib.Path(
-                dir_path) / node.name).with_suffix(constants.NYX_FILE_EXTENSION)
+            file_path = (pathlib.Path(dir_path) / node.name).with_suffix(
+                constants.NYX_FILE_EXTENSION
+            )
             node.export_to_json(file_path)
             LOGGER.info(f"Exported node {file_path}")
 
@@ -45,15 +50,14 @@ def export_selected_nodes():
 def _import_nodes(
     stage_graph: "StageGraphEditor",
     file_paths: "Collection[str] | Collection[pathlib.Path]",
-    as_reference=False
+    as_reference=False,
 ):
     serialized_nodes = []
     for path in file_paths:
         path = pathlib.Path(path)
         node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
         if node_data["metadata"]["type"] == "stage":
-            node_data = Stage.convert_stage_to_node(
-                node_data, name=path.stem)
+            node_data = Stage.convert_stage_to_node(node_data, name=path.stem)
         # Add ref file path to node data.
         if as_reference:
             if stage_graph.stage.file_path == path:
@@ -69,12 +73,13 @@ def _import_nodes(
         stage=stage_graph.stage,
         serialize_nodes=serialized_nodes,
         position=paste_position,
-        parent_node=parent_node_path
+        parent_node=parent_node_path,
     )
     command_name = "Reference" if as_reference else "Import"
     if len(serialized_nodes) == 1:
         paste_command.setText(
-            f"{command_name} node ({parent_node_path / serialized_nodes[0].get('name')})")
+            f"{command_name} node ({parent_node_path / serialized_nodes[0].get('name')})"
+        )
     else:
         paste_command.setText(f"{command_name} nodes")
     stage_graph.stage.undo_stack.push(paste_command)
@@ -87,9 +92,9 @@ def import_nodes_from_explorer(as_reference=False):
     if not stage_graph:
         return
 
-    file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(parent=main_window,
-                                                           caption="Select nodes",
-                                                           filter=constants.NYX_FILE_FILTER)
+    file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
+        parent=main_window, caption="Select nodes", filter=constants.NYX_FILE_FILTER
+    )
     if not file_paths:
         return
 

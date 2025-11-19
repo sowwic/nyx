@@ -12,27 +12,29 @@ if typing.TYPE_CHECKING:
 
 
 class RichLogMessageItem(QtWidgets.QListWidgetItem):
-
-    def __init__(self,
-                 log_record: logging_fn.logging.LogRecord,
-                 listview: QtWidgets.QListWidget = None) -> None:
+    def __init__(
+        self,
+        log_record: logging_fn.logging.LogRecord,
+        listview: QtWidgets.QListWidget = None,
+    ) -> None:
         self._icon_error = None
         self._icon_warning = None
         self._icon_info = None
         self._icon_debug = None
-        self.main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
-        self.level_icon_map = {"DEBUG": self.icon_debug,
-                               "INFO": self.icon_info,
-                               "WARNING": self.icon_warning,
-                               "ERROR": self.icon_error,
-                               "CRITICAL": self.icon_error}
+        self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
+        self.level_icon_map = {
+            "DEBUG": self.icon_debug,
+            "INFO": self.icon_info,
+            "WARNING": self.icon_warning,
+            "ERROR": self.icon_error,
+            "CRITICAL": self.icon_error,
+        }
 
         self.log_record = log_record
 
         super().__init__(self.log_record.message, listview)
         self.setToolTip(self.log_record.message)
-        self.setIcon(self.level_icon_map.get(
-            self.log_record.levelname, self.icon_info))
+        self.setIcon(self.level_icon_map.get(self.log_record.levelname, self.icon_info))
         self.setSizeHint(QtCore.QSize(self.sizeHint().width(), 20))
 
     @property
@@ -69,7 +71,9 @@ class RichLogMessageItem(QtWidgets.QListWidgetItem):
 
 
 class LoggerWidget(QtWidgets.QWidget):
-    def __init__(self, logger_name=logging_fn.MAIN_LOGGER_NAME, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(
+        self, logger_name=logging_fn.MAIN_LOGGER_NAME, parent: QtWidgets.QWidget = None
+    ) -> None:
         super().__init__(parent)
         self.create_actions()
         self.create_widgets()
@@ -89,7 +93,12 @@ class LoggerWidget(QtWidgets.QWidget):
         self.rich_out.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
         self.tab_widget = QtWidgets.QTabWidget()
-        self.tab_widget.setContentsMargins(0, 0, 0, 0,)
+        self.tab_widget.setContentsMargins(
+            0,
+            0,
+            0,
+            0,
+        )
         self.tab_widget.addTab(self.rich_out, "Rich")
         self.tab_widget.addTab(self.std_out, "Raw")
 
@@ -101,9 +110,11 @@ class LoggerWidget(QtWidgets.QWidget):
 
     def create_connections(self):
         self.std_out.customContextMenuRequested.connect(
-            self.show_raw_output_context_menu)
+            self.show_raw_output_context_menu
+        )
         self.rich_out.customContextMenuRequested.connect(
-            self.show_rich_output_context_menu)
+            self.show_rich_output_context_menu
+        )
 
     @property
     def logger(self):
@@ -118,19 +129,21 @@ class LoggerWidget(QtWidgets.QWidget):
         return self.config.logger_autoscroll
 
     def set_logger(self, name: str):
-        self._logger = logging_fn.get_logger(name,
-                                             level=self.config.logging_level)
+        self._logger = logging_fn.get_logger(name, level=self.config.logging_level)
         logging_fn.add_signal_handler(self._logger)
         self._logger.signal_handler.emitter.message_logged.connect(
-            self.append_raw_message)
+            self.append_raw_message
+        )
         self._logger.signal_handler.emitter.record_logged.connect(
-            self.append_rich_message)
+            self.append_rich_message
+        )
 
     def append_raw_message(self, text: str):
         self.std_out.append(text)
         if self.auto_scroll:
             self.std_out.verticalScrollBar().setValue(
-                self.std_out.verticalScrollBar().maximum())
+                self.std_out.verticalScrollBar().maximum()
+            )
 
     def append_rich_message(self, record: logging_fn.logging.LogRecord):
         log_item = RichLogMessageItem(record)

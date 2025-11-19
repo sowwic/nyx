@@ -7,7 +7,6 @@ LOGGER = get_main_logger()
 
 
 class Resolver:
-
     @staticmethod
     def is_absolute_path(path: "pathlib.PurePosixPath | str"):
         """Is given path absolute.
@@ -17,6 +16,7 @@ class Resolver:
 
         Returns:
             bool: is absolute
+
         """
         return os.path.isabs(path)
 
@@ -29,13 +29,14 @@ class Resolver:
 
         Returns:
             bool: is relative
+
         """
         return not Resolver.is_absolute_path(path)
 
     @staticmethod
     def compute_relative_path(
         source_path: "pathlib.PurePosixPath | str",
-        destination_path: "pathlib.PurePosixPath | str"
+        destination_path: "pathlib.PurePosixPath | str",
     ):
         """Compute a relative path from source to destination paths.
 
@@ -49,12 +50,12 @@ class Resolver:
 
         Returns:
             PurePosixPath: relative path
+
         """
         if not Resolver.is_absolute_path(source_path):
             raise ValueError(f"Source path is not absolute: {source_path}")
         if not Resolver.is_absolute_path(destination_path):
-            raise ValueError(
-                f"Destination path is not absolute: {destination_path}")
+            raise ValueError(f"Destination path is not absolute: {destination_path}")
 
         rel_path = os.path.relpath(str(destination_path), str(source_path))
         if "\\" in rel_path:
@@ -66,7 +67,7 @@ class Resolver:
     @staticmethod
     def computer_absolute_path(
         anchor_path: "pathlib.PurePosixPath | str",
-        rel_path: "pathlib.PurePosixPath | str"
+        rel_path: "pathlib.PurePosixPath | str",
     ):
         """Compute absolute path from given anchor and relative paths.
 
@@ -80,6 +81,7 @@ class Resolver:
 
         Returns:
             PurePosixPath: absolute path
+
         """
         if not Resolver.is_absolute_path(anchor_path):
             raise ValueError(f"Source path is not absolute: {anchor_path}")

@@ -37,7 +37,6 @@ class NodeSignals(QtCore.QObject):
 
 
 class Node(QtGui.QStandardItem, Serializable):
-
     class Roles(enum.Enum):
         ATTRIBUTES: int = QtCore.Qt.UserRole + 1
         PYTHON_CODE: int = enum.auto()
@@ -49,13 +48,15 @@ class Node(QtGui.QStandardItem, Serializable):
         COMMENT: int = enum.auto()
         REFERENCE_FILE_PATH: int = enum.auto()
 
-    def __init__(self,
-                 name: str = "node",
-                 parent: "Node | pathlib.PurePosixPath | str | None" = None) -> None:
+    def __init__(
+        self,
+        name: str = "node",
+        parent: "Node | pathlib.PurePosixPath | str | None" = None,
+    ) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
         self._cached_path = None
-        self.gr_node: "GraphicsNode" = None
+        self.gr_node: GraphicsNode = None
         self.signals = NodeSignals()
         self._set_default_role_values()
 
@@ -85,13 +86,13 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def _set_default_role_values(self):
         self.setData(OrderedDict(), role=Node.Roles.ATTRIBUTES.value)
-        self.setData(str(), role=Node.Roles.PYTHON_CODE.value)
+        self.setData("", role=Node.Roles.PYTHON_CODE.value)
         self.setData(None, role=Node.Roles.INPUT_EXEC.value)
         self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
         self.setData(True, role=Node.Roles.ACTIVE_ROLE.value)
         self.setData(None, role=Node.Roles.EXECUTION_START_PATH.value)
         self.setData(QtCore.QPointF(), role=Node.Roles.POSITION.value)
-        self.setData(str(), role=Node.Roles.COMMENT.value)
+        self.setData("", role=Node.Roles.COMMENT.value)
         self.setData(None, role=Node.Roles.REFERENCE_FILE_PATH.value)
 
     @property
@@ -100,6 +101,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             str: name.
+
         """
         return self.text()
 
@@ -113,6 +115,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             pathlib.PurePosixPath: absolute node path.
+
         """
         path = pathlib.PurePosixPath("/")
         if not self.parent():
@@ -129,6 +132,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             Stage: stage node belongs to.
+
         """
         return self.model()
 
@@ -138,6 +142,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             OrderedDict[str, Attribute]: Node attributes.
+
         """
         return self.data(role=Node.Roles.ATTRIBUTES.value)
 
@@ -147,6 +152,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             str: python code string.
+
         """
         return self.data(role=self.Roles.PYTHON_CODE.value)
 
@@ -169,6 +175,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             bool: current active state.
+
         """
         return self.data(role=Node.Roles.ACTIVE_ROLE.value)
 
@@ -177,6 +184,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             state (bool): new active state.
+
         """
         self.setData(state, role=Node.Roles.ACTIVE_ROLE.value)
         self.signals.active_state_changed.emit(state)
@@ -206,8 +214,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(text, role=Node.Roles.COMMENT.value)
 
     def set_reference_file(self, path: "pathlib.Path | str"):
-        self.setData(pathlib.Path(path),
-                     role=Node.Roles.REFERENCE_FILE_PATH.value)
+        self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH.value)
 
     def appendRow(self, items: typing.Sequence["Node"]) -> None:
         """Override Qt method.
@@ -221,13 +228,15 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Raises:
             ValueError: path exists in stage path map.
+
         """
         if not isinstance(items, typing.Sequence):
             items = [items]
 
         for node in items:
             unique_name = self.stage.generate_unique_node_name(
-                node.name, parent_node=self)
+                node.name, parent_node=self
+            )
             new_path = self.path / unique_name
             if new_path in self.stage.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
@@ -248,13 +257,15 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             new_name (str): new node name.
+
         """
         if new_name == self.name:
             return
 
         old_path = self.cached_path
         new_name = self.stage.generate_unique_node_name(
-            new_name, parent_node=self.parent())
+            new_name, parent_node=self.parent()
+        )
         self.setText(new_name)
         self._update_pathmap_entry()
         self.signals.renamed.emit(old_path, self.cached_path)
@@ -272,6 +283,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             set[str]: child names.
+
         """
         return {node.text() for node in self.list_children()}
 
@@ -280,6 +292,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             list[Node]: child nodes.
+
         """
         children = [self.child(row) for row in range(self.rowCount())]
         return children
@@ -289,6 +302,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             list[pathlib.PurePosixPath]: child paths.
+
         """
         return [child_node.cached_path for child_node in self.list_children()]
 
@@ -297,6 +311,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             list[Node]: child nodes tree.
+
         """
         children = self.list_children()
         for child in children:
@@ -311,10 +326,14 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             bool: if path belongs to one of children.
+
         """
-        if isinstance(other_node, (str, pathlib.PurePosixPath)) and self.stage.resolver.is_relative_path(other_node):
+        if isinstance(
+            other_node, (str, pathlib.PurePosixPath)
+        ) and self.stage.resolver.is_relative_path(other_node):
             other_node = self.stage.resolver.computer_absolute_path(
-                self.cached_path, other_node)
+                self.cached_path, other_node
+            )
 
         other_node = self.stage.node(other_node)
         return other_node in set(self.list_children())
@@ -327,6 +346,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             list[Node] | deque[Node]: parent nodes collection.
+
         """
         parents = deque()
         if self.parent():
@@ -362,6 +382,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             Attribute: attribute instance.
+
         """
         return self[name]
 
@@ -371,6 +392,7 @@ class Node(QtGui.QStandardItem, Serializable):
         Args:
             name (str): attribute name.
             value (typing.Any): new value.
+
         """
         self[name] = value
 
@@ -379,11 +401,11 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             name (str): attribute name.
+
         """
         data = self.attribs
         if name not in data.keys():
-            LOGGER.warning(
-                f"Can't delete attribute {name} that doesn't exist!")
+            LOGGER.warning(f"Can't delete attribute {name} that doesn't exist!")
             return
         data.pop(name)
         self.setData(data, role=Node.Roles.ATTRIBUTES.value)
@@ -396,6 +418,7 @@ class Node(QtGui.QStandardItem, Serializable):
         Args:
             name (str): attribute name.
             new_name (str): new attribute name.
+
         """
         if not new_name:
             LOGGER.error("New attribute name can't be empty string!")
@@ -403,8 +426,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         data = self.attribs
         if name not in data.keys():
-            LOGGER.warning(
-                f"Can't rename attribute {name} that doesn't exist!")
+            LOGGER.warning(f"Can't rename attribute {name} that doesn't exist!")
             return
 
         new_name = self.generate_unique_attr_name(new_name)
@@ -420,6 +442,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             OrderedDict: merged dictionary.
+
         """
         stacked_attrs = OrderedDict()
         for parent in self.list_parents(as_queue=True):
@@ -427,7 +450,9 @@ class Node(QtGui.QStandardItem, Serializable):
         stacked_attrs.update(self.attribs)
         return stacked_attrs
 
-    def get_input_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
+    def get_input_exec_path(
+        self, serializable=False
+    ) -> "pathlib.PurePosixPath | str | None":
         """Get path for the node that is set as execution dependency.
 
         Args:
@@ -435,14 +460,16 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             pathlib.PurePosixPath | str | None: Execution dependency node path.
+
         """
-        path: pathlib.PurePosixPath = self.data(
-            role=Node.Roles.INPUT_EXEC.value)
+        path: pathlib.PurePosixPath = self.data(role=Node.Roles.INPUT_EXEC.value)
         if path is None or not serializable:
             return path
         return path.as_posix()
 
-    def get_output_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
+    def get_output_exec_path(
+        self, serializable=False
+    ) -> "pathlib.PurePosixPath | str | None":
         """Get path for the node that is execution dependee of this node.
 
         Args:
@@ -450,18 +477,22 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             pathlib.PurePosixPath | str | None: Execution dependee node path.
+
         """
-        path: pathlib.PurePosixPath = self.data(
-            role=Node.Roles.OUTPUT_EXEC.value)
+        path: pathlib.PurePosixPath = self.data(role=Node.Roles.OUTPUT_EXEC.value)
         if path is None or not serializable:
             return path
         return path.as_posix()
 
-    def is_input_exec_cyclic(self, other_node: "Node | pathlib.PurePosixPath | str") -> bool:
+    def is_input_exec_cyclic(
+        self, other_node: "Node | pathlib.PurePosixPath | str"
+    ) -> bool:
         other_node = self.stage.node(other_node)
         return other_node.get_input_exec_path() == self.path
 
-    def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
+    def set_input_exec_path(
+        self, path: "pathlib.PurePosixPath | str | Node", silent=False
+    ) -> None:
         """Set given node as execution dependency.
 
         Args:
@@ -471,6 +502,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Raises:
             TypeError: Invalid input provided.
+
         """
         if isinstance(path, Node):
             path = path.path
@@ -488,7 +520,7 @@ class Node(QtGui.QStandardItem, Serializable):
             self.setData(path, role=Node.Roles.INPUT_EXEC.value)
             return
 
-        new_input_exec_node: "Node" = self.stage.node(path)
+        new_input_exec_node: Node = self.stage.node(path)
         previous_input_exec_node = self.stage.node(self.get_input_exec_path())
         if new_input_exec_node == previous_input_exec_node:
             LOGGER.debug(f"{self} | exec output set to {path}")
@@ -496,15 +528,15 @@ class Node(QtGui.QStandardItem, Serializable):
 
         if new_input_exec_node and new_input_exec_node.scope != self.scope:
             LOGGER.error(
-                f"{self} | Invalid new input scope: {new_input_exec_node.scope}")
+                f"{self} | Invalid new input scope: {new_input_exec_node.scope}"
+            )
             return
 
         # Set connections
         if new_input_exec_node is None:
             self.setData(None, role=Node.Roles.INPUT_EXEC.value)
         else:
-            self.setData(new_input_exec_node.path,
-                         role=Node.Roles.INPUT_EXEC.value)
+            self.setData(new_input_exec_node.path, role=Node.Roles.INPUT_EXEC.value)
 
         # Reset old input node
         if previous_input_exec_node is not None:
@@ -517,7 +549,9 @@ class Node(QtGui.QStandardItem, Serializable):
                 new_input_exec_node.set_output_exec_path(self.path)
         self.signals.input_exec_changed.emit()
 
-    def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
+    def set_output_exec_path(
+        self, path: "pathlib.PurePosixPath | str | Node", silent=False
+    ) -> None:
         """Set given node as execution dependee.
 
         Args:
@@ -527,6 +561,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Raises:
             TypeError: Invalid input provided.
+
         """
         if isinstance(path, Node):
             path = path.path
@@ -545,22 +580,21 @@ class Node(QtGui.QStandardItem, Serializable):
             return
 
         new_output_exec_node = self.stage.node(path)
-        previous_output_exec_node = self.stage.node(
-            self.get_output_exec_path())
+        previous_output_exec_node = self.stage.node(self.get_output_exec_path())
         if new_output_exec_node == previous_output_exec_node:
             LOGGER.debug(f"{self} | exec output set to {path}")
             return
 
         if new_output_exec_node and new_output_exec_node.scope != self.scope:
             LOGGER.error(
-                f"{self} | Invalid new output scope: {new_output_exec_node.scope}")
+                f"{self} | Invalid new output scope: {new_output_exec_node.scope}"
+            )
             return
         # Set connections
         if new_output_exec_node is None:
             self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
         else:
-            self.setData(new_output_exec_node.path,
-                         role=Node.Roles.OUTPUT_EXEC.value)
+            self.setData(new_output_exec_node.path, role=Node.Roles.OUTPUT_EXEC.value)
 
         # Reset old output node
         if previous_output_exec_node is not None:
@@ -581,13 +615,12 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             OrderedDict: serialized data
+
         """
         data = super().serialize()
         children = [child.serialize() for child in self.list_children()]
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
-        metadata = {
-            "type": "node"
-        }
+        metadata = {"type": "node"}
         data["metadata"].update(metadata)
         data["name"] = self.text()
         data["active"] = self.is_active()
@@ -599,7 +632,8 @@ class Node(QtGui.QStandardItem, Serializable):
             data["reference_file_path"] = self.reference_file_path.as_posix()
         else:
             data["execution_start_path"] = self.get_execution_start_path(
-                serializable=True)
+                serializable=True
+            )
             data["attribs"] = attribs
             data["children"] = children
             data["code"] = self.python_code
@@ -612,6 +646,7 @@ class Node(QtGui.QStandardItem, Serializable):
         Args:
             data (OrderedDict): Node data dictionary.
             restore_id (bool, optional): Restore node uuid. Defaults to True.
+
         """
         super().deserialize(data, restore_id=restore_id)
 
@@ -653,16 +688,16 @@ class Node(QtGui.QStandardItem, Serializable):
         try:
             if self.reference_file_path.suffix == constants.NYX_FILE_EXTENSION:
                 data = file_fn.load_json(
-                    self.reference_file_path, object_pairs_hook=OrderedDict)
+                    self.reference_file_path, object_pairs_hook=OrderedDict
+                )
                 if data["metadata"]["type"] == "stage":
                     data = self.stage.convert_stage_to_node(
-                        stage=data, name=self.reference_file_path.stem)
+                        stage=data, name=self.reference_file_path.stem
+                    )
             else:
-                raise ValueError(
-                    f"Invalid file type: {self.reference_file_path}")
+                raise ValueError(f"Invalid file type: {self.reference_file_path}")
         except FileNotFoundError:
-            LOGGER.exception(
-                f"Reference file doesn't exist: {self.reference_file_path}")
+            LOGGER.exception(f"Reference file doesn't exist: {self.reference_file_path}")
         return data
 
     def export_to_json(self, file_path: pathlib.Path):
@@ -670,6 +705,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             file_path (pathlib.Path): json file path.
+
         """
         data = self.serialize()
         file_fn.write_json(file_path, data)
@@ -680,6 +716,7 @@ class Node(QtGui.QStandardItem, Serializable):
         Args:
             file_path (pathlib.Path): json file path.
             as_reference (bool, optional): if node should be locked. Defaults to False.
+
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
         self.deserialize(json_data, restore_id=False)
@@ -689,6 +726,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             str: python code.
+
         """
         return self.python_code
 
@@ -697,6 +735,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             code_str (str): python code.
+
         """
         self.setData(code_str, role=Node.Roles.PYTHON_CODE.value)
 
@@ -726,6 +765,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             child_path (pathlib.PurePosixPath | None): execution start node path.
+
         """
         if isinstance(child_path, Node):
             child_path = child_path.cached_path
@@ -733,11 +773,12 @@ class Node(QtGui.QStandardItem, Serializable):
         elif isinstance(child_path, str):
             child_path = pathlib.PurePosixPath(child_path)
 
-        self.setData(
-            child_path, role=Node.Roles.EXECUTION_START_PATH.value)
+        self.setData(child_path, role=Node.Roles.EXECUTION_START_PATH.value)
         LOGGER.info(f"{self} | Set execution start path to: {child_path}")
 
-    def get_execution_start_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
+    def get_execution_start_path(
+        self, serializable=False
+    ) -> "pathlib.PurePosixPath | str | None":
         """Get execution start path. Can be child path or None.
 
         Args:
@@ -745,6 +786,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             pathlib.PurePosixPath | str | None: execution start path
+
         """
         path = self.data(role=Node.Roles.EXECUTION_START_PATH.value)
         if serializable and isinstance(path, pathlib.PurePosixPath):
@@ -756,6 +798,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             deque[pathlib.PurePosixPath]: Execution queue.
+
         """
         exec_queue = deque()
         if self.is_active():
@@ -765,13 +808,13 @@ class Node(QtGui.QStandardItem, Serializable):
                 # TODO: check if relative and convert to abs
                 if self.stage.resolver.is_relative_path(child_path):
                     child_path = self.stage.resolver.computer_absolute_path(
-                        self.cached_path, child_path)
+                        self.cached_path, child_path
+                    )
                 child_node = self.stage.node(child_path)
                 if child_node:
                     exec_queue.extend(child_node.build_execution_queue())
                 else:
-                    LOGGER.warning(
-                        f"{self} | start path doesn't exist: {child_path}")
+                    LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
 
         output_path = self.get_output_exec_path()
         if output_path:
@@ -780,7 +823,8 @@ class Node(QtGui.QStandardItem, Serializable):
                 exec_queue.extend(output_node.build_execution_queue())
             else:
                 LOGGER.warning(
-                    f"{self} | output exec path doesn't exist: {output_path} ")
+                    f"{self} | output exec path doesn't exist: {output_path} "
+                )
 
         return exec_queue
 
@@ -789,6 +833,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Raises:
             err: run time exception raised during code execution.
+
         """
         if not self.is_active():
             return

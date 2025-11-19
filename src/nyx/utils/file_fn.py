@@ -1,9 +1,9 @@
 """Common file operations"""
+
 import abc
 import json
 import sys
 import pathlib
-import typing
 
 
 class DirectoryStruct(abc.ABC):
@@ -12,20 +12,32 @@ class DirectoryStruct(abc.ABC):
 
         Args:
             exist_ok (bool, optional): Skip directory if already exists. Defaults to True.
+
         """
         for dir_path in self.list_dirs():
             dir_path.mkdir(exist_ok=exist_ok)
 
-    def list_dirs(self) -> typing.List[pathlib.Path]:
+    def list_dirs(self) -> list[pathlib.Path]:
         """List paths to directories in this struct.
 
         Returns:
             list[pathlib.Path]: list of directories paths.
+
         """
-        return [path for path in vars(self).values() if isinstance(path, pathlib.Path) and not path.suffix]
+        return [
+            path
+            for path in vars(self).values()
+            if isinstance(path, pathlib.Path) and not path.suffix
+        ]
 
 
-def write_json(path: typing.Union[pathlib.Path, str], data: dict, as_string=False, sort_keys=True, indent=4):
+def write_json(
+    path: pathlib.Path | str,
+    data: dict,
+    as_string=False,
+    sort_keys=True,
+    indent=4,
+):
     """Write json file.
 
     Args:
@@ -37,19 +49,26 @@ def write_json(path: typing.Union[pathlib.Path, str], data: dict, as_string=Fals
 
     Returns:
         pathlib.Path: path to written file.
+
     """
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path)
 
     with path.open("w") as json_file:
         if as_string:
-            json_file.write(json.dumps(data, sort_keys=sort_keys, indent=4, separators=(",", ":")))
+            json_file.write(
+                json.dumps(data, sort_keys=sort_keys, indent=4, separators=(",", ":"))
+            )
         else:
             json.dump(data, json_file, indent=indent)
     return path
 
 
-def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = None, object_pairs_hook=None):
+def load_json(
+    path: pathlib.Path | str = None,
+    input_str: str = None,
+    object_pairs_hook=None,
+):
     """Load json data from file or string.
 
     Args:
@@ -61,6 +80,7 @@ def load_json(path: typing.Union[pathlib.Path, str] = None, input_str: str = Non
 
     Returns:
         dict: loaded json data.
+
     """
     if path is None and input_str is None:
         raise ValueError("Invalid parameters: neither path or json string were given.")
@@ -88,6 +108,7 @@ def get_data_dir() -> pathlib.Path:
 
     Returns:
         pathlib.Path: user app data directory path.
+
     """
     home = pathlib.Path.home()
     if sys.platform == "win32":

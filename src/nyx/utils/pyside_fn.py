@@ -8,8 +8,11 @@ if typing.TYPE_CHECKING:
 
 
 def move_window_to_screen_center(window: QtWidgets.QWidget):
-    center_position = window.pos() + QtWidgets.QApplication.primaryScreen().geometry().center() - \
-        window.geometry().center()
+    center_position = (
+        window.pos()
+        + QtWidgets.QApplication.primaryScreen().geometry().center()
+        - window.geometry().center()
+    )
     window.move(center_position)
 
 
@@ -66,6 +69,7 @@ def find_nyx_editor_window() -> "NyxEditorMainWindow":
 
     Returns:
         NyxEditorMainWindow: editor's main window
+
     """
     top_widgets = QtWidgets.QApplication.topLevelWidgets()
     for widget in top_widgets:
