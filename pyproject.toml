@@ -39,7 +39,6 @@ lint.select = [
     "E",
     "F",
     "UP",
-    "D",
 ]
 lint.ignore = [
     "D100",

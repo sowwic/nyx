@@ -9,7 +9,7 @@ from nyx.core import commands
 if typing.TYPE_CHECKING:
     # from nyx.core import Node
     from nyx.core.attribute import Attribute
-    from nyx.editor.widgets.attribute_editor import AttributeEditor
+    from nyx.editor.widgets.inspector import Inspector
 
 LOGGER = get_main_logger()
 
@@ -112,7 +112,7 @@ class AttributesTable(QtWidgets.QTableWidget):
     COLUMNS = ("Name", "Type", "Raw", "Resolved", "Cached")
 
     def __init__(
-        self, attrib_editor: "AttributeEditor", parent: QtWidgets.QWidget = None
+        self, attrib_editor: "Inspector", parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(0, len(self.COLUMNS), parent)
         self.main_window = attrib_editor.main_window

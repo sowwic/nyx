@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
 LOGGER = get_main_logger()
 
 
-class AttributeEditor(QtWidgets.QWidget):
+class Inspector(QtWidgets.QWidget):
     def __init__(
         self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None
     ) -> None:
