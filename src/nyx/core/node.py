@@ -14,6 +14,7 @@ from nyx.core import nyx_exceptions
 from nyx.utils import inspect_fn
 from nyx.utils import file_fn
 from nyx import get_main_logger
+from nyx.core.node_component import NodeComponentsModel
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
@@ -21,19 +22,6 @@ if typing.TYPE_CHECKING:
 
 
 LOGGER = get_main_logger()
-
-
-class NodeSignals(QtCore.QObject):
-    renamed = QtCore.Signal(pathlib.PurePosixPath, pathlib.PurePosixPath)
-    active_state_changed = QtCore.Signal(bool)
-    execution_started = QtCore.Signal()
-    execution_succeed = QtCore.Signal()
-    execution_failed = QtCore.Signal()
-    attr_added = QtCore.Signal(Attribute)
-    attr_deleted = QtCore.Signal(str)
-    attr_renamed = QtCore.Signal(str, str)
-    input_exec_changed = QtCore.Signal()
-    output_exec_changed = QtCore.Signal()
 
 
 class Node(QtGui.QStandardItem, Serializable):
@@ -57,11 +45,12 @@ class Node(QtGui.QStandardItem, Serializable):
         Serializable.__init__(self)
         self._cached_path = None
         self.gr_node: GraphicsNode = None
-        self.signals = NodeSignals()
         self._set_default_role_values()
 
         if parent:
             parent.appendRow(self)
+
+        self._components_model = NodeComponentsModel(node=self)
 
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)} ({self.cached_path})"
@@ -187,7 +176,6 @@ class Node(QtGui.QStandardItem, Serializable):
 
         """
         self.setData(state, role=Node.Roles.ACTIVE_ROLE.value)
-        self.signals.active_state_changed.emit(state)
 
     def deactivate(self):
         """Set node's active state to False."""
@@ -268,7 +256,6 @@ class Node(QtGui.QStandardItem, Serializable):
         )
         self.setText(new_name)
         self._update_pathmap_entry()
-        self.signals.renamed.emit(old_path, self.cached_path)
 
     def _update_pathmap_entry(self):
         """Update path stored for in stage path map."""
@@ -363,7 +350,6 @@ class Node(QtGui.QStandardItem, Serializable):
         self[name] = value
         if resolve:
             self[name].resolve()
-        self.signals.attr_added.emit(self[name])
         return self[name]
 
     def generate_unique_attr_name(self, name: str):
@@ -409,7 +395,6 @@ class Node(QtGui.QStandardItem, Serializable):
             return
         data.pop(name)
         self.setData(data, role=Node.Roles.ATTRIBUTES.value)
-        self.signals.attr_deleted.emit(name)
         LOGGER.debug(f"{self} | deleted attr {name}")
 
     def rename_attr(self, name: str, new_name: str):
@@ -432,7 +417,6 @@ class Node(QtGui.QStandardItem, Serializable):
         new_name = self.generate_unique_attr_name(new_name)
         data[new_name] = data.pop(name)
         self.setData(data, role=Node.Roles.ATTRIBUTES.value)
-        self.signals.attr_renamed.emit(name, new_name)
         return data[new_name]
 
     def stacked_attribs(self):
@@ -547,7 +531,6 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_input_exec_node is not None:
             if new_input_exec_node.get_output_exec_path() != self.path:
                 new_input_exec_node.set_output_exec_path(self.path)
-        self.signals.input_exec_changed.emit()
 
     def set_output_exec_path(
         self, path: "pathlib.PurePosixPath | str | Node", silent=False
@@ -605,7 +588,6 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_output_exec_node is not None:
             if new_output_exec_node.get_output_exec_path() != self.path:
                 new_output_exec_node.set_input_exec_path(self.path)
-        self.signals.output_exec_changed.emit()
 
     def on_changed(self):
         pass
@@ -840,14 +822,11 @@ class Node(QtGui.QStandardItem, Serializable):
 
         start_time = time.perf_counter()
         try:
-            self.signals.execution_started.emit()
             self.cache_attributes_values()
             self.execute_code()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
-            self.signals.execution_failed.emit()
             raise err
 
-        self.signals.execution_succeed.emit()
         total_time = time.perf_counter() - start_time
         LOGGER.info(f"Executed in {total_time:.4f}: {self.cached_path}")

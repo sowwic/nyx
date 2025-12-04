@@ -17,18 +17,12 @@ if typing.TYPE_CHECKING:
 LOGGER = get_main_logger()
 
 
-class StageSignaller(QtCore.QObject):
-    nodes_selection_cleared = QtCore.Signal()
-    nodes_selection_changed = QtCore.Signal(list)
-
-
 class GraphicsStage(QtWidgets.QGraphicsScene):
     def __init__(self, graph_editor: "StageGraphEditor", parent=None):
         super().__init__(parent=parent)
 
         self._graph_editor = graph_editor
         self._previous_selected_paths: list[pathlib.PurePosixPath] = []
-        self.signals = StageSignaller()
 
         # Settings
         self.grid_size = 20
