@@ -170,21 +170,26 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def on_selection_model_selection_changed(self):
         self.blockSignals(True)
-        self.clearSelection()
-        selected_nodes = [
-            self.stage.itemFromIndex(index)
-            for index in self.selection_model.selectedIndexes()
-        ]
-        scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(selected_nodes)
-        if not scope_selected_nodes:
-            return
+        try:
+            self.clearSelection()
+            selected_nodes = [
+                self.stage.itemFromIndex(index)
+                for index in self.selection_model.selectedIndexes()
+            ]
+            scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(
+                selected_nodes
+            )
+            if not scope_selected_nodes:
+                return
 
-        for node in scope_selected_nodes:
-            if node.gr_node is None:
-                LOGGER.exception(f"Missing graphics node for selection: {node}")
-                continue
-            node.gr_node.setSelected(True)
-        self.blockSignals(False)
+            for node in scope_selected_nodes:
+                if node.gr_node is None:
+                    LOGGER.exception(f"Missing graphics node for selection: {node}")
+                    continue
+                node.gr_node.setSelected(True)
+        # Ensure signals are always unblocked even on early return
+        finally:
+            self.blockSignals(False)
 
     def on_selection_changed(self):
         gr_nodes = self.selected_gr_nodes()

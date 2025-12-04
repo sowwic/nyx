@@ -268,7 +268,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
                 return
             else:
                 if not self.is_dragging:
-                    self.gr_stage.clearSelection()
+                    self.gr_stage.selection_model.clearSelection()
                 self.rubberband_dragging_rect = True
 
         super().mousePressEvent(event)
