@@ -161,9 +161,7 @@ class StageTreeView(QtWidgets.QTreeView):
         if not self.selected_nodes():
             return
 
-        delete_cmd = commands.DeleteNodeCommand(
-            self.stage, self.selected_nodes(), command_text=None
-        )
+        delete_cmd = commands.DeleteNodeCommand(self.stage, self.selected_nodes())
         self.stage.undo_stack.push(delete_cmd)
 
     def copy_selected_nodes(self):
