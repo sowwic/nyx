@@ -24,6 +24,7 @@ endef
 clean:
 	$(call banner, Cleaning project...)
 	@rm -rf .pytest_cache
+	@rm -rf .coverage
 	@rm -rf __pycache__
 	@rm -rf src/**/__pycache__
 	@rm -rf tests/**/__pycache__
@@ -43,6 +44,16 @@ format:
 pytest:
 	$(call banner, Running pytest...)
 	@poetry run pytest tests
+
+pytest-pdb:
+	$(call banner, Cleaning pytest output dir...)
+	@rm -rf $(TEST_OUTPUT_DIR)
+	$(call banner, Running pytest with pdb...)
+	@poetry run pytest --pdb tests
+
+mkdocs:
+	$(call banner, Building MkDocs documentation...)
+	@poetry run mkdocs serve
 
 check: lint pytest
 
