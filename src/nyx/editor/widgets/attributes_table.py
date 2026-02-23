@@ -1,9 +1,9 @@
 import typing
+import logging
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx import get_main_logger
 from nyx.core import commands
 
 if typing.TYPE_CHECKING:
@@ -11,7 +11,7 @@ if typing.TYPE_CHECKING:
     from nyx.core.attribute import Attribute
     from nyx.editor.widgets.inspector import Inspector
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class AttrTableItem(QtWidgets.QTableWidgetItem):
@@ -43,7 +43,7 @@ class AttrNameTableItem(AttrTableItem):
         rename_cmd = commands.RenameNodeAttributeCommand(
             stage=node.stage, node=node, attr_name=old_name, new_attr_name=new_name
         )
-        node.stage.undo_stack.push(rename_cmd)
+        node.stage.push_command(rename_cmd)
 
 
 class AttrTypeTableItem(AttrTableItem):
@@ -83,7 +83,7 @@ class AttrRawValueTableItem(AttrTableItem):
             attr_name=self.node_attr.name,
             attr_value=new_value,
         )
-        node.stage.undo_stack.push(set_attr_cmd)
+        node.stage.push_command(set_attr_cmd)
 
 
 class AttrResolvedValueTableItem(AttrTableItem):
@@ -190,7 +190,7 @@ class AttributesTable(QtWidgets.QTableWidget):
             attr_value=None,
             attr_resolve=True,
         )
-        node.stage.undo_stack.push(add_attr_cmd)
+        node.stage.push_command(add_attr_cmd)
 
     def delete_selected_attr(self):
         selected_rows = {item.row() for item in self.selectedItems()}
@@ -208,7 +208,7 @@ class AttributesTable(QtWidgets.QTableWidget):
         del_attr_cmd = commands.DeleteNodeAttributeCommand(
             stage=node.stage, node=node, attr_names=attr_to_del_names
         )
-        node.stage.undo_stack.push(del_attr_cmd)
+        node.stage.push_command(del_attr_cmd)
 
     def copy_selected_attr_path(self):
         selected_items = self.selectedItems()

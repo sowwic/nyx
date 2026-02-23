@@ -1,9 +1,9 @@
 import os
 import pathlib
-from nyx import get_main_logger
+import logging
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class Resolver:

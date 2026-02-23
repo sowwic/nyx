@@ -1,12 +1,12 @@
 import pathlib
 import typing
+import logging
 
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.version import __version__
-from nyx import get_main_logger
 from nyx.core.config import Config
 from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
@@ -19,11 +19,11 @@ if typing.TYPE_CHECKING:
     from ..application import NyxEditorApplication
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class NyxEditorMainWindow(QtWidgets.QMainWindow):
-    _INSTANCE: "NyxEditorMainWindow" = None
+    _INSTANCE: "NyxEditorMainWindow" = None  # ty: ignore
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
     MINIMUM_SIZE = (500, 400)
@@ -67,7 +67,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def current_stage_graph(self) -> "StageGraphEditor | None":
         if not self.current_mdi_window:
             return None
-        return self.current_mdi_window.widget()
+        return self.current_mdi_window.widget()  # ty: ignore
 
     @property
     def current_mdi_window(self) -> "QtWidgets.QMdiSubWindow | None":
@@ -75,7 +75,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @property
     def application(self):
-        app: NyxEditorApplication = QtWidgets.QApplication.instance()
+        app: NyxEditorApplication = QtWidgets.QApplication.instance()  # ty: ignore
         return app
 
     def create_actions(self):

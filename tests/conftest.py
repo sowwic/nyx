@@ -1,5 +1,9 @@
 import pathlib
 import pytest
+import logging
+from nyx.core.logger import NyxLogger
+
+logging.setLoggerClass(NyxLogger)
 
 
 @pytest.fixture(scope="session")

@@ -1,0 +1,81 @@
+import logging
+from nyx.core.stage import Stage
+from nyx.core.commands import DeleteNodeCommand, CreateNodeCommand
+
+LOGGER = logging.getLogger(__name__)
+
+
+def test_node_deletion():
+    """Test deleting a node."""
+    stage = Stage()
+    # Create a node to delete
+    create_command = CreateNodeCommand(stage=stage, node_name="node_to_delete")
+    stage.push_command(create_command)
+
+    # Now delete the node
+    delete_command = DeleteNodeCommand(stage=stage, nodes=["/node_to_delete"])
+    stage.push_command(delete_command)
+
+    assert stage.node("/node_to_delete") is None
+
+
+def test_delete_undo_redo():
+    """Test undo and redo of node deletion."""
+    stage = Stage()
+    # Create a node to delete
+    create_command = CreateNodeCommand(stage=stage, node_name="node_to_delete")
+    stage.push_command(create_command)
+
+    # Delete the node
+    delete_command = DeleteNodeCommand(stage=stage, nodes=["/node_to_delete"])
+    stage.push_command(delete_command)
+
+    # Undo the deletion
+    stage.undo_stack.undo()
+    assert stage.node("/node_to_delete") is not None
+
+    # Redo the deletion
+    stage.undo_stack.redo()
+    assert stage.node("/node_to_delete") is None
+
+
+def test_delete_multiple_nodes():
+    """Test deleting multiple nodes."""
+    stage = Stage()
+    # Create multiple nodes to delete
+    for i in range(3):
+        create_command = CreateNodeCommand(stage=stage, node_name=f"node_{i}")
+        stage.push_command(create_command)
+
+    # Delete the nodes
+    delete_command = DeleteNodeCommand(
+        stage=stage, nodes=[f"/node_{i}" for i in range(3)]
+    )
+    stage.push_command(delete_command)
+
+    for i in range(3):
+        assert stage.node(f"/node_{i}") is None
+
+
+def test_delete_parent_node():
+    """Test deleting a parent node also deletes its children."""
+    stage = Stage()
+    # Create a parent node and a child node
+    create_parent_command = CreateNodeCommand(stage=stage, node_name="parent_node")
+    stage.push_command(create_parent_command)
+
+    create_child_command = CreateNodeCommand(
+        stage=stage, parent_path="/parent_node", node_name="child_node"
+    )
+    stage.push_command(create_child_command)
+
+    # Delete the parent node
+    delete_command = DeleteNodeCommand(stage=stage, nodes=["/parent_node"])
+    stage.push_command(delete_command)
+
+    assert stage.node("/parent_node") is None
+    assert stage.node("/parent_node/child_node") is None
+
+    stage.undo_stack.undo()  # Undo delete
+    assert stage.node("/parent_node") is not None
+    assert stage.node("/parent_node/child_node") is not None

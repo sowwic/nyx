@@ -2,7 +2,6 @@
 
 import abc
 import json
-import sys
 import pathlib
 
 
@@ -100,24 +99,3 @@ def is_jsonable(obj):
         return True
     except (TypeError, OverflowError):
         return False
-
-
-# Directory
-def get_data_dir() -> pathlib.Path:
-    """Get user data direcotory for current machine OS.
-
-    Returns:
-        pathlib.Path: user app data directory path.
-
-    """
-    home = pathlib.Path.home()
-    if sys.platform == "win32":
-        return home / "AppData/Roaming"
-    elif sys.platform == "linux":
-        return home / ".local/share"
-    elif sys.platform == "darwin":
-        return home / "Library/Application Support"
-
-
-def get_nyx_data_dir() -> pathlib.Path:
-    return get_data_dir() / "nyx"

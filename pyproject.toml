@@ -9,12 +9,11 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 packages = [
-    {include = "nyx"},
+    {include = "nyx", from = "src"},
 ]
 dependencies = [
     "pyside6 (>=6.10.0,<7.0.0)",
     "platformdirs (>=4.5.0,<5.0.0)",
-    "ruff (>=0.14.5,<0.15.0)",
 ]
 
 
@@ -26,7 +25,11 @@ build-backend = "poetry.core.masonry.api"
 dev = [
     "pytest (>=9.0.1,<10.0.0)",
     "pytest-cov (>=7.0.0,<8.0.0)",
+    "pytest-qt (>=4.5.0,<5.0.0)",
+    "pytest-mock (>=3.15.1,<4.0.0)",
+    
     "ruff (>=0.14.5,<0.15.0)",
+
     "mkdocs (>=1.6.1,<2.0.0)",
     "mkdocs-material (>=9.7.0,<10.0.0)",
     "mkdocstrings[python] (>=1.0.0,<2.0.0)",
@@ -52,3 +55,5 @@ lint.ignore = [
 
 [tool.pytest.ini_options]
 addopts = "--cov=nyx --cov-report=term-missing"
+log_cli = true
+log_cli_level = "INFO"

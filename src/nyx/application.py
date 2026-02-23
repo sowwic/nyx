@@ -1,17 +1,16 @@
 import sys
+import logging
 from PySide6 import QtGui, QtWidgets
 
-import resources.resources_rc  # noqa: F401
-
+import nyx.resources.resources_rc  # noqa: F401
 from nyx.version import __version__
-from nyx import get_main_logger
 from nyx.core.config import Config
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.core import commands
 from nyx.utils import pyside_fn
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class NyxApplication(QtWidgets.QApplication):
@@ -57,20 +56,20 @@ class NyxEditorApplication(NyxApplication):
             stage, node_name="test_child", parent_path="/test_node"
         )
 
-        stage.undo_stack.push(create_cmd1)
-        stage.undo_stack.push(create_cmd2)
-        stage.undo_stack.push(create_cmd3)
-        stage.undo_stack.push(create_cmd4)
-        stage.undo_stack.push(create_cmd5)
+        stage.push_command(create_cmd1)
+        stage.push_command(create_cmd2)
+        stage.push_command(create_cmd3)
+        stage.push_command(create_cmd4)
+        stage.push_command(create_cmd5)
 
         # Renamed parent
         rename_cmd1 = commands.RenameNodeCommand(stage, "/node", new_name="parent_node")
-        stage.undo_stack.push(rename_cmd1)
+        stage.push_command(rename_cmd1)
 
         rename_cmd2 = commands.RenameNodeCommand(
             stage, "/parent_node/node", new_name="child_node"
         )
-        stage.undo_stack.push(rename_cmd2)
+        stage.push_command(rename_cmd2)
 
         # Attributes
         add_attr_cmd1 = commands.AddNodeAttributeCommand(
@@ -82,9 +81,9 @@ class NyxEditorApplication(NyxApplication):
         add_attr_cmd2 = commands.AddNodeAttributeCommand(
             stage, node="/test_node/test_child", attr_name="child_attr"
         )
-        stage.undo_stack.push(add_attr_cmd1)
-        stage.undo_stack.push(set_attr_cmd)
-        stage.undo_stack.push(add_attr_cmd2)
+        stage.push_command(add_attr_cmd1)
+        stage.push_command(set_attr_cmd)
+        stage.push_command(add_attr_cmd2)
 
         conn_attr_cmd = commands.ConnectAttributeCommand(
             stage,
@@ -93,7 +92,7 @@ class NyxEditorApplication(NyxApplication):
             source_attr_name="test_attr",
             destination_attr_name="child_attr",
         )
-        stage.undo_stack.push(conn_attr_cmd)
+        stage.push_command(conn_attr_cmd)
 
         rename_attr_cmd = commands.RenameNodeAttributeCommand(
             stage,
@@ -101,28 +100,28 @@ class NyxEditorApplication(NyxApplication):
             attr_name="child_attr",
             new_attr_name="new_attr",
         )
-        stage.undo_stack.push(rename_attr_cmd)
+        stage.push_command(rename_attr_cmd)
 
         # Exec starts
         stage_exec_start_cmd = commands.SetStageExecStartCommand(stage, "/test_node")
-        stage.undo_stack.push(stage_exec_start_cmd)
+        stage.push_command(stage_exec_start_cmd)
 
         node_exec_start_cmd = commands.SetNodeExecStartCommand(
             stage, node="/parent_node", path="/parent_node/node1"
         )
-        stage.undo_stack.push(node_exec_start_cmd)
+        stage.push_command(node_exec_start_cmd)
 
         # Node exec connections
         child_node_to_node1_exec_cmd = commands.ConnectNodeExecCommand(
             stage, output_node="/parent_node/child_node", input_node="/parent_node/node1"
         )
-        stage.undo_stack.push(child_node_to_node1_exec_cmd)
+        stage.push_command(child_node_to_node1_exec_cmd)
         # Deletions
         # del_attr_cmd = commands.DeleteNodeAttributeCommand(
         #     stage, node="/test_node/test_child", attr_name="new_attr",)
-        # stage.undo_stack.push(del_attr_cmd)
+        # stage.push_command(del_attr_cmd)
 
         # LOGGER.debug(stage.describe())
         # Delete parent
         # del_cmd = commands.DeleteNodeCommand(stage, "/parent_node")
-        # stage.undo_stack.push(del_cmd)
+        # stage.push_command(del_cmd)

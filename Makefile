@@ -21,7 +21,15 @@ define banner
 	@printf "$(CYAN)==>$(RESET) $(1)\n"
 endef
 
-clean:
+.PHONY: help 
+help: ## Show this help message
+	@echo "Available make targets:"
+	@echo ""
+	@grep -E '^[a-zA-Z0-9_-]+:.*?##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS=":.*?##"}; {printf "  %-15s %s\n", $$1, $$2}'
+	@echo ""
+
+.PHONY: clean
+clean: ## Cleans up build artifacts, test outputs, and caches
 	$(call banner, Cleaning project...)
 	@rm -rf .pytest_cache
 	@rm -rf .coverage
@@ -33,40 +41,49 @@ clean:
 	@rm -rf $(TEST_OUTPUT_DIR)
 	@printf "$(GREEN)Clean up complete.$(RESET)\n"
 
-lint:
+.PHONY: lint
+lint: ## Runs the Ruff linter on source and test files
 	$(call banner, Running Ruff linter...)
 	@poetry run ruff check src tests || true
 
-format:
+.PHONY: format
+format: ## Runs the Ruff formatter on source and test files
 	$(call banner, Running Ruff formatter...)
 	@poetry run ruff format src tests
 
-pytest:
+.PHONY: pytest
+pytest: ## Runs pytest on the tests directory
 	$(call banner, Running pytest...)
-	@poetry run pytest tests
+	@poetry run pytest tests --log-cli-level=DEBUG
 
-pytest-pdb:
+.PHONY: pytest-pdb
+pytest-pdb: ## Runs pytest with pdb enabled for debugging
 	$(call banner, Cleaning pytest output dir...)
 	@rm -rf $(TEST_OUTPUT_DIR)
 	$(call banner, Running pytest with pdb...)
-	@poetry run pytest --pdb tests
+	@poetry run pytest -vvv --pdb --log-cli-level=DEBUG tests
 
-mkdocs:
+.PHONY: mkdocs
+mkdocs: ## Serves the MkDocs documentation locally
 	$(call banner, Building MkDocs documentation...)
 	@poetry run mkdocs serve
 
-check: lint pytest
+.PHONY: check
+check: lint pytest ## Runs linting and tests
 
-qrc:
+.PHONY: qrc
+qrc: ## Generates Python resources from the Qt resource file
 	$(call banner, Generating QRC resources...)
 	@pyside6-rcc resources/resources.qrc -o resources/resources_rc.py
 	@printf "$(GREEN)QRC generation complete.$(RESET)\n"
 
-build: qrc update-version
+.PHONY: build
+build: qrc update-version ## Builds the application using Poetry
 	$(call banner, Building $(APP_NAME)...)
 	@poetry build
 
-update-version:
+.PHONY: update-version
+update-version: ## Updates the version in pyproject.toml based on the VERSION file
 	@VERSION=$$(cat VERSION); \
 	printf "$(CYAN)==>$(RESET) Updating pyproject.toml version to %s\n" "$$VERSION"; \
 	poetry version $$VERSION

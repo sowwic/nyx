@@ -1,12 +1,11 @@
-from nyx import get_main_logger, get_logger
+import logging
 from nyx.core import Stage
 from nyx.core import Node
 from nyx.core.attribute import Attribute
 from nyx.utils import file_fn
 
 
-LOGGER = get_main_logger()
-TEST_LOGGER = get_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def test_attr_getset():
@@ -51,11 +50,11 @@ def test_attr_delete():
     stage.add_node(node)
 
     node["test"] = 5
-    TEST_LOGGER.debug(f"Attributes: {node.attribs}")
+    LOGGER.debug(f"Attributes: {node.attribs}")
     assert isinstance(node.attribs["test"], Attribute)
 
     node.delete_attr("test")
-    TEST_LOGGER.debug(f"Attributes: {node.attribs}")
+    LOGGER.debug(f"Attributes: {node.attribs}")
     assert "test" not in node.attribs
 
 
@@ -69,9 +68,9 @@ def test_attr_rename():
     old_resolved = node.attr("test").get(resolved=True)
     old_cached = node.attr("test").get()
 
-    TEST_LOGGER.debug(f"Before rename: {node.attribs}")
+    LOGGER.debug(f"Before rename: {node.attribs}")
     node.rename_attr("test", "new_test")
-    TEST_LOGGER.debug(f"After rename: {node.attribs}")
+    LOGGER.debug(f"After rename: {node.attribs}")
     assert "test" not in node.attribs
     assert "new_test" in node.attribs
     assert node["new_test"].value == old_raw
@@ -87,12 +86,11 @@ def test_attr_serialize():
     node = Node("node1", parent=parent_node)
     node.add_attr("test", value=2)
 
-    TEST_LOGGER.debug(node["test"])
+    LOGGER.debug(node["test"])
     attr = node["test"]
     serial_data = attr.serialize()
-    TEST_LOGGER.debug(f"Serialized: {serial_data}")
+    LOGGER.debug(f"Serialized: {serial_data}")
 
-    assert serial_data["uuid"] == attr.uuid
     assert serial_data["name"] == attr.name
     if file_fn.is_jsonable(attr.value):
         assert serial_data["value"] == attr.value
@@ -107,16 +105,15 @@ def test_attr_deserialize():
     node.add_attr("test", value=2)
 
     serial_data = node["test"].serialize()
-    TEST_LOGGER.debug(f"Serialized: {serial_data}")
+    LOGGER.debug(f"Serialized: {serial_data}")
 
     node2 = Node("node2")
     stage.add_node(node)
     node2["test"] = None
-    node2["test"].deserialize(serial_data, restore_id=True)
+    node2["test"].deserialize(serial_data)
     new_attr = node2["test"]
-    TEST_LOGGER.debug(f"Deserialized: {new_attr}")
+    LOGGER.debug(f"Deserialized: {new_attr}")
 
-    assert new_attr.uuid == node["test"].uuid
     assert new_attr.name == node["test"].name
     assert new_attr.value == node["test"].value
 
@@ -133,9 +130,9 @@ def test_attr_same_scope():
     child1.add_attr("count", value=5)
     child2.add_attr("len", value=10)
 
-    TEST_LOGGER.debug(f"{child1['count']} | Scope: {child1['count'].node.scope}")
-    TEST_LOGGER.debug(f"{child2['len']} | Scope: {child2['len'].node.scope}")
-    TEST_LOGGER.debug(f"{node['test']} | Scope: {node['test'].node.scope}")
+    LOGGER.debug(f"{child1['count']} | Scope: {child1['count'].node.scope}")
+    LOGGER.debug(f"{child2['len']} | Scope: {child2['len'].node.scope}")
+    LOGGER.debug(f"{node['test']} | Scope: {node['test'].node.scope}")
 
     assert child1["count"].same_scope_with(child2["len"])
     assert not child1["count"].same_scope_with(node["test"])
@@ -147,7 +144,7 @@ def test_attr_resolve_number():
     stage.add_node(node)
     node.add_attr("test", value=2, resolve=True)
 
-    TEST_LOGGER.debug(node["test"])
+    LOGGER.debug(node["test"])
     assert node["test"].resolved_value == 2
 
 
@@ -201,7 +198,7 @@ def test_attr_resolve_recursive_path():
     stage.add_node(node3)
     node3.add_attr("test3", value="/node2.test2", resolve=True)
 
-    TEST_LOGGER.debug(stage.describe())
+    LOGGER.debug(stage.describe())
 
     assert node3["test3"].resolved_value == node2["test2"].resolved_value
     assert node3["test3"].resolved_value == node1["test1"].value

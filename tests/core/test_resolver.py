@@ -1,9 +1,8 @@
 import pathlib
-from nyx import get_main_logger, get_logger
+import logging
 from nyx.core.resolver import Resolver
 
-LOGGER = get_main_logger()
-TEST_LOGGER = get_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def test_compute_relative_path():

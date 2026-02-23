@@ -1,16 +1,16 @@
 import typing
+import logging
 import timeit
 import pathlib
 from collections import deque
 
-from nyx import get_main_logger
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
     from nyx.core import Stage
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class StageHandler:
@@ -73,6 +73,4 @@ class StageHandler:
                 LOGGER.error("Error raised during graph execution.")
                 break
         if success:
-            LOGGER.info(
-                f"Executed graph in {timeit.default_timer() - start_time:.2f}s"
-            )
+            LOGGER.info(f"Executed graph in {timeit.default_timer() - start_time:.2f}s")

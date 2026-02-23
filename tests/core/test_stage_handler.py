@@ -1,11 +1,10 @@
+import logging
 from collections import deque
 
-from nyx import get_main_logger, get_logger
 from nyx.core import Stage
 from nyx.core import Node
 
-LOGGER = get_main_logger()
-TEST_LOGGER = get_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def test_handler_build_queue_from_stage():
@@ -21,8 +20,8 @@ def test_handler_build_queue_from_stage():
     root_node2.set_output_exec_path(root_node3)
 
     queue = stage.handler.build_execution_queue()
-    # TEST_LOGGER.debug(stage.describe())
-    TEST_LOGGER.debug(f"Exec queue: {queue}")
+    # LOGGER.debug(stage.describe())
+    LOGGER.debug(f"Exec queue: {queue}")
 
     expected_queue = deque(
         [root_node1.cached_path, root_node2.cached_path, root_node3.cached_path]
@@ -53,7 +52,7 @@ def test_handler_build_queue_with_children():
     root_node1.set_execution_start_path(child1_1)
 
     queue = stage.handler.build_execution_queue()
-    TEST_LOGGER.debug(queue)
+    LOGGER.debug(queue)
     expected_queue = deque(
         [
             root_node1.cached_path,
@@ -89,16 +88,12 @@ def test_handler_run():
     root_node1.set_execution_start_path(child1_1)
 
     queue = stage.handler.build_execution_queue()
-    TEST_LOGGER.debug(f"Exec queue: {queue}")
+    LOGGER.debug(f"Exec queue: {queue}")
 
     # Root Attributes
     root_node1.add_attr("test1")
     root_node2.add_attr("test2")
     root_node3.add_attr("test3")
-
-    root_node1.set_python_code("self.attr('test1').push(5)")
-    root_node2.set_python_code("self.attr('test2').push(10)")
-    root_node3.set_python_code("self.attr('test3').push(15)")
 
     # Child attributes
     # Root Attributes
@@ -106,13 +101,10 @@ def test_handler_run():
     child1_2.add_attr("child_test2")
     child1_3.add_attr("child_test3", value="/root_node1/child1_2.child_test2")
 
-    child1_1.set_python_code("self.attr('child_test1').push(5)")
-    child1_2.set_python_code("self.attr('child_test2').push(10)")
-
-    # TEST_LOGGER.debug(stage.describe())
+    # LOGGER.debug(stage.describe())
     stage.handler.run()
 
-    TEST_LOGGER.debug(f"ATTR: {child1_3['child_test3']}")
+    LOGGER.debug(f"ATTR: {child1_3['child_test3']}")
 
     assert root_node1.attr("test1").cached_value == 5
     assert root_node2.attr("test2").cached_value == 10

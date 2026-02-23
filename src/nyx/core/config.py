@@ -1,11 +1,12 @@
 import pathlib
+import logging
 import dataclasses
 
-from nyx import get_main_logger
 from nyx.utils import file_fn
 
-LOGGER = get_main_logger()
-CONFIG_FILE_PATH = file_fn.get_nyx_data_dir() / "config.json"
+from .constants import CONFIG_FILE_PATH
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Singleton(type):
@@ -23,7 +24,6 @@ class Config(metaclass=Singleton):
     window_position: "tuple[int]" = tuple()
     window_always_on_top: bool = True
     logging_level: int = 10
-    maya_port: int = 7221
     dark_mode: bool = True
     logger_autoscroll: bool = True
 

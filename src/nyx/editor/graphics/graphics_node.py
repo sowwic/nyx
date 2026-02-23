@@ -188,7 +188,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             move_cmd = commands.MoveNodeCommand(
                 stage=self.node.stage, nodes=moved_nodes, new_positions=new_positions
             )
-            self.node.stage.undo_stack.push(move_cmd)
+            self.node.stage.push_command(move_cmd)
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         return super().mouseDoubleClickEvent(event)

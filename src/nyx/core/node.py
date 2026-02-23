@@ -1,5 +1,6 @@
 import enum
 import typing
+import logging
 import time
 import pathlib
 from collections import deque
@@ -10,24 +11,25 @@ from PySide6 import QtGui
 from nyx.core.attribute import Attribute
 from nyx.core import constants
 from nyx.core.serializable import Serializable
-from nyx.core import nyx_exceptions
+from nyx.core.exceptions import NodeNoAttributeExistError
 from nyx.utils import inspect_fn
 from nyx.utils import file_fn
-from nyx import get_main_logger
-from nyx.core.node_component import NodeComponentsModel
+from nyx.core.node_component.components_model import NodeComponentsModel
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
     from nyx.editor.graphics.graphics_node import GraphicsNode
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class Node(QtGui.QStandardItem, Serializable):
+    METADATA = {"type": "node"}
+    TRACK_NYX_VERSION = True
+
     class Roles(enum.Enum):
         ATTRIBUTES: int = QtCore.Qt.UserRole + 1
-        PYTHON_CODE: int = enum.auto()
         INPUT_EXEC: int = enum.auto()
         OUTPUT_EXEC: int = enum.auto()
         ACTIVE_ROLE: int = enum.auto()
@@ -62,7 +64,7 @@ class Node(QtGui.QStandardItem, Serializable):
         try:
             return self.attribs[key]
         except KeyError:
-            raise nyx_exceptions.NodeNoAttributeExistError
+            raise NodeNoAttributeExistError
 
     def __setitem__(self, key: str, value):
         data = self.attribs
@@ -75,7 +77,6 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def _set_default_role_values(self):
         self.setData(OrderedDict(), role=Node.Roles.ATTRIBUTES.value)
-        self.setData("", role=Node.Roles.PYTHON_CODE.value)
         self.setData(None, role=Node.Roles.INPUT_EXEC.value)
         self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
         self.setData(True, role=Node.Roles.ACTIVE_ROLE.value)
@@ -126,24 +127,23 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.model()
 
     @property
+    def components_model(self) -> NodeComponentsModel:
+        """Get components model.
+
+        Returns:
+            NodeComponentsModel: components model
+        """
+        return self._components_model
+
+    @property
     def attribs(self) -> "OrderedDict[str, Attribute]":
-        """Node attributes dictionnary.
+        """Node attributes dictionary.
 
         Returns:
             OrderedDict[str, Attribute]: Node attributes.
 
         """
         return self.data(role=Node.Roles.ATTRIBUTES.value)
-
-    @property
-    def python_code(self) -> str:
-        """Node python code.
-
-        Returns:
-            str: python code string.
-
-        """
-        return self.data(role=self.Roles.PYTHON_CODE.value)
 
     @property
     def reference_file_path(self) -> pathlib.Path:
@@ -250,7 +250,6 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_name == self.name:
             return
 
-        old_path = self.cached_path
         new_name = self.stage.generate_unique_node_name(
             new_name, parent_node=self.parent()
         )
@@ -602,8 +601,6 @@ class Node(QtGui.QStandardItem, Serializable):
         data = super().serialize()
         children = [child.serialize() for child in self.list_children()]
         attribs = [attr.serialize() for _, attr in self.attribs.items()]
-        metadata = {"type": "node"}
-        data["metadata"].update(metadata)
         data["name"] = self.text()
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
@@ -618,19 +615,18 @@ class Node(QtGui.QStandardItem, Serializable):
             )
             data["attribs"] = attribs
             data["children"] = children
-            data["code"] = self.python_code
             data["comment"] = self.comment()
+        data.update(self.components_model.serialize())
         return data
 
-    def deserialize(self, data: OrderedDict, restore_id=True):
+    def deserialize(self, data: OrderedDict):
         """Deserialize node from serialized node dictionary.
 
         Args:
             data (OrderedDict): Node data dictionary.
-            restore_id (bool, optional): Restore node uuid. Defaults to True.
 
         """
-        super().deserialize(data, restore_id=restore_id)
+        super().deserialize(data)
 
         if self.name != data.get("name", self.name):
             self.rename(data.get("name"))
@@ -649,7 +645,6 @@ class Node(QtGui.QStandardItem, Serializable):
             data = self._load_reference_file_data()
 
         self.set_execution_start_path(data.get("execution_start_path"))
-        self.set_python_code(data.get("code", ""))
         self.set_comment(data.get("comment", ""))
 
         self._update_pathmap_entry()
@@ -658,12 +653,12 @@ class Node(QtGui.QStandardItem, Serializable):
         for attr_data in data.get("attribs", {}):
             attr_name = attr_data["name"]
             self.set_attr(attr_name, attr_data.get("value"))
-            self[attr_name].deserialize(attr_data, restore_id=True)
+            self[attr_name].deserialize(attr_data)
 
         # Children
         for child_data in data.get("children", {}):
             child_node = Node(parent=self)
-            child_node.deserialize(child_data, restore_id=True)
+            child_node.deserialize(child_data)
 
     def _load_reference_file_data(self) -> OrderedDict:
         data = OrderedDict()
@@ -701,36 +696,11 @@ class Node(QtGui.QStandardItem, Serializable):
 
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
-        self.deserialize(json_data, restore_id=False)
-
-    def get_python_code(self) -> str:
-        """Node python code.
-
-        Returns:
-            str: python code.
-
-        """
-        return self.python_code
-
-    def set_python_code(self, code_str) -> None:
-        """Set python code string.
-
-        Args:
-            code_str (str): python code.
-
-        """
-        self.setData(code_str, role=Node.Roles.PYTHON_CODE.value)
-
-    def resolve_python_code(self) -> str:
-        pass
+        self.deserialize(json_data)
 
     def resolve(self):
         for attr in self.attribs.values():
             attr.resolve()
-
-    def execute_code(self):
-        """Execute code string."""
-        exec(self.python_code, {"self": self})
 
     def clear_attributes_caches(self):
         """Clear all attributes caches."""
@@ -822,8 +792,8 @@ class Node(QtGui.QStandardItem, Serializable):
 
         start_time = time.perf_counter()
         try:
+            # TODO: Execute components
             self.cache_attributes_values()
-            self.execute_code()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
             raise err

@@ -45,4 +45,4 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         rename_cmd = commands.RenameNodeCommand(
             stage=self.gr_node.node.stage, node=self.gr_node.node, new_name=new_text
         )
-        self.gr_node.node.stage.undo_stack.push(rename_cmd)
+        self.gr_node.node.stage.push_command(rename_cmd)

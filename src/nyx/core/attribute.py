@@ -1,7 +1,7 @@
+import logging
 import typing
 from collections import OrderedDict
 
-from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
 
@@ -9,10 +9,12 @@ if typing.TYPE_CHECKING:
     from nyx.core import Node
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class Attribute(Serializable):
+    TRACK_NYX_VERSION = False
+
     def __init__(self, node: "Node", value=None) -> None:
         super().__init__()
         self._node = node
@@ -181,8 +183,8 @@ class Attribute(Serializable):
         data.update(new_data)
         return data
 
-    def deserialize(self, data: dict, restore_id=False):
-        super().deserialize(data, restore_id)
+    def deserialize(self, data: dict):
+        super().deserialize(data)
         self.set(data.get("value", self.value))
 
     def resolve(self):

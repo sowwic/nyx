@@ -1,8 +1,9 @@
 import typing
 import pathlib
+import logging
 from collections import OrderedDict
 from PySide6 import QtWidgets
-from nyx import get_main_logger
+
 from nyx.core import constants
 from nyx.core import Stage
 from nyx.core import commands
@@ -15,7 +16,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Collection
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def export_selected_nodes():
@@ -82,7 +83,7 @@ def _import_nodes(
         )
     else:
         paste_command.setText(f"{command_name} nodes")
-    stage_graph.stage.undo_stack.push(paste_command)
+    stage_graph.stage.push_command(paste_command)
 
 
 def import_nodes_from_explorer(as_reference=False):

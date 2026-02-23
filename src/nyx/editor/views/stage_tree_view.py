@@ -1,11 +1,11 @@
 import typing
+import logging
 from collections import deque
 
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx import get_main_logger
 from nyx.core import commands
 from nyx.editor.utils import clipboard
 from nyx.utils import pyside_fn
@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
     from nyx.core import Node
     from nyx.editor.main_window import NyxEditorMainWindow
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class StageTreeView(QtWidgets.QTreeView):
@@ -155,14 +155,14 @@ class StageTreeView(QtWidgets.QTreeView):
             parent_path=parent_path,
             position=view_center_position,
         )
-        self.stage.undo_stack.push(create_cmd)
+        self.stage.push_command(create_cmd)
 
     def delete_selected_node(self):
         if not self.selected_nodes():
             return
 
         delete_cmd = commands.DeleteNodeCommand(self.stage, self.selected_nodes())
-        self.stage.undo_stack.push(delete_cmd)
+        self.stage.push_command(delete_cmd)
 
     def copy_selected_nodes(self):
         selected_nodes = self.selected_nodes()
@@ -194,7 +194,7 @@ class StageTreeView(QtWidgets.QTreeView):
             position=gr_view_center_position,
             parent_node=parent_node,
         )
-        self.stage.undo_stack.push(paste_cmd)
+        self.stage.push_command(paste_cmd)
 
     def copy_selected_node_path(self):
         selected_node = self.current_node()
@@ -219,7 +219,7 @@ class StageTreeView(QtWidgets.QTreeView):
                 stage=current_node.stage, path=current_node.path
             )
 
-        current_node.stage.undo_stack.push(set_execution_start_cmd)
+        current_node.stage.push_command(set_execution_start_cmd)
 
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu("", self)

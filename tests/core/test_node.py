@@ -1,9 +1,8 @@
-from nyx import get_main_logger, get_logger
 from nyx.core import Stage
 from nyx.core import Node
+import logging
 
-LOGGER = get_main_logger()
-TEST_LOGGER = get_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def test_add_node_to_root():
@@ -67,8 +66,6 @@ def test_node_execute_while_active():
 
     node.add_attr("test")
 
-    code = 'self["test"].push(5)'
-    node.set_python_code(code)
     node.execute()
 
     assert node.is_active()
@@ -85,8 +82,6 @@ def test_node_execute_while_not_active():
     node.add_attr("test")
     node.set_active(False)
 
-    code = 'self["test"].push(5)'
-    node.set_python_code(code)
     node.execute()
 
     assert not node.is_active()
@@ -149,10 +144,10 @@ def test_node_delete_first_paths_map_valid():
 
     for i in range(5):
         par = Node(parent=par)
-    TEST_LOGGER.debug(f"Path map: {stage.path_map}")
+    LOGGER.debug(f"Path map: {stage.path_map}")
 
     node.delete()
-    TEST_LOGGER.debug(f"Path map after deletion: {stage.path_map}")
+    LOGGER.debug(f"Path map after deletion: {stage.path_map}")
 
     assert stage.path_map == {}
 
@@ -169,10 +164,10 @@ def test_node_delete_mid_paths_map_valid():
         par = Node(parent=par)
         added_nodes.append(par)
 
-    TEST_LOGGER.debug(f"Path map: {stage.path_map}")
+    LOGGER.debug(f"Path map: {stage.path_map}")
     added_nodes[1].delete()
 
-    TEST_LOGGER.debug(f"Path map after deletion: {stage.path_map}")
+    LOGGER.debug(f"Path map after deletion: {stage.path_map}")
 
     assert stage.path_map != {}
     assert node.path in stage.path_map
@@ -290,7 +285,7 @@ def test_node_set_execution_start():
 
     stage.set_execution_start_path(None, node1)
     stage.set_execution_start_path(node1, node2)
-    TEST_LOGGER.debug(stage.describe())
+    LOGGER.debug(stage.describe())
 
     assert stage.get_execution_start_path(node1) == node2.path
     assert stage.get_execution_start_path(None, serializable=False) == node1.path

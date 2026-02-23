@@ -1,11 +1,11 @@
 import typing
 import pathlib
+import logging
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.core import Stage
-from nyx import get_main_logger
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class StageGraphEditor(QtWidgets.QWidget):

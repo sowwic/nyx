@@ -4,3 +4,7 @@ class NodeNoAttributeExistError(Exception):
 
 class NodeClashingAttributeNameError(Exception):
     pass
+
+
+class NyxCommandValidationError(RuntimeError):
+    pass

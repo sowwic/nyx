@@ -1,4 +1,5 @@
 import typing
+import logging
 from PySide6 import QtCore
 from PySide6 import QtWidgets
 from PySide6 import QtGui
@@ -71,15 +72,13 @@ class RichLogMessageItem(QtWidgets.QListWidgetItem):
 
 
 class LoggerWidget(QtWidgets.QWidget):
-    def __init__(
-        self, logger_name=logging_fn.MAIN_LOGGER_NAME, parent: QtWidgets.QWidget = None
-    ) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.create_actions()
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
-        self._logger = self.set_logger(logger_name)
+        self._logger = self.set_logger()
 
     def create_actions(self):
         pass
@@ -128,8 +127,8 @@ class LoggerWidget(QtWidgets.QWidget):
     def auto_scroll(self):
         return self.config.logger_autoscroll
 
-    def set_logger(self, name: str):
-        self._logger = logging_fn.get_logger(name, level=self.config.logging_level)
+    def set_logger(self):
+        self._logger = logging.getLogger()
         logging_fn.add_signal_handler(self._logger)
         self._logger.signal_handler.emitter.message_logged.connect(
             self.append_raw_message

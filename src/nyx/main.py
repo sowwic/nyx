@@ -1,7 +1,11 @@
-from nyx import get_main_logger
-from nyx.utils.logging_fn import get_log_file_path
+import logging
+from nyx.core.logger import NyxLogger
+from nyx.utils.logging_fn import add_signal_handler
 
-LOGGER = get_main_logger()
+logging.setLoggerClass(NyxLogger)
+ROOT_LOGGER = logging.getLogger()
+add_signal_handler(ROOT_LOGGER)
+LOGGER = logging.getLogger(__name__)
 
 
 def main():
@@ -13,7 +17,6 @@ def main():
         LOGGER.error(f"Application exit with code {status_code}")
     else:
         app.config().save()
-    LOGGER.info(f"Log file: {get_log_file_path(LOGGER)}")
 
 
 if __name__ == "__main__":

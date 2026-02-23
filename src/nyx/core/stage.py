@@ -1,4 +1,5 @@
 import typing
+import logging
 import pprint
 import pathlib
 from collections import OrderedDict
@@ -11,24 +12,28 @@ except ImportError:
 from PySide6 import QtCore
 from PySide6 import QtGui
 
-from nyx import get_main_logger
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn
 from nyx.core import Node
 from nyx.core.attribute import Attribute
 from nyx.core.stage_handler import StageHandler
 from nyx.core.resolver import Resolver
-from nyx.core import nyx_exceptions
+from nyx.core.exceptions import NodeNoAttributeExistError, NyxCommandValidationError
 
+if typing.TYPE_CHECKING:
+    from nyx.core.commands import NyxCommand
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class Stage(QtGui.QStandardItemModel, Serializable):
-    node_deleted = QtCore.Signal(pathlib.PurePosixPath)
+    METADATA = {"type": "stage"}
+    TRACK_NYX_VERSION = True
 
     FILE_EXTENSION = ".nyx"
     ROOT_ITEM_PATH = pathlib.PurePosixPath("/")
+
+    node_deleted = QtCore.Signal(pathlib.PurePosixPath)
 
     def __repr__(self) -> str:
         return "Stage"
@@ -109,11 +114,11 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             index = 1
             while parent_path / f"{base_name}{index}" in self.path_map:
                 index += 1
-            return base_name + str(index)
+            return f"{base_name}{index}"
         return base_name
 
     def appendRow(self, items: typing.Sequence["Node"]) -> None:
-        """Overridden QStandartItemModel method.
+        """Overridden QStandardItemModel method.
 
         This method will generate a unique path for each item its about to append.
 
@@ -196,7 +201,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 return None
             try:
                 return node.attr(attr_name)
-            except nyx_exceptions.NodeNoAttributeExistError:
+            except NodeNoAttributeExistError:
                 return None
 
     def add_node(
@@ -267,8 +272,6 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def serialize(self) -> OrderedDict:
         data = super().serialize()
-        metadata = {"type": "stage"}
-        data["metadata"].update(metadata)
         top_nodes = self.list_top_nodes()
         nodes = [node.serialize() for node in top_nodes]
         data["nodes"] = nodes
@@ -277,13 +280,13 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         )
         return data
 
-    def deserialize(self, data: OrderedDict, restore_id=True):
-        super().deserialize(data, restore_id=restore_id)
+    def deserialize(self, data: OrderedDict):
+        super().deserialize(data)
         # Deserialize nodes
         for top_node_data in data.get("nodes", {}):
             top_node = Node()
             self.add_node(top_node)
-            top_node.deserialize(top_node_data, restore_id=True)
+            top_node.deserialize(top_node_data)
         # Extra data
         self.set_execution_start_path(None, data.get("execution_start_path"))
 
@@ -327,7 +330,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             LOGGER.exception("Failed to load stage from json.")
             return
 
-        self.deserialize(json_data, restore_id=True)
+        self.deserialize(json_data)
         self.file_path = pathlib.Path(file_path)
         self.last_saved_undo_index = self.undo_stack.index()
         LOGGER.info(f"Imported stage: {self.file_path}")
@@ -466,7 +469,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def convert_stage_to_node(
         cls, stage: "Stage | OrderedDict", name="stage"
     ) -> OrderedDict:
-        """Convert this stage to node.
+        """Convert this stage to serialized node.
 
         Args:
             name (str, optional): new node name. Defaults to "stage".
@@ -492,3 +495,18 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             )
             serialized_node["execution_start_path"] = rel_exec_start_path
         return serialized_node
+
+    def push_command(self, command: "NyxCommand"):
+        """Push command to stage's undo stack.
+        Also validates command before pushing and raises error if validation fails.
+
+        Args:
+            command (NyxCommand): command to push.
+        Raises:
+            NyxCommandValidationError: if command validation fails.
+        """
+        if not command.is_valid:
+            raise NyxCommandValidationError(
+                f"Failed to push command: {command}. Validation failed."
+            )
+        self.undo_stack.push(command)

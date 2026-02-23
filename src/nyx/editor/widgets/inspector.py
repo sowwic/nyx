@@ -1,11 +1,11 @@
 import typing
 import pathlib
+import logging
 from PySide6 import QtCore
 
 # from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx import get_main_logger
 from nyx.core import Node
 from nyx.core import commands
 from nyx.editor.widgets.attributes_table import AttributesTable
@@ -14,7 +14,7 @@ from nyx.editor.widgets.text_edit_widget import NyxTextEdit
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class Inspector(QtWidgets.QWidget):
@@ -198,7 +198,7 @@ class Inspector(QtWidgets.QWidget):
         rename_cmd = commands.RenameNodeCommand(
             stage=current_node.stage, node=current_node, new_name=new_name
         )
-        current_node.stage.undo_stack.push(rename_cmd)
+        current_node.stage.push_command(rename_cmd)
 
     def apply_exec_input_edit(self):
         current_node = self.tree_view.current_node()
@@ -232,7 +232,7 @@ class Inspector(QtWidgets.QWidget):
                 output_node=source_node,
                 input_node=current_node,
             )
-        current_node.stage.undo_stack.push(set_exec_input_cmd)
+        current_node.stage.push_command(set_exec_input_cmd)
 
     def apply_execution_start_edit(self):
         current_node = self.tree_view.current_node()
@@ -255,7 +255,7 @@ class Inspector(QtWidgets.QWidget):
         set_execution_start_cmd = commands.SetNodeExecStartCommand(
             stage=current_node.stage, node=current_node, path=new_path
         )
-        current_node.stage.undo_stack.push(set_execution_start_cmd)
+        current_node.stage.push_command(set_execution_start_cmd)
 
     def apply_active_toggle(self):
         current_node = self.tree_view.current_node()
@@ -266,7 +266,7 @@ class Inspector(QtWidgets.QWidget):
         set_active_cmd = commands.SetNodeActiveStateCommand(
             stage=current_node.stage, node=current_node, state=new_state
         )
-        current_node.stage.undo_stack.push(set_active_cmd)
+        current_node.stage.push_command(set_active_cmd)
 
     def apply_comment_edit(self):
         current_node = self.tree_view.current_node()
@@ -280,7 +280,7 @@ class Inspector(QtWidgets.QWidget):
         set_comment_cmd = commands.SetNodeCommentCommand(
             stage=current_node.stage, node=current_node, comment=new_comment
         )
-        current_node.stage.undo_stack.push(set_comment_cmd)
+        current_node.stage.push_command(set_comment_cmd)
 
     def apply_position_edit(self):
         current_node = self.tree_view.current_node()
@@ -296,4 +296,4 @@ class Inspector(QtWidgets.QWidget):
         move_cmd = commands.MoveNodeCommand(
             stage=current_node.stage, nodes=[current_node], new_positions=[new_position]
         )
-        current_node.stage.undo_stack.push(move_cmd)
+        current_node.stage.push_command(move_cmd)

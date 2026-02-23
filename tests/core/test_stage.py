@@ -1,13 +1,12 @@
 import pathlib
 from collections import OrderedDict
+import logging
 
-from nyx import get_main_logger, get_logger
 from nyx.core import Stage
 from nyx.core import Node
 from nyx.utils import file_fn
 
-LOGGER = get_main_logger()
-TEST_LOGGER = get_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def test_stage_create_empty():
@@ -128,7 +127,7 @@ def test_stage_set_stage_execution_start():
     stage.add_node(node3)
 
     stage.set_execution_start_path(None, node1)
-    TEST_LOGGER.debug(stage.describe())
+    LOGGER.debug(stage.describe())
 
     assert stage.get_execution_start_path(None, serializable=False) == node1.path
 
@@ -179,8 +178,8 @@ def test_stage_convert_to_node():
     serialized_stage_node = Stage.convert_stage_to_node(stage, name=node_name)
 
     main_stage.add_node(stage_node)
-    stage_node.deserialize(serialized_stage_node, restore_id=True)
-    TEST_LOGGER.debug(main_stage.describe())
+    stage_node.deserialize(serialized_stage_node)
+    LOGGER.debug(main_stage.describe())
 
     new_child_paths = [
         stage_node.path / node1.path.name,

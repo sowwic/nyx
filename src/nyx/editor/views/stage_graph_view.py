@@ -1,12 +1,12 @@
 import typing
 import enum
+import logging
 
 # import pathlib
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx import get_main_logger
 from nyx.core import commands
 from nyx.editor.utils import clipboard
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_stage import GraphicsStage
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class StageGraphView(QtWidgets.QGraphicsView):
@@ -399,7 +399,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             parent_path=parent_path,
             position=position,
         )
-        self.stage.undo_stack.push(create_cmd)
+        self.stage.push_command(create_cmd)
 
     def delete_selected(self):
         if not self.stage:
@@ -412,7 +412,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         selected_gr_nodes = self.scene().selected_gr_nodes()
         nodes_to_delete: list[Node] = [gr_node.node for gr_node in selected_gr_nodes]
         del_cmd = commands.DeleteNodeCommand(stage=self.stage, nodes=nodes_to_delete)
-        self.stage.undo_stack.push(del_cmd)
+        self.stage.push_command(del_cmd)
         self.scene().rebuild_current_scope()
 
     def copy_selected_nodes(self):
@@ -446,7 +446,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             position=position,
             parent_node=parent_node,
         )
-        self.stage.undo_stack.push(paste_cmd)
+        self.stage.push_command(paste_cmd)
 
     def focus_on_selected_nodes(self):
         selected_nodes = list(self.gr_stage.selected_gr_nodes())
@@ -474,4 +474,4 @@ class StageGraphView(QtWidgets.QGraphicsView):
                 stage=node.stage, path=node.path
             )
 
-        node.stage.undo_stack.push(set_execution_start_cmd)
+        node.stage.push_command(set_execution_start_cmd)

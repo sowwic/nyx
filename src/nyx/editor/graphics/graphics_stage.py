@@ -1,4 +1,11 @@
+"""
+This module defines the GraphicsStage class,
+which is a QGraphicsScene that manages the visual representation of
+nodes and edges in the graph editor.
+"""
+
 import math
+import logging
 import typing
 import pathlib
 from collections import deque
@@ -7,18 +14,25 @@ from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx import get_main_logger
 from nyx.editor.graphics.graphics_node import GraphicsNode
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class GraphicsStage(QtWidgets.QGraphicsScene):
+    """GraphicsStage is a QGraphicsScene that manages the visual representation of nodes and edges in the graph editor."""
+
     def __init__(self, graph_editor: "StageGraphEditor", parent=None):
+        """Initializes the GraphicsStage with the given graph editor and parent.
+
+        Args:
+            graph_editor (StageGraphEditor): The graph editor associated with this graphics stage.
+            parent (QObject, optional): The parent object for this graphics stage. Defaults to None.
+        """
         super().__init__(parent=parent)
 
         self._graph_editor = graph_editor
@@ -43,18 +57,22 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.create_connections()
 
     def create_connections(self):
+        """Creates signal-slot connections for the graphics stage."""
         self.selectionChanged.connect(self.on_selection_changed)
 
     @property
     def graph_editor(self):
+        """Returns the graph editor associated with this graphics stage."""
         return self._graph_editor
 
     @property
     def stage(self):
+        """Returns the stage from the graph editor."""
         return self.graph_editor.stage
 
     @property
     def selection_model(self):
+        """Returns the selection model from the graph editor."""
         return self.graph_editor.selection_model
 
     # ======== Events ========= #
@@ -66,9 +84,16 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     # ======== Methods ========= #
 
     def set_scene_size(self, width, height):
+        """Sets the scene rectangle to the specified width and height.
+
+        Args:
+            width (int): The width of the scene rectangle.
+            height (int): The height of the scene rectangle.
+        """
         self.setSceneRect(-width // 2, -height // 2, width, height)
 
     def drawBackground(self, painter, rect):
+        """Draws a grid background for the scene."""
         super().drawBackground(painter, rect)
         left = int(math.floor(rect.left()))
         right = int(math.ceil(rect.right()))
@@ -99,9 +124,11 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         painter.drawLines(lines_dark)
 
     def gr_nodes(self):
+        """Returns a generator of all GraphicsNode items in the scene."""
         return (item for item in self.items() if isinstance(item, GraphicsNode))
 
     def get_gr_node(self, node: "Node | pathlib.PurePosixPath | str"):
+        """Returns the GraphicsNode associated with the given node."""
         input_node = node
         node = self.stage.node(node)
         if not node:
@@ -110,42 +137,58 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         return node.gr_node
 
     def selected_gr_nodes(self):
+        """Returns a generator of all selected GraphicsNode items in the scene."""
         return (item for item in self.selectedItems() if isinstance(item, GraphicsNode))
 
     def list_selected_node_paths(self):
+        """Returns a list of paths for the currently selected GraphicsNode items."""
         return [gr_node.node.cached_path for gr_node in self.selected_gr_nodes()]
 
     def is_gr_node_selection_empty(self):
+        """Check if there are no selected GraphicsNode items in the scene."""
         return next(self.selected_gr_nodes(), None) is None
 
     def get_last_selected_gr_node(self):
+        """Returns the last selected GraphicsNode item in the scene"""
         if self.is_gr_node_selection_empty():
             return None
         return deque(self.selected_gr_nodes(), maxlen=1).pop()
 
     def clear_nodes(self):
+        """Removes all GraphicsNode items from the scene."""
         for gr_node in self.gr_nodes():
             gr_node._set_node(None)
             self.removeItem(gr_node)
 
     def clear_edges(self):
+        """Removes all GraphicsEdge items from the scene."""
         LOGGER.debug("TODO: cleaning edges")
 
     def add_node(self, node: "Node | pathlib.PurePosixPath | str"):
+        """Adds a GraphicsNode item to the scene for the given node.
+        Args:
+            node (Node | pathlib.PurePosixPath | str): The node to create a GraphicsNode for.
+        """
         node = self.stage.node(node)
         gr_node = GraphicsNode(node)
         self.addItem(gr_node)
 
     def build_nodes(self, scope_node: "Node"):
+        """Builds GraphicsNode items for all child nodes of the given scope node."""
         child_nodes = self.stage.list_children(scope_node)
         for node in child_nodes:
             self.add_node(node)
 
     def build_edges(self, scope_node: "Node"):
+        """Builds GraphicsEdge items for all connections between child nodes of the given scope node."""
         # TODO: Build graphics edges
         pass
 
     def rebuild_scope(self, scope_path: pathlib.PurePosixPath):
+        """Rebuilds the scene for the given scope path, preserving the selection.
+        Args:
+            scope_path (pathlib.PurePosixPath): The path of the scope to rebuild.
+        """
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
         self.clear_edges()
@@ -160,9 +203,11 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def rebuild_current_scope(self):
+        """Rebuilds the scene for the current scope, preserving the selection."""
         self.rebuild_scope(self.graph_editor.get_scope_path())
 
     def on_selection_model_selection_changed(self):
+        """Updates the scene selection to match the selection in the selection model."""
         self.blockSignals(True)
         try:
             self.clearSelection()
@@ -186,6 +231,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             self.blockSignals(False)
 
     def on_selection_changed(self):
+        """Updates the selection model to match the scene selection."""
         gr_nodes = self.selected_gr_nodes()
         nodes = [gr_node.node for gr_node in gr_nodes]
         self.selection_model.clearSelection()
@@ -193,6 +239,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def start_selected_node_rename(self):
+        """Starts editing the title of the last selected GraphicsNode item."""
         gr_node = self.get_last_selected_gr_node()
         if not gr_node:
             return

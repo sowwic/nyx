@@ -1,11 +1,11 @@
 from collections import OrderedDict
 from nyx.version import __version__
-import uuid
+from copy import deepcopy
 
 
 class Serializable:
-    def __init__(self) -> None:
-        self.uuid = str(uuid.uuid4())
+    METADATA = {}
+    TRACK_NYX_VERSION = False
 
     def serialize(self) -> OrderedDict:
         """Serialize object ot OrderedDict.
@@ -15,17 +15,24 @@ class Serializable:
 
         """
         data = OrderedDict()
-        data["uuid"] = self.uuid
-        data["metadata"] = {"nyx_version": __version__}
+
+        metadata = self.metadata
+        if self.metadata:
+            data["metadata"] = metadata
         return data
 
-    def deserialize(self, data: OrderedDict, restore_id=True):
+    @property
+    def metadata(self):
+        metadata_copy = deepcopy(self.METADATA)
+        if self.TRACK_NYX_VERSION:
+            metadata_copy["nyx_version"] = __version__
+        return metadata_copy
+
+    def deserialize(self, data: OrderedDict):
         """Deserialize object from given data.
 
         Args:
             data (OrderedDict): object data.
-            restore_id (bool, optional): if uuid should be restored. Defaults to True.
 
         """
-        if restore_id:
-            self.uuid = data["uuid"]
+        ...

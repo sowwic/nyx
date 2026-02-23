@@ -1,24 +1,28 @@
 import typing
 import json
 from collections import OrderedDict
+import logging
 
-try:
-    from collections.abc import Sequence
-except ImportError:
-    from collections.abc import Sequence
+
+from collections.abc import Sequence
 from PySide6 import QtWidgets
 
 from nyx.core import commands
-from nyx import get_main_logger
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def serialize_nodes_to_clipboard(nodes: "Sequence[Node]", delete=False):
+    """Serialize nodes to clipboard. If delete is True, perform cut operation.
+
+    Args:
+        nodes (Sequence[Node]): Nodes to serialize.
+        delete (bool, optional): Whether to delete nodes after serialization. Defaults to False.
+    """
     data = {}
     serialized_nodes = []
     stage = nodes[0].stage
@@ -34,10 +38,14 @@ def serialize_nodes_to_clipboard(nodes: "Sequence[Node]", delete=False):
         del_cmd = commands.DeleteNodeCommand(
             stage=stage, nodes=nodes, command_text="Cut nodes"
         )
-        stage.undo_stack.push(del_cmd)
+        stage.push_command(del_cmd)
 
 
 def get_serialized_nodes_from_clipboard() -> "list[OrderedDict] | list":
+    """Get serialized nodes from clipboard.
+    Returns:
+        list[OrderedDict] | list: List of serialized nodes or empty list.
+    """
     raw_data = QtWidgets.QApplication.clipboard().text()
     serialized_nodes = []
     try:

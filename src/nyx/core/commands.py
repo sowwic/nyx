@@ -1,3 +1,4 @@
+import logging
 import pathlib
 from collections import OrderedDict
 from collections import deque
@@ -9,12 +10,10 @@ except ImportError:
 from PySide6 import QtCore
 from PySide6 import QtGui
 
-from nyx import get_main_logger
 from nyx.core import Node
 from nyx.core import Stage
 
-
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class NyxCommand(QtGui.QUndoCommand):
@@ -24,13 +23,18 @@ class NyxCommand(QtGui.QUndoCommand):
         super().__init__(text, parent=parent)
         self.stage = stage
 
+    @property
+    def is_valid(self) -> bool:
+        """Override in subclass to add validation before executing command."""
+        return True
+
 
 class CreateNodeCommand(NyxCommand):
     def __init__(
         self,
         stage: Stage,
         node_name: str = "node",
-        parent_path: str = None,
+        parent_path: str | pathlib.PurePosixPath = None,
         position: QtCore.QPointF = QtCore.QPointF(),
         parent: QtGui.QUndoCommand = None,
     ) -> None:
@@ -39,7 +43,7 @@ class CreateNodeCommand(NyxCommand):
             position = QtCore.QPointF(*position)
 
         self.position = position
-        self.parent_path = parent_path
+        self.parent_path = pathlib.PurePosixPath(parent_path) if parent_path else None
         self.node_name = node_name
         self.node_data: OrderedDict = None
 
@@ -58,6 +62,15 @@ class CreateNodeCommand(NyxCommand):
         self.node_data = None
         return super().undo()
 
+    @property
+    def is_valid(self):
+        if self.parent_path:
+            is_anchor = self.parent_path.as_posix() == self.parent_path.anchor
+            if not is_anchor and not self.stage.node(self.parent_path):
+                LOGGER.exception(f"Parent path {self.parent_path} does not exist.")
+                return False
+        return True
+
 
 class DeleteNodeCommand(NyxCommand):
     def __init__(
@@ -70,9 +83,9 @@ class DeleteNodeCommand(NyxCommand):
         super().__init__(stage=stage, text=command_text, parent=parent)
         if not isinstance(nodes, Sequence):
             nodes = [nodes]
+        nodes = [self.stage.node(node) for node in nodes]
         self.serialized_nodes = deque()
         for each_node in nodes:
-            each_node = self.stage.node(each_node)
             self.serialized_nodes.append(each_node.serialize())
         self.deleted_paths = deque()
 
@@ -108,7 +121,7 @@ class DeleteNodeCommand(NyxCommand):
             parent_path = node_path.parent
             new_node = Node()
             self.stage.add_node(new_node, parent=parent_path)
-            new_node.deserialize(node_data, restore_id=True)
+            new_node.deserialize(node_data)
         return super().undo()
 
 
@@ -199,7 +212,7 @@ class DeleteNodeAttributeCommand(NyxCommand):
         for attr_data in self.attrs_serialized:
             attr_name = attr_data["name"]
             node.add_attr(attr_name)
-            node.attr(attr_name).deserialize(attr_data, restore_id=True)
+            node.attr(attr_name).deserialize(attr_data)
         return super().undo()
 
 
@@ -217,10 +230,8 @@ class RenameNodeAttributeCommand(NyxCommand):
         self.attr_name = attr_name
         self.new_attr_name = new_attr_name
         self.setText(
-            
-                f"{self.text()} {self.node_path.as_posix()} "
-                f"({self.attr_name}) -> '{self.new_attr_name}'"
-            
+            f"{self.text()} {self.node_path.as_posix()} "
+            f"({self.attr_name}) -> '{self.new_attr_name}'"
         )
 
     def redo(self) -> None:
@@ -249,10 +260,8 @@ class SetNodeAttributeCommand(NyxCommand):
         self.attr_value = attr_value
         self.old_attr_value = None
         self.setText(
-            
-                f"{self.text()} {self.node_path.as_posix()} "
-                f"({self.attr_name}) -> {self.attr_value}"
-            
+            f"{self.text()} {self.node_path.as_posix()} "
+            f"({self.attr_name}) -> {self.attr_value}"
         )
 
     def redo(self) -> None:
@@ -289,11 +298,9 @@ class ConnectAttributeCommand(NyxCommand):
         self.destination_attr_old_value = None
         self.resolve_on_connect = resolve_on_connect
         self.setText(
-            
-                f"{self.text()} {self.source_node_path.as_posix()} "
-                f"({self.source_attr_name}) -> {self.destination_node_path.as_posix()} "
-                f"({self.destination_attr_name})"
-            
+            f"{self.text()} {self.source_node_path.as_posix()} "
+            f"({self.source_attr_name}) -> {self.destination_node_path.as_posix()} "
+            f"({self.destination_attr_name})"
         )
 
     def redo(self) -> None:
@@ -421,31 +428,6 @@ class DisconnectNodeInputExecCommand(NyxCommand):
         return super().undo()
 
 
-class EditNodePythonCodeCommand(NyxCommand):
-    def __init__(
-        self,
-        stage: "Stage",
-        node: "Node | pathlib.PurePosixPath | str | None",
-        new_code: "str",
-        parent: QtGui.QUndoCommand = None,
-    ) -> None:
-        super().__init__(stage, "Edit code", parent)
-        self.new_code = new_code
-        self.old_code = node.get_python_code()
-        self.node_path = self.stage.node(node).path
-        self.setText(f"Edit code ({self.node_path})")
-
-    def redo(self) -> None:
-        node = self.stage.node(self.node_path)
-        node.set_python_code(self.new_code)
-        return super().redo()
-
-    def undo(self) -> None:
-        node = self.stage.node(self.node_path)
-        node.set_python_code(self.old_code)
-        return super().undo()
-
-
 class SetNodeActiveStateCommand(NyxCommand):
     def __init__(
         self,
@@ -527,7 +509,7 @@ class PasteNodesCommand(NyxCommand):
             LOGGER.debug(f"Adding {node_path}")
             new_node = Node(name="pasted_node")
             self.stage.add_node(new_node, parent=self.parent_path)
-            new_node.deserialize(node_data, restore_id=False)
+            new_node.deserialize(node_data)
             paste_position = self.get_paste_position(new_node.position())
             new_node.set_position(paste_position)
             self.created_node_paths.append(new_node.cached_path)
