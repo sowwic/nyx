@@ -39,6 +39,7 @@ dev = [
 
 [tool.ruff]
 src = ["src"]
+exclude = ["**/resources_rc.py"]
 
 show-fixes = true
 line-length = 89
@@ -56,4 +57,4 @@ lint.ignore = [
 [tool.pytest.ini_options]
 addopts = "--cov=nyx --cov-report=term-missing"
 log_cli = true
-log_cli_level = "INFO"
+log_cli_level = "ERROR"

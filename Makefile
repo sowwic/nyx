@@ -46,6 +46,11 @@ lint: ## Runs the Ruff linter on source and test files
 	$(call banner, Running Ruff linter...)
 	@poetry run ruff check src tests || true
 
+.PHONY: lint
+lint-fix: ## Runs the Ruff linter on source and test files
+	$(call banner, Running Ruff linter...)
+	@poetry run ruff check --fix src tests || true
+
 .PHONY: format
 format: ## Runs the Ruff formatter on source and test files
 	$(call banner, Running Ruff formatter...)
@@ -54,7 +59,7 @@ format: ## Runs the Ruff formatter on source and test files
 .PHONY: pytest
 pytest: ## Runs pytest on the tests directory
 	$(call banner, Running pytest...)
-	@poetry run pytest tests --log-cli-level=DEBUG
+	@poetry run pytest tests
 
 .PHONY: pytest-pdb
 pytest-pdb: ## Runs pytest with pdb enabled for debugging
