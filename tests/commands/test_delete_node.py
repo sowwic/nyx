@@ -1,6 +1,9 @@
 import logging
+import pytest
+
 from nyx.core.stage import Stage
 from nyx.core.commands import DeleteNodeCommand, CreateNodeCommand
+from nyx.core.exceptions import NyxCommandValidationError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -79,3 +82,12 @@ def test_delete_parent_node():
     stage.undo_stack.undo()  # Undo delete
     assert stage.node("/parent_node") is not None
     assert stage.node("/parent_node/child_node") is not None
+
+
+def test_delete_non_existent_node_raises_validation_error() -> None:
+    """Test deleting a non existing node raises a validation error"""
+    stage = Stage()
+    # Delete the parent node
+    delete_command = DeleteNodeCommand(stage=stage, nodes=["/test_node"])
+    with pytest.raises(NyxCommandValidationError):
+        stage.push_command(delete_command)

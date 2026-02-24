@@ -510,3 +510,22 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 f"Failed to push command: {command}. Validation failed."
             )
         self.undo_stack.push(command)
+
+    def pathify(self, node: Node | pathlib.PurePosixPath | str) -> pathlib.PurePosixPath:
+        """Convert object to path.
+
+        Args:
+            node (Node | pathlib.PurePosixPath | str): node to convert
+
+        Raises:
+            TypeError: Invalid object type
+
+        Returns:
+            pathlib.PurePosixPath: node as path
+        """
+        if isinstance(node, Node):
+            return node.cached_path
+        elif isinstance(node, (str, pathlib.PurePosixPath)):
+            return pathlib.PurePosixPath(node)
+        else:
+            raise TypeError(f"Unable to pathify {node}")

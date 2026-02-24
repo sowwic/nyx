@@ -83,18 +83,21 @@ class DeleteNodeCommand(NyxCommand):
         super().__init__(stage=stage, text=command_text, parent=parent)
         if not isinstance(nodes, Sequence):
             nodes = [nodes]
-        nodes = [self.stage.node(node) for node in nodes]
+
+        self.nodes_to_delete = [self.stage.pathify(node) for node in nodes]
         self.serialized_nodes = deque()
+        self.deleted_paths = deque()
+
+    def redo(self) -> None:
+        nodes = [self.stage.node(node) for node in self.nodes_to_delete]
         for each_node in nodes:
             self.serialized_nodes.append(each_node.serialize())
-        self.deleted_paths = deque()
 
         if len(nodes) == 1:
             self.setText(f"Delete node ({nodes[-1].path.as_posix()})")
         else:
             self.setText("Deleted nodes")
 
-    def redo(self) -> None:
         self.deleted_paths.clear()
         serialized_paths = [
             pathlib.PurePosixPath(node_data.get("path"))
@@ -122,7 +125,13 @@ class DeleteNodeCommand(NyxCommand):
             new_node = Node()
             self.stage.add_node(new_node, parent=parent_path)
             new_node.deserialize(node_data)
+        self.serialized_nodes.clear()
         return super().undo()
+
+    @property
+    def is_valid(self):
+        nodes_to_delete = [self.stage.node(node) for node in self.nodes_to_delete]
+        return all([node is not None for node in nodes_to_delete])
 
 
 class RenameNodeCommand(NyxCommand):
