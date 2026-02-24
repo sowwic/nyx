@@ -520,9 +520,8 @@ class PasteNodesCommand(NyxCommand):
         self.created_node_paths = deque()
         self.parent_path = None
 
-        parent_node = self.stage.node(parent_node)
         if parent_node:
-            self.parent_path = parent_node.path
+            self.parent_path = self.stage.pathify(parent_node)
 
     def redo(self) -> None:
         self.created_node_paths.clear()
@@ -580,6 +579,14 @@ class PasteNodesCommand(NyxCommand):
         new_x = self.position.x() + pos_x - min_x
         new_y = self.position.y() + pos_y - min_y
         return QtCore.QPointF(new_x, new_y)
+
+    def validate(self):
+        if self.parent_path:
+            parent_node = self.stage.node(self.parent_path)
+            if parent_node is None:
+                raise NyxCommandValidationError(
+                    f"Invalid parent path: {self.parent_path}"
+                )
 
 
 class MoveNodeCommand(NyxCommand):

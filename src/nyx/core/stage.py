@@ -36,7 +36,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     node_deleted = QtCore.Signal(pathlib.PurePosixPath)
 
     def __repr__(self) -> str:
-        return "Stage"
+        return f"Stage <Nodes: {self.total_node_count()} | File: {self.file_path}>"
 
     def __init__(self) -> None:
         QtGui.QStandardItemModel.__init__(self)
@@ -78,6 +78,32 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             self.file_path is None
             or self.last_saved_undo_index != self.undo_stack.index()
         )
+
+    def total_node_count(self) -> int:
+        """Get total number of nodes in the stage.
+
+        Returns:
+            int: number of nodes in the stage.
+        """
+
+        def count_parent(parent_index: QtCore.QModelIndex):
+            """Count children of given parent index.
+
+            Args:
+                parent_index (QModelIndex): parent index
+
+            Returns:
+                int: number of child nodes
+            """
+            total = 0
+            rows = self.rowCount(parent_index)
+            for row in range(rows):
+                index = self.index(row, 0, parent_index)
+                total += 1
+                total += count_parent(index)
+            return total
+
+        return count_parent(QtCore.QModelIndex())
 
     def list_children(self, node: "Node") -> list["Node"]:
         node = node or self.invisibleRootItem()
@@ -505,6 +531,9 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         Raises:
             NyxCommandValidationError: if command validation fails.
         """
+        if self is not command.stage:
+            raise ValueError("Command stage doesn't match current stage.")
+
         command.validate()
         self.undo_stack.push(command)
 
