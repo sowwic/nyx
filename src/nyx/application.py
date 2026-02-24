@@ -16,8 +16,9 @@ LOGGER = logging.getLogger(__name__)
 class NyxApplication(QtWidgets.QApplication):
     def __init__(self) -> None:
         super().__init__(sys.argv)
+        self._load_resources()
         self.setApplicationDisplayName("Nyx")
-        self.setWindowIcon(QtGui.QIcon(":/icons/nyx.png"))
+        self.setWindowIcon(QtGui.QIcon(":/icons/nyx"))
         self.setApplicationVersion(__version__)
         self._config = Config.load()
         LOGGER.setLevel(self.config().logging_level)
@@ -28,6 +29,10 @@ class NyxApplication(QtWidgets.QApplication):
     def reset_config(self):
         """Reset application config."""
         self._config = self.config().reset()
+
+    def _load_resources(self):
+        """Load additional resources"""
+        QtGui.QFontDatabase.addApplicationFont(":/fonts/zed-mono.ttf")
 
 
 class NyxEditorApplication(NyxApplication):

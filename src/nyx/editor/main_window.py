@@ -80,10 +80,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def create_actions(self):
         self.execute_stage_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/exec_stage.png"), "Execute stage", self
+            QtGui.QIcon(":/icons/exec_stage"), "Execute stage", self
         )
         self.execute_from_selected_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/exec_from.png"), "Execute from selected node", self
+            QtGui.QIcon(":/icons/exec_from"), "Execute from selected node", self
         )
         self.execute_stage_action.triggered.connect(self.execute_stage_graph)
         self.execute_from_selected_node_action.triggered.connect(

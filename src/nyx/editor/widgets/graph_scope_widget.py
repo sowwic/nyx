@@ -27,9 +27,9 @@ class GraphScopeWidget(QtWidgets.QWidget):
     def create_widgets(self):
         self.path_line_edit = QtWidgets.QLineEdit()
         self.scope_back_btn = QtWidgets.QPushButton(
-            QtGui.QIcon(":/icons/arrow_back.png"), ""
+            QtGui.QIcon(":/icons/arrow_back"), ""
         )
-        self.scope_root_btn = QtWidgets.QPushButton(QtGui.QIcon(":/icons/home.png"), "")
+        self.scope_root_btn = QtWidgets.QPushButton(QtGui.QIcon(":/icons/home"), "")
         self.path_line_edit.setText(self.graph_editor.get_scope_path().as_posix())
 
     def create_layouts(self):

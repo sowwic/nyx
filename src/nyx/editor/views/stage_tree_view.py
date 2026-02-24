@@ -39,11 +39,11 @@ class StageTreeView(QtWidgets.QTreeView):
 
     def create_actions(self):
         self.create_new_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/plus.png"), "Create node", self
+            QtGui.QIcon(":/icons/plus"), "Create node", self
         )
         self.create_new_node_action.triggered.connect(self.create_new_node)
         self.delete_selected_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/delete.png"), "Delete node", self
+            QtGui.QIcon(":/icons/delete"), "Delete node", self
         )
         self.delete_selected_node_action.triggered.connect(self.delete_selected_node)
         self.copy_selected_nodes_action = QtGui.QAction("Copy", self)

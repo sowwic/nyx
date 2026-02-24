@@ -79,7 +79,7 @@ check: lint pytest ## Runs linting and tests
 .PHONY: qrc
 qrc: ## Generates Python resources from the Qt resource file
 	$(call banner, Generating QRC resources...)
-	@pyside6-rcc resources/resources.qrc -o resources/resources_rc.py
+	@pyside6-rcc src/nyx/resources/resources.qrc -o src/nyx/resources/resources_rc.py
 	@printf "$(GREEN)QRC generation complete.$(RESET)\n"
 
 .PHONY: build

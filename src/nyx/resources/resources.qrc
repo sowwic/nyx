@@ -7,6 +7,9 @@
     <file>icons/exec_stage.png</file>
     <file>icons/home.png</file>
     <file>icons/nyx.png</file>
-    <file>icons/plus.png</file>
+    <file alias="fonts/zed-mono">fonts/zed-mono-italic.ttf</file>
+    <file alias="fonts/zed-mono-bold">fonts/zed-mono-bold.ttf</file>
+    <file alias="fonts/zed-mono">fonts/zed-mono.ttf</file>
+    <file alias="fonts/zed-mono-bold-italic">fonts/zed-mono-bold-italic.ttf</file>
   </qresource>
 </RCC>

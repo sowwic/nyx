@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
 
 
 class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
-    TITLE_FONT = QtGui.QFont("Roboto", 10)
+    TITLE_FONT = QtGui.QFont("Zed Mono", 10)
 
     def __init__(self, gr_node: "GraphicsNode"):
         self.gr_node = gr_node

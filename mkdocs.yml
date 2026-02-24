@@ -12,6 +12,8 @@ plugins:
         - "**/version.py"
         - "**/hooks-pyside6.py"
         - "**/main.py"
+        - "**/resources/*"
+        # - "**/resources_rc.py"
       autoapi_file_patterns:
         - "*.py"
   - mkdocstrings:
