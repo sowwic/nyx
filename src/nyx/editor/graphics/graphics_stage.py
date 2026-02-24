@@ -13,6 +13,7 @@ from collections import deque
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
+import shiboken6
 
 from nyx.editor.graphics.graphics_node import GraphicsNode
 
@@ -189,6 +190,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         Args:
             scope_path (pathlib.PurePosixPath): The path of the scope to rebuild.
         """
+        if not shiboken6.isValid(self.stage):
+            return
+
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
         self.clear_edges()
