@@ -12,6 +12,7 @@ from PySide6 import QtGui
 
 from nyx.core import Node
 from nyx.core import Stage
+from nyx.core.exceptions import NyxCommandValidationError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,10 +24,7 @@ class NyxCommand(QtGui.QUndoCommand):
         super().__init__(text, parent=parent)
         self.stage = stage
 
-    @property
-    def is_valid(self) -> bool:
-        """Override in subclass to add validation before executing command."""
-        return True
+    def validate(self) -> None: ...
 
 
 class CreateNodeCommand(NyxCommand):
@@ -62,14 +60,13 @@ class CreateNodeCommand(NyxCommand):
         self.node_data = None
         return super().undo()
 
-    @property
-    def is_valid(self):
+    def validate(self):
         if self.parent_path:
             is_anchor = self.parent_path.as_posix() == self.parent_path.anchor
             if not is_anchor and not self.stage.node(self.parent_path):
-                LOGGER.exception(f"Parent path {self.parent_path} does not exist.")
-                return False
-        return True
+                raise NyxCommandValidationError(
+                    f"Invalid parent path: {self.parent_path}"
+                )
 
 
 class DeleteNodeCommand(NyxCommand):
@@ -128,10 +125,13 @@ class DeleteNodeCommand(NyxCommand):
         self.serialized_nodes.clear()
         return super().undo()
 
-    @property
-    def is_valid(self):
+    def validate(self):
         nodes_to_delete = [self.stage.node(node) for node in self.nodes_to_delete]
-        return all([node is not None for node in nodes_to_delete])
+        status = all([node is not None for node in nodes_to_delete])
+        if not status:
+            raise NyxCommandValidationError(
+                f"Invalid node paths: {self.nodes_to_delete}"
+            )
 
 
 class RenameNodeCommand(NyxCommand):
@@ -144,16 +144,20 @@ class RenameNodeCommand(NyxCommand):
     ) -> None:
         super().__init__(stage=stage, text="Rename node", parent=parent)
 
-        node = self.stage.node(node)
+        self.path_to_rename = self.stage.pathify(node)
         self.new_name = new_name
-        self.renamed_node_data: pathlib.PurePosixPath = None
-        self.old_name = node.name
-        self.node_data = node.serialize()
+        self.old_name: str = None
 
-        self.setText(f"Rename node ({node.path.as_posix()} -> {self.new_name})")
+        self.node_data: dict = None
+        self.renamed_node_data: pathlib.PurePosixPath = None
 
     def redo(self) -> None:
-        node = self.stage.node(self.node_data.get("path"))
+        node = self.stage.node(self.path_to_rename)
+        self.old_name = node.name
+        self.node_data = node.serialize()
+        self.setText(f"Rename node ({node.path.as_posix()} -> {self.new_name})")
+
+        # node = self.stage.node(self.node_data.get("path"))
         node.rename(self.new_name)
         self.renamed_node_data = node.serialize()
         return super().redo()
@@ -162,6 +166,13 @@ class RenameNodeCommand(NyxCommand):
         node = self.stage.node(self.renamed_node_data.get("path"))
         node.rename(self.old_name)
         return super().undo()
+
+    def validate(self):
+        status = self.stage.node(self.path_to_rename) is not None
+        if not status:
+            raise NyxCommandValidationError(
+                f"Invalid node for renaming: {self.path_to_rename}"
+            )
 
 
 class AddNodeAttributeCommand(NyxCommand):
@@ -446,7 +457,7 @@ class SetNodeActiveStateCommand(NyxCommand):
         parent: QtGui.QUndoCommand = None,
     ) -> None:
         super().__init__(stage, "Set active state", parent)
-        self.node_path = self.stage.node(node).path
+        self.node_path = self.stage.pathify(node)
         self.old_state = None
         self.new_state = state
         self.setText(f"{self.text()} ({self.node_path} -> {self.new_state})")
@@ -461,6 +472,11 @@ class SetNodeActiveStateCommand(NyxCommand):
         node = self.stage.node(self.node_path)
         node.set_active(self.old_state)
         return super().undo()
+
+    def validate(self):
+        status = self.stage.node(self.node_path) is not None
+        if not status:
+            raise NyxCommandValidationError(f"Invalid node path: {self.node_path}")
 
 
 class SetNodeCommentCommand(NyxCommand):

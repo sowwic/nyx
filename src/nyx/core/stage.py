@@ -18,7 +18,7 @@ from nyx.core import Node
 from nyx.core.attribute import Attribute
 from nyx.core.stage_handler import StageHandler
 from nyx.core.resolver import Resolver
-from nyx.core.exceptions import NodeNoAttributeExistError, NyxCommandValidationError
+from nyx.core.exceptions import NodeNoAttributeExistError
 
 if typing.TYPE_CHECKING:
     from nyx.core.commands import NyxCommand
@@ -505,10 +505,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         Raises:
             NyxCommandValidationError: if command validation fails.
         """
-        if not command.is_valid:
-            raise NyxCommandValidationError(
-                f"Failed to push command: {command}. Validation failed."
-            )
+        command.validate()
         self.undo_stack.push(command)
 
     def pathify(self, node: Node | pathlib.PurePosixPath | str) -> pathlib.PurePosixPath:
