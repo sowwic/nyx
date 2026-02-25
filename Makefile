@@ -31,7 +31,11 @@ help: ## Show this help message
 .PHONY: clean
 clean: ## Cleans up build artifacts, test outputs, and caches
 	$(call banner, Cleaning project...)
+	@rm -rf build
+	@rm -rf dist
+	@rm -rf site
 	@rm -rf .pytest_cache
+	@rm -rf .ruff_cache
 	@rm -rf .coverage
 	@rm -rf __pycache__
 	@rm -rf src/**/__pycache__
@@ -44,34 +48,34 @@ clean: ## Cleans up build artifacts, test outputs, and caches
 .PHONY: lint
 lint: ## Runs the Ruff linter on source and test files
 	$(call banner, Running Ruff linter...)
-	@poetry run ruff check src tests || true
+	@uv run ruff check src tests || true
 
 .PHONY: lint
 lint-fix: ## Runs the Ruff linter on source and test files
 	$(call banner, Running Ruff linter...)
-	@poetry run ruff check --fix src tests || true
+	@uv run ruff check --fix src tests || true
 
 .PHONY: format
 format: ## Runs the Ruff formatter on source and test files
 	$(call banner, Running Ruff formatter...)
-	@poetry run ruff format src tests
+	@uv run ruff format src tests
 
 .PHONY: pytest
 pytest: ## Runs pytest on the tests directory
 	$(call banner, Running pytest...)
-	@poetry run pytest tests
+	@uv run pytest tests
 
 .PHONY: pytest-pdb
 pytest-pdb: ## Runs pytest with pdb enabled for debugging
 	$(call banner, Cleaning pytest output dir...)
 	@rm -rf $(TEST_OUTPUT_DIR)
 	$(call banner, Running pytest with pdb...)
-	@poetry run pytest -vvv --pdb --log-cli-level=DEBUG tests
+	@uv run pytest -vvv --pdb --log-cli-level=DEBUG tests
 
 .PHONY: mkdocs
 mkdocs: ## Serves the MkDocs documentation locally
 	$(call banner, Building MkDocs documentation...)
-	@poetry run mkdocs serve
+	@uv run mkdocs serve
 
 .PHONY: check
 check: lint pytest ## Runs linting and tests
@@ -83,13 +87,13 @@ qrc: ## Generates Python resources from the Qt resource file
 	@printf "$(GREEN)QRC generation complete.$(RESET)\n"
 
 .PHONY: build
-build: qrc update-version ## Builds the application using Poetry
+build: qrc update-version ## Builds the application using uv
 	$(call banner, Building $(APP_NAME)...)
-	@poetry build
+	@uv build
 
 .PHONY: update-version
 update-version: ## Updates the version in pyproject.toml based on the VERSION file
 	@VERSION=$$(cat VERSION); \
 	printf "$(CYAN)==>$(RESET) Updating pyproject.toml version to %s\n" "$$VERSION"; \
-	poetry version $$VERSION
+	uv version $$VERSION
 

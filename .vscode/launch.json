@@ -5,10 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Nyx application",
+            "name": "Nyx Editor",
             "type": "debugpy",
             "request": "launch",
-            "program": "src/nyx/main.py",
+            "module": "nyx.main",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "envFile": "${workspaceFolder}/.env",
             "console": "internalConsole",
             "justMyCode": true
         }
