@@ -42,9 +42,9 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
         self.last_saved_undo_index = 0
-        self.file_path: pathlib.Path = None
+        self.file_path: pathlib.Path | None = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
-        self._execution_start_path: pathlib.PurePosixPath = None
+        self._execution_start_path: pathlib.PurePosixPath | None = None
         self._resolver = Resolver()
         self._handler = StageHandler(self)
         self.undo_stack = QtGui.QUndoStack(self)
@@ -127,7 +127,9 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return path in set(self.list_top_nodes_paths())
 
     def generate_unique_node_name(
-        self, base_name: str, parent_node: "Node | pathlib.PurePosixPath | str" = None
+        self,
+        base_name: str,
+        parent_node: "Node | pathlib.PurePosixPath | str | None" = None,
     ):
         if parent_node:
             parent_node = self.node(parent_node)
@@ -179,7 +181,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             node.cache_current_path()
             self._path_map[node.cached_path] = node
 
-    def node(self, node: "Node | pathlib.PurePosixPath | str | None") -> "Node | None":
+    def node(self, node: "Node | pathlib.PurePosixPath | str | None") -> "Node":
         """Get node instance.
 
         Args:
