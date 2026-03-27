@@ -49,8 +49,8 @@ def export_selected_nodes():
 
 
 def _import_nodes(
-    stage_graph: "StageGraphEditor",
-    file_paths: "Collection[str] | Collection[pathlib.Path]",
+    stage_graph: StageGraphEditor,
+    file_paths: Collection[str] | Collection[pathlib.Path],
     as_reference=False,
 ):
     serialized_nodes = []

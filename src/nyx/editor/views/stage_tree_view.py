@@ -70,11 +70,11 @@ class StageTreeView(QtWidgets.QTreeView):
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     @property
-    def stage(self) -> "Stage":
+    def stage(self) -> Stage:
         return self.model()
 
     @property
-    def main_window(self) -> "NyxEditorMainWindow":
+    def main_window(self) -> NyxEditorMainWindow:
         return pyside_fn.find_nyx_editor_window()
 
     @property
@@ -90,7 +90,7 @@ class StageTreeView(QtWidgets.QTreeView):
         node = self.stage.itemFromIndex(index)
         self.node_doubleclicked.emit(node)
 
-    def current_node(self) -> "Node":
+    def current_node(self) -> Node:
         if not self.stage:
             return None
 
@@ -102,14 +102,14 @@ class StageTreeView(QtWidgets.QTreeView):
             LOGGER.exception("Treeview | Failed to get current item")
             return None
 
-    def selected_nodes(self) -> "deque[Node]":
+    def selected_nodes(self) -> deque[Node]:
         nodes = deque()
         for index in self.selectedIndexes():
             nodes.append(self.stage.itemFromIndex(index))
 
         return nodes
 
-    def select_paths(self, node_paths: "list[pathlib.PurePosixPath]", silent=False):
+    def select_paths(self, node_paths: list[pathlib.PurePosixPath], silent=False):
         if silent:
             self.blockSignals(True)
         indexes = []

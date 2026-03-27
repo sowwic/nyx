@@ -36,7 +36,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         EDGE_CUT = enum.auto()
 
     def __init__(
-        self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None
+        self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(graph_editor.gr_stage, parent=parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -149,10 +149,10 @@ class StageGraphView(QtWidgets.QGraphicsView):
         return self._interaction_mode
 
     @property
-    def gr_stage(self) -> "GraphicsStage":
+    def gr_stage(self) -> GraphicsStage:
         return self.scene()
 
-    def set_interaction_mode(self, mode: "StageGraphView.InteractionMode"):
+    def set_interaction_mode(self, mode: StageGraphView.InteractionMode):
         self._interaction_mode = mode
         LOGGER.debug(f"Interaction mode: {mode}")
 
@@ -309,7 +309,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def get_item_at_click(
         self, event: QtGui.QMouseEvent
-    ) -> "QtWidgets.QGraphicsItem | None":
+    ) -> QtWidgets.QGraphicsItem | None:
         """Object at click event position"""
         item = self.itemAt(event.pos())
         return item

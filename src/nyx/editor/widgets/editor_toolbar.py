@@ -8,7 +8,7 @@ if typing.TYPE_CHECKING:
 
 class EditorToolBar(QtWidgets.QToolBar):
     def __init__(
-        self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None
+        self, main_window: NyxEditorMainWindow, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__("Tools", parent)
         self.main_window: NyxEditorMainWindow = main_window

@@ -20,8 +20,8 @@ class Singleton(type):
 
 @dataclasses.dataclass
 class Config(metaclass=Singleton):
-    window_size: "tuple[int]" = (600, 400)
-    window_position: "tuple[int]" = tuple()
+    window_size: tuple[int] = (600, 400)
+    window_position: tuple[int] = tuple()
     window_always_on_top: bool = True
     logging_level: int = 10
     dark_mode: bool = True

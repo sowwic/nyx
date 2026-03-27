@@ -10,7 +10,7 @@ from nyx.editor.utils.io import export_selected_nodes, import_nodes_from_explore
 
 class FileMenu(BaseMenu):
     def __init__(
-        self, main_window: "NyxEditorMainWindow", title: str = "&File", parent=None
+        self, main_window: NyxEditorMainWindow, title: str = "&File", parent=None
     ):
         super().__init__(main_window, title, parent)
 

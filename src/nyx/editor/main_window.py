@@ -23,7 +23,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NyxEditorMainWindow(QtWidgets.QMainWindow):
-    _INSTANCE: "NyxEditorMainWindow" = None  # ty: ignore
+    _INSTANCE: NyxEditorMainWindow = None  # ty: ignore
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
     MINIMUM_SIZE = (500, 400)
@@ -60,17 +60,17 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.apply_config_values()
 
     @property
-    def config(self) -> "Config":
+    def config(self) -> Config:
         return Config.load()
 
     @property
-    def current_stage_graph(self) -> "StageGraphEditor | None":
+    def current_stage_graph(self) -> StageGraphEditor | None:
         if not self.current_mdi_window:
             return None
         return self.current_mdi_window.widget()  # ty: ignore
 
     @property
-    def current_mdi_window(self) -> "QtWidgets.QMdiSubWindow | None":
+    def current_mdi_window(self) -> QtWidgets.QMdiSubWindow | None:
         return self.mdi_area.currentSubWindow()
 
     @property
@@ -204,7 +204,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.apply_config_values()
 
     def create_stage_node_graph(
-        self, stage=None, file_path: "pathlib.Path | str" = None
+        self, stage=None, file_path: pathlib.Path | str = None
     ):
         if file_path:
             graph_widget = StageGraphEditor.from_json_file(file_path)

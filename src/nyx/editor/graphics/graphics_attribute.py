@@ -12,18 +12,18 @@ if typing.TYPE_CHECKING:
 class GraphicsNodeAttribute(QtWidgets.QGraphicsItem):
     HEIGHT = 30.0
 
-    def __init__(self, attr: "Attribute", gr_node: "GraphicsNode" = None) -> None:
+    def __init__(self, attr: Attribute, gr_node: GraphicsNode = None) -> None:
         super().__init__(gr_node)
         self._attr = attr
         self._gr_node = gr_node
         self._index = len(gr_node.gr_attribs)
 
     @property
-    def attr(self) -> "Attribute":
+    def attr(self) -> Attribute:
         return self._attr
 
     @property
-    def gr_node(self) -> "GraphicsNode":
+    def gr_node(self) -> GraphicsNode:
         return self._gr_node
 
     @property

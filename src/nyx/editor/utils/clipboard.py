@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
-def serialize_nodes_to_clipboard(nodes: "Sequence[Node]", delete=False):
+def serialize_nodes_to_clipboard(nodes: Sequence[Node], delete=False):
     """Serialize nodes to clipboard. If delete is True, perform cut operation.
 
     Args:
@@ -41,7 +41,7 @@ def serialize_nodes_to_clipboard(nodes: "Sequence[Node]", delete=False):
         stage.push_command(del_cmd)
 
 
-def get_serialized_nodes_from_clipboard() -> "list[OrderedDict] | list":
+def get_serialized_nodes_from_clipboard() -> list[OrderedDict] | list:
     """Get serialized nodes from clipboard.
     Returns:
         list[OrderedDict] | list: List of serialized nodes or empty list.

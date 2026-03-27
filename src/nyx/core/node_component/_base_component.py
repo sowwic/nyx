@@ -32,7 +32,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         self._is_writable = is_writable
 
     @property
-    def node(self) -> "Node":
+    def node(self) -> Node:
         return self.model().node
 
     @property

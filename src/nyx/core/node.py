@@ -41,7 +41,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def __init__(
         self,
         name: str = "node",
-        parent: "Node | pathlib.PurePosixPath | str | None" = None,
+        parent: Node | pathlib.PurePosixPath | str | None = None,
     ) -> None:
         QtGui.QStandardItem.__init__(self, name)
         Serializable.__init__(self)
@@ -117,7 +117,7 @@ class Node(QtGui.QStandardItem, Serializable):
         return self._cached_path
 
     @property
-    def stage(self) -> "Stage":
+    def stage(self) -> Stage:
         """Utility method pointing to node's stage (model).
 
         Returns:
@@ -136,7 +136,7 @@ class Node(QtGui.QStandardItem, Serializable):
         return self._components_model
 
     @property
-    def attribs(self) -> "OrderedDict[str, Attribute]":
+    def attribs(self) -> OrderedDict[str, Attribute]:
         """Node attributes dictionary.
 
         Returns:
@@ -201,10 +201,10 @@ class Node(QtGui.QStandardItem, Serializable):
     def set_comment(self, text: str):
         self.setData(text, role=Node.Roles.COMMENT.value)
 
-    def set_reference_file(self, path: "pathlib.Path | str"):
+    def set_reference_file(self, path: pathlib.Path | str):
         self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH.value)
 
-    def appendRow(self, items: typing.Sequence["Node"]) -> None:
+    def appendRow(self, items: typing.Sequence[Node]) -> None:
         """Override Qt method.
 
         - Generates new unique name.
@@ -273,7 +273,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         return {node.text() for node in self.list_children()}
 
-    def list_children(self) -> "list[Node]":
+    def list_children(self) -> list[Node]:
         """List child nodes.
 
         Returns:
@@ -283,7 +283,7 @@ class Node(QtGui.QStandardItem, Serializable):
         children = [self.child(row) for row in range(self.rowCount())]
         return children
 
-    def list_children_paths(self) -> "list[pathlib.PurePosixPath]":
+    def list_children_paths(self) -> list[pathlib.PurePosixPath]:
         """List of child paths.
 
         Returns:
@@ -292,7 +292,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         return [child_node.cached_path for child_node in self.list_children()]
 
-    def list_children_tree(self) -> "list[Node]":
+    def list_children_tree(self) -> list[Node]:
         """List children tree recursively.
 
         Returns:
@@ -304,7 +304,7 @@ class Node(QtGui.QStandardItem, Serializable):
             children += child.list_children()
         return children
 
-    def is_parent_of(self, other_node: "Node | str | pathlib.PurePosixPath"):
+    def is_parent_of(self, other_node: Node | str | pathlib.PurePosixPath):
         """Check if given path is path of one of the child nodes.
 
         Args:
@@ -324,7 +324,7 @@ class Node(QtGui.QStandardItem, Serializable):
         other_node = self.stage.node(other_node)
         return other_node in set(self.list_children())
 
-    def list_parents(self, as_queue=False) -> "list[Node] | deque[Node]":
+    def list_parents(self, as_queue=False) -> list[Node] | deque[Node]:
         """List parents recursively.
 
         Args:
@@ -435,7 +435,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def get_input_exec_path(
         self, serializable=False
-    ) -> "pathlib.PurePosixPath | str | None":
+    ) -> pathlib.PurePosixPath | str | None:
         """Get path for the node that is set as execution dependency.
 
         Args:
@@ -452,7 +452,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def get_output_exec_path(
         self, serializable=False
-    ) -> "pathlib.PurePosixPath | str | None":
+    ) -> pathlib.PurePosixPath | str | None:
         """Get path for the node that is execution dependee of this node.
 
         Args:
@@ -468,13 +468,13 @@ class Node(QtGui.QStandardItem, Serializable):
         return path.as_posix()
 
     def is_input_exec_cyclic(
-        self, other_node: "Node | pathlib.PurePosixPath | str"
+        self, other_node: Node | pathlib.PurePosixPath | str
     ) -> bool:
         other_node = self.stage.node(other_node)
         return other_node.get_input_exec_path() == self.path
 
     def set_input_exec_path(
-        self, path: "pathlib.PurePosixPath | str | Node", silent=False
+        self, path: pathlib.PurePosixPath | str | Node, silent=False
     ) -> None:
         """Set given node as execution dependency.
 
@@ -532,7 +532,7 @@ class Node(QtGui.QStandardItem, Serializable):
                 new_input_exec_node.set_output_exec_path(self.path)
 
     def set_output_exec_path(
-        self, path: "pathlib.PurePosixPath | str | Node", silent=False
+        self, path: pathlib.PurePosixPath | str | Node, silent=False
     ) -> None:
         """Set given node as execution dependee.
 
@@ -712,7 +712,7 @@ class Node(QtGui.QStandardItem, Serializable):
         for attr in self.attribs.values():
             attr.cache_current_value()
 
-    def set_execution_start_path(self, child_path: "pathlib.PurePosixPath | str | None"):
+    def set_execution_start_path(self, child_path: pathlib.PurePosixPath | str | None):
         """Set execution start path to one of the child node's path.
 
         Args:
@@ -730,7 +730,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def get_execution_start_path(
         self, serializable=False
-    ) -> "pathlib.PurePosixPath | str | None":
+    ) -> pathlib.PurePosixPath | str | None:
         """Get execution start path. Can be child path or None.
 
         Args:
@@ -745,7 +745,7 @@ class Node(QtGui.QStandardItem, Serializable):
             path = path.as_posix()
         return path
 
-    def build_execution_queue(self) -> "deque[pathlib.PurePosixPath]":
+    def build_execution_queue(self) -> deque[pathlib.PurePosixPath]:
         """Build execution queue from given node.
 
         Returns:

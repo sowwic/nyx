@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 class Attribute(Serializable):
     TRACK_NYX_VERSION = False
 
-    def __init__(self, node: "Node", value=None) -> None:
+    def __init__(self, node: Node, value=None) -> None:
         super().__init__()
         self._node = node
         self._value = value
@@ -145,7 +145,7 @@ class Attribute(Serializable):
         """
         return self.resolved_value == self.cached_value
 
-    def same_scope_with(self, other_attr: "Attribute"):
+    def same_scope_with(self, other_attr: Attribute):
         """Check if this and other attribute are in the same scope.
 
         Args:
@@ -218,6 +218,6 @@ class Attribute(Serializable):
 
         return other_attr if other_attr else raw_str
 
-    def connect(self, other_attr: "Attribute", resolve=True):
+    def connect(self, other_attr: Attribute, resolve=True):
         other_attr.set(self.as_path().as_posix(), resolve=resolve)
         LOGGER.info(f"Connected {self} -> {other_attr}")

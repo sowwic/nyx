@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 class AttrTableItem(QtWidgets.QTableWidgetItem):
     EDITABLE = True
 
-    def __init__(self, node_attr: "Attribute", text: str) -> None:
+    def __init__(self, node_attr: Attribute, text: str) -> None:
         super().__init__(text)
         self.node_attr = node_attr
         if not self.EDITABLE or self.node_attr.node.is_referenced:
@@ -28,7 +28,7 @@ class AttrTableItem(QtWidgets.QTableWidgetItem):
 
 
 class AttrNameTableItem(AttrTableItem):
-    def __init__(self, node_attr: "Attribute") -> None:
+    def __init__(self, node_attr: Attribute) -> None:
         super().__init__(node_attr, node_attr.name)
         self.setData(QtCore.Qt.UserRole, self.node_attr.name)
         self.setToolTip(self.node_attr.name)
@@ -49,7 +49,7 @@ class AttrNameTableItem(AttrTableItem):
 class AttrTypeTableItem(AttrTableItem):
     EDITABLE = False
 
-    def __init__(self, node_attr: "Attribute") -> None:
+    def __init__(self, node_attr: Attribute) -> None:
         value = node_attr.resolved_value
         if node_attr.cached_value is not None and node_attr.cached_value != value:
             value = node_attr.cached_value
@@ -60,7 +60,7 @@ class AttrTypeTableItem(AttrTableItem):
 
 
 class AttrRawValueTableItem(AttrTableItem):
-    def __init__(self, node_attr: "Attribute") -> None:
+    def __init__(self, node_attr: Attribute) -> None:
         super().__init__(node_attr, str(node_attr.value))
         self.setData(QtCore.Qt.UserRole, node_attr.value)
         self.setToolTip(f"Value : {self.node_attr.value} ({type(self.node_attr.value)})")
@@ -89,7 +89,7 @@ class AttrRawValueTableItem(AttrTableItem):
 class AttrResolvedValueTableItem(AttrTableItem):
     EDITABLE = False
 
-    def __init__(self, node_attr: "Attribute") -> None:
+    def __init__(self, node_attr: Attribute) -> None:
         super().__init__(node_attr, str(node_attr.resolved_value))
         self.setData(QtCore.Qt.UserRole, self.node_attr.resolved_value)
         self.setToolTip(
@@ -100,7 +100,7 @@ class AttrResolvedValueTableItem(AttrTableItem):
 class AttrCachedValueTableItem(AttrTableItem):
     EDITABLE = False
 
-    def __init__(self, node_attr: "Attribute") -> None:
+    def __init__(self, node_attr: Attribute) -> None:
         super().__init__(node_attr, str(node_attr.cached_value))
         self.setData(QtCore.Qt.UserRole, node_attr.cached_value)
         self.setToolTip(
@@ -112,7 +112,7 @@ class AttributesTable(QtWidgets.QTableWidget):
     COLUMNS = ("Name", "Type", "Raw", "Resolved", "Cached")
 
     def __init__(
-        self, attrib_editor: "Inspector", parent: QtWidgets.QWidget = None
+        self, attrib_editor: Inspector, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(0, len(self.COLUMNS), parent)
         self.main_window = attrib_editor.main_window

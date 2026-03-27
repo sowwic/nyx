@@ -43,7 +43,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.gr_stage.rebuild_current_scope()
 
     @classmethod
-    def from_json_file(cls, file_path: "pathlib.Path | str"):
+    def from_json_file(cls, file_path: pathlib.Path | str):
         stage = Stage()
         stage.import_json(file_path)
         widget = cls(stage)
@@ -207,7 +207,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         return self._scope_path
 
     def set_scope_path(
-        self, scope: "Node | pathlib.PurePosixPath | str", silent=False
+        self, scope: Node | pathlib.PurePosixPath | str, silent=False
     ) -> None:
         previous_scope = self.get_scope_path()
 
@@ -230,7 +230,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     def scope_root(self) -> None:
         self.set_scope_path(self.stage.ROOT_ITEM_PATH)
 
-    def filter_nodes_by_scope(self, nodes: "list[Node]") -> "list[Node]":
+    def filter_nodes_by_scope(self, nodes: list[Node]) -> list[Node]:
         """Filter nodes by scope.
 
         Args:
@@ -253,7 +253,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         ):
             self.set_scope_path(self.stage.ROOT_ITEM_PATH)
 
-    def list_selected_nodes(self) -> "list[Node]":
+    def list_selected_nodes(self) -> list[Node]:
         """List selected nodes.
 
         Returns:

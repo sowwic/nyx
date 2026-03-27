@@ -27,7 +27,7 @@ LOGGER = logging.getLogger(__name__)
 class GraphicsStage(QtWidgets.QGraphicsScene):
     """GraphicsStage is a QGraphicsScene that manages the visual representation of nodes and edges in the graph editor."""
 
-    def __init__(self, graph_editor: "StageGraphEditor", parent=None):
+    def __init__(self, graph_editor: StageGraphEditor, parent=None):
         """Initializes the GraphicsStage with the given graph editor and parent.
 
         Args:
@@ -128,7 +128,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """Returns a generator of all GraphicsNode items in the scene."""
         return (item for item in self.items() if isinstance(item, GraphicsNode))
 
-    def get_gr_node(self, node: "Node | pathlib.PurePosixPath | str"):
+    def get_gr_node(self, node: Node | pathlib.PurePosixPath | str):
         """Returns the GraphicsNode associated with the given node."""
         input_node = node
         node = self.stage.node(node)
@@ -165,7 +165,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """Removes all GraphicsEdge items from the scene."""
         LOGGER.debug("TODO: cleaning edges")
 
-    def add_node(self, node: "Node | pathlib.PurePosixPath | str"):
+    def add_node(self, node: Node | pathlib.PurePosixPath | str):
         """Adds a GraphicsNode item to the scene for the given node.
         Args:
             node (Node | pathlib.PurePosixPath | str): The node to create a GraphicsNode for.
@@ -174,13 +174,13 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         gr_node = GraphicsNode(node)
         self.addItem(gr_node)
 
-    def build_nodes(self, scope_node: "Node"):
+    def build_nodes(self, scope_node: Node):
         """Builds GraphicsNode items for all child nodes of the given scope node."""
         child_nodes = self.stage.list_children(scope_node)
         for node in child_nodes:
             self.add_node(node)
 
-    def build_edges(self, scope_node: "Node"):
+    def build_edges(self, scope_node: Node):
         """Builds GraphicsEdge items for all connections between child nodes of the given scope node."""
         # TODO: Build graphics edges
         pass

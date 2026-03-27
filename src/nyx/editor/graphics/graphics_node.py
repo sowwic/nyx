@@ -20,7 +20,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     TITLE_COLOR = QtGui.QColor("#FF313131")
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
 
-    def __init__(self, node: "Node", parent=None):
+    def __init__(self, node: Node, parent=None):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
@@ -41,7 +41,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     def create_connections(self):
         pass
 
-    def _set_node(self, node: "Node | None"):
+    def _set_node(self, node: Node | None):
         if node:
             node.gr_node = self
             # Connect signals
@@ -157,7 +157,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         return self._node
 
     @property
-    def gr_stage(self) -> "GraphicsStage":
+    def gr_stage(self) -> GraphicsStage:
         return self.scene()
 
     @property

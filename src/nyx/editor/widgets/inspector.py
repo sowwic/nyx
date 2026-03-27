@@ -19,7 +19,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Inspector(QtWidgets.QWidget):
     def __init__(
-        self, main_window: "NyxEditorMainWindow", parent: QtWidgets.QWidget = None
+        self, main_window: NyxEditorMainWindow, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(parent)
         self._node: Node = None

@@ -105,7 +105,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         return count_parent(QtCore.QModelIndex())
 
-    def list_children(self, node: "Node") -> list["Node"]:
+    def list_children(self, node: Node) -> list[Node]:
         node = node or self.invisibleRootItem()
         if node is self.invisibleRootItem():
             return [
@@ -115,13 +115,13 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         else:
             return node.list_children()
 
-    def list_top_nodes(self) -> "list[Node]":
+    def list_top_nodes(self) -> list[Node]:
         return self.list_children(self.invisibleRootItem())
 
-    def list_top_nodes_paths(self) -> "list[pathlib.PurePosixPath]":
+    def list_top_nodes_paths(self) -> list[pathlib.PurePosixPath]:
         return [node.cached_path for node in self.list_top_nodes()]
 
-    def is_top_node_path(self, path: "str | pathlib.PurePosixPath") -> bool:
+    def is_top_node_path(self, path: str | pathlib.PurePosixPath) -> bool:
         if isinstance(path, str):
             path = pathlib.PosixPath(path)
         return path in set(self.list_top_nodes_paths())
@@ -129,7 +129,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def generate_unique_node_name(
         self,
         base_name: str,
-        parent_node: "Node | pathlib.PurePosixPath | str | None" = None,
+        parent_node: Node | pathlib.PurePosixPath | str | None = None,
     ):
         if parent_node:
             parent_node = self.node(parent_node)
@@ -145,7 +145,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return f"{base_name}{index}"
         return base_name
 
-    def appendRow(self, items: typing.Sequence["Node"]) -> None:
+    def appendRow(self, items: typing.Sequence[Node]) -> None:
         """Overridden QStandardItemModel method.
 
         This method will generate a unique path for each item its about to append.
@@ -181,7 +181,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             node.cache_current_path()
             self._path_map[node.cached_path] = node
 
-    def node(self, node: "Node | pathlib.PurePosixPath | str | None") -> "Node":
+    def node(self, node: Node | pathlib.PurePosixPath | str | None) -> Node:
         """Get node instance.
 
         Args:
@@ -204,8 +204,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return None
 
     def attribute(
-        self, attr: "Attribute | pathlib.PurePosixPath | str | None"
-    ) -> "Attribute | None":
+        self, attr: Attribute | pathlib.PurePosixPath | str | None
+    ) -> Attribute | None:
         """Get attribute instance.
 
         Args:
@@ -234,8 +234,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def add_node(
         self,
-        node: "Node | list[Node]",
-        parent: "Node | pathlib.PurePosixPath | str" = None,
+        node: Node | list[Node],
+        parent: Node | pathlib.PurePosixPath | str = None,
     ):
         """Adds new node as root node.
 
@@ -255,7 +255,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             else:
                 self.appendRow(each_node)
 
-    def delete_node(self, nodes: "Sequence[Node | pathlib.PurePosixPath | str]"):
+    def delete_node(self, nodes: Sequence[Node | pathlib.PurePosixPath | str]):
         """Delete node from stage.
 
         Args:
@@ -280,7 +280,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             self.endResetModel()
             self.node_deleted.emit(node_path_to_emit)
 
-    def _delete_from_path_map(self, node: "Node", children=True):
+    def _delete_from_path_map(self, node: Node, children=True):
         """Remove node's path from path map.
 
         Also handles removal of all children paths.
@@ -295,7 +295,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             for child in node.list_children_tree():
                 self._path_map.pop(child.path)
 
-    def on_node_changed(self, node: "Node"):
+    def on_node_changed(self, node: Node):
         node.on_changed()
 
     def serialize(self) -> OrderedDict:
@@ -327,7 +327,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         """
         return pprint.pformat(self.serialize())
 
-    def export_json(self, file_path: "pathlib.Path | str"):
+    def export_json(self, file_path: pathlib.Path | str):
         """Serialize scene and write it to json file.
 
         Args:
@@ -342,7 +342,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         except Exception:
             LOGGER.exception("Failed to save stage to file.")
 
-    def import_json(self, file_path: "pathlib.Path | str") -> OrderedDict:
+    def import_json(self, file_path: pathlib.Path | str) -> OrderedDict:
         """Import stage data from json.
 
         Args:
@@ -365,8 +365,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return json_data
 
     def get_node_children_from_path(
-        self, node_path: "pathlib.PurePosixPath | str"
-    ) -> "list[Node]":
+        self, node_path: pathlib.PurePosixPath | str
+    ) -> list[Node]:
         """Get children of node with given full path.
 
         Args:
@@ -389,7 +389,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return self.path_map[node_path].list_children()
 
     def set_stage_execution_start_path(
-        self, start_path: "Node | pathlib.PurePosixPath | str"
+        self, start_path: Node | pathlib.PurePosixPath | str
     ):
         """Set execution start path for this stage.
 
@@ -415,8 +415,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def set_execution_start_path(
         self,
-        for_node: "Node | pathlib.PurePosixPath | str",
-        start_path: "Node | pathlib.PurePosixPath | str",
+        for_node: Node | pathlib.PurePosixPath | str,
+        start_path: Node | pathlib.PurePosixPath | str,
     ):
         """Utility method for setting execution for either stage or node.
 
@@ -453,8 +453,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         for_node.set_execution_start_path(start_path)
 
     def get_execution_start_path(
-        self, for_node: "Node | str | pathlib.PurePosixPath | None", serializable=False
-    ) -> "pathlib.PurePosixPath | str | None":
+        self, for_node: Node | str | pathlib.PurePosixPath | None, serializable=False
+    ) -> pathlib.PurePosixPath | str | None:
         """Get execution start path for stage or node.
 
         Args:
@@ -495,7 +495,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     @classmethod
     def convert_stage_to_node(
-        cls, stage: "Stage | OrderedDict", name="stage"
+        cls, stage: Stage | OrderedDict, name="stage"
     ) -> OrderedDict:
         """Convert this stage to serialized node.
 
@@ -524,7 +524,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             serialized_node["execution_start_path"] = rel_exec_start_path
         return serialized_node
 
-    def push_command(self, command: "NyxCommand"):
+    def push_command(self, command: NyxCommand):
         """Push command to stage's undo stack.
         Also validates command before pushing and raises error if validation fails.
 

@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
 
 class GraphScopeWidget(QtWidgets.QWidget):
     def __init__(
-        self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None
+        self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(parent)
         self.graph_editor: StageGraphEditor = graph_editor
@@ -50,7 +50,7 @@ class GraphScopeWidget(QtWidgets.QWidget):
     def stage(self):
         return self.graph_editor.stage
 
-    def update_scope_text(self, scope_path: "pathlib.PurePosixPath | str"):
+    def update_scope_text(self, scope_path: pathlib.PurePosixPath | str):
         self.path_line_edit.blockSignals(True)
         scope_path = str(scope_path)
         self.path_line_edit.setText(scope_path)

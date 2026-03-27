@@ -35,7 +35,7 @@ class QSignalHandler(logging.Handler):
 
 def add_signal_handler(
     logger: logging.Logger,
-    formatter: "LogFormat | logging.Formatter" = LogFormat.minimal,
+    formatter: LogFormat | logging.Formatter = LogFormat.minimal,
 ) -> QSignalHandler:
     if hasattr(logger, "signal_handler"):
         return logger.signal_handler

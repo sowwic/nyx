@@ -8,7 +8,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Resolver:
     @staticmethod
-    def is_absolute_path(path: "pathlib.PurePosixPath | str"):
+    def is_absolute_path(path: pathlib.PurePosixPath | str):
         """Is given path absolute.
 
         Args:
@@ -21,7 +21,7 @@ class Resolver:
         return os.path.isabs(path)
 
     @staticmethod
-    def is_relative_path(path: "pathlib.PurePosixPath | str"):
+    def is_relative_path(path: pathlib.PurePosixPath | str):
         """Is given path relative.
 
         Args:
@@ -35,8 +35,8 @@ class Resolver:
 
     @staticmethod
     def compute_relative_path(
-        source_path: "pathlib.PurePosixPath | str",
-        destination_path: "pathlib.PurePosixPath | str",
+        source_path: pathlib.PurePosixPath | str,
+        destination_path: pathlib.PurePosixPath | str,
     ):
         """Compute a relative path from source to destination paths.
 
@@ -66,8 +66,8 @@ class Resolver:
 
     @staticmethod
     def computer_absolute_path(
-        anchor_path: "pathlib.PurePosixPath | str",
-        rel_path: "pathlib.PurePosixPath | str",
+        anchor_path: pathlib.PurePosixPath | str,
+        rel_path: pathlib.PurePosixPath | str,
     ):
         """Compute absolute path from given anchor and relative paths.
 

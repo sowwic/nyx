@@ -17,7 +17,7 @@ class StageHandler:
     def __repr__(self) -> str:
         return f"StageHandler ({self.stage})"
 
-    def __init__(self, stage: "Stage") -> None:
+    def __init__(self, stage: Stage) -> None:
         self._stage = stage
 
     @property
@@ -25,8 +25,8 @@ class StageHandler:
         return self._stage
 
     def build_execution_queue(
-        self, start_path: "Node | str | pathlib.PurePosixPath | None" = None
-    ) -> "deque[pathlib.PurePosixPath]":
+        self, start_path: Node | str | pathlib.PurePosixPath | None = None
+    ) -> deque[pathlib.PurePosixPath]:
         """Build execution queue from given path.
 
         Args:
@@ -36,6 +36,7 @@ class StageHandler:
             deque[pathlib.PurePosixPath]: resulting queue
 
         """
+        # TODO: Use from graphlib import TopologicalSorter to get list from tree.
         start_node = self.stage.node(start_path)
         if not start_node:
             start_path = self.stage.get_execution_start_path(start_path)
@@ -50,7 +51,7 @@ class StageHandler:
         exec_queue = start_node.build_execution_queue()
         return exec_queue
 
-    def run(self, start_path: "Node | str | pathlib.PurePosixPath | None" = None):
+    def run(self, start_path: Node | str | pathlib.PurePosixPath | None = None):
         """Build queue and run it.
 
         Args:

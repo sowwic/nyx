@@ -40,7 +40,7 @@ def set_dark_fusion_palette(application: QtWidgets.QApplication):
     application.setPalette(dark_fusion_palette())
 
 
-def min_bounding_rect(rects: "list[QtCore.QRect]"):
+def min_bounding_rect(rects: list[QtCore.QRect]):
     min_x = rects[0].left()
     min_y = rects[0].top()
     max_x = rects[0].right()
@@ -61,7 +61,7 @@ def get_standard_icon(widget, icon_name: str):
     return icon
 
 
-def find_nyx_editor_window() -> "NyxEditorMainWindow":
+def find_nyx_editor_window() -> NyxEditorMainWindow:
     """Find nyx editor main window.
 
     Raises:

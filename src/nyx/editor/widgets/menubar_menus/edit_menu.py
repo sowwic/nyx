@@ -9,7 +9,7 @@ from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 class EditMenu(BaseMenu):
     def __init__(
-        self, main_window: "NyxEditorMainWindow", title: str = "&Edit", parent=None
+        self, main_window: NyxEditorMainWindow, title: str = "&Edit", parent=None
     ):
         super().__init__(main_window, title, parent)
 
