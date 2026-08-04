@@ -7,13 +7,13 @@ from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.version import __version__
-from nyx.core.config import Config
 from nyx.editor.views.stage_tree_view import StageTreeView
 from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 from nyx.editor.widgets.logger_widget import LoggerWidget
 from nyx.editor.widgets.inspector import Inspector
 from nyx.editor.widgets.editor_toolbar import EditorToolBar
 from nyx.editor.widgets import menubar_menus
+
 
 if typing.TYPE_CHECKING:
     from ..application import NyxEditorApplication
@@ -61,7 +61,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @property
     def config(self) -> Config:
-        return Config.load()
+        return self.application.config
 
     @property
     def current_stage_graph(self) -> StageGraphEditor | None:
@@ -178,25 +178,26 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     # Config methods
     def save_config_value(self):
-        self.config.window_position = (self.pos().x(), self.pos().y())
-        self.config.window_size = (self.width(), self.height())
+        self.config.values.main_window.position = (self.pos().x(), self.pos().y())
+        self.config.values.main_window.size = (self.width(), self.height())
         # self.config.window_always_on_top = self.pin_window_btn.isChecked()
+        self.config.save()
 
     def apply_config_values(self):
         """Apply values from application config."""
-        self.resize(QtCore.QSize(*self.config.window_size))
-        if not self.config.window_position:
+        self.resize(QtCore.QSize(*self.config.values.main_window.size))
+        if not self.config.values.main_window.position:
             center_position: QtCore.QPoint = (
                 self.pos()
                 + QtWidgets.QApplication.primaryScreen().geometry().center()
                 - self.geometry().center()
             )
-            self.config.window_position = (center_position.x(), center_position.y())
-        self.move(QtCore.QPoint(*self.config.window_position))
+            self.config.values.main_window.position = (center_position.x(), center_position.y())
+        self.move(QtCore.QPoint(*self.config.values.main_window.position))
 
         # TODO: add always on top toggle
         # self.toggle_always_on_top(self.config.window_always_on_top)
-        LOGGER.setLevel(self.config.logging_level)
+        LOGGER.setLevel(self.config.values.logging_level)
 
     def reset_application_config(self):
         """Reset application config and apply changes."""

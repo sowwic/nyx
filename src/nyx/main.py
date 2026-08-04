@@ -16,7 +16,7 @@ def main():
     if status_code:
         LOGGER.error(f"Application exit with code {status_code}")
     else:
-        app.config().save()
+        app.config.save()
 
 
 if __name__ == "__main__":

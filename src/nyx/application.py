@@ -1,13 +1,13 @@
-import sys
 import logging
+import sys
+
 from PySide6 import QtGui, QtWidgets
 
 import nyx.resources.resources_rc  # noqa: F401
-from nyx.version import __version__
-from nyx.core.config import Config
+from nyx.core.layered_config import NyxConfig
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.utils import pyside_fn
-
+from nyx.version import __version__
 
 LOGGER = logging.getLogger(__name__)
 
@@ -15,19 +15,21 @@ LOGGER = logging.getLogger(__name__)
 class NyxApplication(QtWidgets.QApplication):
     def __init__(self) -> None:
         super().__init__(sys.argv)
+        self._config = NyxConfig()
+        self._config.resolve()
         self._load_resources()
         self.setApplicationDisplayName("Nyx")
         self.setWindowIcon(QtGui.QIcon(":/icons/nyx"))
         self.setApplicationVersion(__version__)
-        self._config = Config.load()
-        LOGGER.setLevel(self.config().logging_level)
+        LOGGER.setLevel(self.config.values.logging_level)
 
-    def config(self):
+    @property
+    def config(self) -> NyxConfig:
         return self._config
 
     def reset_config(self):
         """Reset application config."""
-        self._config = self.config().reset()
+        self.config.reset()
 
     def _load_resources(self):
         """Load additional resources"""
@@ -37,7 +39,7 @@ class NyxApplication(QtWidgets.QApplication):
 class NyxEditorApplication(NyxApplication):
     def __init__(self) -> None:
         super().__init__()
-        if self.config().dark_mode:
+        if self.config.values.editor_style.dark_mode:
             pyside_fn.set_dark_fusion_palette(self)
 
         NyxEditorMainWindow.display()

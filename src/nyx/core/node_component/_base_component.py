@@ -1,7 +1,8 @@
-import typing
-import pathlib
 import enum
+import pathlib
+import typing
 from collections import OrderedDict
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..serializable import Serializable
@@ -11,16 +12,17 @@ if typing.TYPE_CHECKING:
 
 
 class NodeComponent(QtGui.QStandardItem, Serializable):
+    TYPE_NAMESPACE: str = "core"
     TYPE_ID: str = "base_component"
     CATEGORY: pathlib.PurePosixPath | None = None
     DEFAULT_NAME: str = "Component"
 
     class Roles(enum.Enum):
-        IS_ACTIVE: int = QtCore.Qt.UserRole + 1
+        IS_ACTIVE = QtCore.Qt.UserRole + 1
 
     def __init__(
         self,
-        name: str = None,
+        name: str | None = None,
         is_readable: bool = False,
         is_writable: bool = False,
     ):

@@ -1,7 +1,7 @@
-import typing
 import logging
-import pprint
 import pathlib
+import pprint
+import typing
 from collections import OrderedDict
 
 try:
@@ -9,16 +9,15 @@ try:
 except ImportError:
     from collections.abc import Sequence
 
-from PySide6 import QtCore
-from PySide6 import QtGui
+from PySide6 import QtCore, QtGui
 
-from nyx.core.serializable import Serializable
-from nyx.utils import file_fn
 from nyx.core import Node
 from nyx.core.attribute import Attribute
-from nyx.core.stage_handler import StageHandler
-from nyx.core.resolver import Resolver
 from nyx.core.exceptions import NodeNoAttributeExistError
+from nyx.core.resolver import Resolver
+from nyx.core.serializable import Serializable
+from nyx.core.stage_handler import StageHandler
+from nyx.utils import file_fn
 
 if typing.TYPE_CHECKING:
     from nyx.core.commands import NyxCommand
@@ -106,6 +105,14 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         return count_parent(QtCore.QModelIndex())
 
     def list_children(self, node: Node) -> list[Node]:
+        """List children of given node.
+
+        Args:
+            node (Node): node to list children of
+
+        Returns:
+            list[Node]: list of child nodes
+        """
         node = node or self.invisibleRootItem()
         if node is self.invisibleRootItem():
             return [
@@ -539,7 +546,9 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         command.validate()
         self.undo_stack.push(command)
 
-    def pathify(self, node: Node | pathlib.PurePosixPath | str) -> pathlib.PurePosixPath:
+    def pathify(
+        self, node: Node | pathlib.PurePosixPath | str
+    ) -> pathlib.PurePosixPath:
         """Convert object to path.
 
         Args:

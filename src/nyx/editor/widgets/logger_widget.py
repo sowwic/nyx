@@ -4,12 +4,13 @@ from PySide6 import QtCore
 from PySide6 import QtWidgets
 from PySide6 import QtGui
 
-from nyx.core.config import Config
 from nyx.utils import logging_fn
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
+    from nyx.core.layered_config import NyxConfig
     from nyx.editor.main_window import NyxEditorMainWindow
+    from nyx.application import NyxEditorApplication
 
 
 class RichLogMessageItem(QtWidgets.QListWidgetItem):
@@ -120,12 +121,16 @@ class LoggerWidget(QtWidgets.QWidget):
         return self._logger
 
     @property
-    def config(self):
-        return Config.load()
+    def application(self) -> NyxEditorApplication:
+        return QtWidgets.QApplication.instance()
+
+    @property
+    def config(self) -> NyxConfig:
+        return self.application.config
 
     @property
     def auto_scroll(self):
-        return self.config.logger_autoscroll
+        return self.config.values.editor_widgets.log_widget.auto_scroll
 
     def set_logger(self):
         self._logger = logging.getLogger()
