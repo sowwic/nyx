@@ -21,7 +21,7 @@ define banner
 	@printf "$(CYAN)==>$(RESET) $(1)\n"
 endef
 
-.PHONY: help 
+.PHONY: help
 help: ## Show this help message
 	@echo "Available make targets:"
 	@echo ""
@@ -97,3 +97,6 @@ update-version: ## Updates the version in pyproject.toml based on the VERSION fi
 	printf "$(CYAN)==>$(RESET) Updating pyproject.toml version to %s\n" "$$VERSION"; \
 	uv version $$VERSION
 
+.PHONY: launch
+launch-editor:  ## Launch the editor
+	python ./src/nyx/main.py
