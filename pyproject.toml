@@ -66,4 +66,4 @@ log_cli = true
 log_cli_level = "ERROR"
 
 [tool.uv.sources]
-json-config = { git = "https://github.com/sowwic/json-config", branch="main"}
+json-config = { git = "https://github.com/sowwic/json-config", tag="v1.0.2"}

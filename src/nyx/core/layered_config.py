@@ -53,8 +53,7 @@ class NyxConfig(LayeredConfig[NyxConfigValues]):
     def __init__(self):
         super().__init__(layer_filter=self.ROOT_CONFIG_LAYER.name)
         self._register_root_layer()
-        self.manager.load_all()
 
     def _register_root_layer(self):
-        if self.ROOT_CONFIG_LAYER.name not in self.manager.root_layers:
-            self.manager.register(self.ROOT_CONFIG_LAYER)
+        if self.ROOT_CONFIG_LAYER.name not in self.layer_manager.root_layers:
+            self.layer_manager.register(self.ROOT_CONFIG_LAYER)

@@ -185,8 +185,8 @@ wheels = [
 
 [[package]]
 name = "json-config"
-version = "1.0.1"
-source = { git = "https://github.com/sowwic/json-config?branch=main#6880163d8f856036c49b870e974a256b0e352846" }
+version = "1.0.2"
+source = { git = "https://github.com/sowwic/json-config?tag=v1.0.2#1cfd0077e7ec13b9a7c6d5492c4ea04e9d62b867" }
 
 [[package]]
 name = "markdown"
@@ -395,7 +395,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "json-config", git = "https://github.com/sowwic/json-config?branch=main" },
+    { name = "json-config", git = "https://github.com/sowwic/json-config?tag=v1.0.2" },
     { name = "platformdirs", specifier = ">=4.5.0" },
     { name = "pyside6", specifier = ">=6.10.0" },
 ]
