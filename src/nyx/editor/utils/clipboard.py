@@ -1,10 +1,9 @@
-import typing
 import json
-from collections import OrderedDict
 import logging
-
-
+import typing
+from collections import OrderedDict
 from collections.abc import Sequence
+
 from PySide6 import QtWidgets
 
 from nyx.core import commands
@@ -53,6 +52,6 @@ def get_serialized_nodes_from_clipboard() -> list[OrderedDict] | list:
     except Exception:
         LOGGER.debug(f"Clipboard data is not of json format: {raw_data}")
     else:
-        serialized_nodes = json_data.get("nyx_nodes", [])
-    finally:
-        return serialized_nodes
+        serialized_nodes: list[OrderedDict] = json_data.get("nyx_nodes", [])
+
+    return serialized_nodes

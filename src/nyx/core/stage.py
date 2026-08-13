@@ -3,17 +3,11 @@ import pathlib
 import pprint
 import typing
 from collections import OrderedDict
-
-try:
-    from collections.abc import Sequence
-except ImportError:
-    from collections.abc import Sequence
+from collections.abc import Sequence
 
 from PySide6 import QtCore, QtGui
 
 from nyx.core import Node
-from nyx.core.attribute import Attribute
-from nyx.core.exceptions import NodeNoAttributeExistError
 from nyx.core.resolver import Resolver
 from nyx.core.serializable import Serializable
 from nyx.core.stage_handler import StageHandler
@@ -209,35 +203,6 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         else:
             LOGGER.exception(f"{self} | Invalid argument type: {type(node)}")
             return None
-
-    def attribute(
-        self, attr: Attribute | pathlib.PurePosixPath | str | None
-    ) -> Attribute | None:
-        """Get attribute instance.
-
-        Args:
-            attr (Attribute | pathlib.PurePosixPath | str | None): attribute or path.
-
-        Returns:
-            Attribute | None: attribute instance if found
-
-        """
-        if attr is None:
-            return attr
-        if isinstance(attr, Attribute):
-            return attr
-        if isinstance(attr, str):
-            attr = pathlib.PurePosixPath(attr)
-        if isinstance(attr, pathlib.PurePosixPath):
-            node_path = attr.with_suffix("")
-            node = self.node(node_path)
-            attr_name = attr.suffix.replace(".", "")
-            if not (node and attr_name):
-                return None
-            try:
-                return node.attr(attr_name)
-            except NodeNoAttributeExistError:
-                return None
 
     def add_node(
         self,

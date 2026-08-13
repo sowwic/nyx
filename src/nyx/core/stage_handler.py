@@ -1,13 +1,11 @@
-import typing
 import logging
-import timeit
 import pathlib
+import timeit
+import typing
 from collections import deque
 
-
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
-    from nyx.core import Stage
+    from nyx.core import Node, Stage
 
 
 LOGGER = logging.getLogger(__name__)

@@ -1,20 +1,16 @@
 import enum
-import typing
 import logging
-import time
 import pathlib
-from collections import deque
-from collections import OrderedDict
-from PySide6 import QtCore
-from PySide6 import QtGui
+import time
+import typing
+from collections import OrderedDict, deque
 
-from nyx.core.attribute import Attribute
+from PySide6 import QtCore, QtGui
+
 from nyx.core import constants
-from nyx.core.serializable import Serializable
-from nyx.core.exceptions import NodeNoAttributeExistError
-from nyx.utils import inspect_fn
-from nyx.utils import file_fn
 from nyx.core.node_component.components_model import NodeComponentsModel
+from nyx.core.serializable import Serializable
+from nyx.utils import file_fn, inspect_fn
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
@@ -29,14 +25,13 @@ class Node(QtGui.QStandardItem, Serializable):
     TRACK_NYX_VERSION = True
 
     class Roles(enum.Enum):
-        ATTRIBUTES: int = QtCore.Qt.UserRole + 1
-        INPUT_EXEC: int = enum.auto()
-        OUTPUT_EXEC: int = enum.auto()
-        ACTIVE_ROLE: int = enum.auto()
-        EXECUTION_START_PATH: int = enum.auto()
-        POSITION: int = enum.auto()
-        COMMENT: int = enum.auto()
-        REFERENCE_FILE_PATH: int = enum.auto()
+        INPUT_EXEC = QtCore.Qt.UserRole + 1
+        OUTPUT_EXEC = enum.auto()
+        ACTIVE_ROLE = enum.auto()
+        EXECUTION_START_PATH = enum.auto()
+        POSITION = enum.auto()
+        COMMENT = enum.auto()
+        REFERENCE_FILE_PATH = enum.auto()
 
     def __init__(
         self,
@@ -60,23 +55,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def __hash__(self) -> int:
         return hash(self.path)
 
-    def __getitem__(self, key) -> Attribute:
-        try:
-            return self.attribs[key]
-        except KeyError:
-            raise NodeNoAttributeExistError
-
-    def __setitem__(self, key: str, value):
-        data = self.attribs
-        if key not in data:
-            data[key] = Attribute(self, value)
-            LOGGER.debug(f"{self} | Added {data[key]}")
-        else:
-            data[key].set(value)
-        self.setData(data, role=Node.Roles.ATTRIBUTES.value)
-
     def _set_default_role_values(self):
-        self.setData(OrderedDict(), role=Node.Roles.ATTRIBUTES.value)
         self.setData(None, role=Node.Roles.INPUT_EXEC.value)
         self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
         self.setData(True, role=Node.Roles.ACTIVE_ROLE.value)
@@ -136,23 +115,13 @@ class Node(QtGui.QStandardItem, Serializable):
         return self._components_model
 
     @property
-    def attribs(self) -> OrderedDict[str, Attribute]:
-        """Node attributes dictionary.
-
-        Returns:
-            OrderedDict[str, Attribute]: Node attributes.
-
-        """
-        return self.data(role=Node.Roles.ATTRIBUTES.value)
-
-    @property
-    def reference_file_path(self) -> pathlib.Path:
+    def reference_file_path(self) -> pathlib.Path | None:
         return self.data(role=self.Roles.REFERENCE_FILE_PATH.value)
 
     @property
     def is_referenced(self):
         nodes = [self]
-        nodes += self.list_parents()
+        nodes.extend(self.list_parents())
         return any([node.reference_file_path is not None for node in nodes])
 
     def cache_current_path(self):
@@ -344,95 +313,6 @@ class Node(QtGui.QStandardItem, Serializable):
         """Delete this node from stage."""
         self.stage.delete_node(self)
 
-    def add_attr(self, name: str, value=None, resolve=True):
-        name = self.generate_unique_attr_name(name)
-        self[name] = value
-        if resolve:
-            self[name].resolve()
-        return self[name]
-
-    def generate_unique_attr_name(self, name: str):
-        if name in self.attribs.keys():
-            index = 1
-            while name + str(index) in self.attribs.keys():
-                index += 1
-            return name + str(index)
-        return name
-
-    def attr(self, name: str) -> Attribute:
-        """Get attribute with name.
-
-        Args:
-            name (str): attribute name.
-
-        Returns:
-            Attribute: attribute instance.
-
-        """
-        return self[name]
-
-    def set_attr(self, name: str, value: typing.Any):
-        """Set raw attribute value.
-
-        Args:
-            name (str): attribute name.
-            value (typing.Any): new value.
-
-        """
-        self[name] = value
-
-    def delete_attr(self, name: str):
-        """Delete attribute.
-
-        Args:
-            name (str): attribute name.
-
-        """
-        data = self.attribs
-        if name not in data.keys():
-            LOGGER.warning(f"Can't delete attribute {name} that doesn't exist!")
-            return
-        data.pop(name)
-        self.setData(data, role=Node.Roles.ATTRIBUTES.value)
-        LOGGER.debug(f"{self} | deleted attr {name}")
-
-    def rename_attr(self, name: str, new_name: str):
-        """Rename attribute.
-
-        Args:
-            name (str): attribute name.
-            new_name (str): new attribute name.
-
-        """
-        if not new_name:
-            LOGGER.error("New attribute name can't be empty string!")
-            return
-
-        data = self.attribs
-        if name not in data.keys():
-            LOGGER.warning(f"Can't rename attribute {name} that doesn't exist!")
-            return
-
-        new_name = self.generate_unique_attr_name(new_name)
-        data[new_name] = data.pop(name)
-        self.setData(data, role=Node.Roles.ATTRIBUTES.value)
-        return data[new_name]
-
-    def stacked_attribs(self):
-        """Dictionary of merged dictionaries.
-
-        parent: {a: 5, b: 10}, child: {a: 15} -> result: {a: 15, b: 10}
-
-        Returns:
-            OrderedDict: merged dictionary.
-
-        """
-        stacked_attrs = OrderedDict()
-        for parent in self.list_parents(as_queue=True):
-            stacked_attrs.update(parent.attribs)
-        stacked_attrs.update(self.attribs)
-        return stacked_attrs
-
     def get_input_exec_path(
         self, serializable=False
     ) -> pathlib.PurePosixPath | str | None:
@@ -600,7 +480,6 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         data = super().serialize()
         children = [child.serialize() for child in self.list_children()]
-        attribs = [attr.serialize() for _, attr in self.attribs.items()]
         data["name"] = self.text()
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
@@ -613,7 +492,6 @@ class Node(QtGui.QStandardItem, Serializable):
             data["execution_start_path"] = self.get_execution_start_path(
                 serializable=True
             )
-            data["attribs"] = attribs
             data["children"] = children
             data["comment"] = self.comment()
         data.update(self.components_model.serialize())
@@ -649,12 +527,6 @@ class Node(QtGui.QStandardItem, Serializable):
 
         self._update_pathmap_entry()
 
-        # Attributes
-        for attr_data in data.get("attribs", {}):
-            attr_name = attr_data["name"]
-            self.set_attr(attr_name, attr_data.get("value"))
-            self[attr_name].deserialize(attr_data)
-
         # Children
         for child_data in data.get("children", {}):
             child_node = Node(parent=self)
@@ -674,7 +546,9 @@ class Node(QtGui.QStandardItem, Serializable):
             else:
                 raise ValueError(f"Invalid file type: {self.reference_file_path}")
         except FileNotFoundError:
-            LOGGER.exception(f"Reference file doesn't exist: {self.reference_file_path}")
+            LOGGER.exception(
+                f"Reference file doesn't exist: {self.reference_file_path}"
+            )
         return data
 
     def export_to_json(self, file_path: pathlib.Path):
@@ -697,20 +571,6 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
         self.deserialize(json_data)
-
-    def resolve(self):
-        for attr in self.attribs.values():
-            attr.resolve()
-
-    def clear_attributes_caches(self):
-        """Clear all attributes caches."""
-        for attr in self.attribs.values():
-            attr.clear_cache()
-
-    def cache_attributes_values(self):
-        """Push current attributes values to cache."""
-        for attr in self.attribs.values():
-            attr.cache_current_value()
 
     def set_execution_start_path(self, child_path: pathlib.PurePosixPath | str | None):
         """Set execution start path to one of the child node's path.
@@ -792,8 +652,8 @@ class Node(QtGui.QStandardItem, Serializable):
 
         start_time = time.perf_counter()
         try:
+            LOGGER.info(f"TODO: Executing {self.cached_path}")
             # TODO: Execute components
-            self.cache_attributes_values()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
             raise err

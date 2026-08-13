@@ -1,21 +1,19 @@
-import typing
 import enum
 import logging
+import typing
 
 # import pathlib
-from PySide6 import QtCore
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
-from nyx.editor.utils import clipboard
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
+from nyx.editor.utils import clipboard
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
-    from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
     from nyx.editor.graphics.graphics_stage import GraphicsStage
+    from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 
 LOGGER = logging.getLogger(__name__)
@@ -385,7 +383,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         #         edge.remove()
         #         cut_result = True
         if cut_result:
-            # TODO: Disconnect attributes here
+            # TODO: Disconnect plugs here
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
 

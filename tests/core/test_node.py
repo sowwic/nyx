@@ -64,14 +64,9 @@ def test_node_execute_while_active():
     node = Node("node")
     stage.add_node(node)
 
-    node.add_attr("test")
-
     node.execute()
 
     assert node.is_active()
-    assert node["test"].value is None
-    assert node["test"].resolved_value is None
-    assert node["test"].cached_value == 5
 
 
 def test_node_execute_while_not_active():
@@ -79,15 +74,12 @@ def test_node_execute_while_not_active():
     node = Node("node")
     stage.add_node(node)
 
-    node.add_attr("test")
     node.set_active(False)
 
     node.execute()
 
     assert not node.is_active()
-    assert node["test"].value is None
-    assert node["test"].resolved_value is None
-    assert node["test"].cached_value is None
+    # TODO add asserts for component values
 
 
 def test_node_list_children_tree():
@@ -173,31 +165,6 @@ def test_node_delete_mid_paths_map_valid():
     assert node.path in stage.path_map
     for child in node.list_children_tree():
         assert child.path in stage.path_map
-
-
-def test_node_cache_attributes():
-    stage = Stage()
-    node = Node()
-    stage.add_node(node)
-
-    node.add_attr("test1", value=5, resolve=True)
-    node.add_attr("test2", value=10, resolve=True)
-    node.add_attr("test3", value=15, resolve=True)
-
-    for attr in node.attribs.values():
-        assert not attr.is_cached()
-
-    node.cache_attributes_values()
-    for attr in node.attribs.values():
-        assert attr.is_cached()
-
-    node.clear_attributes_caches()
-    for attr in node.attribs.values():
-        assert not attr.is_cached()
-
-    node.cache_attributes_values()
-    for attr in node.attribs.values():
-        assert attr.is_cached()
 
 
 def test_node_set_exec_input():

@@ -1,15 +1,16 @@
+import enum
 import logging
 import logging.handlers
-import enum
+
 from PySide6 import QtCore
 
 
 class LogFormat(enum.Enum):
     """Enum of log format strings."""
 
-    minimal: str = "[%(levelname)s] %(message)s"
-    basic: str = "[%(levelname)s][%(name)s] %(message)s"
-    verbose: str = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    minimal = "[%(levelname)s] %(message)s"
+    basic = "[%(levelname)s][%(name)s] %(message)s"
+    verbose = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 
 
 class QSignaler(QtCore.QObject):

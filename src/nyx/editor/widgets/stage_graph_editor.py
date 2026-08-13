@@ -1,9 +1,8 @@
-import typing
-import pathlib
 import logging
-from PySide6 import QtCore
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+import pathlib
+import typing
+
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import Stage
 from nyx.editor.graphics.graphics_stage import GraphicsStage
@@ -147,7 +146,9 @@ class StageGraphEditor(QtWidgets.QWidget):
             return True
 
         stage_title = (
-            self.DEFAULT_TITLE if not self.stage.file_path else self.stage.file_path.name
+            self.DEFAULT_TITLE
+            if not self.stage.file_path
+            else self.stage.file_path.name
         )
         res = QtWidgets.QMessageBox.warning(
             self,

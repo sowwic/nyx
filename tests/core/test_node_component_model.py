@@ -1,9 +1,8 @@
-import pathlib
 import logging
-
-from nyx.core import Stage
-from nyx.core import Node
+import pathlib
 from collections import OrderedDict
+
+from nyx.core import Node, Stage
 
 LOGGER = logging.getLogger(__name__)
 

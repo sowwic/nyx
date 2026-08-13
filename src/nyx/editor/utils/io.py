@@ -1,19 +1,17 @@
-import typing
-import pathlib
 import logging
+import pathlib
+import typing
 from collections import OrderedDict
+
 from PySide6 import QtWidgets
 
-from nyx.core import constants
-from nyx.core import Stage
-from nyx.core import commands
-from nyx.utils import file_fn
-from nyx.utils import pyside_fn
-
+from nyx.core import Stage, commands, constants
+from nyx.utils import file_fn, pyside_fn
 
 if typing.TYPE_CHECKING:
-    from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
     from collections.abc import Collection
+
+    from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 
 LOGGER = logging.getLogger(__name__)

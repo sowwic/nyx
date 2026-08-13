@@ -1,16 +1,14 @@
-import typing
 import logging
-from PySide6 import QtCore
-from PySide6 import QtWidgets
-from PySide6 import QtGui
+import typing
 
-from nyx.utils import logging_fn
-from nyx.utils import pyside_fn
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from nyx.utils import logging_fn, pyside_fn
 
 if typing.TYPE_CHECKING:
+    from nyx.application import NyxEditorApplication
     from nyx.core.layered_config import NyxConfig
     from nyx.editor.main_window import NyxEditorMainWindow
-    from nyx.application import NyxEditorApplication
 
 
 class RichLogMessageItem(QtWidgets.QListWidgetItem):

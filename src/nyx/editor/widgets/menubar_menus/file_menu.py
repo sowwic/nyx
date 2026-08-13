@@ -1,11 +1,12 @@
 import typing
+
 from PySide6 import QtGui
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
-from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 from nyx.editor.utils.io import export_selected_nodes, import_nodes_from_explorer
+from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
 class FileMenu(BaseMenu):

@@ -6,13 +6,8 @@ from .set_node_active_state import SetNodeActiveStateCommand
 from .paste_nodes import PasteNodesCommand
 from .move_node import MoveNodeCommand
 
-# TODO: Remove once all references to attributes are removed
+# TODO: Remove once fully deprecated
 from .deprecated import (
-    AddNodeAttributeCommand,
-    DeleteNodeAttributeCommand,
-    RenameNodeAttributeCommand,
-    SetNodeAttributeCommand,
-    ConnectAttributeCommand,
     SetNodeExecStartCommand,
     ConnectNodeExecCommand,
     DisconnectNodeInputExecCommand,
@@ -28,11 +23,6 @@ __all__ = [
     "PasteNodesCommand",
     "MoveNodeCommand",
     # TODO: Remove once deprecated
-    "AddNodeAttributeCommand",
-    "DeleteNodeAttributeCommand",
-    "RenameNodeAttributeCommand",
-    "SetNodeAttributeCommand",
-    "ConnectAttributeCommand",
     "SetNodeExecStartCommand",
     "ConnectNodeExecCommand",
     "DisconnectNodeInputExecCommand",

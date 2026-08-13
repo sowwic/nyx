@@ -20,16 +20,14 @@ def test_stage_export_import_json(output_dir: pathlib.Path):
     stage = Stage()
     export_path = output_dir / f"test_stage_export{stage.FILE_EXTENSION}"
     # Add nodes
+    # TODO: add components to nodes
     for index in range(3):
         base_node = Node("node")
-        base_node["count"] = 5
         stage.add_node(base_node)
         for child_index in range(3):
             child_node = Node("child_node", base_node)
             for deep_index in range(2):
                 leaf_node = Node("leaf_node", child_node)
-                leaf_node["count"] = 10
-                leaf_node["test"] = True
 
     stage.export_json(export_path)
     assert export_path.is_file()
@@ -44,16 +42,14 @@ def test_stage_deserialize(output_dir: pathlib.Path):
     stage = Stage()
     export_path = output_dir / f"test_stage_deserialize_export{stage.FILE_EXTENSION}"
     export_path2 = output_dir / f"test_stage_deserialize_check{stage.FILE_EXTENSION}"
+    # TODO: add components to nodes
     for index in range(3):
         base_node = Node("node")
-        base_node["count"] = 5
         stage.add_node(base_node)
         for child_index in range(3):
             child_node = Node("child_node", base_node)
             for deep_index in range(2):
                 leaf_node = Node("leaf_node", child_node)
-                leaf_node["count"] = 10
-                leaf_node["test"] = True
 
     stage.export_json(export_path)
 
@@ -89,6 +85,7 @@ def test_stage_get_node_from_path():
     assert stage.get_node_children_from_path("/node") == node.list_children()
 
 
+# TODO Update after component are added
 def test_stage_export_import_with_connections(output_dir: pathlib.Path):
     export_path = (
         output_dir / f"test_stage_export_import_with_connections{Stage.FILE_EXTENSION}"
@@ -100,13 +97,11 @@ def test_stage_export_import_with_connections(output_dir: pathlib.Path):
     stage1.add_node(node1)
     stage1.add_node(node2)
 
-    # Add attributes
-    node1.add_attr("count", 5)
-    node2.add_attr("test")
+    # TODO: Add components
 
     # Connetions
     node2.set_input_exec_path(node1)
-    node1.attr("count").connect(node2.attr("test"))
+    # TODO: connect plugs
 
     stage1.export_json(export_path)
 

@@ -103,7 +103,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_widgets(self):
         self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
-        self.attrib_editor = Inspector(self)
+        self.inspector = Inspector(self)
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
         self.tool_bar = EditorToolBar(self)
@@ -141,14 +141,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         )
         self.toolbar_dock.setWidget(self.tool_bar)
         # Inspector dock
-        self.attrib_editor_dock = QtWidgets.QDockWidget("Inspector")
-        self.attrib_editor_dock.setWidget(self.attrib_editor)
+        self.inspector_dock = QtWidgets.QDockWidget("Inspector")
+        self.inspector_dock.setWidget(self.inspector)
 
         # Add dock widgets
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.attrib_editor_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.inspector_dock)
         # self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
         #                    self.components_dock)
         self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.toolbar_dock)
@@ -181,7 +181,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.config.values.main_window.position = (self.pos().x(), self.pos().y())
         self.config.values.main_window.size = (self.width(), self.height())
         # self.config.window_always_on_top = self.pin_window_btn.isChecked()
-        self.config.save()
+        # self.config.save()
 
     def apply_config_values(self):
         """Apply values from application config."""
@@ -192,7 +192,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
                 + QtWidgets.QApplication.primaryScreen().geometry().center()
                 - self.geometry().center()
             )
-            self.config.values.main_window.position = (center_position.x(), center_position.y())
+            self.config.values.main_window.position = (
+                center_position.x(),
+                center_position.y(),
+            )
         self.move(QtCore.QPoint(*self.config.values.main_window.position))
 
         # TODO: add always on top toggle
@@ -204,9 +207,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.config.reset()
         self.apply_config_values()
 
-    def create_stage_node_graph(
-        self, stage=None, file_path: pathlib.Path | str = None
-    ):
+    def create_stage_node_graph(self, stage=None, file_path: pathlib.Path | str = None):
         if file_path:
             graph_widget = StageGraphEditor.from_json_file(file_path)
         else:
@@ -215,7 +216,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         # Connect signals
         graph_widget.selection_model.selectionChanged.connect(
-            self.attrib_editor.update_node_data_from_selection
+            self.inspector.update_node_data_from_selection
         )
         return sub_wnd
 

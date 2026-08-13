@@ -30,6 +30,7 @@ class NyxEditorWidgetsConfigValues(ConfigValues):
         metadata={"category": "log_widget"},
     )
 
+
 @dataclass
 class NyxConfigValues(ConfigValues):
     main_window: NyxMainWindowConfigValues = field(

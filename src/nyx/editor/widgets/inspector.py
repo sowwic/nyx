@@ -8,7 +8,6 @@ from PySide6 import QtWidgets
 
 from nyx.core import Node
 from nyx.core import commands
-from nyx.editor.widgets.attributes_table import AttributesTable
 from nyx.editor.widgets.text_edit_widget import NyxTextEdit
 
 if typing.TYPE_CHECKING:
@@ -53,8 +52,6 @@ class Inspector(QtWidgets.QWidget):
         self.node_position_x_spinbox.setRange(-64000, 64000)
         self.node_position_y_spinbox.setRange(-64000, 64000)
 
-        self.attributes_table = AttributesTable(self)
-
     def create_layouts(self):
         position_layout = QtWidgets.QHBoxLayout()
         position_layout.addWidget(QtWidgets.QLabel("X:"))
@@ -78,7 +75,6 @@ class Inspector(QtWidgets.QWidget):
         self.main_window.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
         self.main_layout.addLayout(basic_properties_layout)
-        self.main_layout.addWidget(self.attributes_table)
 
     def create_connections(self):
         self.main_window.undo_group.indexChanged.connect(
@@ -119,7 +115,6 @@ class Inspector(QtWidgets.QWidget):
         self.set_fields_enabled(True)
         self.update_referenced_fields(self._node.is_referenced)
         self.set_data_from_node(self.node)
-        self.attributes_table.update_node_data()
         self.block_fields_signals(False)
 
     def set_fields_enabled(self, state: bool):
@@ -135,7 +130,6 @@ class Inspector(QtWidgets.QWidget):
 
         if not state:
             self.node_isactive_checkbox.setChecked(False)
-            self.attributes_table.setRowCount(0)
         self.node_isactive_checkbox.setEnabled(state)
 
         for spinbox in [self.node_position_x_spinbox, self.node_position_y_spinbox]:
@@ -165,6 +159,11 @@ class Inspector(QtWidgets.QWidget):
             widget.blockSignals(state)
 
     def update_node_data_from_selection(self):
+        # TODO: use selection model
+        if not self.current_stage_graph:
+            self.node = None
+            return
+
         selected_nodes = self.current_stage_graph.list_selected_nodes()
         self.node = selected_nodes[-1] if selected_nodes else None
 

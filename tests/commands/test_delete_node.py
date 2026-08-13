@@ -1,9 +1,10 @@
 import logging
+
 import pytest
 
-from nyx.core.stage import Stage
-from nyx.core.commands import DeleteNodeCommand, CreateNodeCommand
+from nyx.core.commands import CreateNodeCommand, DeleteNodeCommand
 from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.stage import Stage
 
 LOGGER = logging.getLogger(__name__)
 

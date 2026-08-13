@@ -1,4 +1,5 @@
 import logging
+
 from nyx.core.logger import NyxLogger
 from nyx.utils.logging_fn import add_signal_handler
 

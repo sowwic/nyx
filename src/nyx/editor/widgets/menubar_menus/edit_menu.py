@@ -1,4 +1,5 @@
 import typing
+
 from PySide6 import QtGui
 
 if typing.TYPE_CHECKING:

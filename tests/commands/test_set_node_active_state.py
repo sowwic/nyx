@@ -1,8 +1,8 @@
 import pytest
 
-from nyx.core.stage import Stage
-from nyx.core.commands import SetNodeActiveStateCommand, CreateNodeCommand
+from nyx.core.commands import CreateNodeCommand, SetNodeActiveStateCommand
 from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.stage import Stage
 
 
 def test_active_stage_change() -> None:

@@ -7,7 +7,6 @@ except ImportError:
     from collections.abc import MutableMapping
 from typing import TypeVar
 
-
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 

@@ -1,5 +1,6 @@
-import pathlib
 import logging
+import pathlib
+
 from nyx.core.resolver import Resolver
 
 LOGGER = logging.getLogger(__name__)

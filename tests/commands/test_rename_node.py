@@ -1,8 +1,8 @@
 import pytest
 
-from nyx.core.stage import Stage
 from nyx.core.commands import CreateNodeCommand, RenameNodeCommand
 from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.stage import Stage
 
 
 def test_rename_single_top_node():

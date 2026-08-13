@@ -1,6 +1,6 @@
 import os
-import platformdirs
 
+import platformdirs
 
 APPLICATION_TITLE = "nyx"
 ORGANIZATION_NAME = "sowwic"

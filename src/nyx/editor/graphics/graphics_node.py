@@ -1,13 +1,10 @@
 import typing
 from collections import deque
 
-from PySide6 import QtCore
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
 from nyx.editor.graphics.graphics_node_title import GraphicsNodeTitle
-from nyx.editor.graphics.graphics_attribute import GraphicsNodeAttribute
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -26,7 +23,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
 
         self._node = None
-        self.gr_attribs: deque[GraphicsNodeAttribute] = deque()
+        # TODO: Create graphics components plugs
 
         self._set_node(node)
         self.setPos(self.node.position())
@@ -36,7 +33,6 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._init_title()
 
         self.create_connections()
-        self._create_gr_attributes()
 
     def create_connections(self):
         pass
@@ -50,11 +46,6 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             self._node.gr_node = None
 
         self._node = node
-
-    def _create_gr_attributes(self):
-        for _, attr in self.node.attribs.items():
-            gr_attrib = GraphicsNodeAttribute(attr, self)
-            self.gr_attribs.append(gr_attrib)
 
     def _init_sizes(self):
         self.width = self.MIN_WIDTH
@@ -93,7 +84,12 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         path_title = QtGui.QPainterPath()
         path_title.setFillRule(QtCore.Qt.WindingFill)
         path_title.addRoundedRect(
-            0, 0, self.width, self.title_height, self.edge_roundness, self.edge_roundness
+            0,
+            0,
+            self.width,
+            self.title_height,
+            self.edge_roundness,
+            self.edge_roundness,
         )
         path_title.addRect(
             0,

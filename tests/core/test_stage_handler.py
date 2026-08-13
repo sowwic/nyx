@@ -1,8 +1,7 @@
 import logging
 from collections import deque
 
-from nyx.core import Stage
-from nyx.core import Node
+from nyx.core import Node, Stage
 
 LOGGER = logging.getLogger(__name__)
 
@@ -90,26 +89,7 @@ def test_handler_run():
     queue = stage.handler.build_execution_queue()
     LOGGER.debug(f"Exec queue: {queue}")
 
-    # Root Attributes
-    root_node1.add_attr("test1")
-    root_node2.add_attr("test2")
-    root_node3.add_attr("test3")
-
-    # Child attributes
-    # Root Attributes
-    child1_1.add_attr("child_test1")
-    child1_2.add_attr("child_test2")
-    child1_3.add_attr("child_test3", value="/root_node1/child1_2.child_test2")
-
     # LOGGER.debug(stage.describe())
     stage.handler.run()
 
-    LOGGER.debug(f"ATTR: {child1_3['child_test3']}")
-
-    assert root_node1.attr("test1").cached_value == 5
-    assert root_node2.attr("test2").cached_value == 10
-    assert root_node3.attr("test3").cached_value == 15
-
-    assert child1_1.attr("child_test1").cached_value == 5
-    assert child1_2.attr("child_test2").cached_value == 10
-    assert child1_3.attr("child_test3").cached_value == 10
+    # TODO: add asserts for components values

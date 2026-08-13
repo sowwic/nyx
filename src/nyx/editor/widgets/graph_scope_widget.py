@@ -1,8 +1,7 @@
-import typing
 import pathlib
-from PySide6 import QtGui
-from PySide6 import QtWidgets
+import typing
 
+from PySide6 import QtGui, QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor

@@ -4,16 +4,14 @@ which is a QGraphicsScene that manages the visual representation of
 nodes and edges in the graph editor.
 """
 
-import math
 import logging
-import typing
+import math
 import pathlib
+import typing
 from collections import deque
 
-from PySide6 import QtCore
-from PySide6 import QtGui
-from PySide6 import QtWidgets
 import shiboken6
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.graphics.graphics_node import GraphicsNode
 

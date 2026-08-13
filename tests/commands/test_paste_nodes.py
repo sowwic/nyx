@@ -1,7 +1,7 @@
 from PySide6 import QtCore
 
-from nyx.core.stage import Stage
 from nyx.core.commands import CreateNodeCommand, PasteNodesCommand
+from nyx.core.stage import Stage
 from nyx.editor.utils import clipboard
 
 

@@ -1,6 +1,7 @@
 from collections import OrderedDict
-from nyx.version import __version__
 from copy import deepcopy
+
+from nyx.version import __version__
 
 
 class Serializable:
