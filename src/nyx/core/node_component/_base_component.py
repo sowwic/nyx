@@ -9,15 +9,17 @@ from ..serializable import Serializable
 
 if typing.TYPE_CHECKING:
     from ..node import Node
+    from .components_model import NodeComponentsModel
 
 
 class NodeComponent(QtGui.QStandardItem, Serializable):
-    TYPE_NAMESPACE: str = "core"
     TYPE_ID: str = "base_component"
+    NAMESPACE: str = "core"
     CATEGORY: pathlib.PurePosixPath | None = None
     DEFAULT_NAME: str = "Component"
 
     class Roles(enum.Enum):
+        NAME = QtCore.Qt.ItemDataRole.DisplayRole
         IS_ACTIVE = QtCore.Qt.UserRole + 1
 
     def __init__(
@@ -33,6 +35,9 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         self._is_readable = is_readable
         self._is_writable = is_writable
 
+    def model(self) -> NodeComponentsModel:
+        return super().model()
+
     @property
     def node(self) -> Node:
         return self.model().node
@@ -41,6 +46,10 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def name(self) -> str:
         # TODO return name role
         return self._name
+
+    @name.setter
+    def name(self, new_name: str):
+        self.setData(self.model().get_unique_component_name(new_name), self.Roles.NAME)
 
     @property
     def is_readable(self) -> bool:

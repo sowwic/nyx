@@ -511,9 +511,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         command.validate()
         self.undo_stack.push(command)
 
-    def pathify(
-        self, node: Node | pathlib.PurePosixPath | str
-    ) -> pathlib.PurePosixPath:
+    def pathify(self, node: Node | pathlib.PurePosixPath | str) -> pathlib.PurePosixPath:
         """Convert object to path.
 
         Args:

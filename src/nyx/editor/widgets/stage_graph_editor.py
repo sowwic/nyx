@@ -146,9 +146,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             return True
 
         stage_title = (
-            self.DEFAULT_TITLE
-            if not self.stage.file_path
-            else self.stage.file_path.name
+            self.DEFAULT_TITLE if not self.stage.file_path else self.stage.file_path.name
         )
         res = QtWidgets.QMessageBox.warning(
             self,

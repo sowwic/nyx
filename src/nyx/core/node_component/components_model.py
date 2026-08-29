@@ -52,3 +52,13 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
             if component.name == name:
                 self.removeRow(component.row())
                 return
+
+    def get_unique_component_name(self, name: str) -> str:
+        """Returns a unique name for the component, indexed if it already exists."""
+        existing_names = [component.name for component in self.list_components()]
+        index = 1
+        while name in existing_names:
+            name = f"{name}{index}"
+            index += 1
+
+        return name

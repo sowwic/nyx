@@ -546,9 +546,7 @@ class Node(QtGui.QStandardItem, Serializable):
             else:
                 raise ValueError(f"Invalid file type: {self.reference_file_path}")
         except FileNotFoundError:
-            LOGGER.exception(
-                f"Reference file doesn't exist: {self.reference_file_path}"
-            )
+            LOGGER.exception(f"Reference file doesn't exist: {self.reference_file_path}")
         return data
 
     def export_to_json(self, file_path: pathlib.Path):
