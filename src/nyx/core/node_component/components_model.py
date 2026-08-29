@@ -6,17 +6,17 @@ from ._base_component import NodeComponent
 
 
 if typing.TYPE_CHECKING:
-    pass
+    from ..node import Node
 
 
 class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
-    def __init__(self, node):
+    def __init__(self, node: Node):
         self._node = node
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
 
     @property
-    def node(self):
+    def node(self) -> Node:
         return self._node
 
     def list_components(self):
@@ -45,6 +45,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
             component.deserialize(component_data)
 
     def add_component(self, component: NodeComponent):
+        component.name = self.get_unique_component_name(component.name)
         self.appendRow(component)
 
     def remove_component(self, name: str):

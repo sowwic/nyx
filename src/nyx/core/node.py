@@ -15,6 +15,7 @@ from nyx.utils import file_fn, inspect_fn
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
     from nyx.editor.graphics.graphics_node import GraphicsNode
+    from nyx.core.node_component._base_component import NodeComponent
 
 
 LOGGER = logging.getLogger(__name__)
@@ -467,6 +468,9 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_output_exec_node is not None:
             if new_output_exec_node.get_output_exec_path() != self.path:
                 new_output_exec_node.set_input_exec_path(self.path)
+
+    def add_component(self, node_component: NodeComponent):
+        self.components_model.add_component(node_component)
 
     def on_changed(self):
         pass
