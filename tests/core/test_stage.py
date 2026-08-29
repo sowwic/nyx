@@ -1,6 +1,7 @@
 import pathlib
 from collections import OrderedDict
 import logging
+import pytest
 
 from nyx.core import Stage
 from nyx.core import Node
@@ -16,9 +17,11 @@ def test_stage_create_empty():
     assert stage.list_top_nodes() == []
 
 
-def test_stage_export_import_json(output_dir: pathlib.Path):
+def test_stage_export_import_json(
+    output_dir: pathlib.Path, request: pytest.FixtureRequest
+):
     stage = Stage()
-    export_path = output_dir / f"test_stage_export{stage.FILE_EXTENSION}"
+    export_path = output_dir / f"{request.node.name}{stage.FILE_EXTENSION}"
     # Add nodes
     # TODO: add components to nodes
     for index in range(3):
@@ -27,7 +30,7 @@ def test_stage_export_import_json(output_dir: pathlib.Path):
         for child_index in range(3):
             child_node = Node("child_node", base_node)
             for deep_index in range(2):
-                leaf_node = Node("leaf_node", child_node)
+                Node("leaf_node", child_node)
 
     stage.export_json(export_path)
     assert export_path.is_file()
@@ -38,10 +41,10 @@ def test_stage_export_import_json(output_dir: pathlib.Path):
     )
 
 
-def test_stage_deserialize(output_dir: pathlib.Path):
+def test_stage_deserialize(output_dir: pathlib.Path, request: pytest.FixtureRequest):
     stage = Stage()
-    export_path = output_dir / f"test_stage_deserialize_export{stage.FILE_EXTENSION}"
-    export_path2 = output_dir / f"test_stage_deserialize_check{stage.FILE_EXTENSION}"
+    export_path = output_dir / f"{request.node.name}_export{stage.FILE_EXTENSION}"
+    export_path2 = output_dir / f"{request.node.name}_check{stage.FILE_EXTENSION}"
     # TODO: add components to nodes
     for index in range(3):
         base_node = Node("node")
@@ -49,7 +52,7 @@ def test_stage_deserialize(output_dir: pathlib.Path):
         for child_index in range(3):
             child_node = Node("child_node", base_node)
             for deep_index in range(2):
-                leaf_node = Node("leaf_node", child_node)
+                Node("leaf_node", child_node)
 
     stage.export_json(export_path)
 
@@ -86,10 +89,10 @@ def test_stage_get_node_from_path():
 
 
 # TODO Update after component are added
-def test_stage_export_import_with_connections(output_dir: pathlib.Path):
-    export_path = (
-        output_dir / f"test_stage_export_import_with_connections{Stage.FILE_EXTENSION}"
-    )
+def test_stage_export_import_with_connections(
+    output_dir: pathlib.Path, request: pytest.FixtureRequest
+):
+    export_path = output_dir / f"{request.node.name}{Stage.FILE_EXTENSION}"
 
     stage1 = Stage()
     node1 = Node()
@@ -127,11 +130,10 @@ def test_stage_set_stage_execution_start():
     assert stage.get_execution_start_path(None, serializable=False) == node1.path
 
 
-def test_stage_set_execution_start_set_export_import(output_dir: pathlib.Path):
-    export_path = (
-        output_dir
-        / f"test_stage_set_execution_start_set_export_import{Stage.FILE_EXTENSION}"
-    )
+def test_stage_set_execution_start_set_export_import(
+    output_dir: pathlib.Path, request: pytest.FixtureRequest
+):
+    export_path = output_dir / f"{request.node.name}{Stage.FILE_EXTENSION}"
 
     stage = Stage()
     node1 = Node()

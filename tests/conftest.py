@@ -2,6 +2,7 @@ import os
 import pathlib
 import pytest
 import logging
+import dataclasses
 from PySide6 import QtWidgets
 
 from nyx.core.logger import NyxLogger
@@ -11,17 +12,25 @@ logging.setLoggerClass(NyxLogger)
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
-@pytest.fixture(scope="session")
-def output_dir() -> pathlib.Path:
+@pytest.fixture
+def output_dir(request: pytest.FixtureRequest) -> pathlib.Path:
     """Output directory for tests.
 
     Returns:
         pathlib.Path: path to test output directory.
 
     """
-    out_dir = pathlib.Path.cwd() / ".test_output"
-    out_dir.mkdir(exist_ok=True)
-    return out_dir
+    tests_root = pathlib.Path(__file__).parent
+    project_root = tests_root.parent
+    output_root = project_root / ".test_output"
+
+    test_file = pathlib.Path(str(request.fspath))
+    relative_dir = test_file.parent.relative_to(tests_root)
+
+    module_name = test_file.stem.removeprefix("test_")
+    directory = output_root / relative_dir / module_name
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
 
 
 @pytest.fixture
