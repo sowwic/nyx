@@ -24,7 +24,7 @@ class Node(QtGui.QStandardItem, Serializable):
     METADATA = {"type": "node"}
     TRACK_NYX_VERSION = True
 
-    class Roles(enum.Enum):
+    class Roles(enum.IntEnum):
         INPUT_EXEC = QtCore.Qt.UserRole + 1
         OUTPUT_EXEC = enum.auto()
         ACTIVE_ROLE = enum.auto()
@@ -56,13 +56,13 @@ class Node(QtGui.QStandardItem, Serializable):
         return hash(self.path)
 
     def _set_default_role_values(self):
-        self.setData(None, role=Node.Roles.INPUT_EXEC.value)
-        self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
-        self.setData(True, role=Node.Roles.ACTIVE_ROLE.value)
-        self.setData(None, role=Node.Roles.EXECUTION_START_PATH.value)
-        self.setData(QtCore.QPointF(), role=Node.Roles.POSITION.value)
-        self.setData("", role=Node.Roles.COMMENT.value)
-        self.setData(None, role=Node.Roles.REFERENCE_FILE_PATH.value)
+        self.setData(None, role=Node.Roles.INPUT_EXEC)
+        self.setData(None, role=Node.Roles.OUTPUT_EXEC)
+        self.setData(True, role=Node.Roles.ACTIVE_ROLE)
+        self.setData(None, role=Node.Roles.EXECUTION_START_PATH)
+        self.setData(QtCore.QPointF(), role=Node.Roles.POSITION)
+        self.setData("", role=Node.Roles.COMMENT)
+        self.setData(None, role=Node.Roles.REFERENCE_FILE_PATH)
 
     @property
     def name(self):
@@ -116,7 +116,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     @property
     def reference_file_path(self) -> pathlib.Path | None:
-        return self.data(role=self.Roles.REFERENCE_FILE_PATH.value)
+        return self.data(role=self.Roles.REFERENCE_FILE_PATH)
 
     @property
     def is_referenced(self):
@@ -135,7 +135,7 @@ class Node(QtGui.QStandardItem, Serializable):
             bool: current active state.
 
         """
-        return self.data(role=Node.Roles.ACTIVE_ROLE.value)
+        return self.data(role=Node.Roles.ACTIVE_ROLE)
 
     def set_active(self, state: bool):
         """Set active state.
@@ -144,7 +144,7 @@ class Node(QtGui.QStandardItem, Serializable):
             state (bool): new active state.
 
         """
-        self.setData(state, role=Node.Roles.ACTIVE_ROLE.value)
+        self.setData(state, role=Node.Roles.ACTIVE_ROLE)
 
     def deactivate(self):
         """Set node's active state to False."""
@@ -155,23 +155,23 @@ class Node(QtGui.QStandardItem, Serializable):
         self.set_active(True)
 
     def position(self) -> QtCore.QPointF:
-        return self.data(role=Node.Roles.POSITION.value)
+        return self.data(role=Node.Roles.POSITION)
 
     def serializable_position(self):
         position = self.position()
         return [position.x(), position.y()]
 
     def set_position(self, position: QtCore.QPointF):
-        self.setData(position, role=Node.Roles.POSITION.value)
+        self.setData(position, role=Node.Roles.POSITION)
 
     def comment(self) -> str:
-        return self.data(role=Node.Roles.COMMENT.value)
+        return self.data(role=Node.Roles.COMMENT)
 
     def set_comment(self, text: str):
-        self.setData(text, role=Node.Roles.COMMENT.value)
+        self.setData(text, role=Node.Roles.COMMENT)
 
     def set_reference_file(self, path: pathlib.Path | str):
-        self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH.value)
+        self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH)
 
     def appendRow(self, items: typing.Sequence[Node]) -> None:
         """Override Qt method.
@@ -325,7 +325,7 @@ class Node(QtGui.QStandardItem, Serializable):
             pathlib.PurePosixPath | str | None: Execution dependency node path.
 
         """
-        path: pathlib.PurePosixPath = self.data(role=Node.Roles.INPUT_EXEC.value)
+        path: pathlib.PurePosixPath = self.data(role=Node.Roles.INPUT_EXEC)
         if path is None or not serializable:
             return path
         return path.as_posix()
@@ -342,7 +342,7 @@ class Node(QtGui.QStandardItem, Serializable):
             pathlib.PurePosixPath | str | None: Execution dependee node path.
 
         """
-        path: pathlib.PurePosixPath = self.data(role=Node.Roles.OUTPUT_EXEC.value)
+        path: pathlib.PurePosixPath = self.data(role=Node.Roles.OUTPUT_EXEC)
         if path is None or not serializable:
             return path
         return path.as_posix()
@@ -380,7 +380,7 @@ class Node(QtGui.QStandardItem, Serializable):
             raise TypeError("Invalid input exec path type")
 
         if silent:
-            self.setData(path, role=Node.Roles.INPUT_EXEC.value)
+            self.setData(path, role=Node.Roles.INPUT_EXEC)
             return
 
         new_input_exec_node: Node = self.stage.node(path)
@@ -397,9 +397,9 @@ class Node(QtGui.QStandardItem, Serializable):
 
         # Set connections
         if new_input_exec_node is None:
-            self.setData(None, role=Node.Roles.INPUT_EXEC.value)
+            self.setData(None, role=Node.Roles.INPUT_EXEC)
         else:
-            self.setData(new_input_exec_node.path, role=Node.Roles.INPUT_EXEC.value)
+            self.setData(new_input_exec_node.path, role=Node.Roles.INPUT_EXEC)
 
         # Reset old input node
         if previous_input_exec_node is not None:
@@ -438,7 +438,7 @@ class Node(QtGui.QStandardItem, Serializable):
             raise TypeError("Invalid output exec path type")
 
         if silent:
-            self.setData(path, role=Node.Roles.OUTPUT_EXEC.value)
+            self.setData(path, role=Node.Roles.OUTPUT_EXEC)
             return
 
         new_output_exec_node = self.stage.node(path)
@@ -454,9 +454,9 @@ class Node(QtGui.QStandardItem, Serializable):
             return
         # Set connections
         if new_output_exec_node is None:
-            self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
+            self.setData(None, role=Node.Roles.OUTPUT_EXEC)
         else:
-            self.setData(new_output_exec_node.path, role=Node.Roles.OUTPUT_EXEC.value)
+            self.setData(new_output_exec_node.path, role=Node.Roles.OUTPUT_EXEC)
 
         # Reset old output node
         if previous_output_exec_node is not None:
@@ -583,7 +583,7 @@ class Node(QtGui.QStandardItem, Serializable):
         elif isinstance(child_path, str):
             child_path = pathlib.PurePosixPath(child_path)
 
-        self.setData(child_path, role=Node.Roles.EXECUTION_START_PATH.value)
+        self.setData(child_path, role=Node.Roles.EXECUTION_START_PATH)
         LOGGER.info(f"{self} | Set execution start path to: {child_path}")
 
     def get_execution_start_path(
@@ -598,7 +598,7 @@ class Node(QtGui.QStandardItem, Serializable):
             pathlib.PurePosixPath | str | None: execution start path
 
         """
-        path = self.data(role=Node.Roles.EXECUTION_START_PATH.value)
+        path = self.data(role=Node.Roles.EXECUTION_START_PATH)
         if serializable and isinstance(path, pathlib.PurePosixPath):
             path = path.as_posix()
         return path
