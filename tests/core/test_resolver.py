@@ -1,13 +1,13 @@
 import logging
 import pathlib
 
-from nyx.core.resolver import Resolver
+from nyx.core.path_resolver import StagePathResolver
 
 LOGGER = logging.getLogger(__name__)
 
 
 def test_compute_relative_path():
-    resolver = Resolver()
+    resolver = StagePathResolver()
 
     # Case1 different parents
     path1 = pathlib.PurePosixPath("/node1/child1")
@@ -29,7 +29,7 @@ def test_compute_relative_path():
 
 
 def test_compute_absolute_child_path():
-    resolver = Resolver()
+    resolver = StagePathResolver()
     node1_path = pathlib.PurePosixPath("/node1")
     assert (
         resolver.computer_absolute_path(node1_path, "child1").as_posix()
@@ -42,7 +42,7 @@ def test_compute_absolute_child_path():
 
 
 def test_compute_absolute_path_other_node_child():
-    resolver = Resolver()
+    resolver = StagePathResolver()
     child1_path = pathlib.PurePosixPath("/node1/child1")
     child2_path = pathlib.PurePosixPath("/node2/child2")
     path_to_child2 = "../../node2/child2"
@@ -50,7 +50,7 @@ def test_compute_absolute_path_other_node_child():
 
 
 def test_compute_absolute_path_same_node_child():
-    resolver = Resolver()
+    resolver = StagePathResolver()
     child1_path = pathlib.PurePosixPath("/node1/child1")
     child2_path = pathlib.PurePosixPath("/node1/child2")
     path_to_child2 = "../child2"

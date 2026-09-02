@@ -286,8 +286,8 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         if isinstance(
             other_node, (str, pathlib.PurePosixPath)
-        ) and self.stage.resolver.is_relative_path(other_node):
-            other_node = self.stage.resolver.computer_absolute_path(
+        ) and self.stage.path_resolver.is_relative_path(other_node):
+            other_node = self.stage.path_resolver.computer_absolute_path(
                 self.cached_path, other_node
             )
 
@@ -620,8 +620,8 @@ class Node(QtGui.QStandardItem, Serializable):
             child_path = self.get_execution_start_path()
             if child_path:
                 # TODO: check if relative and convert to abs
-                if self.stage.resolver.is_relative_path(child_path):
-                    child_path = self.stage.resolver.computer_absolute_path(
+                if self.stage.path_resolver.is_relative_path(child_path):
+                    child_path = self.stage.path_resolver.computer_absolute_path(
                         self.cached_path, child_path
                     )
                 child_node = self.stage.node(child_path)

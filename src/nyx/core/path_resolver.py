@@ -5,7 +5,7 @@ import pathlib
 LOGGER = logging.getLogger(__name__)
 
 
-class Resolver:
+class StagePathResolver:
     @staticmethod
     def is_absolute_path(path: pathlib.PurePosixPath | str):
         """Is given path absolute.
@@ -30,7 +30,7 @@ class Resolver:
             bool: is relative
 
         """
-        return not Resolver.is_absolute_path(path)
+        return not StagePathResolver.is_absolute_path(path)
 
     @staticmethod
     def compute_relative_path(
@@ -51,9 +51,9 @@ class Resolver:
             PurePosixPath: relative path
 
         """
-        if not Resolver.is_absolute_path(source_path):
+        if not StagePathResolver.is_absolute_path(source_path):
             raise ValueError(f"Source path is not absolute: {source_path}")
-        if not Resolver.is_absolute_path(destination_path):
+        if not StagePathResolver.is_absolute_path(destination_path):
             raise ValueError(f"Destination path is not absolute: {destination_path}")
 
         rel_path = os.path.relpath(str(destination_path), str(source_path))
@@ -82,9 +82,9 @@ class Resolver:
             PurePosixPath: absolute path
 
         """
-        if not Resolver.is_absolute_path(anchor_path):
+        if not StagePathResolver.is_absolute_path(anchor_path):
             raise ValueError(f"Source path is not absolute: {anchor_path}")
-        if not Resolver.is_relative_path(rel_path):
+        if not StagePathResolver.is_relative_path(rel_path):
             raise ValueError(f"Relative path is not relative: {rel_path}")
         anchor_path = pathlib.PurePosixPath(anchor_path)
         rel_path = pathlib.PurePosixPath(rel_path)

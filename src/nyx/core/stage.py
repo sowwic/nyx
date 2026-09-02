@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from PySide6 import QtCore, QtGui
 
 from nyx.core import Node
-from nyx.core.resolver import Resolver
+from nyx.core.path_resolver import StagePathResolver
 from nyx.core.serializable import Serializable
 from nyx.core.stage_handler import StageHandler
 from nyx.utils import file_fn
@@ -38,23 +38,23 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self.file_path: pathlib.Path | None = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self._execution_start_path: pathlib.PurePosixPath | None = None
-        self._resolver = Resolver()
+        self._path_resolver = StagePathResolver()
         self._handler = StageHandler(self)
         self.undo_stack = QtGui.QUndoStack(self)
 
         self.create_connections()
 
     @property
-    def path_map(self):
+    def path_map(self) -> dict[pathlib.PurePosixPath, Node]:
         return self._path_map
 
     @property
-    def handler(self):
+    def handler(self) -> StageHandler:
         return self._handler
 
     @property
-    def resolver(self):
-        return self._resolver
+    def path_resolver(self) -> StagePathResolver:
+        return self._path_resolver
 
     @property
     def execution_start_path(self):
