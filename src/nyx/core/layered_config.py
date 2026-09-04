@@ -1,50 +1,45 @@
 import logging
-from dataclasses import dataclass, field
 
+from pydantic.dataclasses import Field
 from json_config.api import ConfigLayer, ConfigValues, LayeredConfig
 
 from .constants import USER_CONFIG_FILE_PATH
 
 
-@dataclass
 class NyxMainWindowConfigValues(ConfigValues):
-    size: tuple[int, int] = field(default=(600, 400))
-    position: tuple[int, int] = field(default=(0, 0))
-    is_always_on_top: bool = field(default=False)
+    size: tuple[int, int] = Field(default=(600, 400))
+    position: tuple[int, int] = Field(default=(0, 0))
+    is_always_on_top: bool = Field(default=False)
 
 
-@dataclass
 class NyxEditorStyleConfigValues(ConfigValues):
-    dark_mode: bool = field(default=True)
+    dark_mode: bool = Field(default=True)
 
 
-@dataclass
 class NyxEditorLogWidgetConfigValues(ConfigValues):
-    auto_scroll: bool = field(default=True)
+    auto_scroll: bool = Field(default=True)
 
 
-@dataclass
 class NyxEditorWidgetsConfigValues(ConfigValues):
-    log_widget: NyxEditorLogWidgetConfigValues = field(
+    log_widget: NyxEditorLogWidgetConfigValues = Field(
         default_factory=NyxEditorLogWidgetConfigValues,
-        metadata={"category": "log_widget"},
+        alias="log_widget"
     )
 
 
-@dataclass
 class NyxConfigValues(ConfigValues):
-    main_window: NyxMainWindowConfigValues = field(
-        default_factory=NyxMainWindowConfigValues, metadata={"category": "main_window"}
+    main_window: NyxMainWindowConfigValues = Field(
+        default_factory=NyxMainWindowConfigValues, alias="main_window"
     )
-    editor_style: NyxEditorStyleConfigValues = field(
+    editor_style: NyxEditorStyleConfigValues = Field(
         default_factory=NyxEditorStyleConfigValues,
-        metadata={"category": "editor_style"},
+        alias="editor_style"
     )
-    editor_widgets: NyxEditorWidgetsConfigValues = field(
+    editor_widgets: NyxEditorWidgetsConfigValues = Field(
         default_factory=NyxEditorWidgetsConfigValues,
-        metadata={"category": "editor_widgets"},
+        alias="editor_widgets"
     )
-    logging_level: int = field(default=logging.INFO)
+    logging_level: int = Field(default=logging.INFO)
 
 
 class NyxConfig(LayeredConfig[NyxConfigValues]):
