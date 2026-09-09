@@ -75,8 +75,13 @@ class NyxPluginLoader:
         return paths
 
     def load_plugin(self, plugin_file: pathlib.Path | str):
-        # TODO: Break down into smaller methods
-        # TODO: Doctring
+        """Load plugin from give plugin entry point file.
+
+        This will register plugin file and
+
+        Args:
+            plugin_file: plugin entry point file path
+        """
         LOGGER.info("Loading plugin from: %s", plugin_file)
         plugin_file = pathlib.Path(plugin_file)
         package_dir = plugin_file.parent
