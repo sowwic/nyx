@@ -9,7 +9,7 @@ class Serializable:
     TRACK_NYX_VERSION = False
 
     def serialize(self) -> OrderedDict:
-        """Serialize object ot OrderedDict.
+        """Serialize object into an OrderedDict.
 
         Returns:
             OrderedDict: serialized data
