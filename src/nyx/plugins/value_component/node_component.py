@@ -1,4 +1,4 @@
-from nyx.api import NodeComponent
+from nyx.api.v1 import NodeComponent
 
 
 class ValueComponent(NodeComponent):

@@ -5,6 +5,7 @@ from PySide6 import QtGui, QtWidgets
 
 import nyx.resources.resources_rc  # noqa: F401
 from nyx.core.layered_config import NyxConfig
+from nyx.api.v1 import plugin_manager
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.utils import pyside_fn
 from nyx.version import __version__
@@ -22,6 +23,8 @@ class NyxApplication(QtWidgets.QApplication):
         self.setWindowIcon(QtGui.QIcon(":/icons/nyx"))
         self.setApplicationVersion(__version__)
         LOGGER.setLevel(self.config.values.logging_level)
+
+        plugin_manager.initialize_plugins()
 
     @property
     def config(self) -> NyxConfig:
