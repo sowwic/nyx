@@ -12,10 +12,9 @@ LOGGER = logging.getLogger(__name__)
 class NyxCoreComponents(NyxPluginInterface):
     NAME = "NyxCoreComponents"
 
-    def __init__(self):
-        self.node_components = [ValueComponent]
-        LOGGER.info(self.node_components)
-
     @classmethod
     def initialize(cls) -> typing.Self:
-        return cls()
+        plugin = cls()
+        plugin.contents.node_components = [ValueComponent]
+
+        return plugin
