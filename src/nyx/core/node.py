@@ -11,6 +11,7 @@ from nyx.core import constants
 from nyx.core.node_component.components_model import NodeComponentsModel
 from nyx.core.serializable import Serializable
 from nyx.utils import file_fn, inspect_fn
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
@@ -22,6 +23,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Node(QtGui.QStandardItem, Serializable):
+    TYPE_ID = ""
+    CATEGORY = ""
     METADATA = {"type": "node"}
     TRACK_NYX_VERSION = True
 
@@ -49,6 +52,10 @@ class Node(QtGui.QStandardItem, Serializable):
             parent.appendRow(self)
 
         self._components_model = NodeComponentsModel(node=self)
+        self.setup()
+
+    def setup(self):
+        pass
 
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)} ({self.cached_path})"
@@ -485,11 +492,13 @@ class Node(QtGui.QStandardItem, Serializable):
         data = super().serialize()
         children = [child.serialize() for child in self.list_children()]
         data["name"] = self.text()
+        data["type_id"] = self.TYPE_ID
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
         data["path"] = self.path.as_posix()
         data["input_exec"] = self.get_input_exec_path(serializable=True)
         data["output_exec"] = self.get_output_exec_path(serializable=True)
+        data["required_plugins"] = self.REQUIRED_PLUGINS
         if self.reference_file_path is not None:
             data["reference_file_path"] = self.reference_file_path.as_posix()
         else:
@@ -533,7 +542,8 @@ class Node(QtGui.QStandardItem, Serializable):
 
         # Children
         for child_data in data.get("children", {}):
-            child_node = Node(parent=self)
+            node_class = NYX_REGISTRY.get_node_cls(data.get("type_id")) or Node
+            child_node = node_class(parent=self)
             child_node.deserialize(child_data)
 
     def _load_reference_file_data(self) -> OrderedDict:

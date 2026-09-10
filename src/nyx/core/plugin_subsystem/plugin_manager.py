@@ -1,49 +1,33 @@
 import logging
-import dataclasses
-from collections import OrderedDict
-from collections.abc import Callable, Iterator
+import typing
 
 from .plugin_loader import NyxPluginLoader
 from .plugin_interface import NyxPluginInterface
+from .registry import NYX_REGISTRY, NyxPluginRegistryEntry
 
 
 LOGGER = logging.getLogger("NyxPluginManager")
 
 
-@dataclasses.dataclass()
-class NyxPluginRegistryEntry:
-    """Plugin registry entry
-
-    Attributes:
-        plugin_cls: plugin class
-        plugin_instance: initialized plugin plugin instance
-    """
-
-    plugin_cls: type[NyxPluginInterface] = dataclasses.field(default=None)
-    plugin_instance: NyxPluginInterface = dataclasses.field(init=False, default=None)
-
-    def initialize(self):
-        """Call plugin initialize method and store resulting instance."""
-        self.plugin_instance = self.plugin_cls.initialize()
-
-
 class NyxPluginManager:
-    """Central class for handling plugin registration, loading and initialization.
-
-    Is not meant to be initialized outside of this module.
-    Instead run the following code to get the instance:
-
-    ```python
-    from nyx.api.v1 import plugin_manager
-    ```
-    """
+    """Central class for handling plugin registration, loading and initialization."""
 
     def __init__(self):
         """Initialize manager instance"""
-        self._registry: OrderedDict[str, NyxPluginRegistryEntry] = OrderedDict()
         self._loader = NyxPluginLoader()
 
-    def register_plugin(self) -> Callable[[NyxPluginInterface], NyxPluginInterface]:
+    @property
+    def loader(self) -> NyxPluginLoader:
+        return self._loader
+
+    @loader.setter
+    def loader(self, loader: NyxPluginLoader):
+        if not isinstance(loader, NyxPluginLoader):
+            raise TypeError(f"Loader must be of type: {NyxPluginLoader}")
+        self._loader = loader
+
+    @staticmethod
+    def register_plugin() -> typing.Callable[[NyxPluginInterface], NyxPluginInterface]:
         """Decorator for plugin registration
 
         Returns:
@@ -52,9 +36,9 @@ class NyxPluginManager:
 
         Example:
             ```python
-            from nyx.api.v1 import plugin_manager
+            from nyx.api.v1 import NyxPluginManager
 
-            @plugin_manager.register_plugin()
+            @NyxPluginManager.register_plugin()
             class MyPlugin(NyxPluginInterface):
                 NAME = "my_plugin"
             ```
@@ -70,26 +54,33 @@ class NyxPluginManager:
                 Same plugin class
             """
             try:
-                self.validate_plugin_class(plugin_cls)
+                NyxPluginManager.validate_plugin_class(plugin_cls)
             except Exception:
                 LOGGER.exception("Failed to register %s", plugin_cls.__name__)
                 return plugin_cls
 
-            self._registry[plugin_cls.NAME] = NyxPluginRegistryEntry(
-                plugin_cls=plugin_cls
-            )
+            NYX_REGISTRY.add_plugin(plugin_cls)
             return plugin_cls
 
         return _register_plugin_inner
 
-    def validate_plugin_class(self, plugin_cls: NyxPluginInterface) -> None:
+    @staticmethod
+    def validate_plugin_class(plugin_cls: NyxPluginInterface) -> None:
+        """Validate plugin class.
+
+        Args:
+            plugin_cls: plugin class to validate
+
+        Raises:
+            ValueError: Plugin NAME is not defined.
+        """
         if not plugin_cls.NAME:
             raise ValueError("Plugin has no NAME defined")
 
-        if plugin_cls.NAME in self._registry:
+        if plugin_cls.NAME in NYX_REGISTRY.plugins:
             raise ValueError(
                 f"Plugin with name {plugin_cls.NAME} already exists:"
-                f"{self._registry[plugin_cls.NAME]}"
+                f"{NYX_REGISTRY.plugins[plugin_cls.NAME]}"
             )
 
     def get_plugin(self, name: str) -> NyxPluginRegistryEntry | None:
@@ -101,34 +92,27 @@ class NyxPluginManager:
         Returns:
             Plugin registry entry
         """
-        return self._registry.get(name)
+        return NYX_REGISTRY.plugins.get(name)
 
-    def iter_register(self) -> Iterator[tuple[str, NyxPluginRegistryEntry]]:
-        """Iterate over plugin register dictionary.
-
-        Yields:
-            Plugin name and registry entry
-        """
-        yield from self._registry.items()
-
-    def iter_plugin_entries(self) -> Iterator[NyxPluginRegistryEntry]:
-        """Iterate over plugin registry entries
-
-        Yields:
-            Plugin registry entry
-        """
-        yield from self._registry.values()
-
-    def initialize_plugins(self):
+    def initialize_plugins(
+        self, include: list[str] | None = None, exclude: list[str] | None = None
+    ):
         """Iterate over registry and initialize each plugin."""
-        if not self._registry:
-            self._loader.load_plugins_from_paths()
+        NYX_REGISTRY.clear()
+        self.loader.load_plugins_from_paths()
 
-        for plugin_entry in self.iter_plugin_entries():
+        for plugin_entry in NYX_REGISTRY.iter_plugin_entries():
+            if include and plugin_entry.plugin_cls.NAME in include:
+                plugin_entry.enabled = True
+            else:
+                plugin_entry.enabled = False
+
+            if exclude and plugin_entry.plugin_cls.NAME in exclude:
+                plugin_entry.enabled = False
+
+            if not plugin_entry.enabled:
+                continue
+
             plugin_entry.initialize()
             LOGGER.info(f"Initialized plugin: {plugin_entry.plugin_cls.NAME}")
-            LOGGER.debug(plugin_entry.plugin_instance.contents)
-
-
-# Created once here - everyone who imports this module gets the same object.
-plugin_manager = NyxPluginManager()
+        NYX_REGISTRY.register_plugin_content()

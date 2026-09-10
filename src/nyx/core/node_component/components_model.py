@@ -1,12 +1,17 @@
 import typing
+import logging
 from PySide6 import QtGui
 
 from ..serializable import Serializable
 from ._base_component import NodeComponent
+from ..plugin_subsystem.registry import NYX_REGISTRY
 
 
 if typing.TYPE_CHECKING:
     from ..node import Node
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
@@ -19,10 +24,17 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
     def node(self) -> Node:
         return self._node
 
-    def list_components(self):
-        return [
+    def list_components(self, type_id_filter: str | None = None) -> list[NodeComponent]:
+        all_components: list[NodeComponent] = [
             self.invisibleRootItem().child(row)
             for row in range(self.invisibleRootItem().rowCount())
+        ]
+        if type_id_filter is None:
+            return all_components
+        return [
+            component
+            for component in all_components
+            if component.TYPE_ID == type_id_filter
         ]
 
     def serialize(self):
@@ -44,9 +56,14 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
             self.appendRow(component)
             component.deserialize(component_data)
 
+    def create_component(self, type_id: str) -> NodeComponent:
+        component_cls = NYX_REGISTRY.get_node_component_cls(type_id=type_id)
+        return component_cls()
+
     def add_component(self, component: NodeComponent):
         component.name = self.get_unique_component_name(component.name)
         self.appendRow(component)
+        LOGGER.debug(f"Added new component: {component}")
 
     def remove_component(self, name: str):
         for component in self.list_components():

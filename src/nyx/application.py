@@ -5,7 +5,7 @@ from PySide6 import QtGui, QtWidgets
 
 import nyx.resources.resources_rc  # noqa: F401
 from nyx.core.layered_config import NyxConfig
-from nyx.api.v1 import plugin_manager
+from nyx.api.v1 import NyxPluginManager
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.utils import pyside_fn
 from nyx.version import __version__
@@ -14,9 +14,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NyxApplication(QtWidgets.QApplication):
-    def __init__(self) -> None:
+    def __init__(self, initialize_plugins=True) -> None:
         super().__init__(sys.argv)
         self._config = NyxConfig()
+        self._plugin_manager = NyxPluginManager()
         self._config.resolve()
         self._load_resources()
         self.setApplicationDisplayName("Nyx")
@@ -24,7 +25,8 @@ class NyxApplication(QtWidgets.QApplication):
         self.setApplicationVersion(__version__)
         LOGGER.setLevel(self.config.values.logging_level)
 
-        plugin_manager.initialize_plugins()
+        if initialize_plugins:
+            self._plugin_manager.initialize_plugins()
 
     @property
     def config(self) -> NyxConfig:

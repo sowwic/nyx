@@ -9,6 +9,7 @@ from nyx.core import Node
 from nyx.core import Stage
 from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
+from ..plugin_subsystem.registry import NYX_REGISTRY
 
 LOGGER = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class CreateNodeCommand(NyxCommand):
         self,
         stage: Stage,
         node_name: str = "node",
+        node_type_id: str | None = None,
         parent_path: str | pathlib.PurePosixPath | None = None,
         position: QtCore.QPointF = QtCore.QPointF(),
         parent: QtGui.QUndoCommand | None = None,
@@ -29,10 +31,16 @@ class CreateNodeCommand(NyxCommand):
         self.position = position
         self.parent_path = pathlib.PurePosixPath(parent_path) if parent_path else None
         self.node_name = node_name
+        self.node_type_id = node_type_id
         self.node_data: OrderedDict = None
 
+    def get_node_cls(self) -> type[Node]:
+        if not self.node_type_id:
+            return Node
+        return NYX_REGISTRY.get_node_cls(self.node_type_id) or Node
+
     def redo(self) -> None:
-        node = Node(name=self.node_name)
+        node = self.get_node_cls()(name=self.node_name)
         self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()
         if self.position:

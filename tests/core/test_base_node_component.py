@@ -1,16 +1,13 @@
 import pytest
 
 from nyx.core import Node, Stage
-from nyx.core.node_component._base_component import NodeComponent, EMPTY_LINKS_DICT
+from nyx.core.node_component._base_component import NodeComponent
 
 
 def test_init_base_component():
     cpnt = NodeComponent()
     cpnt.name == NodeComponent.DEFAULT_NAME
     cpnt.is_active is True
-    cpnt.is_readable is False
-    cpnt.is_writable is False
-    cpnt.links == EMPTY_LINKS_DICT
 
 
 def test_add_base_component_to_node():
@@ -21,6 +18,7 @@ def test_add_base_component_to_node():
     stage.add_node(node)
 
     assert component.as_path() == node.cached_path.with_suffix(f".{component.name}")
+
 
 def test_component_name_indexing():
     stage = Stage()

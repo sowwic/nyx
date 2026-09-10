@@ -1,7 +1,8 @@
 import dataclasses
-from typing import Self
+import typing
 
-from nyx.api.v1 import NodeComponent
+if typing.TYPE_CHECKING:
+    from nyx.api.v1 import Node, NodeComponent
 
 
 @dataclasses.dataclass()
@@ -17,6 +18,7 @@ class NyxPluginContents:
     node_components: list[type[NodeComponent]] = dataclasses.field(
         init=False, default_factory=list
     )
+    nodes: list[type[Node]] = dataclasses.field(init=False, default_factory=list)
 
 
 class NyxPluginInterface:
@@ -33,7 +35,7 @@ class NyxPluginInterface:
         self.contents = NyxPluginContents()
 
     @classmethod
-    def initialize(cls) -> Self:
+    def initialize(cls) -> typing.Self:
         raise NotImplementedError(
             "NyxPluginInterface based class must implement initialize() class method"
         )

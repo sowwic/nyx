@@ -12,6 +12,7 @@ from nyx.core.path_resolver import StagePathResolver
 from nyx.core.serializable import Serializable
 from nyx.core.stage_handler import StageHandler
 from nyx.utils import file_fn
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 
 if typing.TYPE_CHECKING:
     from nyx.core.commands import NyxCommand
@@ -177,10 +178,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             # Set unique name and check if path exist
             node.setText(unique_name)
             super().appendRow(node)
-            LOGGER.debug(f"{self} | Added {node} to root")
 
             node.cache_current_path()
             self._path_map[node.cached_path] = node
+            LOGGER.debug(f"{self} | Added {node} to root")
 
     def node(self, node: Node | pathlib.PurePosixPath | str | None) -> Node:
         """Get node instance.
@@ -284,7 +285,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         super().deserialize(data)
         # Deserialize nodes
         for top_node_data in data.get("nodes", {}):
-            top_node = Node()
+            node_class = NYX_REGISTRY.get_node_cls(top_node_data.get("type_id")) or Node
+            top_node = node_class()
             self.add_node(top_node)
             top_node.deserialize(top_node_data)
         # Extra data
