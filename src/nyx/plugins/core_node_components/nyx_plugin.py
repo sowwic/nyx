@@ -2,7 +2,7 @@ import typing
 import logging
 from nyx.api.v1 import plugin_manager, NyxPluginInterface
 
-from .node_component import ValueComponent
+from .value_component import ValueComponent
 
 
 LOGGER = logging.getLogger(__name__)
