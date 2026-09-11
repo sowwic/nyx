@@ -17,13 +17,14 @@ from nyx.editor.widgets import menubar_menus
 
 if typing.TYPE_CHECKING:
     from ..application import NyxEditorApplication
+    from ..core.layered_config import NyxConfig
 
 
 LOGGER = logging.getLogger(__name__)
 
 
 class NyxEditorMainWindow(QtWidgets.QMainWindow):
-    _INSTANCE: NyxEditorMainWindow = None  # ty: ignore
+    _INSTANCE: NyxEditorMainWindow = None
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
     MINIMUM_SIZE = (500, 400)
@@ -43,7 +44,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             cls._INSTANCE.raise_()
             cls._INSTANCE.activateWindow()
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self._is_nyx_editor_window = True
         self.setWindowTitle(self.DEFAULT_TITLE)
@@ -60,14 +61,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.apply_config_values()
 
     @property
-    def config(self) -> Config:
+    def config(self) -> NyxConfig:
         return self.application.config
 
     @property
     def current_stage_graph(self) -> StageGraphEditor | None:
         if not self.current_mdi_window:
             return None
-        return self.current_mdi_window.widget()  # ty: ignore
+        return self.current_mdi_window.widget()
 
     @property
     def current_mdi_window(self) -> QtWidgets.QMdiSubWindow | None:
@@ -75,7 +76,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @property
     def application(self):
-        app: NyxEditorApplication = QtWidgets.QApplication.instance()  # ty: ignore
+        app: NyxEditorApplication = QtWidgets.QApplication.instance()
         return app
 
     def create_actions(self):
@@ -186,16 +187,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def apply_config_values(self):
         """Apply values from application config."""
         self.resize(QtCore.QSize(*self.config.values.main_window.size))
-        if not self.config.values.main_window.position:
-            center_position: QtCore.QPoint = (
-                self.pos()
-                + QtWidgets.QApplication.primaryScreen().geometry().center()
-                - self.geometry().center()
-            )
-            self.config.values.main_window.position = (
-                center_position.x(),
-                center_position.y(),
-            )
         self.move(QtCore.QPoint(*self.config.values.main_window.position))
 
         # TODO: add always on top toggle
@@ -207,7 +198,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.config.reset()
         self.apply_config_values()
 
-    def create_stage_node_graph(self, stage=None, file_path: pathlib.Path | str = None):
+    def create_stage_node_graph(
+        self, stage=None, file_path: pathlib.Path | str | None = None
+    ):
         if file_path:
             graph_widget = StageGraphEditor.from_json_file(file_path)
         else:
@@ -230,7 +223,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(title)
 
     @QtCore.Slot(QtWidgets.QMdiSubWindow)
-    def on_node_graph_window_activated(self, mdi_window: QtWidgets.QMdiSubWindow):
+    def on_node_graph_window_activated(self, mdi_window: QtWidgets.QMdiSubWindow | None):
         if mdi_window is None:
             self.stage_tree_view.set_stage(None)
             self.undo_group.setActiveStack(None)

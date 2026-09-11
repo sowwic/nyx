@@ -34,7 +34,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         EDGE_CUT = enum.auto()
 
     def __init__(
-        self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget = None
+        self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget | None = None
     ) -> None:
         super().__init__(graph_editor.gr_stage, parent=parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -435,7 +435,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
             LOGGER.warning("No nodes found in the clipboard!")
             return
 
-        # gr_view_center_position = self.current_stage_graph.gr_view.get_center_position()
         parent_node = self.stage.node(self.graph_editor.get_scope_path())
         position = self.last_scene_mouse_pos
         paste_cmd = commands.PasteNodesCommand(
@@ -454,7 +453,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
         mid_point = QtCore.QPointF()
         for gr_node in selected_nodes:
             mid_point += gr_node.pos()
-        mid_point /= len(selected_nodes)
+
+        n = len(selected_nodes)
+        mid_point = QtCore.QPointF(mid_point.x() / n, mid_point.y() / n)
         self.centerOn(mid_point)
 
     def set_selected_node_as_parent_execution_start(self):

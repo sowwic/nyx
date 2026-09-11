@@ -28,10 +28,10 @@ class StageHandler:
         """Build execution queue from given path.
 
         Args:
-            start_path (Node | str | pathlib.PurePosixPath | None, optional): queue start path. Defaults to None.
+            start_path: queue start path.
 
         Returns:
-            deque[pathlib.PurePosixPath]: resulting queue
+            Resulting queue
 
         """
         # TODO: Use from graphlib import TopologicalSorter to get list from tree.
@@ -53,7 +53,7 @@ class StageHandler:
         """Build queue and run it.
 
         Args:
-            start_path ("Node | str | pathlib.PurePosixPath | None, optional): execution start path. Defaults to None.
+            start_path: execution start path.
 
         """
         exec_queue = self.build_execution_queue(start_path=start_path)

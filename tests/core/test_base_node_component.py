@@ -1,4 +1,3 @@
-import pytest
 
 from nyx.core import Node, Stage
 from nyx.core.node_component._base_component import NodeComponent

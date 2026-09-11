@@ -10,7 +10,7 @@ class DirectoryStruct(abc.ABC):
         """Create directory for each path field.
 
         Args:
-            exist_ok (bool, optional): Skip directory if already exists. Defaults to True.
+            exist_ok: Skip directory if already exists
 
         """
         for dir_path in self.list_dirs():
@@ -64,8 +64,8 @@ def write_json(
 
 
 def load_json(
-    path: pathlib.Path | str = None,
-    input_str: str = None,
+    path: pathlib.Path | str | None = None,
+    input_str: str | None = None,
     object_pairs_hook=None,
 ):
     """Load json data from file or string.
@@ -97,5 +97,5 @@ def is_jsonable(obj):
     try:
         json.dumps(obj)
         return True
-    except (TypeError, OverflowError):
+    except TypeError, OverflowError:
         return False

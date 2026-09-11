@@ -71,8 +71,8 @@ class StagePathResolver:
         """Compute absolute path from given anchor and relative paths.
 
         Args:
-            anchor_path (pathlib.PurePosixPath | str): anchor path to start computation from
-            rel_path (pathlib.PurePosixPath | str): relative path
+            anchor_path: anchor path to start computation from
+            rel_path: relative path
 
         Raises:
             ValueError: anchor_path is not absolute

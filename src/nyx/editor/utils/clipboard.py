@@ -15,12 +15,12 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
-def serialize_nodes_to_clipboard(nodes: Sequence[Node], delete=False):
+def serialize_nodes_to_clipboard(nodes: Sequence[Node], delete: bool = False) -> None:
     """Serialize nodes to clipboard. If delete is True, perform cut operation.
 
     Args:
-        nodes (Sequence[Node]): Nodes to serialize.
-        delete (bool, optional): Whether to delete nodes after serialization. Defaults to False.
+        nodes: Nodes to serialize.
+        delete: Whether to delete nodes after serialization.
     """
     data = {}
     serialized_nodes = []

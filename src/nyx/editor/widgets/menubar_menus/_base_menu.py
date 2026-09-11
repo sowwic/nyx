@@ -10,7 +10,7 @@ class BaseMenu(QtWidgets.QMenu):
     def __init__(
         self, main_window: NyxEditorMainWindow, title: str = "Menu", parent=None
     ):
-        super(BaseMenu, self).__init__(title, parent)
+        super().__init__(title, parent)
         self._main_window = main_window
 
         self.setTearOffEnabled(True)

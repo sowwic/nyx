@@ -23,14 +23,17 @@ LOGGER = logging.getLogger(__name__)
 
 
 class GraphicsStage(QtWidgets.QGraphicsScene):
-    """GraphicsStage is a QGraphicsScene that manages the visual representation of nodes and edges in the graph editor."""
+    """`GraphicsStage` is a `QGraphicsScene` that manages
+    the visual representation of nodes and edges in the graph editor."""
 
-    def __init__(self, graph_editor: StageGraphEditor, parent=None):
+    def __init__(
+        self, graph_editor: StageGraphEditor, parent: QtCore.QObject | None = None
+    ):
         """Initializes the GraphicsStage with the given graph editor and parent.
 
         Args:
-            graph_editor (StageGraphEditor): The graph editor associated with this graphics stage.
-            parent (QObject, optional): The parent object for this graphics stage. Defaults to None.
+            graph_editor: The graph editor associated with this graphics stage.
+            parent (QObject, optional): The parent object for this graphics stage.
         """
         super().__init__(parent=parent)
 
@@ -41,7 +44,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.grid_size = 20
         self.grid_squares = 5
         self.scene_width = self.scene_height = 64000
-        # ? Note: calling self.setSceneRect(QtCore.QRect) again disables QGraphicsView scrolling
+        # NOTE: calling self.setSceneRect(QtCore.QRect) again disables view scrolling
         self.set_scene_size(self.scene_width, self.scene_height)
         # Colors
         self._color_background = QtGui.QColor("#393939")
@@ -166,7 +169,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def add_node(self, node: Node | pathlib.PurePosixPath | str):
         """Adds a GraphicsNode item to the scene for the given node.
         Args:
-            node (Node | pathlib.PurePosixPath | str): The node to create a GraphicsNode for.
+            node: The node to create a GraphicsNode for.
         """
         node = self.stage.node(node)
         gr_node = GraphicsNode(node)
@@ -179,7 +182,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             self.add_node(node)
 
     def build_edges(self, scope_node: Node):
-        """Builds GraphicsEdge items for all connections between child nodes of the given scope node."""
+        """
+        Builds GraphicsEdge items for all connections between child nodes for given node.
+        """
         # TODO: Build graphics edges
         pass
 

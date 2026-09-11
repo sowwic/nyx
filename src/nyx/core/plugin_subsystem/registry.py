@@ -93,7 +93,10 @@ class NyxRegistry:
         for node_component_cls in plugin_entry.plugin_instance.contents.node_components:
             if node_component_cls.TYPE_ID in self.node_components:
                 LOGGER.error(
-                    "Failed to register component class %s - TYPE_ID %s is already registered as %s",
+                    (
+                        "Failed to register component class %s - "
+                        "TYPE_ID %s is already registered as %s"
+                    ),
                     node_component_cls.__name__,
                     node_component_cls.TYPE_ID,
                     self.node_components[node_component_cls.TYPE_ID],
@@ -112,7 +115,10 @@ class NyxRegistry:
         for node_cls in plugin_entry.plugin_instance.contents.nodes:
             if node_cls.TYPE_ID in self.nodes:
                 LOGGER.error(
-                    "Failed to register node class %s - TYPE_ID %s is already registered as %s",
+                    (
+                        "Failed to register node class %s - "
+                        "TYPE_ID %s is already registered as %s"
+                    ),
                     node_cls.__name__,
                     node_cls.TYPE_ID,
                     self.nodes[node_cls.TYPE_ID],

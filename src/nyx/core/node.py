@@ -305,7 +305,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """List parents recursively.
 
         Args:
-            as_queue (bool, optional): if result should be returned as deque. Defaults to False.
+            as_queue: If result should be returned as deque. Defaults to False.
 
         Returns:
             list[Node] | deque[Node]: parent nodes collection.
@@ -327,7 +327,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """Get path for the node that is set as execution dependency.
 
         Args:
-            serializable (bool, optional): Return value is serializable. Defaults to False.
+            serializable: Return value is serializable.
 
         Returns:
             pathlib.PurePosixPath | str | None: Execution dependency node path.
@@ -344,7 +344,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """Get path for the node that is execution dependee of this node.
 
         Args:
-            serializable (bool, optional): Return value is serializable. Defaults to False.
+            serializable: Return value is serializable.
 
         Returns:
             pathlib.PurePosixPath | str | None: Execution dependee node path.
@@ -606,7 +606,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """Get execution start path. Can be child path or None.
 
         Args:
-            serializable (bool, optional): get path as jsonable str or None. Defaults to False.
+            serializable: get path as jsonable str or None.
 
         Returns:
             pathlib.PurePosixPath | str | None: execution start path

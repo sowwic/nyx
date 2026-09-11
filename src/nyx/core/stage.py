@@ -208,7 +208,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def add_node(
         self,
         node: Node | list[Node],
-        parent: Node | pathlib.PurePosixPath | str = None,
+        parent: Node | pathlib.PurePosixPath | str | None = None,
     ):
         """Adds new node as root node.
 
@@ -387,6 +387,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self._execution_start_path = start_path
         LOGGER.info(f"{self} | Set execution start path to {start_path}")
 
+    # TODO: Deprecate when input/output nodes are introduced
     def set_execution_start_path(
         self,
         for_node: Node | pathlib.PurePosixPath | str,
@@ -395,8 +396,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         """Utility method for setting execution for either stage or node.
 
         Args:
-            for_node (Node | pathlib.PurePosixPath | str): set execution path for this node. If None - path will be set for stage.
-            start_path (Node | pathlib.PurePosixPath | str): new execution start path.
+            for_node: Set execution path for this node.
+            start_path: New execution start path.
 
         """
         if not isinstance(start_path, pathlib.PurePosixPath):
@@ -432,8 +433,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         """Get execution start path for stage or node.
 
         Args:
-            for_node (Node | str | pathlib.PurePosixPath | None): Object to get start execution path for. None will get stage's path.
-            serializable (bool, optional): get resulting path in jsonable form. Defaults to False.
+            for_node: Object to get start execution path for. None will get stage's path.
+            serializable: Get resulting path in jsonable form.
 
         Returns:
             : _description_
@@ -492,7 +493,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         serialized_node["children"] = serialized_stage.get("nodes", [])
         stage_exec_start_path = serialized_stage["execution_start_path"]
         if stage_exec_start_path:
-            rel_exec_start_path = Resolver.compute_relative_path(
+            rel_exec_start_path = StagePathResolver.compute_relative_path(
                 Stage.ROOT_ITEM_PATH, stage_exec_start_path
             )
             serialized_node["execution_start_path"] = rel_exec_start_path

@@ -2,13 +2,11 @@ import os
 import pathlib
 import pytest
 import logging
-import functools
 
 from PySide6 import QtWidgets
 
 from nyx.core.logger import NyxLogger
 from nyx.application import NyxApplication
-from nyx.api.v1 import NyxPluginManager, NYX_REGISTRY
 
 logging.setLoggerClass(NyxLogger)
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")

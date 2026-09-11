@@ -15,4 +15,5 @@ __all__ = [
     "NyxPluginInterface",
     "NYX_REGISTRY",
     "commands",
+    "test_helpers",
 ]

@@ -1,5 +1,4 @@
 import typing
-from collections import deque
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -76,9 +75,12 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: QtWidgets.QWidget | None = None,
     ) -> None:
-        # self.title_item.setVisible(self.node.scene.view.zoom > self.TEXT_ZOOM_OUT_LIMIT)
+        # TODO: Adjust title visibility based on scale
+        # self.title_item.setVisible(
+        #     self.node.scene.view.zoom > self.TEXT_ZOOM_OUT_LIMIT
+        # )
 
         # title
         path_title = QtGui.QPainterPath()
