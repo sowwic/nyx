@@ -17,7 +17,7 @@ class StagePathResolver:
             bool: is absolute
 
         """
-        return os.path.isabs(path)
+        return pathlib.PurePosixPath(path).is_absolute()
 
     @staticmethod
     def is_relative_path(path: pathlib.PurePosixPath | str):
