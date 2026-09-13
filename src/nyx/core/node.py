@@ -29,6 +29,7 @@ class Node(QtGui.QStandardItem, Serializable):
     TRACK_NYX_VERSION = True
 
     class Roles(enum.IntEnum):
+        # TODO:: Move to enums module
         INPUT_EXEC = QtCore.Qt.UserRole + 1
         OUTPUT_EXEC = enum.auto()
         ACTIVE_ROLE = enum.auto()

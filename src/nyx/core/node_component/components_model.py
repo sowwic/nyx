@@ -1,6 +1,7 @@
 import typing
 import logging
-from PySide6 import QtGui
+from PySide6 import QtGui, QtCore
+from collections.abc import Iterator
 
 from ..serializable import Serializable
 from ._base_component import NodeComponent
@@ -61,7 +62,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         return component_cls()
 
     def add_component(self, component: NodeComponent):
-        component.name = self.get_unique_component_name(component.name)
+        component.name = self.compose_unique_component_name(component.name)
         self.appendRow(component)
         LOGGER.debug(f"Added new component: {component}")
 
@@ -71,7 +72,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
                 self.removeRow(component.row())
                 return
 
-    def get_unique_component_name(self, name: str) -> str:
+    def compose_unique_component_name(self, name: str) -> str:
         """Returns a unique name for the component, indexed if it already exists."""
         existing_names = [component.name for component in self.list_components()]
         index = 1
@@ -80,3 +81,34 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
             index += 1
 
         return name
+
+    def get_component(self, name: str) -> NodeComponent | None:
+        """Get component from name.
+
+        Args:
+            name: component name
+
+        Returns:
+            NodeComponent instance if found, otherwise None
+        """
+        hits = self.match(
+            self.index(0, 0),
+            NodeComponent.Roles.NAME,
+            name,
+            hits=-1,
+            flags=QtCore.Qt.MatchFlag.MatchExactly,
+        )
+        result_items = (self.itemFromIndex(index) for index in hits)
+        return next(result_items, None)
+
+    def find_components_of_type(self, type_id: str) -> Iterator[NodeComponent]:
+        component_cls: NodeComponent = NYX_REGISTRY.get_node_component_cls(type_id)
+        if not component_cls:
+            raise TypeError(
+                f"Component of type {type_id} is not found in NYX_REGISTRY."
+                f"Available types: {NYX_REGISTRY.node_components.keys()}"
+            )
+        for row in range(self.rowCount()):
+            component: NodeComponent = self.item(row, 0)
+            if isinstance(component, component_cls):
+                yield component

@@ -29,6 +29,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
     HIGH_QUALITY_ZOOM = 4
 
     class InteractionMode(enum.Enum):
+        # TODO: Move to enums module
         NOOP = enum.auto()
         EDGE_DRAG = enum.auto()
         EDGE_CUT = enum.auto()

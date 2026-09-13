@@ -15,6 +15,7 @@ class NyxPluginContents:
         node_components: List of NodeComponent classes
     """
 
+    namespace: str = ""
     node_components: list[type[NodeComponent]] = dataclasses.field(
         init=False, default_factory=list
     )

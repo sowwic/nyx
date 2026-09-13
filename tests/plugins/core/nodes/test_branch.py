@@ -7,7 +7,7 @@ from nyx.api.v1 import test_helpers
 def test_branch_node_creation():
     """Test creating new branch node with default parameters."""
     stage = Stage()
-    command = commands.CreateNodeCommand(stage=stage, node_type_id="branch")
+    command = commands.CreateNodeCommand(stage=stage, node_type_id="core:branch")
     stage.push_command(command)
     expected_path = "/node"
 
@@ -15,5 +15,11 @@ def test_branch_node_creation():
 
     assert result_node is not None
     assert result_node.TYPE_ID == "branch"
-    assert len(result_node.components_model.list_components(type_id_filter="flow")) == 1
-    assert len(result_node.components_model.list_components(type_id_filter="value")) == 1
+    assert (
+        next(result_node.components_model.find_components_of_type("core:flow"))
+        is not None
+    )
+    assert (
+        next(result_node.components_model.find_components_of_type("core:value"))
+        is not None
+    )

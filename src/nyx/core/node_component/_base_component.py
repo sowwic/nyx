@@ -18,8 +18,10 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     CATEGORY: pathlib.PurePosixPath | None = None
 
     class Roles(enum.IntEnum):
+        # TODO: move to enums module
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
-        VALUE = QtCore.Qt.ItemDataRole.UserRole + 1
+        TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
+        VALUE = enum.auto()
         IS_ACTIVE = enum.auto()
 
     def __init__(
@@ -43,6 +45,10 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def name(self) -> str:
         return self.data(self.Roles.NAME)
 
+    @property
+    def type_id(self) -> str:
+        return self.data(self.Roles.TYPE_ID)
+
     @name.setter
     def name(self, new_name: str):
         self.setData(new_name, self.Roles.NAME)
@@ -64,6 +70,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         self.setData(state, self.Roles.IS_ACTIVE)
 
     def init_default_data_values(self):
+        self.setData(self.TYPE_ID, self.Roles.TYPE_ID)
         self.is_active = True
         self.value = None
 

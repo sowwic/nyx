@@ -6,6 +6,7 @@ from PySide6 import QtCore
 
 
 class LogFormat(enum.Enum):
+    # TODO: Move to enums module
     """Enum of log format strings."""
 
     minimal = "[%(levelname)s] %(message)s"

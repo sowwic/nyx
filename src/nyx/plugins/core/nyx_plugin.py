@@ -17,6 +17,7 @@ class NyxCore(NyxPluginInterface):
     @classmethod
     def initialize(cls) -> typing.Self:
         plugin = cls()
+        plugin.contents.namespace = "core"
         plugin.contents.node_components = [FlowComponent, ValueComponent]
         plugin.contents.nodes = [BranchNode]
 
