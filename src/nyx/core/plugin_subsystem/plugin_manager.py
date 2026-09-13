@@ -94,20 +94,13 @@ class NyxPluginManager:
         """
         return NYX_REGISTRY.plugins.get(name)
 
-    def initialize_plugins(
-        self, include: list[str] | None = None, exclude: list[str] | None = None
-    ):
+    def initialize_plugins(self, include: list[str] | None = None):
         """Iterate over registry and initialize each plugin."""
         NYX_REGISTRY.clear()
         self.loader.load_plugins_from_paths()
 
         for plugin_entry in NYX_REGISTRY.iter_plugin_entries():
-            if include and plugin_entry.plugin_cls.NAME in include:
-                plugin_entry.enabled = True
-            else:
-                plugin_entry.enabled = False
-
-            if exclude and plugin_entry.plugin_cls.NAME in exclude:
+            if include and plugin_entry.plugin_cls.NAME not in include:
                 plugin_entry.enabled = False
 
             if not plugin_entry.enabled:
