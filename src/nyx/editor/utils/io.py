@@ -5,8 +5,10 @@ from collections import OrderedDict
 
 from PySide6 import QtWidgets
 
-from nyx.core import Stage, commands, constants
-from nyx.utils import file_fn, pyside_fn
+from ...core import commands
+from ...core.stage import Stage
+from ...static.vars import NYX_FILE_FILTER, NYX_FILE_EXTENSION
+from ...utils import file_fn, pyside_fn
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection
@@ -28,7 +30,7 @@ def export_selected_nodes():
         file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=main_window,
             caption=f"Export {node.name} as...",
-            filter=constants.NYX_FILE_FILTER,
+            filter=NYX_FILE_FILTER,
         )
         if not file_path:
             return
@@ -40,7 +42,7 @@ def export_selected_nodes():
         )
         for node in selected_nodes:
             file_path = (pathlib.Path(dir_path) / node.name).with_suffix(
-                constants.NYX_FILE_EXTENSION
+                NYX_FILE_EXTENSION
             )
             node.export_to_json(file_path)
             LOGGER.info(f"Exported node {file_path}")
@@ -92,7 +94,7 @@ def import_nodes_from_explorer(as_reference=False):
         return
 
     file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
-        parent=main_window, caption="Select nodes", filter=constants.NYX_FILE_FILTER
+        parent=main_window, caption="Select nodes", filter=NYX_FILE_FILTER
     )
     if not file_paths:
         return

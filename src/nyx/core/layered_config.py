@@ -3,7 +3,7 @@ import logging
 from pydantic.dataclasses import Field
 from json_config.api import ConfigLayer, ConfigValues, LayeredConfig
 
-from .constants import USER_CONFIG_FILE_PATH
+from ..static.paths import USER_CONFIG_FILE_PATH
 
 
 class NyxMainWindowConfigValues(ConfigValues):

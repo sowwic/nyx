@@ -7,11 +7,11 @@ from collections import OrderedDict, deque
 
 from PySide6 import QtCore, QtGui
 
-from nyx.core import constants
-from nyx.core.node_component.components_model import NodeComponentsModel
-from nyx.core.serializable import Serializable
-from nyx.utils import file_fn, inspect_fn
-from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
+from .node_component.components_model import NodeComponentsModel
+from .serializable import Serializable
+from .plugin_subsystem.registry import NYX_REGISTRY
+from ..utils import file_fn, inspect_fn
+from ..static.vars import NYX_FILE_EXTENSION
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
@@ -550,7 +550,7 @@ class Node(QtGui.QStandardItem, Serializable):
     def _load_reference_file_data(self) -> OrderedDict:
         data = OrderedDict()
         try:
-            if self.reference_file_path.suffix == constants.NYX_FILE_EXTENSION:
+            if self.reference_file_path.suffix == NYX_FILE_EXTENSION:
                 data = file_fn.load_json(
                     self.reference_file_path, object_pairs_hook=OrderedDict
                 )

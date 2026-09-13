@@ -1,7 +1,8 @@
 import logging
 import sys
 
-from .constants import APP_DATA_DIR, DEBUG
+from ..static.paths import APP_DATA_DIR
+from ..static.vars import DEBUG
 
 
 class NyxLogger(logging.Logger):
