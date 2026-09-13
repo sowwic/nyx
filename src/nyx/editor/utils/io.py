@@ -9,10 +9,10 @@ from ...core import commands
 from ...core.stage import Stage
 from ...static.vars import NYX_FILE_FILTER, NYX_FILE_EXTENSION
 from ...utils import file_fn, pyside_fn
+from ...utils.profiling import profile
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection
-
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 
@@ -48,6 +48,7 @@ def export_selected_nodes():
             LOGGER.info(f"Exported node {file_path}")
 
 
+@profile(name="Nodes imported", text="{name} in {seconds:.4f}s")
 def _import_nodes(
     stage_graph: StageGraphEditor,
     file_paths: Collection[str] | Collection[pathlib.Path],
@@ -69,15 +70,18 @@ def _import_nodes(
 
     # Paste command
     paste_position = stage_graph.gr_view.get_center_position()
-    parent_node_path = stage_graph.get_scope_path()
+    parent_node = stage_graph.stage.node(stage_graph.get_scope_path())
     paste_command = commands.PasteNodesCommand(
         stage=stage_graph.stage,
         serialize_nodes=serialized_nodes,
         position=paste_position,
-        parent_node=parent_node_path,
+        parent_node=parent_node,
     )
     command_name = "Reference" if as_reference else "Import"
     if len(serialized_nodes) == 1:
+        parent_node_path = (
+            parent_node.cached_path if parent_node else stage_graph.stage.ROOT_ITEM_PATH
+        )
         paste_command.setText(
             f"{command_name} node ({parent_node_path / serialized_nodes[0].get('name')})"
         )

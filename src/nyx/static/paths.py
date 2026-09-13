@@ -11,3 +11,4 @@ APP_DATA_DIR = platformdirs.user_data_path(
 CONFIG_FILE_PATH = APP_DATA_DIR / "config.json"
 USER_CONFIG_FILE_PATH = APP_DATA_DIR / "user_config.json"
 LOGS_DIRECTORY = APP_DATA_DIR / "logs"
+PROFILING_DIR = APP_DATA_DIR / "profiling"

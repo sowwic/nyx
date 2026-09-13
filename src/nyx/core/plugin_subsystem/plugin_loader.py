@@ -6,6 +6,8 @@ import os
 import importlib.util
 from importlib.machinery import ModuleSpec
 
+from ...utils.profiling import profile
+
 
 LOGGER = logging.getLogger("NyxPluginLoader")
 
@@ -141,7 +143,10 @@ class NyxPluginLoader:
         LOGGER.debug(f"Collected plugin files: {result}")
         return result
 
+    @profile(text="Plugins loaded in {seconds:.4f}s")
     def load_plugins_from_paths(self):
         """Find and load plugins from loader source paths."""
-        for plugin_dir in self.collect_plugins_from_paths():
+        collected_plugins_dirs = self.collect_plugins_from_paths()
+        for plugin_dir in collected_plugins_dirs:
             self.load_plugin(plugin_dir)
+        LOGGER.info(f"Total number of plugins: {len(collected_plugins_dirs)}")

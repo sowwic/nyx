@@ -4,7 +4,7 @@ import typing
 from .plugin_loader import NyxPluginLoader
 from .plugin_interface import NyxPluginInterface
 from .registry import NYX_REGISTRY, NyxPluginRegistryEntry
-
+from ...utils.profiling import profile
 
 LOGGER = logging.getLogger("NyxPluginManager")
 
@@ -94,11 +94,13 @@ class NyxPluginManager:
         """
         return NYX_REGISTRY.plugins.get(name)
 
+    @profile(text="Plugins initialized in {seconds:.4f}s")
     def initialize_plugins(self, include: list[str] | None = None):
         """Iterate over registry and initialize each plugin."""
         NYX_REGISTRY.clear()
         self.loader.load_plugins_from_paths()
 
+        initialization_counter = 0
         for plugin_entry in NYX_REGISTRY.iter_plugin_entries():
             if include and plugin_entry.plugin_cls.NAME not in include:
                 plugin_entry.enabled = False
@@ -107,5 +109,10 @@ class NyxPluginManager:
                 continue
 
             plugin_entry.initialize()
+            initialization_counter += 1
             LOGGER.info(f"Initialized plugin: {plugin_entry.plugin_cls.NAME}")
+
+        LOGGER.info(
+            f"Initialized {initialization_counter}/{len(NYX_REGISTRY.plugins)} plugins"
+        )
         NYX_REGISTRY.register_plugin_content()

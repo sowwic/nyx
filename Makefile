@@ -80,6 +80,10 @@ mkdocs: ## Serves the MkDocs documentation locally
 .PHONY: check
 check: lint pytest ## Runs linting and tests
 
+.PHONY: pstats
+pstats: ## Open profiler stats dir using snakeviz
+	snakeviz "$$(python -c 'from nyx.static.paths import PROFILING_DIR; print(PROFILING_DIR)')"
+
 .PHONY: qrc
 qrc: ## Generates Python resources from the Qt resource file
 	$(call banner, Generating QRC resources...)

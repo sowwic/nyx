@@ -49,7 +49,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         return widget
 
     @property
-    def stage(self):
+    def stage(self) -> Stage:
         return self._stage
 
     @property

@@ -14,7 +14,8 @@ packages = [
 dependencies = [
     "pyside6>=6.10.0",
     "platformdirs>=4.5.0",
-    "json-config"
+    "json-config",
+    "codetiming>=1.4.0",
 ]
 
 [build-system]

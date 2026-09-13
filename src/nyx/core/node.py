@@ -101,7 +101,7 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.parent().path / self.name
 
     @property
-    def cached_path(self):
+    def cached_path(self) -> pathlib.PurePosixPath:
         return self._cached_path
 
     @property
