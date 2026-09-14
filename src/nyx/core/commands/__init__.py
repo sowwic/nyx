@@ -6,14 +6,6 @@ from .set_node_active_state import SetNodeActiveStateCommand
 from .paste_nodes import PasteNodesCommand
 from .move_node import MoveNodeCommand
 
-# TODO: Remove once fully deprecated
-from .deprecated import (
-    SetNodeExecStartCommand,
-    ConnectNodeExecCommand,
-    DisconnectNodeInputExecCommand,
-    SetNodeCommentCommand,
-)
-
 __all__ = [
     "NyxCommand",
     "CreateNodeCommand",
@@ -22,9 +14,4 @@ __all__ = [
     "SetNodeActiveStateCommand",
     "PasteNodesCommand",
     "MoveNodeCommand",
-    # TODO: Remove once deprecated
-    "SetNodeExecStartCommand",
-    "ConnectNodeExecCommand",
-    "DisconnectNodeInputExecCommand",
-    "SetNodeCommentCommand",
 ]

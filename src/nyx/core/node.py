@@ -25,17 +25,11 @@ LOGGER = logging.getLogger(__name__)
 class Node(QtGui.QStandardItem, Serializable):
     TYPE_ID = ""
     CATEGORY = ""
-    METADATA = {"type": "node"}
     TRACK_NYX_VERSION = True
 
     class Roles(enum.IntEnum):
-        # TODO:: Move to enums module
-        INPUT_EXEC = QtCore.Qt.UserRole + 1
-        OUTPUT_EXEC = enum.auto()
-        ACTIVE_ROLE = enum.auto()
-        EXECUTION_START_PATH = enum.auto()
+        ACTIVE_ROLE = QtCore.Qt.UserRole + 1
         POSITION = enum.auto()
-        COMMENT = enum.auto()
         REFERENCE_FILE_PATH = enum.auto()
 
     def __init__(
@@ -65,12 +59,8 @@ class Node(QtGui.QStandardItem, Serializable):
         return hash(self.path)
 
     def _set_default_role_values(self):
-        self.setData(None, role=Node.Roles.INPUT_EXEC)
-        self.setData(None, role=Node.Roles.OUTPUT_EXEC)
         self.setData(True, role=Node.Roles.ACTIVE_ROLE)
-        self.setData(None, role=Node.Roles.EXECUTION_START_PATH)
         self.setData(QtCore.QPointF(), role=Node.Roles.POSITION)
-        self.setData("", role=Node.Roles.COMMENT)
         self.setData(None, role=Node.Roles.REFERENCE_FILE_PATH)
 
     @property
@@ -327,161 +317,6 @@ class Node(QtGui.QStandardItem, Serializable):
         """Delete this node from stage."""
         self.stage.delete_node(self)
 
-    def get_input_exec_path(
-        self, serializable=False
-    ) -> pathlib.PurePosixPath | str | None:
-        """Get path for the node that is set as execution dependency.
-
-        Args:
-            serializable: Return value is serializable.
-
-        Returns:
-            pathlib.PurePosixPath | str | None: Execution dependency node path.
-
-        """
-        path: pathlib.PurePosixPath = self.data(role=Node.Roles.INPUT_EXEC)
-        if path is None or not serializable:
-            return path
-        return path.as_posix()
-
-    def get_output_exec_path(
-        self, serializable=False
-    ) -> pathlib.PurePosixPath | str | None:
-        """Get path for the node that is execution dependee of this node.
-
-        Args:
-            serializable: Return value is serializable.
-
-        Returns:
-            pathlib.PurePosixPath | str | None: Execution dependee node path.
-
-        """
-        path: pathlib.PurePosixPath = self.data(role=Node.Roles.OUTPUT_EXEC)
-        if path is None or not serializable:
-            return path
-        return path.as_posix()
-
-    def is_input_exec_cyclic(
-        self, other_node: Node | pathlib.PurePosixPath | str
-    ) -> bool:
-        other_node = self.stage.node(other_node)
-        return other_node.get_input_exec_path() == self.path
-
-    def set_input_exec_path(
-        self, path: pathlib.PurePosixPath | str | Node, silent=False
-    ) -> None:
-        """Set given node as execution dependency.
-
-        Args:
-            path (pathlib.PurePosixPath | str | Node): Node instance or path.
-            silent (bool, optional): Do not notify other nodes of the change,
-            and just set data. Defaults to False.
-
-        Raises:
-            TypeError: Invalid input provided.
-
-        """
-        if isinstance(path, Node):
-            path = path.path
-        elif isinstance(path, pathlib.PurePosixPath):
-            pass
-        elif isinstance(path, str):
-            path = pathlib.PurePosixPath(path)
-        elif path is None:
-            pass
-        else:
-            LOGGER.error(f"{self} | Invalid input exec path: {path}")
-            raise TypeError("Invalid input exec path type")
-
-        if silent:
-            self.setData(path, role=Node.Roles.INPUT_EXEC)
-            return
-
-        new_input_exec_node: Node = self.stage.node(path)
-        previous_input_exec_node = self.stage.node(self.get_input_exec_path())
-        if new_input_exec_node == previous_input_exec_node:
-            LOGGER.debug(f"{self} | exec output set to {path}")
-            return
-
-        if new_input_exec_node and new_input_exec_node.scope != self.scope:
-            LOGGER.error(
-                f"{self} | Invalid new input scope: {new_input_exec_node.scope}"
-            )
-            return
-
-        # Set connections
-        if new_input_exec_node is None:
-            self.setData(None, role=Node.Roles.INPUT_EXEC)
-        else:
-            self.setData(new_input_exec_node.path, role=Node.Roles.INPUT_EXEC)
-
-        # Reset old input node
-        if previous_input_exec_node is not None:
-            previous_input_exec_node.set_output_exec_path(None, silent=True)
-
-        # Get path from new node to self
-        # If its different from self.path -> store new path
-        if new_input_exec_node is not None:
-            if new_input_exec_node.get_output_exec_path() != self.path:
-                new_input_exec_node.set_output_exec_path(self.path)
-
-    def set_output_exec_path(
-        self, path: pathlib.PurePosixPath | str | Node, silent=False
-    ) -> None:
-        """Set given node as execution dependee.
-
-        Args:
-            path (pathlib.PurePosixPath | str | Node): Dependee node instance or path.
-            silent (bool, optional): Do not notify other nodes of the change,
-            and just set data. Defaults to False.
-
-        Raises:
-            TypeError: Invalid input provided.
-
-        """
-        if isinstance(path, Node):
-            path = path.path
-        elif isinstance(path, pathlib.PurePosixPath):
-            pass
-        elif isinstance(path, str):
-            path = pathlib.PurePosixPath(path)
-        elif path is None:
-            pass
-        else:
-            LOGGER.error(f"{self} | Invalid output exec path: {path}")
-            raise TypeError("Invalid output exec path type")
-
-        if silent:
-            self.setData(path, role=Node.Roles.OUTPUT_EXEC)
-            return
-
-        new_output_exec_node = self.stage.node(path)
-        previous_output_exec_node = self.stage.node(self.get_output_exec_path())
-        if new_output_exec_node == previous_output_exec_node:
-            LOGGER.debug(f"{self} | exec output set to {path}")
-            return
-
-        if new_output_exec_node and new_output_exec_node.scope != self.scope:
-            LOGGER.error(
-                f"{self} | Invalid new output scope: {new_output_exec_node.scope}"
-            )
-            return
-        # Set connections
-        if new_output_exec_node is None:
-            self.setData(None, role=Node.Roles.OUTPUT_EXEC)
-        else:
-            self.setData(new_output_exec_node.path, role=Node.Roles.OUTPUT_EXEC)
-
-        # Reset old output node
-        if previous_output_exec_node is not None:
-            previous_output_exec_node.set_input_exec_path(None, silent=True)
-
-        # Get path from new node to self
-        # If its different from self.path -> store new path
-        if new_output_exec_node is not None:
-            if new_output_exec_node.get_output_exec_path() != self.path:
-                new_output_exec_node.set_input_exec_path(self.path)
-
     def add_component(self, node_component: NodeComponent):
         self.components_model.add_component(node_component)
 
@@ -502,17 +337,11 @@ class Node(QtGui.QStandardItem, Serializable):
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
         data["path"] = self.path.as_posix()
-        data["input_exec"] = self.get_input_exec_path(serializable=True)
-        data["output_exec"] = self.get_output_exec_path(serializable=True)
         data["required_plugins"] = self.REQUIRED_PLUGINS
         if self.reference_file_path is not None:
             data["reference_file_path"] = self.reference_file_path.as_posix()
         else:
-            data["execution_start_path"] = self.get_execution_start_path(
-                serializable=True
-            )
             data["children"] = children
-            data["comment"] = self.comment()
         data.update(self.components_model.serialize())
         return data
 
@@ -530,8 +359,6 @@ class Node(QtGui.QStandardItem, Serializable):
 
         # Roles that should exist for normal and reference nodes
         self.set_active(data.get("active", True))
-        self.set_input_exec_path(data.get("input_exec", ""), silent=True)
-        self.set_output_exec_path(data.get("output_exec", ""), silent=True)
         self.set_position(QtCore.QPointF(*data.get("position", [0.0, 0.0])))
 
         # Get data from reference
@@ -540,9 +367,6 @@ class Node(QtGui.QStandardItem, Serializable):
             reference_file_path = pathlib.Path(reference_file_path)
             self.set_reference_file(reference_file_path)
             data = self._load_reference_file_data()
-
-        self.set_execution_start_path(data.get("execution_start_path"))
-        self.set_comment(data.get("comment", ""))
 
         self._update_pathmap_entry()
 
@@ -559,8 +383,6 @@ class Node(QtGui.QStandardItem, Serializable):
                 data = file_fn.load_json(
                     self.reference_file_path, object_pairs_hook=OrderedDict
                 )
-                if data["metadata"]["type"] == "stage":
-                    data = data["nodes"]
             else:
                 raise ValueError(f"Invalid file type: {self.reference_file_path}")
         except FileNotFoundError:
@@ -588,39 +410,6 @@ class Node(QtGui.QStandardItem, Serializable):
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
         self.deserialize(json_data)
 
-    def set_execution_start_path(self, child_path: pathlib.PurePosixPath | str | None):
-        """Set execution start path to one of the child node's path.
-
-        Args:
-            child_path (pathlib.PurePosixPath | None): execution start node path.
-
-        """
-        if isinstance(child_path, Node):
-            child_path = child_path.cached_path
-
-        elif isinstance(child_path, str):
-            child_path = pathlib.PurePosixPath(child_path)
-
-        self.setData(child_path, role=Node.Roles.EXECUTION_START_PATH)
-        LOGGER.info(f"{self} | Set execution start path to: {child_path}")
-
-    def get_execution_start_path(
-        self, serializable=False
-    ) -> pathlib.PurePosixPath | str | None:
-        """Get execution start path. Can be child path or None.
-
-        Args:
-            serializable: get path as jsonable str or None.
-
-        Returns:
-            pathlib.PurePosixPath | str | None: execution start path
-
-        """
-        path = self.data(role=Node.Roles.EXECUTION_START_PATH)
-        if serializable and isinstance(path, pathlib.PurePosixPath):
-            path = path.as_posix()
-        return path
-
     def build_execution_queue(self) -> deque[pathlib.PurePosixPath]:
         """Build execution queue from given node.
 
@@ -628,32 +417,10 @@ class Node(QtGui.QStandardItem, Serializable):
             deque[pathlib.PurePosixPath]: Execution queue.
 
         """
+        # TODO: Reimplement by quering flow components
         exec_queue = deque()
         if self.is_active():
-            exec_queue.append(self.cached_path)
-            child_path = self.get_execution_start_path()
-            if child_path:
-                # TODO: check if relative and convert to abs
-                if self.stage.path_resolver.is_relative_path(child_path):
-                    child_path = self.stage.path_resolver.computer_absolute_path(
-                        self.cached_path, child_path
-                    )
-                child_node = self.stage.node(child_path)
-                if child_node:
-                    exec_queue.extend(child_node.build_execution_queue())
-                else:
-                    LOGGER.warning(f"{self} | start path doesn't exist: {child_path}")
-
-        output_path = self.get_output_exec_path()
-        if output_path:
-            output_node = self.stage.node(output_path)
-            if output_node:
-                exec_queue.extend(output_node.build_execution_queue())
-            else:
-                LOGGER.warning(
-                    f"{self} | output exec path doesn't exist: {output_path} "
-                )
-
+            return exec_queue
         return exec_queue
 
     def execute(self):

@@ -19,7 +19,7 @@ class StageHandler:
         self._stage = stage
 
     @property
-    def stage(self):
+    def stage(self) -> Stage:
         return self._stage
 
     def build_execution_queue(
@@ -35,16 +35,13 @@ class StageHandler:
 
         """
         # TODO: Use from graphlib import TopologicalSorter to get list from tree.
-        start_node = self.stage.node(start_path)
-        if not start_node:
-            start_path = self.stage.get_execution_start_path(start_path)
-        if start_path is None:
-            LOGGER.warning(
-                f"{self} | No execution start path specified. Start path: {start_path}"
-            )
-            return
-        else:
+
+        if start_path:
             start_node = self.stage.node(start_path)
+            if start_node is None:
+                raise ValueError("Start node doesn't exist: %s", str(start_path))
+        else:
+            start_node = self.stage.root_node
 
         exec_queue = start_node.build_execution_queue()
         return exec_queue

@@ -35,7 +35,7 @@ def test_stage_export_import_json(
     assert export_path.is_file()
 
     # Import data and compare with stage serialized
-    assert stage.serialize() == file_fn.load_json(
+    assert stage.root_node.serialize() == file_fn.load_json(
         export_path, object_pairs_hook=OrderedDict
     )
 
@@ -59,7 +59,7 @@ def test_stage_deserialize(output_dir: pathlib.Path, request: pytest.FixtureRequ
     stage2.import_json(export_path)
     stage2.export_json(export_path2)
 
-    assert stage2.serialize() == stage.serialize()
+    assert stage2.root_node.serialize() == stage.root_node.serialize()
 
 
 def test_stage_get_node_from_path_root():
@@ -111,51 +111,6 @@ def test_stage_export_import_with_connections(
     stage2.import_json(export_path)
 
     assert stage1.serialize() == stage2.serialize()
-
-
-def test_stage_set_stage_execution_start():
-    stage = Stage()
-    node1 = Node()
-    node2 = Node()
-    node3 = Node()
-
-    stage.add_node(node1)
-    stage.add_node(node2)
-    stage.add_node(node3)
-
-    stage.set_execution_start_path(None, node1)
-    LOGGER.debug(stage.describe())
-
-    assert stage.get_execution_start_path(None, serializable=False) == node1.path
-
-
-def test_stage_set_execution_start_set_export_import(
-    output_dir: pathlib.Path, request: pytest.FixtureRequest
-):
-    export_path = output_dir / f"{request.node.name}{Stage.FILE_EXTENSION}"
-
-    stage = Stage()
-    node1 = Node()
-    node2 = Node()
-    node3 = Node()
-
-    stage.add_node(node1)
-    stage.add_node(node2, parent=node1)
-    stage.add_node(node3, parent=node1)
-
-    stage.set_execution_start_path(None, node1)
-    stage.set_execution_start_path(node1, node2)
-
-    stage.export_json(export_path)
-
-    stage2 = Stage()
-    stage2.import_json(export_path)
-
-    assert (
-        stage2.node(node1.path).get_execution_start_path(serializable=True)
-        == node2.path.as_posix()
-    )
-    assert stage.serialize() == stage2.serialize()
 
 
 def test_stage_convert_to_node():

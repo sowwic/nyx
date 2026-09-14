@@ -18,7 +18,6 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     CATEGORY: pathlib.PurePosixPath | None = None
 
     class Roles(enum.IntEnum):
-        # TODO: move to enums module
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         VALUE = enum.auto()
