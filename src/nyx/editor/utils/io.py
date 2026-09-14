@@ -6,7 +6,6 @@ from collections import OrderedDict
 from PySide6 import QtWidgets
 
 from ...core import commands
-from ...core.stage import Stage
 from ...static.vars import NYX_FILE_FILTER, NYX_FILE_EXTENSION
 from ...utils import file_fn, pyside_fn
 from ...utils.profiling import profile

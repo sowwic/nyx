@@ -12,7 +12,6 @@ from nyx.core.path_resolver import StagePathResolver
 from nyx.core.serializable import Serializable
 from nyx.core.stage_handler import StageHandler
 from nyx.utils import file_fn
-from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 
 if typing.TYPE_CHECKING:
     from nyx.core.commands import NyxCommand
