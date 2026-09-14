@@ -12,35 +12,38 @@ LOGGER = logging.getLogger(__name__)
 def test_node_deletion():
     """Test deleting a node."""
     stage = Stage()
+    test_path = stage.ROOT_NODE_PATH / "node_to_delete"
     # Create a node to delete
-    create_command = CreateNodeCommand(stage=stage, node_name="node_to_delete")
+    create_command = CreateNodeCommand(stage=stage, node_name=test_path.name)
     stage.push_command(create_command)
+    assert stage.node(test_path) is not None
 
     # Now delete the node
-    delete_command = DeleteNodeCommand(stage=stage, nodes=["/node_to_delete"])
+    delete_command = DeleteNodeCommand(stage=stage, nodes=[test_path])
     stage.push_command(delete_command)
 
-    assert stage.node("/node_to_delete") is None
+    assert stage.node(test_path) is None
 
 
 def test_delete_undo_redo():
     """Test undo and redo of node deletion."""
     stage = Stage()
+    test_path = stage.ROOT_NODE_PATH / "node_to_delete"
     # Create a node to delete
-    create_command = CreateNodeCommand(stage=stage, node_name="node_to_delete")
+    create_command = CreateNodeCommand(stage=stage, node_name=test_path.name)
     stage.push_command(create_command)
 
     # Delete the node
-    delete_command = DeleteNodeCommand(stage=stage, nodes=["/node_to_delete"])
+    delete_command = DeleteNodeCommand(stage=stage, nodes=[test_path])
     stage.push_command(delete_command)
 
     # Undo the deletion
     stage.undo_stack.undo()
-    assert stage.node("/node_to_delete") is not None
+    assert stage.node(test_path) is not None
 
     # Redo the deletion
     stage.undo_stack.redo()
-    assert stage.node("/node_to_delete") is None
+    assert stage.node(test_path) is None
 
 
 def test_delete_multiple_nodes():

@@ -25,7 +25,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     TRACK_NYX_VERSION = True
 
     FILE_EXTENSION = ".nyx"
-    ROOT_ITEM_PATH = pathlib.PurePosixPath("/")
+    ROOT_NODE_PATH = pathlib.PosixPath("/stage")
 
     node_deleted = QtCore.Signal(pathlib.PurePosixPath)
 
@@ -42,6 +42,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self._path_resolver = StagePathResolver()
         self._handler = StageHandler(self)
         self.undo_stack = QtGui.QUndoStack(self)
+        self.appendRow([Node(name="stage")])
 
         self.create_connections()
 
@@ -128,6 +129,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             path = pathlib.PosixPath(path)
         return path in set(self.list_top_nodes_paths())
 
+    @property
+    def root_node(self) -> Node:
+        return self.node(self.ROOT_NODE_PATH)
+
     def generate_unique_node_name(
         self,
         base_name: str,
@@ -137,7 +142,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             parent_node = self.node(parent_node)
             parent_path = parent_node.path
         else:
-            parent_path = self.ROOT_ITEM_PATH
+            parent_path = self.ROOT_NODE_PATH
 
         new_node_path = parent_path / base_name
         if new_node_path in self.path_map:
@@ -170,7 +175,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             unique_name = self.generate_unique_node_name(
                 node.name, parent_node=node.parent()
             )
-            new_path = self.ROOT_ITEM_PATH / unique_name
+            new_path = self.ROOT_NODE_PATH / unique_name
             if new_path in self.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
                 raise ValueError
@@ -221,12 +226,11 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
         if parent is not None:
             parent = self.node(parent)
+        else:
+            parent = self.root_node
 
         for each_node in node:
-            if parent:
-                parent.appendRow(each_node)
-            else:
-                self.appendRow(each_node)
+            parent.appendRow(each_node)
 
     def delete_node(self, nodes: Sequence[Node | pathlib.PurePosixPath | str]):
         """Delete node from stage.
@@ -247,10 +251,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             node = self.node(node)
             node_path_to_emit = node.path
             self._delete_from_path_map(node)
-            self.beginResetModel()
-            parent = node.parent() or self.invisibleRootItem()
+            parent = node.parent()
             self.removeRow(node.row(), parent.index())
-            self.endResetModel()
             self.node_deleted.emit(node_path_to_emit)
 
     def _delete_from_path_map(self, node: Node, children=True):
@@ -494,7 +496,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         stage_exec_start_path = serialized_stage["execution_start_path"]
         if stage_exec_start_path:
             rel_exec_start_path = StagePathResolver.compute_relative_path(
-                Stage.ROOT_ITEM_PATH, stage_exec_start_path
+                Stage.ROOT_NODE_PATH, stage_exec_start_path
             )
             serialized_node["execution_start_path"] = rel_exec_start_path
         return serialized_node

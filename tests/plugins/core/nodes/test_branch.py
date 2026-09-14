@@ -9,7 +9,7 @@ def test_branch_node_creation():
     stage = Stage()
     command = commands.CreateNodeCommand(stage=stage, node_type_id="core:branch")
     stage.push_command(command)
-    expected_path = "/node"
+    expected_path = stage.ROOT_NODE_PATH / "node"
 
     result_node = stage.node(expected_path)
 

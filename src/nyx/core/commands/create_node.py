@@ -29,7 +29,9 @@ class CreateNodeCommand(NyxCommand):
             position = QtCore.QPointF(*position)
 
         self.position = position
-        self.parent_path = pathlib.PurePosixPath(parent_path) if parent_path else None
+        self.parent_path = (
+            pathlib.PurePosixPath(parent_path) if parent_path else stage.ROOT_NODE_PATH
+        )
         self.node_name = node_name
         self.node_type_id = node_type_id
         self.node_data: OrderedDict = None

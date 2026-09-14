@@ -24,7 +24,9 @@ class StageGraphEditor(QtWidgets.QWidget):
     stage_changed = QtCore.Signal(Stage)
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
 
-    def __init__(self, stage: Stage = None, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(
+        self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
+    ) -> None:
         super().__init__(parent=parent)
         self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
@@ -32,7 +34,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self._selection_model = QtCore.QItemSelectionModel()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
-        self._scope_path = self.stage.ROOT_ITEM_PATH
+        self._scope_path = self.stage.ROOT_NODE_PATH
 
         self.create_actions()
         self.create_widgets()
@@ -213,8 +215,6 @@ class StageGraphEditor(QtWidgets.QWidget):
         node = self.stage.node(scope)
         if node:
             new_scope = node.path
-        elif scope and pathlib.PurePosixPath(scope) == self.stage.ROOT_ITEM_PATH:
-            new_scope = self.stage.ROOT_ITEM_PATH
         else:
             new_scope = previous_scope
 
@@ -227,7 +227,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.set_scope_path(self.get_scope_path().parent)
 
     def scope_root(self) -> None:
-        self.set_scope_path(self.stage.ROOT_ITEM_PATH)
+        self.set_scope_path(self.stage.ROOT_NODE_PATH)
 
     def filter_nodes_by_scope(self, nodes: list[Node]) -> list[Node]:
         """Filter nodes by scope.
@@ -250,7 +250,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             current_scope == deleted_node_path
             or deleted_node_path in current_scope.parents
         ):
-            self.set_scope_path(self.stage.ROOT_ITEM_PATH)
+            self.set_scope_path(self.stage.ROOT_NODE_PATH)
 
     def list_selected_nodes(self) -> list[Node]:
         """List selected nodes.

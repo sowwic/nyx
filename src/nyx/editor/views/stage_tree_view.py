@@ -25,7 +25,9 @@ class StageTreeView(QtWidgets.QTreeView):
     nodes_deselected = QtCore.Signal(list)
     node_doubleclicked = QtCore.Signal(QtGui.QStandardItem)
 
-    def __init__(self, stage=None, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(
+        self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.setModel(stage)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -81,8 +83,11 @@ class StageTreeView(QtWidgets.QTreeView):
     def current_stage_graph(self):
         return self.main_window.current_stage_graph
 
-    def set_stage(self, stage):
+    def set_stage(self, stage: Stage | None):
         self.setModel(stage)
+        if stage is None:
+            return
+        self.setRootIndex(stage._root_node_index)
 
     def _emit_doubledclicked_item(self, index):
         if not self.stage:
