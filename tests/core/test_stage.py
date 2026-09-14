@@ -87,6 +87,12 @@ def test_stage_get_node_from_path():
     assert stage.get_node_children_from_path(node.cached_path) == node.list_children()
 
 
+def test_attempt_deleting_locked_node_raises_error():
+    stage = Stage()
+    with pytest.raises(RuntimeError, match="locked node"):
+        stage.delete_node(stage.root_node)
+
+
 # TODO Update after component are added
 def test_stage_export_import_with_connections(
     output_dir: pathlib.Path, request: pytest.FixtureRequest

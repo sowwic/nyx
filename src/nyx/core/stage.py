@@ -58,6 +58,7 @@ class Stage(QtGui.QStandardItemModel):
 
     def _create_root_node(self):
         root_node = Node(name="stage")
+        root_node.is_locked = True
         self.appendRow(root_node)
 
     def create_connections(self):
@@ -107,14 +108,8 @@ class Stage(QtGui.QStandardItemModel):
         Returns:
             list[Node]: list of child nodes
         """
-        node = node or self.invisibleRootItem()
-        if node is self.invisibleRootItem():
-            return [
-                self.invisibleRootItem().child(row)
-                for row in range(self.invisibleRootItem().rowCount())
-            ]
-        else:
-            return node.list_children()
+        node = node or self.root_node
+        return node.list_children()
 
     def list_top_nodes(self) -> list[Node]:
         return self.list_children(self.root_node)
@@ -244,6 +239,9 @@ class Stage(QtGui.QStandardItemModel):
             if node is None:
                 LOGGER.exception(f"{self} | Failed to delete node.", stack_info=True)
                 return
+
+            if node.is_locked:
+                raise RuntimeError("Can't delete locked node: %s", node.cached_path)
 
             # Removed paths
             node = self.node(node)

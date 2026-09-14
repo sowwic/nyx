@@ -31,6 +31,7 @@ class Node(QtGui.QStandardItem, Serializable):
         ACTIVE_ROLE = QtCore.Qt.UserRole + 1
         POSITION = enum.auto()
         REFERENCE_FILE_PATH = enum.auto()
+        LOCKED_ROLE = enum.auto()
 
     def __init__(
         self,
@@ -59,9 +60,10 @@ class Node(QtGui.QStandardItem, Serializable):
         return hash(self.path)
 
     def _set_default_role_values(self):
-        self.setData(True, role=Node.Roles.ACTIVE_ROLE)
-        self.setData(QtCore.QPointF(), role=Node.Roles.POSITION)
-        self.setData(None, role=Node.Roles.REFERENCE_FILE_PATH)
+        self.setData(True, role=self.Roles.ACTIVE_ROLE)
+        self.setData(QtCore.QPointF(), role=self.Roles.POSITION)
+        self.setData(None, role=self.Roles.REFERENCE_FILE_PATH)
+        self.setData(False, role=self.Roles.LOCKED_ROLE)
 
     @property
     def name(self):
@@ -126,6 +128,14 @@ class Node(QtGui.QStandardItem, Serializable):
         nodes = [self]
         nodes.extend(self.list_parents())
         return any([node.reference_file_path is not None for node in nodes])
+
+    @property
+    def is_locked(self):
+        return self.data(self.Roles.LOCKED_ROLE)
+
+    @is_locked.setter
+    def is_locked(self, state: bool):
+        self.setData(state, self.Roles.LOCKED_ROLE)
 
     def cache_current_path(self):
         """Store current path in cache."""
@@ -409,6 +419,11 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
         self.deserialize(json_data)
+
+    def find_child_node_of_type(self, type_id: str):
+        for node in self.list_children():
+            if node.TYPE_ID == type_id:
+                return node
 
     def build_execution_queue(self) -> deque[pathlib.PurePosixPath]:
         """Build execution queue from given node.
