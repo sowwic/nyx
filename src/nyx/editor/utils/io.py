@@ -59,7 +59,7 @@ def _import_nodes(
         path = pathlib.Path(path)
         node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
         if node_data["metadata"]["type"] == "stage":
-            node_data = Stage.convert_stage_to_node(node_data, name=path.stem)
+            node_data = node_data["nodes"]
         # Add ref file path to node data.
         if as_reference:
             if stage_graph.stage.file_path == path:

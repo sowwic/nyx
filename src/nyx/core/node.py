@@ -84,6 +84,10 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.text()
 
     @property
+    def is_stage_root_node(self):
+        return self.cached_path == self.stage.ROOT_NODE_PATH
+
+    @property
     def scope(self):
         return tuple(self.path.parents)[0]
 
@@ -313,7 +317,8 @@ class Node(QtGui.QStandardItem, Serializable):
 
         """
         parents = deque()
-        if self.parent():
+        direct_parent: Node = self.parent()
+        if direct_parent and not direct_parent.is_stage_root_node:
             parents.appendleft(self.parent())
             parents.extendleft(self.parent().list_parents())
         return parents if as_queue else list(parents)
@@ -555,9 +560,7 @@ class Node(QtGui.QStandardItem, Serializable):
                     self.reference_file_path, object_pairs_hook=OrderedDict
                 )
                 if data["metadata"]["type"] == "stage":
-                    data = self.stage.convert_stage_to_node(
-                        stage=data, name=self.reference_file_path.stem
-                    )
+                    data = data["nodes"]
             else:
                 raise ValueError(f"Invalid file type: {self.reference_file_path}")
         except FileNotFoundError:

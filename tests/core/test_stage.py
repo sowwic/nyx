@@ -12,7 +12,6 @@ LOGGER = logging.getLogger(__name__)
 
 def test_stage_create_empty():
     stage = Stage()
-    assert stage.path_map == {}
     assert stage.undo_stack.isClean()
     assert stage.list_top_nodes() == []
 
@@ -82,10 +81,10 @@ def test_stage_get_node_from_path():
     node = Node()
     stage.add_node(node)
 
-    for i in range(5):
+    for _ in range(5):
         Node(parent=node)
 
-    assert stage.get_node_children_from_path("/node") == node.list_children()
+    assert stage.get_node_children_from_path(node.cached_path) == node.list_children()
 
 
 # TODO Update after component are added
@@ -153,7 +152,8 @@ def test_stage_set_execution_start_set_export_import(
     stage2.import_json(export_path)
 
     assert (
-        stage2.node("/node").get_execution_start_path(serializable=True) == "/node/node"
+        stage2.node(node1.path).get_execution_start_path(serializable=True)
+        == node2.path.as_posix()
     )
     assert stage.serialize() == stage2.serialize()
 
@@ -171,8 +171,7 @@ def test_stage_convert_to_node():
     main_stage = Stage()
     stage_node = Node()
 
-    node_name = "new_stage_node"
-    serialized_stage_node = Stage.convert_stage_to_node(stage, name=node_name)
+    serialized_stage_node = stage.root_node.serialize()
 
     main_stage.add_node(stage_node)
     stage_node.deserialize(serialized_stage_node)
@@ -182,5 +181,5 @@ def test_stage_convert_to_node():
         stage_node.path / node1.path.name,
         stage_node.path / node2.path.name,
     ]
-    assert stage_node.name == node_name
+    assert stage_node.name == stage.root_node.name
     assert stage_node.list_children_paths() == new_child_paths

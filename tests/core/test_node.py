@@ -11,9 +11,8 @@ def test_add_node_to_root():
 
     stage.add_node(node)
 
-    root = stage.invisibleRootItem()
-    assert root.hasChildren()
-    assert root.child(0) is node
+    assert stage.root_node.hasChildren()
+    assert stage.root_node.child(0) is node
 
 
 def test_add_node_with_parent():
@@ -90,7 +89,7 @@ def test_node_list_children_tree():
     par = node
 
     added_nodes = []
-    for i in range(5):
+    for _ in range(5):
         par = Node(parent=par)
         added_nodes.append(par)
 
@@ -123,7 +122,8 @@ def test_node_rename():
         assert old_child_path not in stage.path_map
 
     for child in children:
-        assert child.path.parts[1] == new_name
+        # ["/", "stage", "cool_name"]
+        assert child.path.parts[2] == new_name
         assert child.path in stage.path_map
 
 
@@ -134,14 +134,15 @@ def test_node_delete_first_paths_map_valid():
 
     par = node
 
-    for i in range(5):
+    for _ in range(5):
         par = Node(parent=par)
     LOGGER.debug(f"Path map: {stage.path_map}")
 
     node.delete()
     LOGGER.debug(f"Path map after deletion: {stage.path_map}")
 
-    assert stage.path_map == {}
+    assert len(stage.path_map) == 1
+    assert stage.path_map.get(stage.ROOT_NODE_PATH) is not None
 
 
 def test_node_delete_mid_paths_map_valid():

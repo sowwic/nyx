@@ -5,7 +5,7 @@ from nyx.core.node_component._base_component import NodeComponent
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.core.plugin_subsystem.plugin_interface import NyxPluginInterface
 from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
-from nyx.utils import test_helpers
+from nyx.utils import pytest_helpers
 
 __all__ = [
     "Node",
@@ -15,5 +15,5 @@ __all__ = [
     "NyxPluginInterface",
     "NYX_REGISTRY",
     "commands",
-    "test_helpers",
+    "pytest_helpers",
 ]

@@ -1,9 +1,9 @@
 from nyx.api.v1 import Stage
 from nyx.api.v1 import commands
-from nyx.api.v1 import test_helpers
+from nyx.api.v1 import pytest_helpers
 
 
-@test_helpers.with_plugins("NyxCore")
+@pytest_helpers.with_plugins("NyxCore")
 def test_branch_node_creation():
     """Test creating new branch node with default parameters."""
     stage = Stage()

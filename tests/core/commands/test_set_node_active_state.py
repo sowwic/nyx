@@ -8,18 +8,19 @@ from nyx.core.stage import Stage
 def test_active_stage_change() -> None:
     """Test command setting node state"""
     stage = Stage()
+    test_node_path = stage / "node"
     command = CreateNodeCommand(stage=stage)
     stage.push_command(command)
 
     state_set_false_command = SetNodeActiveStateCommand(
-        stage=stage, node="/node", state=False
+        stage=stage, node=test_node_path, state=False
     )
     state_set_true_command = SetNodeActiveStateCommand(
-        stage=stage, node="/node", state=True
+        stage=stage, node=test_node_path, state=True
     )
     stage.push_command(state_set_false_command)
 
-    node = stage.node("/node")
+    node = stage.node(test_node_path)
     assert not node.is_active()
     stage.push_command(state_set_true_command)
     assert node.is_active()
@@ -28,14 +29,16 @@ def test_active_stage_change() -> None:
 def test_active_set_undo_redo() -> None:
     """Test command setting node state undo-redo"""
     stage = Stage()
+    test_node_path = stage / "node"
+
     command = CreateNodeCommand(stage=stage)
     stage.push_command(command)
 
-    node = stage.node("/node")
+    node = stage.node(test_node_path)
     default_state = node.is_active()
 
     toggle_active_state_command = SetNodeActiveStateCommand(
-        stage=stage, node="/node", state=not default_state
+        stage=stage, node=test_node_path, state=not default_state
     )
     stage.push_command(toggle_active_state_command)
 

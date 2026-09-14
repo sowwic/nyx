@@ -32,6 +32,11 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def __repr__(self) -> str:
         return f"Stage <Nodes: {self.total_node_count()} | File: {self.file_path}>"
 
+    def __truediv__(self, other: str) -> pathlib.PurePosixPath:
+        if isinstance(other, str):
+            return self.ROOT_NODE_PATH / other
+        return NotImplemented
+
     def __init__(self) -> None:
         QtGui.QStandardItemModel.__init__(self)
         Serializable.__init__(self)
@@ -42,7 +47,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
         self._path_resolver = StagePathResolver()
         self._handler = StageHandler(self)
         self.undo_stack = QtGui.QUndoStack(self)
-        self.appendRow([Node(name="stage")])
+        self._create_root_node()
 
         self.create_connections()
 
@@ -61,6 +66,10 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     @property
     def execution_start_path(self):
         return self._execution_start_path
+
+    def _create_root_node(self):
+        root_node = Node(name="stage")
+        self.appendRow(root_node)
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
@@ -98,7 +107,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
                 total += count_parent(index)
             return total
 
-        return count_parent(QtCore.QModelIndex())
+        return count_parent(self.root_node.index())
 
     def list_children(self, node: Node) -> list[Node]:
         """List children of given node.
@@ -119,7 +128,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
             return node.list_children()
 
     def list_top_nodes(self) -> list[Node]:
-        return self.list_children(self.invisibleRootItem())
+        return self.list_children(self.root_node)
 
     def list_top_nodes_paths(self) -> list[pathlib.PurePosixPath]:
         return [node.cached_path for node in self.list_top_nodes()]
@@ -275,9 +284,7 @@ class Stage(QtGui.QStandardItemModel, Serializable):
 
     def serialize(self) -> OrderedDict:
         data = super().serialize()
-        top_nodes = self.list_top_nodes()
-        nodes = [node.serialize() for node in top_nodes]
-        data["nodes"] = nodes
+        data["nodes"] = self.root_node.serialize()
         data["execution_start_path"] = self.get_execution_start_path(
             None, serializable=True
         )
@@ -286,11 +293,8 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def deserialize(self, data: OrderedDict):
         super().deserialize(data)
         # Deserialize nodes
-        for top_node_data in data.get("nodes", {}):
-            node_class = NYX_REGISTRY.get_node_cls(top_node_data.get("type_id")) or Node
-            top_node = node_class()
-            self.add_node(top_node)
-            top_node.deserialize(top_node_data)
+        root_node_data = data.get("nodes")
+        self.root_node.deserialize(root_node_data)
         # Extra data
         self.set_execution_start_path(None, data.get("execution_start_path"))
 
@@ -469,37 +473,6 @@ class Stage(QtGui.QStandardItemModel, Serializable):
     def execute_node_from_path(self, path):
         node = self.node(path)
         node.execute()
-
-    @classmethod
-    def convert_stage_to_node(
-        cls, stage: Stage | OrderedDict, name="stage"
-    ) -> OrderedDict:
-        """Convert this stage to serialized node.
-
-        Args:
-            name (str, optional): new node name. Defaults to "stage".
-
-        Returns:
-            OrderedDict: stage as serialized node.
-
-        """
-        node = Node(name=name)
-        serialized_node = node.serialize()
-        if isinstance(stage, cls):
-            serialized_stage = stage.serialize()
-        elif isinstance(stage, OrderedDict):
-            serialized_stage = stage
-        else:
-            raise TypeError(f"Invalid stage type: {type(stage)}")
-
-        serialized_node["children"] = serialized_stage.get("nodes", [])
-        stage_exec_start_path = serialized_stage["execution_start_path"]
-        if stage_exec_start_path:
-            rel_exec_start_path = StagePathResolver.compute_relative_path(
-                Stage.ROOT_NODE_PATH, stage_exec_start_path
-            )
-            serialized_node["execution_start_path"] = rel_exec_start_path
-        return serialized_node
 
     def push_command(self, command: NyxCommand):
         """Push command to stage's undo stack.
