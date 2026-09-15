@@ -1,6 +1,7 @@
 import logging
 import pathlib
 from collections import OrderedDict
+from collections.abc import Iterable
 
 from PySide6 import QtCore
 from PySide6 import QtGui
@@ -19,9 +20,9 @@ class CreateNodeCommand(NyxCommand):
         self,
         stage: Stage,
         node_name: str = "node",
-        node_type_id: str | None = None,
+        node_type_id: str = "core:node",
         parent_path: str | pathlib.PurePosixPath | None = None,
-        position: QtCore.QPointF = QtCore.QPointF(),
+        position: QtCore.QPointF | Iterable = QtCore.QPointF(),
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
         super().__init__(stage=stage, text="Create Node", parent=parent)
@@ -36,13 +37,12 @@ class CreateNodeCommand(NyxCommand):
         self.node_type_id = node_type_id
         self.node_data: OrderedDict = None
 
-    def get_node_cls(self) -> type[Node]:
-        if not self.node_type_id:
-            return Node
-        return NYX_REGISTRY.get_node_cls(self.node_type_id) or Node
+    @property
+    def node_path(self) -> str | None:
+        return self.node_data.get("path")
 
     def redo(self) -> None:
-        node = self.get_node_cls()(name=self.node_name)
+        node = NYX_REGISTRY.get_node_cls(self.node_type_id)(name=self.node_name)
         self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()
         if self.position:

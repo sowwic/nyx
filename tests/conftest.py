@@ -7,6 +7,7 @@ from PySide6 import QtWidgets
 
 from nyx.core.logger import NyxLogger
 from nyx.application import NyxApplication
+from nyx.api.v1 import NyxPluginManager, NYX_REGISTRY
 
 logging.setLoggerClass(NyxLogger)
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -33,18 +34,38 @@ def output_dir(request: pytest.FixtureRequest) -> pathlib.Path:
     return directory
 
 
+# Do NOT call app.quit() or app.exit()
 @pytest.fixture
 def nyx_app():
     """
     Ensure a QApplication exists for tests that require Qt features
     like clipboard, fonts, resources, etc.
     """
-    app: NyxApplication = QtWidgets.QApplication.instance()
+    app: NyxApplication | None = QtWidgets.QApplication.instance()
 
     if app is None:
-        app = NyxApplication(initialize_plugins=False)
+        app = NyxApplication(
+            initialize_plugins=False
+        )  # Qt clipboard & global state must remain valid during test session
 
     yield app
 
-    # Do NOT call app.quit() or app.exit()
-    # Qt clipboard & global state must remain valid during test session
+
+@pytest.fixture(autouse=True, scope="session")
+def init_nyx_core():
+    plugin_manager = NyxPluginManager()
+    plugin_manager.initialize_plugins(include=["NyxCore"])
+    yield plugin_manager
+    NYX_REGISTRY.clear()
+
+
+@pytest.fixture(autouse=True)
+def with_plugins(request):
+    marker = request.node.get_closest_marker("with_plugins")
+    if marker is None:
+        yield None
+        return
+    plugin_manager = NyxPluginManager()
+    plugin_manager.initialize_plugins(include=list(marker.args))
+    # TODO: Uninitialize extra plugins
+    yield plugin_manager

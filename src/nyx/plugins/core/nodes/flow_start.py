@@ -2,7 +2,7 @@ from nyx.api.v1 import Node
 
 
 class FlowStartNode(Node):
-    TYPE_ID = "flow_start"
+    TYPE_ID = "core:flow_start"
     REQUIRED_PLUGINS = ["NyxCore"]
 
     def setup(self):

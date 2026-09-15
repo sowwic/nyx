@@ -1,6 +1,7 @@
 import logging
+import pytest
 
-from nyx.core import Node, Stage
+from nyx.api.v1 import Node, Stage, commands
 
 LOGGER = logging.getLogger(__name__)
 
@@ -166,3 +167,20 @@ def test_node_delete_mid_paths_map_valid():
     assert node.path in stage.path_map
     for child in node.list_children_tree():
         assert child.path in stage.path_map
+
+
+def test_find_flow_start_node():
+    stage = Stage()
+    parent_create_command = commands.CreateNodeCommand(stage=stage)
+    stage.push_command(parent_create_command)
+    flow_start_create_command = commands.CreateNodeCommand(
+        stage=stage,
+        node_type_id="core:flow_start",
+        parent_path=parent_create_command.node_path,
+    )
+    stage.push_command(flow_start_create_command)
+    parent_node = stage.node(parent_create_command.node_path)
+
+    flow_start_node: Node = parent_node.find_flow_start_node()
+    assert flow_start_node is not None
+    assert flow_start_node.TYPE_ID == "core:flow_start"

@@ -97,7 +97,6 @@ class NyxPluginManager:
     @profile(text="Plugins initialized in {seconds:.4f}s")
     def initialize_plugins(self, include: list[str] | None = None):
         """Iterate over registry and initialize each plugin."""
-        NYX_REGISTRY.clear()
         self.loader.load_plugins_from_paths()
 
         initialization_counter = 0
@@ -106,6 +105,9 @@ class NyxPluginManager:
                 plugin_entry.enabled = False
 
             if not plugin_entry.enabled:
+                continue
+
+            if plugin_entry.plugin_instance is not None:
                 continue
 
             plugin_entry.initialize()

@@ -2,7 +2,7 @@ from nyx.api.v1 import Node
 
 
 class BranchNode(Node):
-    TYPE_ID = "branch"
+    TYPE_ID = "core:branch"
     REQUIRED_PLUGINS = ["NyxCore"]
 
     def setup(self):

@@ -17,13 +17,14 @@ if typing.TYPE_CHECKING:
     from nyx.core import Stage
     from nyx.editor.graphics.graphics_node import GraphicsNode
     from nyx.core.node_component._base_component import NodeComponent
+    from nyx.plugins.core.nodes.flow_start import FlowStartNode
 
 
 LOGGER = logging.getLogger(__name__)
 
 
 class Node(QtGui.QStandardItem, Serializable):
-    TYPE_ID = ""
+    TYPE_ID = "core:node"
     CATEGORY = ""
     TRACK_NYX_VERSION = True
 
@@ -425,6 +426,15 @@ class Node(QtGui.QStandardItem, Serializable):
             if node.TYPE_ID == type_id:
                 return node
 
+    def find_flow_start_node(self) -> FlowStartNode:
+        """Find first child flow start node
+
+        Returns:
+            FlowStartNode instance.
+        """
+        # TODO: Enums for built in NodeTypes
+        return self.find_child_node_of_type(type_id="core:flow_start")
+
     def build_execution_queue(self) -> deque[pathlib.PurePosixPath]:
         """Build execution queue from given node.
 
@@ -432,7 +442,7 @@ class Node(QtGui.QStandardItem, Serializable):
             deque[pathlib.PurePosixPath]: Execution queue.
 
         """
-        # TODO: Reimplement by quering flow components
+        # TODO: Reimplement by querying flow components
         exec_queue = deque()
         if self.is_active():
             return exec_queue
