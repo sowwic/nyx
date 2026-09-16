@@ -8,6 +8,8 @@ from PySide6 import QtWidgets
 from nyx.core import Node
 from nyx.core import commands
 
+from ..views.node_components_view import NodeComponentsView
+
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
@@ -46,6 +48,7 @@ class Inspector(QtWidgets.QWidget):
         )
         self.node_position_x_spinbox.setRange(-64000, 64000)
         self.node_position_y_spinbox.setRange(-64000, 64000)
+        self._node_components_view = NodeComponentsView()
 
     def create_layouts(self):
         position_layout = QtWidgets.QHBoxLayout()
@@ -65,6 +68,7 @@ class Inspector(QtWidgets.QWidget):
         self.main_window.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
         self.main_layout.addLayout(basic_properties_layout)
+        self.main_layout.addWidget(self._node_components_view)
 
     def create_connections(self):
         self.main_window.undo_group.indexChanged.connect(
@@ -142,7 +146,7 @@ class Inspector(QtWidgets.QWidget):
         selected_nodes = self.current_stage_graph.list_selected_nodes()
         self.node = selected_nodes[-1] if selected_nodes else None
 
-    def set_data_from_node(self, node):
+    def set_data_from_node(self, node: Node):
         self.node_name_lineedit.setText(node.name)
         self.node_path_lineedit.setText(node.path.as_posix())
         self.node_isactive_checkbox.setChecked(node.is_active())
@@ -152,6 +156,7 @@ class Inspector(QtWidgets.QWidget):
 
         self.node_position_x_spinbox.setValue(node_position.x())
         self.node_position_y_spinbox.setValue(node_position.y())
+        self._node_components_view.setModel(node.components_model)
 
     def apply_name_edit(self):
         current_node = self.tree_view.current_node()
