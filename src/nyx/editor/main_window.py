@@ -276,7 +276,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def execute_stage_graph(self):
         if not self.current_stage_graph:
             return
-        self.current_stage_graph.stage.handler.run()
+        self.current_stage_graph.stage.crawler.run()
 
     def execute_from_selected_node(self):
         if not self.current_stage_graph:

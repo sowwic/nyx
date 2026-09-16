@@ -184,3 +184,18 @@ def test_find_flow_start_node():
     flow_start_node: Node = parent_node.find_flow_start_node()
     assert flow_start_node is not None
     assert flow_start_node.TYPE_ID == "core:flow_start"
+
+
+def test_setup_components_marked_as_builtin():
+    class TestNode(Node):
+        def setup(self):
+            for _ in range(3):
+                flow_cpnt = self.components_model.create_component(type_id="core:flow")
+                value_cpnt = self.components_model.create_component(type_id="core:value")
+                self.components_model.add_component(flow_cpnt)
+                self.components_model.add_component(value_cpnt)
+
+    test_node = TestNode()
+
+    for each_component in test_node.components_model.list_components():
+        assert each_component.is_built_in is True

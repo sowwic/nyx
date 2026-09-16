@@ -9,7 +9,7 @@ from PySide6 import QtCore, QtGui
 
 from nyx.core import Node
 from nyx.core.path_resolver import StagePathResolver
-from nyx.core.stage_handler import StageHandler
+from nyx.core.stage_crawler import StageCrawler
 from nyx.utils import file_fn
 
 if typing.TYPE_CHECKING:
@@ -30,7 +30,7 @@ class Stage(QtGui.QStandardItemModel):
     def __truediv__(self, other: str) -> pathlib.PurePosixPath:
         if isinstance(other, str):
             return self.ROOT_NODE_PATH / other
-        return NotImplemented
+        raise NotImplementedError
 
     def __init__(self) -> None:
         super().__init__()
@@ -38,7 +38,7 @@ class Stage(QtGui.QStandardItemModel):
         self.file_path: pathlib.Path | None = None
         self._path_map: dict[pathlib.PurePosixPath, Node] = {}
         self._path_resolver = StagePathResolver()
-        self._handler = StageHandler(self)
+        self._crawler = StageCrawler(self)
         self.undo_stack = QtGui.QUndoStack(self)
         self._create_root_node()
 
@@ -49,8 +49,8 @@ class Stage(QtGui.QStandardItemModel):
         return self._path_map
 
     @property
-    def handler(self) -> StageHandler:
-        return self._handler
+    def crawler(self) -> StageCrawler:
+        return self._crawler
 
     @property
     def path_resolver(self) -> StagePathResolver:

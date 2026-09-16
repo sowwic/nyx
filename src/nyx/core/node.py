@@ -18,15 +18,16 @@ if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_node import GraphicsNode
     from nyx.core.node_component._base_component import NodeComponent
     from nyx.plugins.core.nodes.flow_start import FlowStartNode
+    from nyx.core.stage_crawler import NodeVisitor
 
 
 LOGGER = logging.getLogger(__name__)
 
 
 class Node(QtGui.QStandardItem, Serializable):
-    TYPE_ID = "core:node"
-    CATEGORY = ""
-    TRACK_NYX_VERSION = True
+    TYPE_ID: str = "core:node"
+    TRACK_NYX_VERSION: bool = True
+    TAGS: list[str] = []
 
     class Roles(enum.IntEnum):
         ACTIVE_ROLE = QtCore.Qt.UserRole + 1
@@ -50,15 +51,26 @@ class Node(QtGui.QStandardItem, Serializable):
 
         self._components_model = NodeComponentsModel(node=self)
         self.setup()
+        self.post_setup_hook()
 
     def setup(self):
         pass
+
+    def post_setup_hook(self):
+        self._mark_setup_components_as_builtin()
+
+    def _mark_setup_components_as_builtin(self):
+        for component in self.components_model.list_components():
+            component.mark_as_built_in()
 
     def __repr__(self) -> str:
         return f"{inspect_fn.class_string(self.__class__)} ({self.cached_path})"
 
     def __hash__(self) -> int:
         return hash(self.path)
+
+    def __getitem__(self, key: str):
+        return self.components_model.get_component(key)
 
     def _set_default_role_values(self):
         self.setData(True, role=self.Roles.ACTIVE_ROLE)
@@ -435,18 +447,8 @@ class Node(QtGui.QStandardItem, Serializable):
         # TODO: Enums for built in NodeTypes
         return self.find_child_node_of_type(type_id="core:flow_start")
 
-    def build_execution_queue(self) -> deque[pathlib.PurePosixPath]:
-        """Build execution queue from given node.
-
-        Returns:
-            deque[pathlib.PurePosixPath]: Execution queue.
-
-        """
-        # TODO: Reimplement by querying flow components
-        exec_queue = deque()
-        if self.is_active():
-            return exec_queue
-        return exec_queue
+    def accept_visitor(self, visitor: NodeVisitor):
+        visitor.visit_node(self)
 
     def execute(self):
         """Execute this node.
@@ -461,10 +463,13 @@ class Node(QtGui.QStandardItem, Serializable):
         start_time = time.perf_counter()
         try:
             LOGGER.info(f"TODO: Executing {self.cached_path}")
-            # TODO: Execute components
+            self.execute_components()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
             raise err
 
         total_time = time.perf_counter() - start_time
         LOGGER.info(f"Executed in {total_time:.4f}: {self.cached_path}")
+
+    def execute_components(self):
+        pass
