@@ -1,17 +1,25 @@
-from nyx.api.v1 import Node
+from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 
 class BranchNode(Node):
-    TYPE_ID = "core:branch"
+    TYPE_ID = CoreNodes.BRANCH
     DEFAULT_NAME = "branch"
     REQUIRED_PLUGINS = ["NyxCore"]
     TAGS = ["logic"]
 
     def setup(self):
-        self.flow_in = self.components_model.create_component("core:flow")
-        self.flow_out_true = self.components_model.create_component("core:flow")
-        self.flow_out_false = self.components_model.create_component("core:flow")
-        self.value_cpnt = self.components_model.create_component("core:value")
+        self.flow_in = self.components_model.create_component(
+            type_id=CoreNodeComponents.FLOW
+        )
+        self.flow_out_true = self.components_model.create_component(
+            type_id=CoreNodeComponents.FLOW
+        )
+        self.flow_out_false = self.components_model.create_component(
+            type_id=CoreNodeComponents.FLOW
+        )
+        self.value_cpnt = self.components_model.create_component(
+            type_id=CoreNodeComponents.VALUE
+        )
 
         self.flow_in.name = "flow_in"
         self.flow_in.is_writable = True

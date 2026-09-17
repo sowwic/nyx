@@ -12,6 +12,7 @@ from .serializable import Serializable
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
+from ..static.enums import CoreNodes
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
@@ -25,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Node(QtGui.QStandardItem, Serializable):
-    TYPE_ID: str = "core:node"
+    TYPE_ID: str = CoreNodes.EMPTY
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
     TAGS: list[str] = []
@@ -450,7 +451,7 @@ class Node(QtGui.QStandardItem, Serializable):
             FlowStartNode instance.
         """
         # TODO: Enums for built in NodeTypes
-        return self.find_child_node_of_type(type_id="core:flow_start")
+        return self.find_child_node_of_type(type_id=CoreNodes.FLOW_START)
 
     def accept_visitor(self, visitor: NodeVisitor):
         visitor.visit_node(self)

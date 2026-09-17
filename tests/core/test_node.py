@@ -1,6 +1,6 @@
 import logging
 
-from nyx.api.v1 import Node, Stage, commands
+from nyx.api.v1 import Node, Stage, CoreNodes, CoreNodeComponents, commands
 
 LOGGER = logging.getLogger(__name__)
 
@@ -174,7 +174,7 @@ def test_find_flow_start_node():
     stage.push_command(parent_create_command)
     flow_start_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id="core:flow_start",
+        node_type_id=CoreNodes.FLOW_START,
         parent_path=parent_create_command.node_path,
     )
     stage.push_command(flow_start_create_command)
@@ -182,15 +182,19 @@ def test_find_flow_start_node():
 
     flow_start_node: Node = parent_node.find_flow_start_node()
     assert flow_start_node is not None
-    assert flow_start_node.TYPE_ID == "core:flow_start"
+    assert flow_start_node.TYPE_ID == CoreNodes.FLOW_START
 
 
 def test_setup_components_marked_as_builtin():
     class TestNode(Node):
         def setup(self):
             for _ in range(3):
-                flow_cpnt = self.components_model.create_component(type_id="core:flow")
-                value_cpnt = self.components_model.create_component(type_id="core:value")
+                flow_cpnt = self.components_model.create_component(
+                    type_id=CoreNodeComponents.FLOW
+                )
+                value_cpnt = self.components_model.create_component(
+                    type_id=CoreNodeComponents.VALUE
+                )
                 self.components_model.add_component(flow_cpnt)
                 self.components_model.add_component(value_cpnt)
 

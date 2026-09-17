@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from ..serializable import Serializable
 from ._base_component import NodeComponent
 from ..plugin_subsystem.registry import NYX_REGISTRY
+from ...static.enums import CoreNodeComponents
 
 
 if typing.TYPE_CHECKING:
@@ -110,12 +111,12 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
 
     # TODO: Generic function
     def find_writable_flow_components(self) -> Iterator[FlowComponent]:
-        for flow_component in self.find_components_of_type("core:flow"):
+        for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
             if flow_component.is_active and flow_component.is_writable:
                 yield flow_component
 
     def find_readable_flow_components(self) -> Iterator[FlowComponent]:
-        for flow_component in self.find_components_of_type("core:flow"):
+        for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
             if flow_component.is_active and flow_component.is_readable:
                 yield flow_component
 

@@ -3,10 +3,8 @@ from collections import OrderedDict
 import logging
 import pytest
 
-from nyx.core import Stage
-from nyx.core import Node
 from nyx.utils import file_fn
-from nyx.api.v1 import commands
+from nyx.api.v1 import Node, Stage, CoreNodes, commands
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,20 +70,20 @@ def test_stage_deserialize_plugin_nodes(
     # TODO: add components to nodes
     for _ in range(3):
         base_node_create_command = commands.CreateNodeCommand(
-            stage=stage, node_type_id="core:action"
+            stage=stage, node_type_id=CoreNodes.ACTION
         )
         stage.push_command(base_node_create_command)
         for _ in range(3):
             child_node_create_command = commands.CreateNodeCommand(
                 stage=stage,
-                node_type_id="core:action",
+                node_type_id=CoreNodes.ACTION,
                 parent_path=base_node_create_command.node_path,
             )
             stage.push_command(child_node_create_command)
             for _ in range(2):
                 deep_child_create_command = commands.CreateNodeCommand(
                     stage=stage,
-                    node_type_id="core:branch",
+                    node_type_id=CoreNodes.BRANCH,
                     parent_path=child_node_create_command.node_path,
                 )
                 stage.push_command(deep_child_create_command)
@@ -99,9 +97,9 @@ def test_stage_deserialize_plugin_nodes(
     last_imported_child_node = stage2.node(child_node_create_command.node_path)
     last_imported_base_node = stage2.node(base_node_create_command.node_path)
 
-    assert last_imported_deep_child.TYPE_ID == "core:branch"
-    assert last_imported_child_node.TYPE_ID == "core:action"
-    assert last_imported_base_node.TYPE_ID == "core:action"
+    assert last_imported_deep_child.TYPE_ID == CoreNodes.BRANCH
+    assert last_imported_child_node.TYPE_ID == CoreNodes.ACTION
+    assert last_imported_base_node.TYPE_ID == CoreNodes.ACTION
 
     stage2.export_json(export_path2)
 
@@ -132,8 +130,12 @@ def test_stage_export_import_with_connections(
     export_path = output_dir / f"{request.node.name}{Stage.FILE_EXTENSION}"
 
     stage1 = Stage()
-    node1_create_command = commands.CreateNodeCommand(stage1, node_type_id="core:action")
-    node2_create_command = commands.CreateNodeCommand(stage1, node_type_id="core:action")
+    node1_create_command = commands.CreateNodeCommand(
+        stage1, node_type_id=CoreNodes.ACTION
+    )
+    node2_create_command = commands.CreateNodeCommand(
+        stage1, node_type_id=CoreNodes.ACTION
+    )
 
     stage1.push_command(node1_create_command)
     stage1.push_command(node2_create_command)

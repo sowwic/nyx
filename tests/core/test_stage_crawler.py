@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from nyx.api.v1 import Stage, commands
+from nyx.api.v1 import Stage, CoreNodes, commands
 
 LOGGER = logging.getLogger(__name__)
 
@@ -70,13 +70,13 @@ def test_crawler_order_correct_with_nested_hierarchy(
     stage = Stage()
     export_path = output_dir / f"{request.node.name}{stage.FILE_EXTENSION}"
     flow_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id="core:flow_start"
+        stage=stage, node_type_id=CoreNodes.FLOW_START
     )
     action1_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id="core:action"
+        stage=stage, node_type_id=CoreNodes.ACTION
     )
     action2_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id="core:action"
+        stage=stage, node_type_id=CoreNodes.ACTION
     )
 
     stage.push_command(flow_create_command)
@@ -90,12 +90,12 @@ def test_crawler_order_correct_with_nested_hierarchy(
     # Setup children of action1
     flow_node1_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id="core:flow_start",
+        node_type_id=CoreNodes.FLOW_START,
         parent_path=action1_node.path,
     )
     child_node1_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id="core:action",
+        node_type_id=CoreNodes.ACTION,
         parent_path=action1_node.path,
     )
     stage.push_command(flow_node1_create_command)
@@ -107,12 +107,12 @@ def test_crawler_order_correct_with_nested_hierarchy(
     # # Setup children of action2
     flow_node2_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id="core:flow_start",
+        node_type_id=CoreNodes.FLOW_START,
         parent_path=action2_node.path,
     )
     child_node2_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id="core:action",
+        node_type_id=CoreNodes.ACTION,
         parent_path=action2_node.path,
     )
     stage.push_command(flow_node2_create_command)

@@ -1,22 +1,27 @@
-from nyx.api.v1 import Stage
-from nyx.api.v1 import commands
+from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands
 
 
 def test_branch_node_creation():
     """Test creating new branch node with default parameters."""
     stage = Stage()
-    command = commands.CreateNodeCommand(stage=stage, node_type_id="core:branch")
+    command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.BRANCH)
     stage.push_command(command)
     result_node = stage.node(command.node_path)
 
     assert result_node is not None
-    assert result_node.TYPE_ID == "core:branch"
+    assert result_node.TYPE_ID == CoreNodes.BRANCH
     assert (
-        next(result_node.components_model.find_components_of_type("core:flow"))
+        next(
+            result_node.components_model.find_components_of_type(CoreNodeComponents.FLOW)
+        )
         is not None
     )
     assert (
-        next(result_node.components_model.find_components_of_type("core:value"))
+        next(
+            result_node.components_model.find_components_of_type(
+                CoreNodeComponents.VALUE
+            )
+        )
         is not None
     )
 
@@ -26,6 +31,7 @@ def test_execute_activates_correct_flow_out():
     command = commands.CreateNodeCommand(stage=stage, node_type_id="core:branch")
     stage.push_command(command)
     branch_node = stage.node(command.node_path)
+    assert branch_node is not None
 
     # True case
     branch_node["value"].value = True

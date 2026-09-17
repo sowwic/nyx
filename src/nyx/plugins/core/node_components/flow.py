@@ -1,10 +1,11 @@
 import pathlib
 
 from nyx.api.v1 import NodeComponent
+from nyx.api.v1 import CoreNodeComponents
 
 
 class FlowComponent(NodeComponent):
-    TYPE_ID = "core:flow"
+    TYPE_ID = CoreNodeComponents.FLOW
     DEFAULT_NAME = "flow"
     REQUIRED_PLUGINS = ["NyxCore"]
     TAGS = ["logic"]

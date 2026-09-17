@@ -5,6 +5,7 @@ from nyx.core.node_component._base_component import NodeComponent
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.core.plugin_subsystem.plugin_interface import NyxPluginInterface
 from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
+from nyx.static.enums import CoreNodes, CoreNodeComponents
 
 __all__ = [
     "Node",
@@ -12,6 +13,8 @@ __all__ = [
     "NodeComponent",
     "NyxPluginManager",
     "NyxPluginInterface",
+    "CoreNodes",
+    "CoreNodeComponents",
     "NYX_REGISTRY",
     "commands",
 ]
