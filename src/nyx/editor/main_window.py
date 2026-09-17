@@ -234,31 +234,27 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
         self.stage_tree_view.setSelectionModel(stage_graph.selection_model)
 
-    def on_stage_open(self):
+    def on_stage_open(self, tabbed: bool = False):
+        created_new = tabbed or self.current_mdi_window is None
         sub_wnd = (
-            self.current_mdi_window
-            if self.current_mdi_window
-            else self.create_stage_node_graph()
+            self.create_stage_node_graph() if created_new else self.current_mdi_window
         )
+
         stage_graph: StageGraphEditor = sub_wnd.widget()
         file_opened = stage_graph.on_stage_open()
+
         if not file_opened:
-            self.mdi_area.removeSubWindow(sub_wnd)
-        else:
-            self.mdi_area.setActiveSubWindow(sub_wnd)
-            sub_wnd.show()
-            self.on_node_graph_window_activated(sub_wnd)
+            if created_new:
+                self.mdi_area.removeSubWindow(sub_wnd)
+            # else: cancelled opening into an existing window — leave it alone
+            return
+
+        self.mdi_area.setActiveSubWindow(sub_wnd)
+        sub_wnd.show()
+        self.on_node_graph_window_activated(sub_wnd)
 
     def on_stage_open_tabbed(self):
-        sub_wnd = self.create_stage_node_graph()
-        stage_graph: StageGraphEditor = sub_wnd.widget()
-        file_opened: bool = stage_graph.on_stage_open()
-        if not file_opened:
-            self.mdi_area.removeSubWindow(sub_wnd)
-        else:
-            self.mdi_area.setActiveSubWindow(sub_wnd)
-            sub_wnd.show()
-            self.on_node_graph_window_activated(sub_wnd)
+        self.on_stage_open(tabbed=True)
 
     def on_stage_new(self):
         try:
