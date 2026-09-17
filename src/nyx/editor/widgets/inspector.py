@@ -1,12 +1,9 @@
 import typing
 import logging
-from PySide6 import QtCore
 
 # from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx.core import Node
-from nyx.core import commands
 
 from ..views.node_components_view import NodeComponentsView
 

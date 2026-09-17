@@ -11,7 +11,6 @@ from nyx.editor.utils import clipboard
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
-    import pathlib
     from nyx.core import Stage
     from nyx.core import Node
     from nyx.editor.main_window import NyxEditorMainWindow
