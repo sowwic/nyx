@@ -247,6 +247,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         else:
             self.mdi_area.setActiveSubWindow(sub_wnd)
             sub_wnd.show()
+            self.on_node_graph_window_activated(sub_wnd)
 
     def on_stage_open_tabbed(self):
         sub_wnd = self.create_stage_node_graph()
@@ -257,6 +258,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         else:
             self.mdi_area.setActiveSubWindow(sub_wnd)
             sub_wnd.show()
+            self.on_node_graph_window_activated(sub_wnd)
 
     def on_stage_new(self):
         try:
