@@ -8,32 +8,32 @@ from nyx.api.v1 import Stage, CoreNodes, commands
 LOGGER = logging.getLogger(__name__)
 
 
-# def test_crawler_order_correct_with_flat_hierarchy():
-#     stage = Stage()
-#
-#     flow_create_command = commands.CreateNodeCommand(
-#         stage=stage, node_type_id="core:flow_start"
-#     )
-#     action1_create_command = commands.CreateNodeCommand(
-#         stage=stage, node_type_id="core:action"
-#     )
-#     action2_create_command = commands.CreateNodeCommand(
-#         stage=stage, node_type_id="core:action"
-#     )
-#     stage.push_command(flow_create_command)
-#     stage.push_command(action1_create_command)
-#     stage.push_command(action2_create_command)
-#
-#     flow_create_command.result_node["flow"].value = action1_create_command.node_path
-#     action1_create_command.result_node["flow"].value = action2_create_command.node_path
-#
-#     stage.crawler.start()
-#     assert stage.crawler.visited_node_paths == [
-#         stage.ROOT_NODE_PATH.as_posix(),
-#         flow_create_command.node_path,
-#         action1_create_command.node_path,
-#         action2_create_command.node_path,
-#     ]
+def test_crawler_order_correct_with_flat_hierarchy():
+    stage = Stage()
+
+    flow_create_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.FLOW_START
+    )
+    action1_create_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    action2_create_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    stage.push_command(flow_create_command)
+    stage.push_command(action1_create_command)
+    stage.push_command(action2_create_command)
+
+    flow_create_command.result_node["flow"].value = action1_create_command.node_path
+    action1_create_command.result_node["flow"].value = action2_create_command.node_path
+
+    stage.crawler.start()
+    assert stage.crawler.visited_node_paths == [
+        stage.ROOT_NODE_PATH.as_posix(),
+        flow_create_command.node_path,
+        action1_create_command.node_path,
+        action2_create_command.node_path,
+    ]
 
 
 def test_crawler_order_correct_with_nested_hierarchy(
