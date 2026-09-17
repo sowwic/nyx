@@ -108,23 +108,6 @@ class StageTreeView(QtWidgets.QTreeView):
 
         return nodes
 
-    def select_paths(self, node_paths: list[pathlib.PurePosixPath], silent=False):
-        if silent:
-            self.blockSignals(True)
-        indexes = []
-        for path in node_paths:
-            node = self.stage.node(path)
-            if node is None:
-                continue
-            indexes.append(node.index())
-
-        self.selectionModel().clearSelection()
-        for each_index in indexes:
-            self.selectionModel().select(
-                each_index, QtCore.QItemSelectionModel.SelectionFlag.Select
-            )
-        self.blockSignals(False)
-
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Delete:
             self.delete_selected_node()
