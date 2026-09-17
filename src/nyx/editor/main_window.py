@@ -6,16 +6,18 @@ from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
-from nyx.version import __version__
-from nyx.editor.views.stage_tree_view import StageTreeView
-from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
-from nyx.editor.widgets.logger_widget import LoggerWidget
-from nyx.editor.widgets.inspector import Inspector
-from nyx.editor.widgets.editor_toolbar import EditorToolBar
-from nyx.editor.widgets import menubar_menus
+from ..version import __version__
+from .views.stage_tree_view import StageTreeView
+from .widgets.stage_graph_editor import StageGraphEditor
+from .widgets.logger_widget import LoggerWidget
+from .widgets.inspector import Inspector
+from .widgets.editor_toolbar import EditorToolBar
+from .widgets import menubar_menus
+from .widgets.stage_mdi_window import StageMdiSubWindow
 
 
 if typing.TYPE_CHECKING:
+    from nyx.api.v1 import Stage
     from ..application import NyxEditorApplication
     from ..core.layered_config import NyxConfig
 
@@ -199,19 +201,22 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.apply_config_values()
 
     def create_stage_node_graph(
-        self, stage=None, file_path: pathlib.Path | str | None = None
+        self, stage: Stage | None = None, file_path: pathlib.Path | str | None = None
     ):
         if file_path:
             graph_widget = StageGraphEditor.from_json_file(file_path)
         else:
             graph_widget = StageGraphEditor(stage)
-        sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(graph_widget)
+
+        mdi_sub_window = StageMdiSubWindow(self.mdi_area)
+        mdi_sub_window.setWidget(graph_widget)
+        self.mdi_area.addSubWindow(mdi_sub_window)
 
         # Connect signals
         graph_widget.selection_model.selectionChanged.connect(
             self.inspector.update_node_data_from_selection
         )
-        return sub_wnd
+        return mdi_sub_window
 
     # Slots
     def update_title(self):
