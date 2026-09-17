@@ -11,7 +11,8 @@ from nyx.core import commands
 from ..views.node_components_view import NodeComponentsView
 
 if typing.TYPE_CHECKING:
-    from nyx.editor.main_window import NyxEditorMainWindow
+    from ..main_window import NyxEditorMainWindow
+    from .stage_graph_editor import StageGraphEditor
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ class Inspector(QtWidgets.QWidget):
         return self.main_window.stage_tree_view
 
     @property
-    def current_stage_graph(self):
+    def current_stage_graph(self) -> StageGraphEditor:
         return self.main_window.current_stage_graph
 
     @property
