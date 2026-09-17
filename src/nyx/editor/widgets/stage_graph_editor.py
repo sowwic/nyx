@@ -55,10 +55,10 @@ class StageGraphEditor(QtWidgets.QWidget):
         return self._stage
 
     @property
-    def selection_model(self):
+    def selection_model(self) -> QtCore.QItemSelectionModel:
         return self._selection_model
 
-    def set_stage(self, stage: Stage, create_connections=True):
+    def set_stage(self, stage: Stage | None, create_connections=True):
         old_stage = self.stage
         if stage is None:
             stage = Stage()
