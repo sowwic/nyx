@@ -10,6 +10,7 @@ from ..plugin_subsystem.registry import NYX_REGISTRY
 
 if typing.TYPE_CHECKING:
     from ..node import Node
+    from nyx.plugins.core.node_components.flow import FlowComponent
 
 
 LOGGER = logging.getLogger(__name__)
@@ -53,8 +54,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         super().deserialize(data)
         # Deserialize components
         for component_data in data:
-            component = NodeComponent()
-            self.appendRow(component)
+            component = self.get_component(component_data["name"])
+            if component is None:
+                component = self.create_component(component_data["type_id"])
+                self.appendRow(component)
             component.deserialize(component_data)
 
     def create_component(self, type_id: str) -> NodeComponent:
@@ -66,11 +69,15 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         self.appendRow(component)
         LOGGER.debug(f"Added new component: {component}")
 
-    def remove_component(self, name: str):
+    def remove_component(self, name: str) -> None:
         for component in self.list_components():
-            if component.name == name:
-                self.removeRow(component.row())
+            if component.name != name:
+                continue
+
+            if component.is_built_in:
+                LOGGER.error(f"Can't remove builtin component: {component.as_path()}")
                 return
+            self.removeRow(component.row())
 
     def compose_unique_component_name(self, name: str) -> str:
         """Returns a unique name for the component, indexed if it already exists."""
@@ -100,6 +107,17 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         )
         result_items = (self.itemFromIndex(index) for index in hits)
         return next(result_items, None)
+
+    # TODO: Generic function
+    def find_writable_flow_components(self) -> Iterator[FlowComponent]:
+        for flow_component in self.find_components_of_type("core:flow"):
+            if flow_component.is_active and flow_component.is_writable:
+                yield flow_component
+
+    def find_readable_flow_components(self) -> Iterator[FlowComponent]:
+        for flow_component in self.find_components_of_type("core:flow"):
+            if flow_component.is_active and flow_component.is_readable:
+                yield flow_component
 
     def find_components_of_type(self, type_id: str) -> Iterator[NodeComponent]:
         component_cls: NodeComponent = NYX_REGISTRY.get_node_component_cls(type_id)

@@ -4,6 +4,7 @@ from typing import Protocol, runtime_checkable
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node, Stage
+    from nyx.plugins.core.nodes.flow_start import FlowStartNode
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class StageCrawler:
     def __init__(self, stage: Stage) -> None:
         self._stage = stage
         self._visited_node_paths: list[str] = []
+        self._execution_paths_stack: list[str] = []
         self._current_node: Node | None = None
 
     @property
@@ -72,15 +74,22 @@ class StageCrawler:
     def visited_node_paths(self) -> list[str]:
         return self._visited_node_paths
 
+    @property
+    def execution_paths_stack(self) -> list[str]:
+        return self._execution_paths_stack
+
+    def clear_cached_data(self):
+        self.visited_node_paths.clear()
+        self.execution_paths_stack.clear()
+
     def start(self, start_node: Node | None = None) -> None:
         """Begin (or restart) a crawl from ``start_node`` or the stage root."""
-        self._visited_node_paths.clear()
-        root = start_node or self.stage.root_node.find_flow_start_node()
-        if root is None:
-            raise RuntimeError(
-                f"No start node given and {self.stage!r} has no root_node"
-            )
-        root.accept_visitor(self)  # kicks off recursive post-order descent
+        self.clear_cached_data()
+
+        start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
+        if start_node is None:
+            raise RuntimeError("No start node given and Stage has no FlowStart node")
+        start_node.accept_visitor(self)  # kicks off recursive post-order descent
 
     # -- NodeVisitor -----------------------------------------------------
 
@@ -100,8 +109,7 @@ class StageCrawler:
         self._current_node = node
         LOGGER.debug("Executing node %s", path)
         node.execute()
-
-    # -- internals ---------------------------------------------------------
+        self._execution_paths_stack.append(node.path.as_posix())
 
     def _traverse_children(self, child: Node) -> None:
         # child.accept(self) -> visit_node(child): this resolves child's own
@@ -121,35 +129,27 @@ class StageCrawler:
         the same parent -- a flow component is not expected to point anywhere
         else.
         """
-        flow_components = node.components_model.find_components_of_type("core:flow")
-        eligible = [c for c in flow_components if c.is_active and c.is_readable]
-
-        if not eligible:
+        readable_flow_components = node.components_model.find_readable_flow_components()
+        if not readable_flow_components:
             return []
-
-        parent: Node | None = node.parent()
-        if parent is None:
-            LOGGER.warning(
-                "Node %s has active core:flow components but no parent to resolve siblings against",
-                node.path,
-            )
-            return []
-
-        siblings_by_path = {
-            str(sibling.path): sibling for sibling in parent.list_children()
-        }
 
         next_nodes: list[Node] = []
-        for component in eligible:
-            next_node = siblings_by_path.get(component.value)
-            if next_node is None:
-                LOGGER.warning(
-                    "core:flow on %s points to %s, which is not a sibling under %s",
-                    node.path,
-                    component.value,
-                    parent.path,
-                )
+        for flow_component in readable_flow_components:
+            if flow_component.value is None:
                 continue
+
+            next_node = self.stage.node(flow_component.value)
+            if next_node is None:
+                raise RuntimeError(
+                    f"{flow_component.as_path()} points to "
+                    f"{flow_component.value}, which doesn't exist.",
+                )
+
+            if next_node.parent() != node.parent():
+                raise RuntimeError(
+                    f"{flow_component.as_path()} points to "
+                    f"{flow_component.value}, which is not a sibling node.",
+                )
             next_nodes.append(next_node)
 
         return next_nodes

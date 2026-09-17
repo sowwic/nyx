@@ -26,6 +26,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Node(QtGui.QStandardItem, Serializable):
     TYPE_ID: str = "core:node"
+    DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
     TAGS: list[str] = []
 
@@ -37,10 +38,10 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def __init__(
         self,
-        name: str = "node",
+        name: str | None = None,
         parent: Node | pathlib.PurePosixPath | str | None = None,
     ) -> None:
-        QtGui.QStandardItem.__init__(self, name)
+        QtGui.QStandardItem.__init__(self, name or self.DEFAULT_NAME)
         Serializable.__init__(self)
         self._cached_path = None
         self.gr_node: GraphicsNode = None
@@ -377,6 +378,7 @@ class Node(QtGui.QStandardItem, Serializable):
         """
         super().deserialize(data)
 
+        LOGGER.debug(f"Desirializing: {data.get('name')}")
         if self.name != data.get("name", self.name):
             self.rename(data.get("name"))
 
@@ -393,9 +395,12 @@ class Node(QtGui.QStandardItem, Serializable):
 
         self._update_pathmap_entry()
 
+        # Components
+        self.components_model.deserialize(data.get("components"))
+
         # Children
         for child_data in data.get("children", {}):
-            node_class = NYX_REGISTRY.get_node_cls(data.get("type_id")) or Node
+            node_class = NYX_REGISTRY.get_node_cls(child_data.get("type_id"))
             child_node = node_class(parent=self)
             child_node.deserialize(child_data)
 

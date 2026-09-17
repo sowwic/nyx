@@ -26,6 +26,9 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         IS_READABLE = enum.auto()
         IS_WRITABLE = enum.auto()
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} ({self.name})"
+
     def __init__(
         self,
         name: str | None = None,
@@ -101,7 +104,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         self.is_writable = False
         self.value = None
 
-    def as_path(self):
+    def as_path(self) -> pathlib.PurePosixPath:
         return self.node.path.with_suffix("." + self.name)
 
     def create_inspector_widget(self, parent) -> QtWidgets.QWidget:
@@ -112,19 +115,28 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         layout.addWidget(line_edit)
         return widget
 
-    def load_from_component(self): ...
+    def serialize_value(self) -> typing.Any:
+        return self.value
 
-    def apply_to_component(self): ...
+    def deserialize_value(self, value: typing.Any) -> typing.Any:
+        return value
 
-    def serialize(self):
+    def serialize(self) -> OrderedDict[str, typing.Any]:
         data = super().serialize()
         data["type_id"] = self.TYPE_ID
         data["name"] = self.name
-        data["value"] = self.value
+        data["value"] = self.serialize_value()
         data["is_active"] = self.is_active
+        data["is_readable"] = self.is_readable
+        data["is_writable"] = self.is_writable
         return data
 
     def deserialize(self, data: OrderedDict):
+        self.name = data["name"]
+        self.value = self.deserialize_value(value=data["value"])
+        self.is_active = data["is_active"]
+        self.is_readable = data["is_readable"]
+        self.is_writable = data["is_writable"]
         return super().deserialize(data)
 
     def execute(self):

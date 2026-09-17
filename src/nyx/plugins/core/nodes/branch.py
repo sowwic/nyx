@@ -3,6 +3,7 @@ from nyx.api.v1 import Node
 
 class BranchNode(Node):
     TYPE_ID = "core:branch"
+    DEFAULT_NAME = "branch"
     REQUIRED_PLUGINS = ["NyxCore"]
     TAGS = ["logic"]
 

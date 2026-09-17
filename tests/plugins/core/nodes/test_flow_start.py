@@ -7,9 +7,8 @@ def test_flow_start_node_creation():
     stage = Stage()
     command = commands.CreateNodeCommand(stage=stage, node_type_id="core:flow_start")
     stage.push_command(command)
-    expected_path = stage.ROOT_NODE_PATH / "node"
 
-    result_node = stage.node(expected_path)
+    result_node = stage.node(command.node_path)
 
     assert result_node is not None
     assert result_node.TYPE_ID == "core:flow_start"

@@ -6,6 +6,7 @@ import pytest
 from nyx.core import Stage
 from nyx.core import Node
 from nyx.utils import file_fn
+from nyx.api.v1 import commands
 
 LOGGER = logging.getLogger(__name__)
 
@@ -62,18 +63,49 @@ def test_stage_deserialize(output_dir: pathlib.Path, request: pytest.FixtureRequ
     assert stage2.root_node.serialize() == stage.root_node.serialize()
 
 
-def test_stage_get_node_from_path_root():
+def test_stage_deserialize_plugin_nodes(
+    output_dir: pathlib.Path, request: pytest.FixtureRequest
+):
     stage = Stage()
-    node = Node()
+    export_path = output_dir / f"{request.node.name}_export{stage.FILE_EXTENSION}"
+    export_path2 = output_dir / f"{request.node.name}_check{stage.FILE_EXTENSION}"
+    # TODO: add components to nodes
+    for _ in range(3):
+        base_node_create_command = commands.CreateNodeCommand(
+            stage=stage, node_type_id="core:action"
+        )
+        stage.push_command(base_node_create_command)
+        for _ in range(3):
+            child_node_create_command = commands.CreateNodeCommand(
+                stage=stage,
+                node_type_id="core:action",
+                parent_path=base_node_create_command.node_path,
+            )
+            stage.push_command(child_node_create_command)
+            for _ in range(2):
+                deep_child_create_command = commands.CreateNodeCommand(
+                    stage=stage,
+                    node_type_id="core:branch",
+                    parent_path=child_node_create_command.node_path,
+                )
+                stage.push_command(deep_child_create_command)
 
-    added_nodes = []
-    for i in range(5):
-        node = Node()
-        stage.add_node(node)
-        added_nodes.append(node)
+    stage.export_json(export_path)
 
-    assert stage.get_node_children_from_path("/") == added_nodes
-    assert stage.get_node_children_from_path("/") == stage.list_top_nodes()
+    stage2 = Stage()
+    stage2.import_json(export_path)
+
+    last_imported_deep_child = stage2.node(deep_child_create_command.node_path)
+    last_imported_child_node = stage2.node(child_node_create_command.node_path)
+    last_imported_base_node = stage2.node(base_node_create_command.node_path)
+
+    assert last_imported_deep_child.TYPE_ID == "core:branch"
+    assert last_imported_child_node.TYPE_ID == "core:action"
+    assert last_imported_base_node.TYPE_ID == "core:action"
+
+    stage2.export_json(export_path2)
+
+    assert stage2.root_node.serialize() == stage.root_node.serialize()
 
 
 def test_stage_get_node_from_path():
@@ -100,23 +132,24 @@ def test_stage_export_import_with_connections(
     export_path = output_dir / f"{request.node.name}{Stage.FILE_EXTENSION}"
 
     stage1 = Stage()
-    node1 = Node()
-    node2 = Node()
-    stage1.add_node(node1)
-    stage1.add_node(node2)
+    node1_create_command = commands.CreateNodeCommand(stage1, node_type_id="core:action")
+    node2_create_command = commands.CreateNodeCommand(stage1, node_type_id="core:action")
 
-    # TODO: Add components
+    stage1.push_command(node1_create_command)
+    stage1.push_command(node2_create_command)
 
-    # Connetions
-    node2.set_input_exec_path(node1)
-    # TODO: connect plugs
+    node1 = node1_create_command.result_node
+    node2 = node2_create_command.result_node
+
+    # Connections
+    node1["flow"].value = node2.path
 
     stage1.export_json(export_path)
 
     stage2 = Stage()
     stage2.import_json(export_path)
 
-    assert stage1.serialize() == stage2.serialize()
+    assert stage1.root_node.serialize() == stage2.root_node.serialize()
 
 
 def test_stage_convert_to_node():

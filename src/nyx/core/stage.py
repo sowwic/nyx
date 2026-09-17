@@ -181,7 +181,7 @@ class Stage(QtGui.QStandardItemModel):
             self._path_map[node.cached_path] = node
             LOGGER.debug(f"{self} | Added {node} to root")
 
-    def node(self, node: Node | pathlib.PurePosixPath | str | None) -> Node:
+    def node(self, node: Node | pathlib.PurePosixPath | str | None) -> Node | None:
         """Get node instance.
 
         Args:
@@ -329,9 +329,6 @@ class Stage(QtGui.QStandardItemModel):
         """
         if not isinstance(node_path, pathlib.PurePosixPath):
             node_path = pathlib.PurePosixPath(node_path)
-
-        if node_path == pathlib.PurePosixPath("/"):
-            return self.list_top_nodes()
 
         if node_path not in self.path_map:
             LOGGER.warning(f"Can't get children of node with given path: {node_path}")

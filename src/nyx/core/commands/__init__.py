@@ -5,6 +5,8 @@ from .rename_node import RenameNodeCommand
 from .set_node_active_state import SetNodeActiveStateCommand
 from .paste_nodes import PasteNodesCommand
 from .move_node import MoveNodeCommand
+from .add_node_component import AddNodeComponentCommand
+from .delete_node_component import DeleteNodeComponentCommand
 
 __all__ = [
     "NyxCommand",
@@ -14,4 +16,6 @@ __all__ = [
     "SetNodeActiveStateCommand",
     "PasteNodesCommand",
     "MoveNodeCommand",
+    "AddNodeComponentCommand",
+    "DeleteNodeComponentCommand",
 ]
