@@ -1,11 +1,9 @@
 import pathlib
 import logging
-from collections import deque
 
 import pytest
 
-from nyx.core import Node, Stage
-from nyx.api.v1 import Node, Stage, commands
+from nyx.api.v1 import Stage, commands
 
 LOGGER = logging.getLogger(__name__)
 

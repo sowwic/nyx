@@ -3,7 +3,7 @@ SHELL := /bin/bash
 APP_NAME = nyx
 DIST_DIR = dist
 BUILD_DIR = build
-TEST_OUTPUT_DIR = .test_output
+TEST_OUTPUT_DIR = test_output
 APP_PATH = $(DIST_DIR)/$(APP_NAME).app
 APPLICATIONS_DIR = /Applications
 

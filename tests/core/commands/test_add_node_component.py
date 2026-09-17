@@ -2,7 +2,6 @@ import logging
 
 
 from nyx.core.commands import AddNodeComponentCommand, CreateNodeCommand
-from nyx.core.exceptions import NyxCommandValidationError
 from nyx.core.stage import Stage
 
 

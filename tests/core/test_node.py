@@ -1,5 +1,4 @@
 import logging
-import pytest
 
 from nyx.api.v1 import Node, Stage, commands
 

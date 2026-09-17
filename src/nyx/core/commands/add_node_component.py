@@ -1,5 +1,4 @@
 import logging
-import pathlib
 from PySide6 import QtGui
 
 from nyx.core import Node

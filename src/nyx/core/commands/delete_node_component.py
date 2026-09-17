@@ -1,5 +1,4 @@
 import logging
-import pathlib
 import typing
 from collections import OrderedDict
 from PySide6 import QtGui
@@ -7,7 +6,6 @@ from PySide6 import QtGui
 from nyx.core import Node
 from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
-from ..plugin_subsystem.registry import NYX_REGISTRY
 
 if typing.TYPE_CHECKING:
     from nyx.core.node_component._base_component import NodeComponent

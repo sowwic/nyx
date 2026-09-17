@@ -23,7 +23,7 @@ def output_dir(request: pytest.FixtureRequest) -> pathlib.Path:
     """
     tests_root = pathlib.Path(__file__).parent
     project_root = tests_root.parent
-    output_root = project_root / ".test_output"
+    output_root = project_root / "test_output"
 
     test_file = pathlib.Path(str(request.fspath))
     relative_dir = test_file.parent.relative_to(tests_root)
