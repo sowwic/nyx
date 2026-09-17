@@ -22,180 +22,32 @@ class Inspector(QtWidgets.QWidget):
         self, main_window: NyxEditorMainWindow, parent: QtWidgets.QWidget | None = None
     ) -> None:
         super().__init__(parent)
-        self._node: Node = None
         self.main_window: NyxEditorMainWindow = main_window
 
         self.create_actions()
         self.create_widgets()
         self.create_layouts()
-        self.create_connections()
 
     def create_actions(self):
         pass
 
     def create_widgets(self):
-        # TODO: Add scroll area
-        self.node_name_lineedit = QtWidgets.QLineEdit()
-        self.node_path_lineedit = QtWidgets.QLineEdit()
-        self.node_path_lineedit.setReadOnly(True)
-        self.node_isactive_checkbox = QtWidgets.QCheckBox("Active")
-        self.node_position_x_spinbox = QtWidgets.QDoubleSpinBox()
-        self.node_position_y_spinbox = QtWidgets.QDoubleSpinBox()
-        self.node_position_x_spinbox.setButtonSymbols(
-            QtWidgets.QAbstractSpinBox.NoButtons
-        )
-        self.node_position_y_spinbox.setButtonSymbols(
-            QtWidgets.QAbstractSpinBox.NoButtons
-        )
-        self.node_position_x_spinbox.setRange(-64000, 64000)
-        self.node_position_y_spinbox.setRange(-64000, 64000)
         self._node_components_view = NodeComponentsView()
 
     def create_layouts(self):
-        position_layout = QtWidgets.QHBoxLayout()
-        position_layout.addWidget(QtWidgets.QLabel("X:"))
-        position_layout.addWidget(self.node_position_x_spinbox)
-        position_layout.addWidget(QtWidgets.QLabel("Y:"))
-        position_layout.addWidget(self.node_position_y_spinbox)
-        position_layout.addStretch()
-
-        basic_properties_layout = QtWidgets.QFormLayout()
-        basic_properties_layout.addRow(self.node_isactive_checkbox)
-        basic_properties_layout.addRow("Name:", self.node_name_lineedit)
-        basic_properties_layout.addRow("Path:", self.node_path_lineedit)
-        basic_properties_layout.addRow("Position:", position_layout)
-
-        self.main_layout = QtWidgets.QVBoxLayout()
-        self.main_window.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(self.main_layout)
-        self.main_layout.addLayout(basic_properties_layout)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.addWidget(self._node_components_view)
-
-    def create_connections(self):
-        self.main_window.undo_group.indexChanged.connect(
-            self.update_node_data_from_selection
-        )
-        self.node_name_lineedit.editingFinished.connect(self.apply_name_edit)
-        self.node_isactive_checkbox.toggled.connect(self.apply_active_toggle)
-        self.node_position_x_spinbox.editingFinished.connect(self.apply_position_edit)
-        self.node_position_y_spinbox.editingFinished.connect(self.apply_position_edit)
-
-    @property
-    def tree_view(self):
-        return self.main_window.stage_tree_view
 
     @property
     def current_stage_graph(self) -> StageGraphEditor:
         return self.main_window.current_stage_graph
 
-    @property
-    def node(self):
-        return self._node
-
-    @node.setter
-    def node(self, node: Node):
-        self._node = node
-        if self._node is None:
-            self.set_fields_enabled(False)
-            return
-
-        self.block_fields_signals(True)
-        self.set_fields_enabled(True)
-        self.update_referenced_fields(self._node.is_referenced)
-        self.set_data_from_node(self.node)
-        self.block_fields_signals(False)
-
-    def set_fields_enabled(self, state: bool):
-        for field in [
-            self.node_name_lineedit,
-        ]:
-            if not state:
-                field.clear()
-            field.setEnabled(state)
-
-        if not state:
-            self.node_isactive_checkbox.setChecked(False)
-        self.node_isactive_checkbox.setEnabled(state)
-
-        for spinbox in [self.node_position_x_spinbox, self.node_position_y_spinbox]:
-            if not state:
-                spinbox.setValue(0.0)
-            spinbox.setEnabled(state)
-
-    def update_referenced_fields(self, is_referenced: bool):
-        for field in [
-            self.node_path_lineedit,
-        ]:
-            field.setEnabled(not is_referenced)
-
-    def block_fields_signals(self, state: bool):
-        for widget in [
-            self.node_name_lineedit,
-            self.node_path_lineedit,
-            self.node_isactive_checkbox,
-            self.node_position_x_spinbox,
-            self.node_position_y_spinbox,
-        ]:
-            widget.blockSignals(state)
-
-    def update_node_data_from_selection(self):
-        # TODO: use selection model
-        if not self.current_stage_graph:
-            self.node = None
-            return
-
+    def update_data(self):
         selected_nodes = self.current_stage_graph.list_selected_nodes()
-        self.node = selected_nodes[-1] if selected_nodes else None
-
-    def set_data_from_node(self, node: Node):
-        self.node_name_lineedit.setText(node.name)
-        self.node_path_lineedit.setText(node.path.as_posix())
-        self.node_isactive_checkbox.setChecked(node.is_active())
-        node_position = node.position()
-        if not isinstance(node_position, QtCore.QPointF):
-            node_position = QtCore.QPointF(*node_position)
-
-        self.node_position_x_spinbox.setValue(node_position.x())
-        self.node_position_y_spinbox.setValue(node_position.y())
-        self._node_components_view.setModel(node.components_model)
-
-    def apply_name_edit(self):
-        current_node = self.tree_view.current_node()
-        if not current_node:
+        if not selected_nodes:
+            LOGGER.info("TODO: Inspector::set_place_holder_widget")
             return
 
-        new_name = self.node_name_lineedit.text()
-        if new_name == current_node.name:
-            return
-
-        rename_cmd = commands.RenameNodeCommand(
-            stage=current_node.stage, node=current_node, new_name=new_name
-        )
-        current_node.stage.push_command(rename_cmd)
-
-    def apply_active_toggle(self):
-        current_node = self.tree_view.current_node()
-        if not current_node:
-            return
-        new_state = self.node_isactive_checkbox.isChecked()
-
-        set_active_cmd = commands.SetNodeActiveStateCommand(
-            stage=current_node.stage, node=current_node, state=new_state
-        )
-        current_node.stage.push_command(set_active_cmd)
-
-    def apply_position_edit(self):
-        current_node = self.tree_view.current_node()
-        if not current_node:
-            return
-
-        new_position = QtCore.QPointF(
-            self.node_position_x_spinbox.value(), self.node_position_y_spinbox.value()
-        )
-        if new_position == current_node.position():
-            return
-
-        move_cmd = commands.MoveNodeCommand(
-            stage=current_node.stage, nodes=[current_node], new_positions=[new_position]
-        )
-        current_node.stage.push_command(move_cmd)
+        LOGGER.debug(selected_nodes)
+        for node in selected_nodes:
+            LOGGER.info("TODO: Inspector::update_data %s", node)

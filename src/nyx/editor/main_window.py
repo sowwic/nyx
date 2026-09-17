@@ -163,6 +163,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.mdi_area.subWindowActivated.connect(self.on_node_graph_window_activated)
         self.mdi_area.subWindowActivated.connect(self.update_title)
         self.undo_group.indexChanged.connect(self.update_title)
+        self.undo_group.indexChanged.connect(self.inspector.update_data)
 
     # Events
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
@@ -204,17 +205,17 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self, stage: Stage | None = None, file_path: pathlib.Path | str | None = None
     ):
         if file_path:
-            graph_widget = StageGraphEditor.from_json_file(file_path)
+            stage_graph_editor_widget = StageGraphEditor.from_json_file(file_path)
         else:
-            graph_widget = StageGraphEditor(stage)
+            stage_graph_editor_widget = StageGraphEditor(stage)
 
         mdi_sub_window = StageMdiSubWindow(self.mdi_area)
-        mdi_sub_window.setWidget(graph_widget)
+        mdi_sub_window.setWidget(stage_graph_editor_widget)
         self.mdi_area.addSubWindow(mdi_sub_window)
 
         # Connect signals
-        graph_widget.selection_model.selectionChanged.connect(
-            self.inspector.update_node_data_from_selection
+        stage_graph_editor_widget.selection_model.selectionChanged.connect(
+            self.inspector.update_data
         )
         return mdi_sub_window
 
