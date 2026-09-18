@@ -7,8 +7,8 @@ from nyx.api.v1 import CoreNodeComponents
 class FlowComponent(NodeComponent):
     TYPE_ID = CoreNodeComponents.FLOW
     DEFAULT_NAME = "flow"
-    REQUIRED_PLUGINS = ["NyxCore"]
-    TAGS = ["logic"]
+    REQUIRED_PLUGINS = {"NyxCore"}
+    TAGS = {"logic"}
 
     def serialize_value(self) -> str:
         if self.value:

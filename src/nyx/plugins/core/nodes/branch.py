@@ -4,8 +4,8 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 class BranchNode(Node):
     TYPE_ID = CoreNodes.BRANCH
     DEFAULT_NAME = "branch"
-    REQUIRED_PLUGINS = ["NyxCore"]
-    TAGS = ["logic"]
+    REQUIRED_PLUGINS = {"NyxCore"}
+    TAGS = {"logic"}
 
     def setup(self):
         self.flow_in = self.components_model.create_component(

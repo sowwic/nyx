@@ -2,6 +2,7 @@ import enum
 import pathlib
 import typing
 from collections import OrderedDict
+from collections.abc import Iterable
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -15,12 +16,13 @@ if typing.TYPE_CHECKING:
 class NodeComponent(QtGui.QStandardItem, Serializable):
     TYPE_ID: str = "base_component"
     DEFAULT_NAME: str = "component"
-    TAGS: list[str] = []
+    TAGS: set[str] = set()
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         VALUE = enum.auto()
+        TAGS = enum.auto()
         IS_BUILT_IN = enum.auto()
         IS_ACTIVE = enum.auto()
         IS_READABLE = enum.auto()
@@ -97,11 +99,20 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def mark_as_built_in(self):
         self.setData(True, self.Roles.IS_BUILT_IN)
 
+    @property
+    def tags(self) -> set[str]:
+        return self.data(self.Roles.TAGS)
+
+    @tags.setter
+    def tags(self, new_tags: Iterable) -> None:
+        self.setData(set(new_tags), self.Roles.TAGS)
+
     def init_default_data_values(self):
         self.setData(self.TYPE_ID, self.Roles.TYPE_ID)
         self.is_active = True
         self.is_readable = False
         self.is_writable = False
+        self.tags = self.TAGS
         self.value = None
 
     def as_path(self) -> pathlib.PurePosixPath:

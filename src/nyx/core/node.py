@@ -4,6 +4,7 @@ import pathlib
 import time
 import typing
 from collections import OrderedDict, deque
+from collections.abc import Iterable
 
 from PySide6 import QtCore, QtGui
 
@@ -29,12 +30,13 @@ class Node(QtGui.QStandardItem, Serializable):
     TYPE_ID: str = CoreNodes.EMPTY
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
-    TAGS: list[str] = []
+    TAGS: set[str] = set()
 
     class Roles(enum.IntEnum):
         ACTIVE_ROLE = QtCore.Qt.UserRole + 1
         POSITION = enum.auto()
         REFERENCE_FILE_PATH = enum.auto()
+        TAGS = enum.auto()
         LOCKED_ROLE = enum.auto()
 
     def __init__(
@@ -79,6 +81,7 @@ class Node(QtGui.QStandardItem, Serializable):
         self.setData(QtCore.QPointF(), role=self.Roles.POSITION)
         self.setData(None, role=self.Roles.REFERENCE_FILE_PATH)
         self.setData(False, role=self.Roles.LOCKED_ROLE)
+        self.setData(self.TAGS, role=self.Roles.TAGS)
 
     @property
     def name(self):
@@ -151,6 +154,14 @@ class Node(QtGui.QStandardItem, Serializable):
     @is_locked.setter
     def is_locked(self, state: bool):
         self.setData(state, self.Roles.LOCKED_ROLE)
+
+    @property
+    def tags(self) -> set[str]:
+        return self.data(role=self.Roles.TAGS)
+
+    @tags.setter
+    def tags(self, new_tags: Iterable) -> None:
+        self.setData(set(new_tags), role=self.Roles.TAGS)
 
     def cache_current_path(self):
         """Store current path in cache."""
@@ -362,7 +373,6 @@ class Node(QtGui.QStandardItem, Serializable):
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
         data["path"] = self.path.as_posix()
-        data["required_plugins"] = self.REQUIRED_PLUGINS
         if self.reference_file_path is not None:
             data["reference_file_path"] = self.reference_file_path.as_posix()
         else:
