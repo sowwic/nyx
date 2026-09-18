@@ -4,7 +4,7 @@ from PySide6 import QtGui, QtCore
 from collections.abc import Iterator
 
 from ..serializable import Serializable
-from ._base_component import NodeComponent
+from ..node_component import NodeComponent
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import CoreNodeComponents
 
@@ -37,7 +37,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         return [
             component
             for component in all_components
-            if component.TYPE_ID == type_id_filter
+            if component.get_type_id() == type_id_filter
         ]
 
     def serialize(self):

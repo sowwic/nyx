@@ -16,5 +16,6 @@ class CoreNodeComponents(enum.StrEnum):
 
 
 class PluginContentKind(enum.StrEnum):
+    PLUGIN = "plugin"
     NODE = "node"
     NODE_COMPONENT = "node_component"

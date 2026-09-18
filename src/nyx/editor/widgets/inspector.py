@@ -6,6 +6,8 @@ from PySide6 import QtWidgets
 
 
 from ..views.node_components_view import NodeComponentsView
+from nyx.core.models.registry_model import RegistryListModel
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 
 if typing.TYPE_CHECKING:
     from ..main_window import NyxEditorMainWindow
@@ -34,6 +36,9 @@ class Inspector(QtWidgets.QWidget):
     def create_layouts(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.addWidget(self._node_components_view)
+        self._node_components_view.setModel(
+            RegistryListModel(lambda: NYX_REGISTRY.nodes)
+        )
 
     @property
     def current_stage_graph(self) -> StageGraphEditor:

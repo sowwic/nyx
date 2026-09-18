@@ -14,7 +14,7 @@ def test_sequence_node_creation():
     result_node: SequenceNode = stage.node(command.node_path)
 
     assert result_node is not None
-    assert result_node.TYPE_ID == CoreNodes.SEQUENCE
+    assert result_node.get_type_id() == CoreNodes.SEQUENCE
 
     flow_components = list(
         result_node.components_model.find_components_of_type(CoreNodeComponents.FLOW)

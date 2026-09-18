@@ -5,10 +5,20 @@ from nyx.api.v1 import CoreNodeComponents
 
 
 class FlowComponent(NodeComponent):
-    TYPE_ID = CoreNodeComponents.FLOW
     DEFAULT_NAME = "flow"
     REQUIRED_PLUGINS = {"NyxCore"}
-    TAGS = {"logic"}
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return CoreNodeComponents.FLOW
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return "Flow"
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return {"logic"}
 
     def serialize_value(self) -> str:
         if self.value:

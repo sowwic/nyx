@@ -14,7 +14,7 @@ def test_flow_start_node_creation():
     result_node: FlowStartNode = stage.node(command.node_path)
 
     assert result_node is not None
-    assert result_node.TYPE_ID == CoreNodes.FLOW_START
+    assert result_node.get_type_id() == CoreNodes.FLOW_START
     assert (
         next(
             result_node.components_model.find_components_of_type(CoreNodeComponents.FLOW)

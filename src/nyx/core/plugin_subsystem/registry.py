@@ -8,7 +8,7 @@ from nyx.core.logger import NyxLogger
 if typing.TYPE_CHECKING:
     from .plugin_interface import NyxPluginInterface
     from ..node import Node
-    from ..node_component._base_component import NodeComponent
+    from ..node_component import NodeComponent
 
 
 logging.setLoggerClass(NyxLogger)
@@ -76,7 +76,7 @@ class NyxRegistry:
 
     def add_plugin(self, plugin_cls: NyxPluginInterface):
         registry_entry = NyxPluginRegistryEntry(plugin_cls=plugin_cls)
-        self.plugins[plugin_cls.NAME] = registry_entry
+        self.plugins[plugin_cls.get_type_id()] = registry_entry
 
     def register_plugin_content(self):
         self.nodes.clear()
@@ -91,7 +91,7 @@ class NyxRegistry:
 
             if not plugin_entry.enabled:
                 LOGGER.warning(
-                    f"Skipping disabled plugin {plugin_entry.plugin_cls.NAME}"
+                    f"Skipping disabled plugin {plugin_entry.plugin_cls.get_type_id()}"
                 )
                 continue
 
@@ -101,47 +101,47 @@ class NyxRegistry:
     def register_node_components(self, plugin_entry: NyxPluginRegistryEntry):
         LOGGER.debug("Registering new node components...")
         for node_component_cls in plugin_entry.plugin_instance.contents.node_components:
-            if node_component_cls.TYPE_ID in self.node_components:
+            if node_component_cls.get_type_id() in self.node_components:
                 LOGGER.error(
                     (
                         "Failed to register component class %s - "
                         "TYPE_ID %s is already registered as %s"
                     ),
                     node_component_cls.__name__,
-                    node_component_cls.TYPE_ID,
-                    self.node_components[node_component_cls.TYPE_ID],
+                    node_component_cls.get_type_id(),
+                    self.node_components[node_component_cls.get_type_id()],
                 )
                 continue
 
-            self.node_components[node_component_cls.TYPE_ID] = node_component_cls
+            self.node_components[node_component_cls.get_type_id()] = node_component_cls
             LOGGER.debug(
                 "Registered node component: %s (%s) from %s",
-                node_component_cls.TYPE_ID,
+                node_component_cls.get_type_id(),
                 node_component_cls.__name__,
-                plugin_entry.plugin_cls.NAME,
+                plugin_entry.plugin_cls.get_type_id(),
             )
 
     def register_nodes(self, plugin_entry: NyxPluginRegistryEntry):
         LOGGER.debug("Registering new nodes...")
         for node_cls in plugin_entry.plugin_instance.contents.nodes:
-            if node_cls.TYPE_ID in self.nodes:
+            if node_cls.get_type_id() in self.nodes:
                 LOGGER.error(
                     (
                         "Failed to register node class %s - "
                         "TYPE_ID %s is already registered as %s"
                     ),
                     node_cls.__name__,
-                    node_cls.TYPE_ID,
-                    self.nodes[node_cls.TYPE_ID],
+                    node_cls.get_type_id(),
+                    self.nodes[node_cls.get_type_id()],
                 )
                 continue
 
-            self.nodes[node_cls.TYPE_ID] = node_cls
+            self.nodes[node_cls.get_type_id()] = node_cls
             LOGGER.debug(
                 "Registered node %s (%s) from %s",
-                node_cls.TYPE_ID,
+                node_cls.get_type_id(),
                 node_cls.__name__,
-                plugin_entry.plugin_cls.NAME,
+                plugin_entry.plugin_cls.get_type_id(),
             )
 
     def iter_plugins(self) -> Iterator[tuple[str, NyxPluginRegistryEntry]]:

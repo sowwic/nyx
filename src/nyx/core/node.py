@@ -8,7 +8,7 @@ from collections.abc import Iterable
 
 from PySide6 import QtCore, QtGui
 
-from .node_component.components_model import NodeComponentsModel
+from .models.components_model import NodeComponentsModel
 from .serializable import Serializable
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
@@ -16,25 +16,24 @@ from ..static.vars import NYX_FILE_EXTENSION
 from ..static.enums import CoreNodes, PluginContentKind
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Stage
+    from .stage import Stage
+    from .node_component import NodeComponent
+    from .stage_crawler import NodeVisitor
     from nyx.editor.graphics.graphics_node import GraphicsNode
-    from nyx.core.node_component._base_component import NodeComponent
     from nyx.plugins.core.nodes.flow_start import FlowStartNode
-    from nyx.core.stage_crawler import NodeVisitor
 
 
 LOGGER = logging.getLogger(__name__)
 
 
 class Node(QtGui.QStandardItem, Serializable):
-    TYPE_ID: str = CoreNodes.EMPTY
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
-    TAGS: set[str] = set()
-    PLUGIN_CONTENT_KIND = PluginContentKind.NODE
 
     class Roles(enum.IntEnum):
-        ACTIVE_ROLE = QtCore.Qt.UserRole + 1
+        TYPE_ID = QtCore.Qt.UserRole + 1
+        TYPE_DISPLAY_NAME = enum.auto()
+        ACTIVE_ROLE = enum.auto()
         POSITION = enum.auto()
         REFERENCE_FILE_PATH = enum.auto()
         TAGS = enum.auto()
@@ -78,11 +77,13 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.components_model.get_component(key)
 
     def _set_default_role_values(self):
+        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(True, role=self.Roles.ACTIVE_ROLE)
         self.setData(QtCore.QPointF(), role=self.Roles.POSITION)
         self.setData(None, role=self.Roles.REFERENCE_FILE_PATH)
         self.setData(False, role=self.Roles.LOCKED_ROLE)
-        self.setData(self.TAGS, role=self.Roles.TAGS)
+        self.setData(self.get_tags(), role=self.Roles.TAGS)
+        self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
 
     @property
     def name(self):
@@ -370,7 +371,7 @@ class Node(QtGui.QStandardItem, Serializable):
         data = super().serialize()
         children = [child.serialize() for child in self.list_children()]
         data["name"] = self.text()
-        data["type_id"] = self.TYPE_ID
+        data["type_id"] = self.get_type_id()
         data["active"] = self.is_active()
         data["position"] = self.serializable_position()
         data["path"] = self.path.as_posix()
@@ -452,7 +453,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def find_child_node_of_type(self, type_id: str):
         for node in self.list_children():
-            if node.TYPE_ID == type_id:
+            if node.get_type_id() == type_id:
                 return node
 
     def find_flow_start_node(self) -> FlowStartNode:
@@ -490,3 +491,19 @@ class Node(QtGui.QStandardItem, Serializable):
 
     def execute_components(self):
         pass
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return CoreNodes.EMPTY
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return cls.__name__
+
+    @classmethod
+    def get_plugin_content_kind(cls) -> PluginContentKind:
+        return PluginContentKind.NODE
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return set()

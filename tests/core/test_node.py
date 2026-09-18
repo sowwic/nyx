@@ -1,7 +1,7 @@
 import logging
 
 from nyx.api.v1 import Node, Stage, CoreNodes, CoreNodeComponents, commands
-from nyx.core.plugin_subsystem.content_protocol import PluginContent
+from nyx.core.protocols.plugin_content import PluginContent
 
 LOGGER = logging.getLogger(__name__)
 
@@ -184,7 +184,7 @@ def test_find_flow_start_node():
 
     flow_start_node: Node = parent_node.find_flow_start_node()
     assert flow_start_node is not None
-    assert flow_start_node.TYPE_ID == CoreNodes.FLOW_START
+    assert flow_start_node.get_type_id() == CoreNodes.FLOW_START
 
 
 def test_setup_components_marked_as_builtin():

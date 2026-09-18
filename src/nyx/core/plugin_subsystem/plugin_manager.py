@@ -40,7 +40,10 @@ class NyxPluginManager:
 
             @NyxPluginManager.register_plugin()
             class MyPlugin(NyxPluginInterface):
-                NAME = "my_plugin"
+
+            @classmethod
+            def get_type_id(cls) -> str:
+                return "MyPlugin"
             ```
         """
 
@@ -74,13 +77,14 @@ class NyxPluginManager:
         Raises:
             ValueError: Plugin NAME is not defined.
         """
-        if not plugin_cls.NAME:
-            raise ValueError("Plugin has no NAME defined")
+        if not plugin_cls.get_type_id():
+            raise ValueError("Plugin has no type_id defined")
 
-        if plugin_cls.NAME in NYX_REGISTRY.plugins:
+        type_id = plugin_cls.get_type_id()
+        if type_id in NYX_REGISTRY.plugins:
             raise ValueError(
-                f"Plugin with name {plugin_cls.NAME} already exists:"
-                f"{NYX_REGISTRY.plugins[plugin_cls.NAME]}"
+                f"Plugin with name {type_id} already exists:"
+                f"{NYX_REGISTRY.plugins[type_id]}"
             )
 
     def get_plugin(self, name: str) -> NyxPluginRegistryEntry | None:
@@ -101,7 +105,8 @@ class NyxPluginManager:
 
         initialization_counter = 0
         for plugin_entry in NYX_REGISTRY.iter_plugin_entries():
-            if include and plugin_entry.plugin_cls.NAME not in include:
+            type_id = plugin_entry.plugin_cls.get_type_id()
+            if include and type_id not in include:
                 plugin_entry.enabled = False
 
             if not plugin_entry.enabled:
@@ -112,7 +117,7 @@ class NyxPluginManager:
 
             plugin_entry.initialize()
             initialization_counter += 1
-            LOGGER.info(f"Initialized plugin: {plugin_entry.plugin_cls.NAME}")
+            LOGGER.info(f"Initialized plugin: {type_id}")
 
         LOGGER.info(
             f"Initialized {initialization_counter}/{len(NYX_REGISTRY.plugins)} plugins"

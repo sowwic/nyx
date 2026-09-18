@@ -23,7 +23,7 @@ def test_add_component_with_default_name():
         node.components_model.find_components_of_type(type_id=test_cpnt_type_id), None
     )
     assert value_cpnt is not None
-    assert value_cpnt.type_id == test_cpnt_type_id
+    assert value_cpnt.get_type_id() == test_cpnt_type_id
     assert value_cpnt.name == value_cpnt.DEFAULT_NAME
 
 
@@ -44,7 +44,7 @@ def test_add_component_with_custom_name():
 
     value_cpnt = node[test_cpnt_name]
     assert value_cpnt is not None
-    assert value_cpnt.type_id == test_cpnt_type_id
+    assert value_cpnt.get_type_id() == test_cpnt_type_id
     assert value_cpnt.name == test_cpnt_name
 
 

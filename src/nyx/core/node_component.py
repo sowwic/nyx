@@ -2,27 +2,24 @@ import enum
 import pathlib
 import typing
 from collections import OrderedDict
-from collections.abc import Iterable
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..serializable import Serializable
-from ...static.enums import PluginContentKind
+from .serializable import Serializable
+from ..static.enums import PluginContentKind
 
 if typing.TYPE_CHECKING:
-    from ..node import Node
-    from .components_model import NodeComponentsModel
+    from .node import Node
+    from .models.components_model import NodeComponentsModel
 
 
 class NodeComponent(QtGui.QStandardItem, Serializable):
-    TYPE_ID: str = "base_component"
     DEFAULT_NAME: str = "component"
-    TAGS: set[str] = set()
-    PLUGIN_CONTENT_KIND = PluginContentKind.NODE_COMPONENT
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
+        TYPE_DISPLAY_NAME = enum.auto()
         VALUE = enum.auto()
         TAGS = enum.auto()
         IS_BUILT_IN = enum.auto()
@@ -53,10 +50,6 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     @property
     def name(self) -> str:
         return self.data(self.Roles.NAME)
-
-    @property
-    def type_id(self) -> str:
-        return self.data(self.Roles.TYPE_ID)
 
     @name.setter
     def name(self, new_name: str):
@@ -105,16 +98,14 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def tags(self) -> set[str]:
         return self.data(self.Roles.TAGS)
 
-    @tags.setter
-    def tags(self, new_tags: Iterable) -> None:
-        self.setData(set(new_tags), self.Roles.TAGS)
-
     def init_default_data_values(self):
-        self.setData(self.TYPE_ID, self.Roles.TYPE_ID)
+        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
+        self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
+        self.setData(self.get_tags(), role=self.Roles.TAGS)
+
         self.is_active = True
         self.is_readable = False
         self.is_writable = False
-        self.tags = self.TAGS
         self.value = None
 
     def as_path(self) -> pathlib.PurePosixPath:
@@ -136,7 +127,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
 
     def serialize(self) -> OrderedDict[str, typing.Any]:
         data = super().serialize()
-        data["type_id"] = self.TYPE_ID
+        data["type_id"] = self.get_type_id()
         data["name"] = self.name
         data["value"] = self.serialize_value()
         data["is_active"] = self.is_active
@@ -155,3 +146,19 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def execute(self):
         if not self.is_active:
             return
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return "base_component"
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return cls.__name__
+
+    @classmethod
+    def get_plugin_content_kind(cls) -> PluginContentKind:
+        return PluginContentKind.NODE_COMPONENT
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return set()

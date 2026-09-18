@@ -2,11 +2,21 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 
 class SequenceNode(Node):
-    TYPE_ID = CoreNodes.SEQUENCE
     DEFAULT_NAME = "sequence"
     REQUIRED_PLUGINS = {"NyxCore"}
-    TAGS = {"logic"}
     DEFAULT_OUTPUTS_COUNT = 4
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return CoreNodes.SEQUENCE
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return "Sequence"
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return {"logic"}
 
     def setup(self):
         for output_index in range(4):

@@ -97,9 +97,9 @@ def test_stage_deserialize_plugin_nodes(
     last_imported_child_node = stage2.node(child_node_create_command.node_path)
     last_imported_base_node = stage2.node(base_node_create_command.node_path)
 
-    assert last_imported_deep_child.TYPE_ID == CoreNodes.BRANCH
-    assert last_imported_child_node.TYPE_ID == CoreNodes.ACTION
-    assert last_imported_base_node.TYPE_ID == CoreNodes.ACTION
+    assert last_imported_deep_child.get_type_id() == CoreNodes.BRANCH
+    assert last_imported_child_node.get_type_id() == CoreNodes.ACTION
+    assert last_imported_base_node.get_type_id() == CoreNodes.ACTION
 
     stage2.export_json(export_path2)
 

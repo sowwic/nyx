@@ -6,7 +6,7 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
 )
-from nyx.core.plugin_subsystem.content_protocol import PluginContent
+from nyx.core.protocols.plugin_content import PluginContent
 
 
 def test_init_base_component():
@@ -58,7 +58,7 @@ def test_serialize():
     )
     data = flow_component.serialize()
 
-    assert data["type_id"] == flow_component.TYPE_ID
+    assert data["type_id"] == flow_component.get_type_id()
     assert data["name"] == flow_component.name
     assert data["value"] == flow_component.value
     assert data["is_active"] == flow_component.is_active

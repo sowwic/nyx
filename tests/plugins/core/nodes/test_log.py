@@ -13,7 +13,7 @@ def test_log_node_creation():
     result_node: LogNode | None = stage.node(command.node_path)
 
     assert result_node is not None
-    assert result_node.TYPE_ID == CoreNodes.LOG
+    assert result_node.get_type_id() == CoreNodes.LOG
     assert (
         next(
             result_node.components_model.find_components_of_type(CoreNodeComponents.FLOW)
@@ -23,12 +23,12 @@ def test_log_node_creation():
     assert result_node._logger is None
     message_cpnt = result_node.components_model.get_component("message")
     assert message_cpnt is not None
-    assert message_cpnt.TYPE_ID == CoreNodeComponents.VALUE
+    assert message_cpnt.get_type_id() == CoreNodeComponents.VALUE
     assert message_cpnt.value == ""
 
     level_cpnt = result_node.components_model.get_component("level")
     assert level_cpnt is not None
-    assert level_cpnt.TYPE_ID == CoreNodeComponents.VALUE
+    assert level_cpnt.get_type_id() == CoreNodeComponents.VALUE
     assert level_cpnt.value == 10
 
 

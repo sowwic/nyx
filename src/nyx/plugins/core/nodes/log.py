@@ -3,10 +3,20 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 
 class LogNode(Node):
-    TYPE_ID = CoreNodes.LOG
     DEFAULT_NAME = "log"
     REQUIRED_PLUGINS = {"NyxCore"}
-    TAGS = {"utils"}
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return CoreNodes.LOG
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return "Log"
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return {"utils"}
 
     def setup(self) -> None:
         """Create log node components"""

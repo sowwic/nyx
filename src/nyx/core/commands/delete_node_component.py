@@ -8,7 +8,7 @@ from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
 
 if typing.TYPE_CHECKING:
-    from nyx.core.node_component._base_component import NodeComponent
+    from nyx.api.v1 import NodeComponent
 
 
 LOGGER = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class DeleteNodeComponentCommand(NyxCommand):
         component: NodeComponent = node[self.name]
         self.serialized_data = component.serialize()
         self.setText(
-            f"Remove component ({self.node_path}.{self.name} ({component.type_id})"
+            f"Remove component ({self.node_path}.{self.name} ({component.get_type_id()})"
         )
         node.components_model.remove_component(self.name)
 

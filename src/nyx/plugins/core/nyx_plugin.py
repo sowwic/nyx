@@ -15,7 +15,9 @@ LOGGER = logging.getLogger(__name__)
 
 @NyxPluginManager.register_plugin()
 class NyxCore(NyxPluginInterface):
-    NAME = "NyxCore"
+    @classmethod
+    def get_type_id(cls) -> str:
+        return "NyxCore"
 
     @classmethod
     def initialize(cls) -> typing.Self:

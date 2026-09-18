@@ -2,10 +2,20 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 
 class BranchNode(Node):
-    TYPE_ID = CoreNodes.BRANCH
     DEFAULT_NAME = "branch"
     REQUIRED_PLUGINS = {"NyxCore"}
-    TAGS = {"logic"}
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return CoreNodes.BRANCH
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return "Branch"
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return {"logic"}
 
     def setup(self):
         self.flow_in = self.components_model.create_component(

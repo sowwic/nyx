@@ -2,10 +2,21 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 
 class FlowStartNode(Node):
-    TYPE_ID = CoreNodes.FLOW_START
     DEFAULT_NAME = "start"
     REQUIRED_PLUGINS = {"NyxCore"}
     TAGS = {"logic"}
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return CoreNodes.FLOW_START
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return "Flow Start"
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return {"logic"}
 
     def setup(self):
         self.flow_cpnt = self.components_model.create_component(CoreNodeComponents.FLOW)
