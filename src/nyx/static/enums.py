@@ -6,6 +6,7 @@ class CoreNodes(enum.StrEnum):
     ACTION = "core:action"
     FLOW_START = "core:flow_start"
     BRANCH = "core:branch"
+    SEQUENCE = "core:sequence"
 
 
 class CoreNodeComponents(enum.StrEnum):
