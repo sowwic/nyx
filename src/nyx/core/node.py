@@ -480,7 +480,6 @@ class Node(QtGui.QStandardItem, Serializable):
 
         start_time = time.perf_counter()
         try:
-            LOGGER.info(f"TODO: Executing {self.cached_path}")
             self.execute_components()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")

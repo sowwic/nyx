@@ -286,9 +286,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         if not self.current_stage_graph:
             return
 
-        selected_gr_node = self.current_stage_graph.gr_stage.get_last_selected_gr_node()
-        if not selected_gr_node:
+        selected_nodes = self.current_stage_graph.list_selected_nodes()
+        if not selected_nodes:
             LOGGER.warning("No node selected for execution")
             return
 
-        self.current_stage_graph.stage.crawler.start(start_node=selected_gr_node.node)
+        self.current_stage_graph.stage.crawler.start(start_node=selected_nodes[-1])

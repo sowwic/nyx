@@ -89,7 +89,8 @@ class StageCrawler:
         start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
         if start_node is None:
             raise RuntimeError("No start node given and Stage has no FlowStart node")
-        start_node.accept_visitor(self)  # kicks off recursive post-order descent
+
+        self._traverse_children(start_node)  # kicks off recursive post-order descent
 
     # -- NodeVisitor -----------------------------------------------------
 
@@ -115,6 +116,11 @@ class StageCrawler:
         # child.accept(self) -> visit_node(child): this resolves child's own
         # children first, then executes child. Only after child has executed
         # do we look at its core:flow components to find the next flow-sibling.
+
+        if str(child.path) in self.visited_node_paths:
+            LOGGER.warning("Cycle/convergence at %s, not re-visiting", child.path)
+            return
+
         child.accept_visitor(self)
 
         for next_child in self._find_next_nodes(child):

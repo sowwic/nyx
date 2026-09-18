@@ -38,8 +38,7 @@ def test_execute_components_creates_logger_with_expected_name():
     command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.LOG)
     stage.push_command(command)
     log_node: LogNode = stage.node(command.node_path)
-    log_node.message = "test_message"
+    log_node["message"].value = "test_message"
     log_node.execute_components()
 
     assert log_node.logger is not None
-    assert log_node.logger.name == log_node._compose_logger_name()

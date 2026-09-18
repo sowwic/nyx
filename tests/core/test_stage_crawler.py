@@ -73,10 +73,10 @@ def test_crawler_order_correct_with_nested_hierarchy(
         stage=stage, node_type_id=CoreNodes.FLOW_START
     )
     action1_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, node_type_id=CoreNodes.LOG
     )
     action2_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, node_type_id=CoreNodes.LOG
     )
 
     stage.push_command(flow_create_command)
@@ -95,7 +95,7 @@ def test_crawler_order_correct_with_nested_hierarchy(
     )
     child_node1_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id=CoreNodes.ACTION,
+        node_type_id=CoreNodes.LOG,
         parent_path=action1_node.path,
     )
     stage.push_command(flow_node1_create_command)
@@ -112,7 +112,7 @@ def test_crawler_order_correct_with_nested_hierarchy(
     )
     child_node2_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id=CoreNodes.ACTION,
+        node_type_id=CoreNodes.LOG,
         parent_path=action2_node.path,
     )
     stage.push_command(flow_node2_create_command)
@@ -127,6 +127,12 @@ def test_crawler_order_correct_with_nested_hierarchy(
 
     action1_flow_start["flow"].value = action1_child.path
     action2_flow_start["flow"].value = action2_child.path
+
+    # Setup messages
+    action1_node["message"].value = "ACTION1"
+    action2_node["message"].value = "ACTION2"
+    action1_child["message"].value = "ACTION1_CHILD"
+    action2_child["message"].value = "ACTION2_CHILD"
 
     # Perform stage crawl
     stage.crawler.start()

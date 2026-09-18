@@ -70,6 +70,8 @@ class LogNode(Node):
 
     def execute_components(self) -> None:
         """Log message"""
-        if not self.message:
+        if not self.message.value:
             return
-        self.logger.log(level=int(self.level.value), msg=self.message)
+
+        message = f"({self.name}): {self.message.value}"
+        self.logger.log(level=int(self.level.value), msg=message)
