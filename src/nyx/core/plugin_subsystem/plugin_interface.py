@@ -2,8 +2,6 @@ import dataclasses
 import typing
 
 
-from nyx.static.enums import PluginContentKind
-
 if typing.TYPE_CHECKING:
     from nyx.api.v1 import Node, NodeComponent
 
@@ -49,10 +47,6 @@ class NyxPluginInterface:
     @classmethod
     def get_type_display_name(cls) -> str:
         return cls.get_type_id()
-
-    @classmethod
-    def get_plugin_content_kind(cls) -> PluginContentKind:
-        return PluginContentKind.PLUGIN
 
     @classmethod
     def get_tags(cls) -> set[str]:

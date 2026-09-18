@@ -13,7 +13,7 @@ from .serializable import Serializable
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
-from ..static.enums import CoreNodes, PluginContentKind
+from ..static.enums import CoreNodes
 
 if typing.TYPE_CHECKING:
     from .stage import Stage
@@ -499,10 +499,6 @@ class Node(QtGui.QStandardItem, Serializable):
     @classmethod
     def get_type_display_name(cls) -> str:
         return cls.__name__
-
-    @classmethod
-    def get_plugin_content_kind(cls) -> PluginContentKind:
-        return PluginContentKind.NODE
 
     @classmethod
     def get_tags(cls) -> set[str]:

@@ -6,7 +6,6 @@ from collections import OrderedDict
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .serializable import Serializable
-from ..static.enums import PluginContentKind
 
 if typing.TYPE_CHECKING:
     from .node import Node
@@ -154,10 +153,6 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     @classmethod
     def get_type_display_name(cls) -> str:
         return cls.__name__
-
-    @classmethod
-    def get_plugin_content_kind(cls) -> PluginContentKind:
-        return PluginContentKind.NODE_COMPONENT
 
     @classmethod
     def get_tags(cls) -> set[str]:
