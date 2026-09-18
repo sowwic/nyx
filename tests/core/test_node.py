@@ -1,7 +1,7 @@
 import logging
 
 from nyx.api.v1 import Node, Stage, CoreNodes, CoreNodeComponents, commands
-from nyx.core.protocols.plugin_content import PluginContent
+from nyx.core.protocols.registry_entry import IRegistryEntry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ def test_add_node_to_root():
 
     stage.add_node(node)
 
-    assert isinstance(node, PluginContent)
+    assert isinstance(node, IRegistryEntry)
     assert stage.root_node.hasChildren()
     assert stage.root_node.child(0) is node
 

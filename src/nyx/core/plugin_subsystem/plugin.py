@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import dataclasses
 import typing
 
@@ -23,7 +24,7 @@ class NyxPluginContents:
     nodes: list[type[Node]] = dataclasses.field(init=False, default_factory=list)
 
 
-class NyxPluginInterface:
+class NyxPlugin(ABC):
     """Base interface for all Nyx plugins.
 
     Attributes:
@@ -35,10 +36,9 @@ class NyxPluginInterface:
         self.contents = NyxPluginContents()
 
     @classmethod
+    @abstractmethod
     def initialize(cls) -> typing.Self:
-        raise NotImplementedError(
-            "NyxPluginInterface based class must implement initialize() class method"
-        )
+        raise NotImplementedError(f"{cls.__name__} must implement initialize()")
 
     @classmethod
     def get_type_id(cls) -> str:

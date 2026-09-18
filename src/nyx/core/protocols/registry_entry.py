@@ -3,7 +3,7 @@ from abc import abstractmethod
 
 
 @runtime_checkable
-class PluginContent(Protocol):
+class IRegistryEntry(Protocol):
     @classmethod
     @abstractmethod
     def get_type_id(cls) -> str: ...

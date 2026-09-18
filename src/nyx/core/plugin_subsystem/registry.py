@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from nyx.core.logger import NyxLogger
 
 if typing.TYPE_CHECKING:
-    from .plugin_interface import NyxPluginInterface
+    from .plugin import NyxPlugin
     from ..node import Node
     from ..node_component import NodeComponent
 
@@ -25,10 +25,8 @@ class NyxPluginRegistryEntry:
     """
 
     enabled: bool = True
-    plugin_cls: type[NyxPluginInterface] = dataclasses.field(default=None)
-    plugin_instance: NyxPluginInterface | None = dataclasses.field(
-        init=False, default=None
-    )
+    plugin_cls: type[NyxPlugin] = dataclasses.field(default=None)
+    plugin_instance: NyxPlugin | None = dataclasses.field(init=False, default=None)
 
     def initialize(self):
         """Call plugin initialize method and store resulting instance."""
@@ -74,7 +72,7 @@ class NyxRegistry:
                 f"Invalid node type_id: {type_id}\nAvailable Types: {self.nodes.keys()}"
             )
 
-    def add_plugin(self, plugin_cls: NyxPluginInterface):
+    def add_plugin(self, plugin_cls: NyxPlugin):
         registry_entry = NyxPluginRegistryEntry(plugin_cls=plugin_cls)
         self.plugins[plugin_cls.get_type_id()] = registry_entry
 
@@ -162,6 +160,12 @@ class NyxRegistry:
 
     def iter_node_components(self) -> Iterator[tuple[str, type[NodeComponent]]]:
         yield from self.node_components.items()
+
+    def get_plugins_types_dict(self) -> OrderedDict:
+        flat_dict = OrderedDict()
+        for type_id, registry_entry in self.iter_plugins():
+            flat_dict[type_id] = registry_entry.plugin_cls
+        return flat_dict
 
 
 NYX_REGISTRY = NyxRegistry()

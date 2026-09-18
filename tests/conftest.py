@@ -53,10 +53,14 @@ def nyx_app():
 
 @pytest.fixture(autouse=True, scope="session")
 def init_nyx_core():
-    plugin_manager = NyxPluginManager()
-    plugin_manager.initialize_plugins(include=["NyxCore"])
-    yield plugin_manager
-    NYX_REGISTRY.clear()
+    try:
+        plugin_manager = NyxPluginManager()
+        plugin_manager.initialize_plugins(include=["NyxCore"])
+        yield plugin_manager
+    except Exception as err:
+        pytest.exit(f"NyxCore initialization failed: {err!r}", returncode=2)
+    finally:
+        NYX_REGISTRY.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -65,7 +69,12 @@ def with_plugins(request):
     if marker is None:
         yield None
         return
-    plugin_manager = NyxPluginManager()
-    plugin_manager.initialize_plugins(include=list(marker.args))
-    # TODO: Uninitialize extra plugins
-    yield plugin_manager
+
+    try:
+        plugin_manager = NyxPluginManager()
+        plugin_manager.initialize_plugins(include=list(marker.args))
+    except Exception as err:
+        pytest.fail(reason=f"Failed to initialize plugins: {err!r}", pytrace=True)
+    finally:
+        # TODO: Uninitialize extra plugins
+        yield plugin_manager

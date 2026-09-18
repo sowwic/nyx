@@ -1,7 +1,7 @@
 import typing
 from collections import OrderedDict
 from PySide6.QtCore import QAbstractListModel, QModelIndex, Qt
-from ..protocols.plugin_content import PluginContent
+from ..protocols.registry_entry import IRegistryEntry
 
 
 class RegistryListModel(QAbstractListModel):
@@ -20,7 +20,7 @@ class RegistryListModel(QAbstractListModel):
         super().__init__(parent)
         self._get_items = get_items
         self._type_ids: list[str] = []
-        self._cls_by_id: dict[str, PluginContent] = {}
+        self._cls_by_id: dict[str, IRegistryEntry] = {}
         self.rebuild()
 
     def rebuild(self):
@@ -38,7 +38,7 @@ class RegistryListModel(QAbstractListModel):
         if not index.isValid():
             return None
         type_id = self._type_ids[index.row()]
-        cls: PluginContent = self._cls_by_id[type_id]
+        cls: IRegistryEntry = self._cls_by_id[type_id]
 
         if role == Qt.DisplayRole:
             return cls.get_type_display_name()

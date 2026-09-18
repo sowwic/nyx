@@ -37,7 +37,7 @@ class Inspector(QtWidgets.QWidget):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.addWidget(self._node_components_view)
         self._node_components_view.setModel(
-            RegistryListModel(lambda: NYX_REGISTRY.nodes)
+            RegistryListModel(lambda: NYX_REGISTRY.get_plugins_types_dict())
         )
 
     @property

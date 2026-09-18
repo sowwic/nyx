@@ -1,10 +1,11 @@
 import logging
 import typing
 
+from .plugin import NyxPlugin
 from .plugin_loader import NyxPluginLoader
-from .plugin_interface import NyxPluginInterface
 from .registry import NYX_REGISTRY, NyxPluginRegistryEntry
 from ...utils.profiling import profile
+from ..protocols.registry_entry import IRegistryEntry
 
 LOGGER = logging.getLogger("NyxPluginManager")
 
@@ -27,7 +28,7 @@ class NyxPluginManager:
         self._loader = loader
 
     @staticmethod
-    def register_plugin() -> typing.Callable[[NyxPluginInterface], NyxPluginInterface]:
+    def register_plugin() -> typing.Callable[[NyxPlugin], NyxPlugin]:
         """Decorator for plugin registration
 
         Returns:
@@ -36,10 +37,10 @@ class NyxPluginManager:
 
         Example:
             ```python
-            from nyx.api.v1 import NyxPluginManager
+            from nyx.api.v1 import NyxPlugin, NyxPluginManager
 
             @NyxPluginManager.register_plugin()
-            class MyPlugin(NyxPluginInterface):
+            class MyPlugin(NyxPlugin):
 
             @classmethod
             def get_type_id(cls) -> str:
@@ -47,7 +48,7 @@ class NyxPluginManager:
             ```
         """
 
-        def _register_plugin_inner(plugin_cls: NyxPluginInterface) -> NyxPluginInterface:
+        def _register_plugin_inner(plugin_cls: NyxPlugin) -> NyxPlugin:
             """Create new `NyxPluginRegistryEntry` for given plugin class.
 
             Args:
@@ -68,7 +69,7 @@ class NyxPluginManager:
         return _register_plugin_inner
 
     @staticmethod
-    def validate_plugin_class(plugin_cls: NyxPluginInterface) -> None:
+    def validate_plugin_class(plugin_cls: NyxPlugin) -> None:
         """Validate plugin class.
 
         Args:
@@ -77,6 +78,9 @@ class NyxPluginManager:
         Raises:
             ValueError: Plugin NAME is not defined.
         """
+        if not issubclass(plugin_cls, IRegistryEntry):
+            raise TypeError(f"Not implemented {IRegistryEntry.__name__}: {plugin_cls}")
+
         if not plugin_cls.get_type_id():
             raise ValueError("Plugin has no type_id defined")
 

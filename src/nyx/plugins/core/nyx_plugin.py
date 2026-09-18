@@ -1,6 +1,6 @@
 import typing
 import logging
-from nyx.api.v1 import NyxPluginManager, NyxPluginInterface, Node
+from nyx.api.v1 import NyxPluginManager, NyxPlugin, Node
 
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 @NyxPluginManager.register_plugin()
-class NyxCore(NyxPluginInterface):
+class NyxCore(NyxPlugin):
     @classmethod
     def get_type_id(cls) -> str:
         return "NyxCore"
