@@ -8,7 +8,7 @@ from .nodes.branch import BranchNode
 from .nodes.flow_start import FlowStartNode
 from .nodes.action import ActionNode
 from .nodes.sequence import SequenceNode
-
+from .nodes.log import LogNode
 
 LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class NyxCore(NyxPluginInterface):
             BranchNode,
             FlowStartNode,
             SequenceNode,
+            LogNode,
         ]
 
         return plugin

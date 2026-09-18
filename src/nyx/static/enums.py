@@ -7,6 +7,7 @@ class CoreNodes(enum.StrEnum):
     FLOW_START = "core:flow_start"
     BRANCH = "core:branch"
     SEQUENCE = "core:sequence"
+    LOG = "core:log"
 
 
 class CoreNodeComponents(enum.StrEnum):
