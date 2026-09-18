@@ -1,6 +1,7 @@
 import logging
 
 from nyx.api.v1 import Node, Stage, CoreNodes, CoreNodeComponents, commands
+from nyx.core.plugin_subsystem.content_protocol import PluginContent
 
 LOGGER = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ def test_add_node_to_root():
 
     stage.add_node(node)
 
+    assert isinstance(node, PluginContent)
     assert stage.root_node.hasChildren()
     assert stage.root_node.child(0) is node
 

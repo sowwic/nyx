@@ -6,12 +6,14 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
 )
+from nyx.core.plugin_subsystem.content_protocol import PluginContent
 
 
 def test_init_base_component():
     cpnt = NodeComponent()
-    cpnt.name == NodeComponent.DEFAULT_NAME
-    cpnt.is_active is True
+    assert cpnt.name == NodeComponent.DEFAULT_NAME
+    assert cpnt.is_active is True
+    assert isinstance(cpnt, PluginContent)
 
 
 def test_add_base_component_to_node():

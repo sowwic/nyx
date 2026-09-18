@@ -109,16 +109,15 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         result_items = (self.itemFromIndex(index) for index in hits)
         return next(result_items, None)
 
-    # TODO: Generic function
     def find_writable_flow_components(self) -> Iterator[FlowComponent]:
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
             if flow_component.is_active and flow_component.is_writable:
-                yield flow_component
+                yield flow_component  # ty: ignore
 
     def find_readable_flow_components(self) -> Iterator[FlowComponent]:
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
             if flow_component.is_active and flow_component.is_readable:
-                yield flow_component
+                yield flow_component  # ty: ignore
 
     def find_components_of_type(self, type_id: str) -> Iterator[NodeComponent]:
         component_cls: NodeComponent = NYX_REGISTRY.get_node_component_cls(type_id)

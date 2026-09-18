@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..serializable import Serializable
+from ...static.enums import PluginContentKind
 
 if typing.TYPE_CHECKING:
     from ..node import Node
@@ -17,6 +18,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     TYPE_ID: str = "base_component"
     DEFAULT_NAME: str = "component"
     TAGS: set[str] = set()
+    PLUGIN_CONTENT_KIND = PluginContentKind.NODE_COMPONENT
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole

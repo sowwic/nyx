@@ -13,7 +13,7 @@ from .serializable import Serializable
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
-from ..static.enums import CoreNodes
+from ..static.enums import CoreNodes, PluginContentKind
 
 if typing.TYPE_CHECKING:
     from nyx.core import Stage
@@ -31,6 +31,7 @@ class Node(QtGui.QStandardItem, Serializable):
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
     TAGS: set[str] = set()
+    PLUGIN_CONTENT_KIND = PluginContentKind.NODE
 
     class Roles(enum.IntEnum):
         ACTIVE_ROLE = QtCore.Qt.UserRole + 1

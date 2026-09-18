@@ -13,3 +13,8 @@ class CoreNodes(enum.StrEnum):
 class CoreNodeComponents(enum.StrEnum):
     VALUE = "core:value"
     FLOW = "core:flow"
+
+
+class PluginContentKind(enum.StrEnum):
+    NODE = "node"
+    NODE_COMPONENT = "node_component"
