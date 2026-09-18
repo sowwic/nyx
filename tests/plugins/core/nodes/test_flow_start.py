@@ -1,4 +1,8 @@
+import typing
 from nyx.api.v1 import Stage, CoreNodeComponents, CoreNodes, commands
+
+if typing.TYPE_CHECKING:
+    from nyx.plugins.core.nodes.flow_start import FlowStartNode
 
 
 def test_flow_start_node_creation():
@@ -7,7 +11,7 @@ def test_flow_start_node_creation():
     command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.FLOW_START)
     stage.push_command(command)
 
-    result_node = stage.node(command.node_path)
+    result_node: FlowStartNode = stage.node(command.node_path)
 
     assert result_node is not None
     assert result_node.TYPE_ID == CoreNodes.FLOW_START

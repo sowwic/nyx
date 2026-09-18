@@ -1,4 +1,8 @@
+import typing
 from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands
+
+if typing.TYPE_CHECKING:
+    from nyx.plugins.core.nodes.branch import BranchNode
 
 
 def test_branch_node_creation():
@@ -6,7 +10,7 @@ def test_branch_node_creation():
     stage = Stage()
     command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.BRANCH)
     stage.push_command(command)
-    result_node = stage.node(command.node_path)
+    result_node: BranchNode = stage.node(command.node_path)
 
     assert result_node is not None
     assert result_node.TYPE_ID == CoreNodes.BRANCH
