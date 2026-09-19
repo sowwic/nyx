@@ -99,6 +99,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         Returns:
             NodeComponent instance if found, otherwise None
         """
+        name = name.removeprefix(".")
         hits = self.match(
             self.index(0, 0),
             NodeComponent.Roles.NAME,
@@ -107,7 +108,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
             flags=QtCore.Qt.MatchFlag.MatchExactly,
         )
         result_items = (self.itemFromIndex(index) for index in hits)
-        return next(result_items, None)
+        component = next(result_items, None)
+        if not component:
+            raise ValueError(f"{self.node} has no component: {name}")
+        return component
 
     def find_writable_flow_components(self) -> Iterator[FlowComponent]:
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):

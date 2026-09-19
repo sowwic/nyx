@@ -6,7 +6,6 @@ from collections import OrderedDict
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .serializable import Serializable
-from .path_resolver import StagePathResolver
 
 if typing.TYPE_CHECKING:
     from .node import Node
@@ -67,7 +66,9 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         """
         other_component = self.node.stage.node_component(other)
         if not isinstance(other_component, NodeComponent):
-            raise ValueError(f"Not a valid component path: {other}")
+            raise ValueError(
+                f"Not a valid component: {other_component}, obtained from {other}"
+            )
 
         self.value = other_component.as_path()
 
@@ -86,7 +87,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
 
         self.value = other_component.as_path()
 
-    def __llshift__(self, other: pathlib.PurePosixPath | str):
+    def __rlshift__(self, other: pathlib.PurePosixPath | str):
         """Handle `other << self` operator, when `other` doesn't
             support >> with this type.
 
@@ -98,9 +99,11 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         """
         other_component = self.node.stage.node_component(other)
         if not isinstance(other_component, NodeComponent):
-            raise ValueError(f"Not a valid component path: {other}")
+            raise ValueError(
+                f"Not a valid component: {other_component}, obtained from {other}"
+            )
 
-        other.value = self.as_path()
+        other_component.value = self.as_path()
 
     def model(self) -> NodeComponentsModel:
         return super().model()

@@ -1,4 +1,5 @@
 import logging
+import pytest
 
 
 from nyx.core.commands import AddNodeComponentCommand, CreateNodeCommand
@@ -65,7 +66,8 @@ def test_add_component_undo():
     assert node[test_cpnt_name] is not None
 
     stage.undo_stack.undo()
-    assert node[test_cpnt_name] is None
+    with pytest.raises(ValueError, match="has no component"):
+        assert node[test_cpnt_name] is None
     assert node.components_model.rowCount() == 0
 
 
@@ -86,7 +88,8 @@ def test_add_component_undo_redo():
     assert node[test_cpnt_name] is not None
 
     stage.undo_stack.undo()
-    assert node[test_cpnt_name] is None
+    with pytest.raises(ValueError, match="has no component"):
+        assert node[test_cpnt_name] is None
     assert node.components_model.rowCount() == 0
 
     stage.undo_stack.redo()

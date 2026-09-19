@@ -1,4 +1,5 @@
 import logging
+import pytest
 
 
 from nyx.core.commands import (
@@ -31,7 +32,8 @@ def test_delete_node_component():
 
     delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
     stage.push_command(delete_cpnt_command)
-    assert node[test_cpnt_name] is None
+    with pytest.raises(ValueError):
+        node[test_cpnt_name]
 
 
 def test_delete_node_component_undo():
@@ -53,7 +55,8 @@ def test_delete_node_component_undo():
 
     delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
     stage.push_command(delete_cpnt_command)
-    assert node[test_cpnt_name] is None
+    with pytest.raises(ValueError, match="has no component"):
+        assert node[test_cpnt_name] is None
 
     stage.undo_stack.undo()
     assert node[test_cpnt_name] is not None
@@ -78,10 +81,12 @@ def test_delete_node_component_undo_redo():
 
     delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
     stage.push_command(delete_cpnt_command)
-    assert node[test_cpnt_name] is None
+    with pytest.raises(ValueError, match="has no component"):
+        node[test_cpnt_name]
 
     stage.undo_stack.undo()
     assert node[test_cpnt_name] is not None
 
     stage.undo_stack.redo()
-    assert node[test_cpnt_name] is None
+    with pytest.raises(ValueError, match="has no component"):
+        assert node[test_cpnt_name]

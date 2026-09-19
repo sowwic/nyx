@@ -96,3 +96,71 @@ def test_serialize_deserialize():
     assert new_flow_component.is_active == flow_component.is_active
     assert new_flow_component.is_readable == flow_component.is_readable
     assert new_flow_component.is_writable == flow_component.is_writable
+
+
+def test_rshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    node1["flow"] >> node2["flow"]
+    assert node2["flow"].value == node1["flow"].as_path()
+
+
+def test_rrshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    node1["flow"].as_path() >> node2["flow"]
+    assert node2["flow"].value == node1["flow"].as_path()
+
+
+def test_lshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    node2["flow"] << node1["flow"]
+    assert node2["flow"].value == node1["flow"].as_path()
+
+
+def test_rlshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, node_type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    node2["flow"].as_path() << node1["flow"]
+    assert node2["flow"].value == node1["flow"].as_path()

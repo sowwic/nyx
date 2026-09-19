@@ -218,7 +218,6 @@ class Stage(QtGui.QStandardItemModel):
                 raise ValueError(f"Node doesn't exist for path: {component_path}")
 
             component = node.components_model.get_component(component_path.suffix)
-
         if isinstance(component, NodeComponent):
             return component
         else:
