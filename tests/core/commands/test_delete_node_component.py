@@ -28,6 +28,7 @@ def test_delete_node_component():
     )
     stage.push_command(add_cpnt_command)
 
+    assert node is not None
     assert node[test_cpnt_name] is not None
 
     delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
@@ -51,6 +52,7 @@ def test_delete_node_component_undo():
     )
     stage.push_command(add_cpnt_command)
 
+    assert node is not None
     assert node[test_cpnt_name] is not None
 
     delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
@@ -77,6 +79,7 @@ def test_delete_node_component_undo_redo():
     )
     stage.push_command(add_cpnt_command)
 
+    assert node is not None
     assert node[test_cpnt_name] is not None
 
     delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)

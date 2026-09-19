@@ -43,6 +43,7 @@ def test_add_component_with_custom_name():
     )
     stage.push_command(add_cpnt_command)
 
+    assert node is not None
     value_cpnt = node[test_cpnt_name]
     assert value_cpnt is not None
     assert value_cpnt.get_type_id() == test_cpnt_type_id
@@ -62,7 +63,7 @@ def test_add_component_undo():
         node=node, type_id=test_cpnt_type_id, name=test_cpnt_name
     )
     stage.push_command(add_cpnt_command)
-
+    assert node is not None
     assert node[test_cpnt_name] is not None
 
     stage.undo_stack.undo()
@@ -85,6 +86,7 @@ def test_add_component_undo_redo():
     )
     stage.push_command(add_cpnt_command)
 
+    assert node is not None
     assert node[test_cpnt_name] is not None
 
     stage.undo_stack.undo()
