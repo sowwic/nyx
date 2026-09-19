@@ -97,7 +97,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     @property
     def is_stage_root_node(self):
-        return self.cached_path == self.stage.ROOT_NODE_PATH
+        return self.cached_path == self.stage.root_node.cached_path
 
     @property
     def scope(self):

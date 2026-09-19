@@ -24,12 +24,15 @@ def test_crawler_order_correct_with_flat_hierarchy():
     stage.push_command(action1_create_command)
     stage.push_command(action2_create_command)
 
-    flow_create_command.result_node["flow"].value = action1_create_command.node_path
-    action1_create_command.result_node["flow"].value = action2_create_command.node_path
+    flow_create_command.result_node["flow"] << action1_create_command.result_node["flow"]
+    (
+        action1_create_command.result_node["flow"]
+        << action2_create_command.result_node["flow"]
+    )
 
     stage.crawler.start()
     assert stage.crawler.visited_node_paths == [
-        stage.ROOT_NODE_PATH.as_posix(),
+        stage.root_node.path.as_posix(),
         flow_create_command.node_path,
         action1_create_command.node_path,
         action2_create_command.node_path,
@@ -83,9 +86,9 @@ def test_crawler_order_correct_with_nested_hierarchy(
     stage.push_command(action1_create_command)
     stage.push_command(action2_create_command)
 
-    root_flow_start_node = stage.node(flow_create_command.node_path)
-    action1_node = stage.node(action1_create_command.node_path)
-    action2_node = stage.node(action2_create_command.node_path)
+    root_flow_start_node = flow_create_command.result_node
+    action1_node = action1_create_command.result_node
+    action2_node = action2_create_command.result_node
 
     # Setup children of action1
     flow_node1_create_command = commands.CreateNodeCommand(
@@ -119,14 +122,14 @@ def test_crawler_order_correct_with_nested_hierarchy(
     stage.push_command(child_node2_create_command)
 
     action2_flow_start = action2_node.find_flow_start_node()
-    action2_child = stage.node(child_node2_create_command.node_path)
+    action2_child = child_node2_create_command.result_node
 
     # Setup flow connections
-    root_flow_start_node["flow"].value = action1_node.path
-    action1_node["flow"].value = action2_node.path
+    root_flow_start_node["flow"] << action1_node["flow"]
+    action1_node["flow"] << action2_node["flow"]
 
-    action1_flow_start["flow"].value = action1_child.path
-    action2_flow_start["flow"].value = action2_child.path
+    action1_flow_start["flow"] << action1_child["flow"]
+    action2_flow_start["flow"] << action2_child["flow"]
 
     # Setup messages
     action1_node["message"].value = "ACTION1"
@@ -138,7 +141,7 @@ def test_crawler_order_correct_with_nested_hierarchy(
     stage.crawler.start()
     stage.export_json(export_path)
     assert stage.crawler.visited_node_paths == [
-        stage.ROOT_NODE_PATH.as_posix(),
+        stage.root_node.path.as_posix(),
         root_flow_start_node.path.as_posix(),
         action1_node.path.as_posix(),
         action1_flow_start.path.as_posix(),
@@ -155,5 +158,5 @@ def test_crawler_order_correct_with_nested_hierarchy(
         action2_flow_start.path.as_posix(),
         action2_child.path.as_posix(),
         action2_node.path.as_posix(),
-        stage.ROOT_NODE_PATH.as_posix(),
+        stage.root_node.path.as_posix(),
     ]

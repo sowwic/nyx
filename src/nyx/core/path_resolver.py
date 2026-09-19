@@ -2,6 +2,8 @@ import logging
 import os
 import pathlib
 
+from ..static.vars import ROOT_NODE_PATH
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -31,6 +33,27 @@ class StagePathResolver:
 
         """
         return not StagePathResolver.is_absolute_path(path)
+
+    @staticmethod
+    def is_node_path(path: pathlib.PurePosixPath | str) -> bool:
+        path = pathlib.PurePosixPath(path)
+        no_suffix = path.suffix == ""
+        part_of_stage = path == ROOT_NODE_PATH or ROOT_NODE_PATH in path.parents
+        return all([no_suffix, part_of_stage])
+
+    @staticmethod
+    def is_node_component_path(path: pathlib.PurePosixPath | str) -> bool:
+        path = pathlib.PurePosixPath(path)
+        node_component_name = path.suffix
+        if not node_component_name:
+            return False
+
+        if StagePathResolver.is_node_path(StagePathResolver.as_node_path(path)):
+            return True
+
+    @staticmethod
+    def as_node_path(path: pathlib.PurePosixPath | str) -> pathlib.PurePosixPath:
+        return pathlib.PurePosixPath(path).with_suffix("")
 
     @staticmethod
     def compute_relative_path(

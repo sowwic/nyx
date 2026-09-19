@@ -144,7 +144,7 @@ def test_node_delete_first_paths_map_valid():
     LOGGER.debug(f"Path map after deletion: {stage.path_map}")
 
     assert len(stage.path_map) == 1
-    assert stage.path_map.get(stage.ROOT_NODE_PATH) is not None
+    assert stage.path_map.get(stage.root_node.path) is not None
 
 
 def test_node_delete_mid_paths_map_valid():

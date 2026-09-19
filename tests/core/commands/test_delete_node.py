@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 def test_node_deletion():
     """Test deleting a node."""
     stage = Stage()
-    test_path = stage.ROOT_NODE_PATH / "node_to_delete"
+    test_path = stage.root_node.path / "node_to_delete"
     # Create a node to delete
     create_command = CreateNodeCommand(stage=stage, node_name=test_path.name)
     stage.push_command(create_command)
@@ -28,7 +28,7 @@ def test_node_deletion():
 def test_delete_undo_redo():
     """Test undo and redo of node deletion."""
     stage = Stage()
-    test_path = stage.ROOT_NODE_PATH / "node_to_delete"
+    test_path = stage.root_node.path / "node_to_delete"
     # Create a node to delete
     create_command = CreateNodeCommand(stage=stage, node_name=test_path.name)
     stage.push_command(create_command)
@@ -56,18 +56,18 @@ def test_delete_multiple_nodes():
 
     # Delete the nodes
     delete_command = DeleteNodeCommand(
-        stage=stage, nodes=[stage.ROOT_NODE_PATH / f"node_{i}" for i in range(3)]
+        stage=stage, nodes=[stage.root_node.path / f"node_{i}" for i in range(3)]
     )
     stage.push_command(delete_command)
 
     for i in range(3):
-        assert stage.node(stage.ROOT_NODE_PATH / f"node_{i}") is None
+        assert stage.node(stage.root_node.path / f"node_{i}") is None
 
 
 def test_delete_parent_node():
     """Test deleting a parent node also deletes its children."""
     stage = Stage()
-    parent_path = stage.ROOT_NODE_PATH / "parent_node"
+    parent_path = stage.root_node.path / "parent_node"
     child_path = parent_path / "child_node"
     # Create a parent node and a child node
     create_parent_command = CreateNodeCommand(stage=stage, node_name="parent_node")

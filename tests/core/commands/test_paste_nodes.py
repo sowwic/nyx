@@ -15,8 +15,7 @@ def test_paste_node_to_other_stage(nyx_app) -> None:
     command = CreateNodeCommand(stage=stage1)
     stage1.push_command(command)
 
-    test_node_path = stage1.ROOT_NODE_PATH / "node"
-    node = stage1.node(test_node_path)
+    node = stage1.node(command.node_path)
     nodes_to_copy = [node]
     clipboard.serialize_nodes_to_clipboard(nodes=nodes_to_copy, delete=False)
 
@@ -29,8 +28,8 @@ def test_paste_node_to_other_stage(nyx_app) -> None:
     stage2.push_command(paste_command)
 
     assert stage2.total_node_count() == 1
-    assert stage2.node(test_node_path) is not None
-    pasted_node = stage2.node(test_node_path)
+    assert stage2.node(command.node_path) is not None
+    pasted_node = stage2.node(command.node_path)
     assert pasted_node.position() == paste_position
 
 
@@ -41,8 +40,8 @@ def test_paste_undo_redo(nyx_app) -> None:
         nyx_app (NyxApplication): application fixture
     """
     stage = Stage()
-    test_node_path = stage.ROOT_NODE_PATH / "node"
-    pasted_node_path = stage.ROOT_NODE_PATH / "node1"
+    test_node_path = stage.root_node.path / "node"
+    pasted_node_path = stage.root_node.path / "node1"
     command = CreateNodeCommand(stage=stage)
     stage.push_command(command)
 
@@ -74,7 +73,7 @@ def test_paste_parent_filter(nyx_app):
         nyx_app (NyxApplication): application fixture
     """
     stage1 = Stage()
-    node1_path = stage1.ROOT_NODE_PATH / "node1"
+    node1_path = stage1.root_node.path / "node1"
     node2_path = node1_path / "node2"
 
     create_command1 = CreateNodeCommand(stage=stage1, node_name="node1")
@@ -90,7 +89,7 @@ def test_paste_parent_filter(nyx_app):
     clipboard.serialize_nodes_to_clipboard(nodes=nodes_to_copy, delete=False)
 
     stage2 = Stage()
-    parent_node_path = stage2.ROOT_NODE_PATH / "parent_node"
+    parent_node_path = stage2.root_node.path / "parent_node"
     create_command3 = CreateNodeCommand(stage=stage2, node_name=parent_node_path.name)
     stage2.push_command(create_command3)
 

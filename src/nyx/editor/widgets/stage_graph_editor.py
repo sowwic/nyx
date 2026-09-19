@@ -34,7 +34,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self._selection_model = QtCore.QItemSelectionModel()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
-        self._scope_path = self.stage.ROOT_NODE_PATH
+        self._scope_path = self.stage.root_node.path
 
         self.create_actions()
         self.create_widgets()
@@ -227,7 +227,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.set_scope_path(self.get_scope_path().parent)
 
     def scope_root(self) -> None:
-        self.set_scope_path(self.stage.ROOT_NODE_PATH)
+        self.set_scope_path(self.stage.root_node.path)
 
     def filter_nodes_by_scope(self, nodes: list[Node]) -> list[Node]:
         """Filter nodes by scope.
@@ -250,7 +250,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             current_scope == deleted_node_path
             or deleted_node_path in current_scope.parents
         ):
-            self.set_scope_path(self.stage.ROOT_NODE_PATH)
+            self.set_scope_path(self.stage.root_node.path)
 
     def list_selected_nodes(self) -> list[Node]:
         """List selected nodes.

@@ -8,9 +8,11 @@ from collections.abc import Sequence
 from PySide6 import QtCore, QtGui
 
 from nyx.core import Node
+from nyx.core.node_component import NodeComponent
 from nyx.core.path_resolver import StagePathResolver
 from nyx.core.stage_crawler import StageCrawler
 from nyx.utils import file_fn
+from ..static.vars import ROOT_NODE_PATH
 
 if typing.TYPE_CHECKING:
     from nyx.core.commands import NyxCommand
@@ -20,7 +22,6 @@ LOGGER = logging.getLogger(__name__)
 
 class Stage(QtGui.QStandardItemModel):
     FILE_EXTENSION = ".nyx"
-    ROOT_NODE_PATH = pathlib.PosixPath("/stage")
 
     node_deleted = QtCore.Signal(pathlib.PurePosixPath)
 
@@ -29,7 +30,7 @@ class Stage(QtGui.QStandardItemModel):
 
     def __truediv__(self, other: str) -> pathlib.PurePosixPath:
         if isinstance(other, str):
-            return self.ROOT_NODE_PATH / other
+            return self.root_node.path / other
         raise NotImplementedError
 
     def __init__(self) -> None:
@@ -124,7 +125,7 @@ class Stage(QtGui.QStandardItemModel):
 
     @property
     def root_node(self) -> Node:
-        return self.node(self.ROOT_NODE_PATH)
+        return self.node(ROOT_NODE_PATH)
 
     def generate_unique_node_name(
         self,
@@ -135,7 +136,7 @@ class Stage(QtGui.QStandardItemModel):
             parent_node = self.node(parent_node)
             parent_path = parent_node.path
         else:
-            parent_path = self.ROOT_NODE_PATH
+            parent_path = ROOT_NODE_PATH
 
         new_node_path = parent_path / base_name
         if new_node_path in self.path_map:
@@ -168,7 +169,7 @@ class Stage(QtGui.QStandardItemModel):
             unique_name = self.generate_unique_node_name(
                 node.name, parent_node=node.parent()
             )
-            new_path = self.ROOT_NODE_PATH / unique_name
+            new_path = ROOT_NODE_PATH / unique_name
             if new_path in self.path_map:
                 LOGGER.error(f"Duplicate path: {new_path}")
                 raise ValueError
@@ -193,14 +194,34 @@ class Stage(QtGui.QStandardItemModel):
         """
         if node is None:
             return node
+
         if isinstance(node, Node):
             return node
-        elif isinstance(node, pathlib.PurePosixPath):
-            return self.path_map.get(node)
-        elif isinstance(node, str):
-            return self.path_map.get(pathlib.PurePosixPath(node))
+
+        elif isinstance(node, (pathlib.PurePosixPath, str)):
+            return self.path_map.get(StagePathResolver.as_node_path(node))
+
         else:
             LOGGER.exception(f"{self} | Invalid argument type: {type(node)}")
+            return None
+
+    def node_component(
+        self, component: NodeComponent | pathlib.PurePosixPath | str
+    ) -> NodeComponent | None:
+        if isinstance(component, (pathlib.PurePosixPath, str)):
+            if not StagePathResolver.is_node_component_path(component):
+                raise ValueError(f"Not a valid component path: {component}")
+
+            component_path = pathlib.PurePosixPath(component)
+            node = self.node(component_path.with_suffix(""))
+            if node is None:
+                raise ValueError(f"Node doesn't exist for path: {component_path}")
+
+            component = node.components_model.get_component(component_path.suffix)
+
+        if isinstance(component, NodeComponent):
+            return component
+        else:
             return None
 
     def add_node(

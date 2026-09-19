@@ -8,7 +8,7 @@ from nyx.core.stage import Stage
 def test_rename_single_top_node():
     """Test simple rename of single top level node"""
     stage = Stage()
-    original_path = stage.ROOT_NODE_PATH / "test_node"
+    original_path = stage.root_node.path / "test_node"
     new_path = original_path.with_name("new_name")
 
     create_node_command = CreateNodeCommand(stage=stage, node_name=original_path.name)
@@ -29,7 +29,7 @@ def test_rename_single_top_node():
 def test_rename_undo_redo() -> None:
     """Test rename undo-redo."""
     stage = Stage()
-    original_path = stage.ROOT_NODE_PATH / "test_node"
+    original_path = stage.root_node.path / "test_node"
     new_path = original_path.with_name("new_name")
 
     create_node_command = CreateNodeCommand(stage=stage, node_name=original_path.name)

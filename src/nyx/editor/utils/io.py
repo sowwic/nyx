@@ -77,7 +77,7 @@ def _import_nodes(
     command_name = "Reference" if as_reference else "Import"
     if len(serialized_nodes) == 1:
         parent_node_path = (
-            parent_node.cached_path if parent_node else stage_graph.stage.ROOT_NODE_PATH
+            parent_node.cached_path if parent_node else stage_graph.stage.root_node.path
         )
         paste_command.setText(
             f"{command_name} node ({parent_node_path / serialized_nodes[0].get('name')})"
