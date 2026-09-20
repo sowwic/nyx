@@ -3,6 +3,7 @@ import typing
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
+from nyx.core.name_validator import NameValidator
 
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_node import GraphicsNode
@@ -38,7 +39,7 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         line_edit.setFocus(QtCore.Qt.MouseFocusReason)
 
     def apply_edit(self, new_text):
-        new_text = new_text.strip()
+        new_text = NameValidator.get_valid_stage_object_name(new_text)
         if not new_text or new_text == self.gr_node.node.name:
             return
         rename_cmd = commands.RenameNodeCommand(

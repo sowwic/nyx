@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from PySide6 import QtCore, QtGui
 
 from .models.components_model import NodeComponentsModel
+from .name_validator import NameValidator
 from .serializable import Serializable
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
@@ -260,6 +261,7 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_name == self.name:
             return
 
+        new_name = NameValidator.get_valid_stage_object_name(new_name)
         new_name = self.stage.generate_unique_node_name(
             new_name, parent_node=self.parent()
         )

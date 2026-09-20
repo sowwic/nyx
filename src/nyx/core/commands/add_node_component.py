@@ -5,6 +5,7 @@ from nyx.core import Node
 from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
 from ..plugin_subsystem.registry import NYX_REGISTRY
+from ..name_validator import NameValidator
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class AddNodeComponentCommand(NyxCommand):
         )
         self.node_path = node.path
         self.type_id = type_id
-        self.name = name
+        self.name = NameValidator.get_valid_stage_object_name(name)
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)

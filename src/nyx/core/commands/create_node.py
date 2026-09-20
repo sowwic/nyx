@@ -11,6 +11,7 @@ from nyx.core import Stage
 from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
 from ..plugin_subsystem.registry import NYX_REGISTRY
+from ..name_validator import NameValidator
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class CreateNodeCommand(NyxCommand):
         self.parent_path = (
             pathlib.PurePosixPath(parent_path) if parent_path else stage.root_node.path
         )
-        self.node_name = node_name
+        self.node_name = NameValidator.get_valid_stage_object_name(node_name)
         self.node_type_id = node_type_id
         self.node_data: OrderedDict = None
 

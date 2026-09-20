@@ -3,10 +3,11 @@ import pathlib
 
 from PySide6 import QtGui
 
-from nyx.core import Node
-from nyx.core import Stage
+from ..stage import Stage
+from ..node import Node
 from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
+from ..name_validator import NameValidator
 
 
 LOGGER = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class RenameNodeCommand(NyxCommand):
         super().__init__(stage=stage, text="Rename node", parent=parent)
 
         self.path_to_rename = self.stage.pathify(node)
-        self.new_name = new_name
+        self.new_name = NameValidator.get_valid_stage_object_name(new_name)
         self.old_name: str = None
 
         self.node_data: dict = None
