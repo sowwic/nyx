@@ -5,7 +5,7 @@ from nyx.core.node_component import NodeComponent
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.core.plugin_subsystem.plugin import NyxPlugin
 from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
-from nyx.static.enums import CoreNodes, CoreNodeComponents
+from nyx.static.enums import CoreNodes, CoreNodeComponents, NodeComponentSolveDirection
 
 __all__ = [
     "Node",

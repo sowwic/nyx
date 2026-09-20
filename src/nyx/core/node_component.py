@@ -6,6 +6,7 @@ from collections import OrderedDict
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .serializable import Serializable
+from ..static.enums import NodeComponentSolveDirection
 
 if typing.TYPE_CHECKING:
     from .node import Node
@@ -20,6 +21,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
         VALUE = enum.auto()
+        DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
         IS_BUILT_IN = enum.auto()
         IS_ACTIVE = enum.auto()
@@ -129,6 +131,14 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         self.setData(new_value, self.Roles.VALUE)
 
     @property
+    def default_value(self) -> typing.Any:
+        return self.data(self.Roles.DEFAULT_VALUE)
+
+    @default_value.setter
+    def default_value(self, value):
+        self.setData(value, self.Roles.DEFAULT_VALUE)
+
+    @property
     def is_active(self) -> bool:
         return self.data(self.Roles.IS_ACTIVE)
 
@@ -184,10 +194,22 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         layout.addWidget(line_edit)
         return widget
 
+    def reset_value_to_default(self) -> None:
+        self.value = self.default_value
+
+    def reset_value_to_type_default(self) -> None:
+        self.value = self.get_type_default_value()
+
     def serialize_value(self) -> typing.Any:
         return self.value
 
     def deserialize_value(self, value: typing.Any) -> typing.Any:
+        return value
+
+    def serialize_default_value(self) -> typing.Any:
+        return self.default_value
+
+    def deserialize_default_value(self, value: typing.Any) -> typing.Any:
         return value
 
     def serialize(self) -> OrderedDict[str, typing.Any]:
@@ -195,6 +217,7 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         data["type_id"] = self.get_type_id()
         data["name"] = self.name
         data["value"] = self.serialize_value()
+        data["default_value"] = self.serialize_default_value()
         data["is_active"] = self.is_active
         data["is_readable"] = self.is_readable
         data["is_writable"] = self.is_writable
@@ -203,6 +226,9 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def deserialize(self, data: OrderedDict):
         self.name = data["name"]
         self.value = self.deserialize_value(value=data["value"])
+        self.default_value = self.deserialize_default_value(
+            value=data.get("default_value")
+        )
         self.is_active = data["is_active"]
         self.is_readable = data["is_readable"]
         self.is_writable = data["is_writable"]
@@ -211,6 +237,14 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def execute(self):
         if not self.is_active:
             return
+
+    @classmethod
+    def get_solve_direction(self):
+        return NodeComponentSolveDirection.BACKWARD
+
+    @classmethod
+    def get_type_default_value(self) -> typing.Any:
+        return None
 
     @classmethod
     def get_type_id(cls) -> str:

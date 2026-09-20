@@ -13,3 +13,8 @@ class CoreNodes(enum.StrEnum):
 class CoreNodeComponents(enum.StrEnum):
     VALUE = "core:value"
     FLOW = "core:flow"
+
+
+class NodeComponentSolveDirection(enum.IntEnum):
+    BACKWARD = enum.auto()
+    FORWARD = enum.auto()

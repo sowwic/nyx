@@ -1,7 +1,6 @@
 import pathlib
 
-from nyx.api.v1 import NodeComponent
-from nyx.api.v1 import CoreNodeComponents
+from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentSolveDirection
 
 
 class FlowComponent(NodeComponent):
@@ -19,6 +18,10 @@ class FlowComponent(NodeComponent):
     @classmethod
     def get_tags(cls) -> set[str]:
         return {"logic"}
+
+    @classmethod
+    def get_solve_direction(cls):
+        return NodeComponentSolveDirection.FORWARD
 
     def serialize_value(self) -> str:
         if self.value:

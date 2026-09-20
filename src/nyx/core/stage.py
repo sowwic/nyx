@@ -375,7 +375,9 @@ class Stage(QtGui.QStandardItemModel):
         command.validate()
         self.undo_stack.push(command)
 
-    def pathify(self, node: Node | pathlib.PurePosixPath | str) -> pathlib.PurePosixPath:
+    def pathify(
+        self, stage_object: Node | NodeComponent | pathlib.PurePosixPath | str
+    ) -> pathlib.PurePosixPath:
         """Convert object to path.
 
         Args:
@@ -387,9 +389,11 @@ class Stage(QtGui.QStandardItemModel):
         Returns:
             pathlib.PurePosixPath: node as path
         """
-        if isinstance(node, Node):
-            return node.cached_path
-        elif isinstance(node, (str, pathlib.PurePosixPath)):
-            return pathlib.PurePosixPath(node)
+        if isinstance(stage_object, Node):
+            return stage_object.cached_path
+        elif isinstance(stage_object, NodeComponent):
+            return stage_object.as_path()
+        elif isinstance(stage_object, (str, pathlib.PurePosixPath)):
+            return pathlib.PurePosixPath(stage_object)
         else:
-            raise TypeError(f"Unable to pathify {node}")
+            raise TypeError(f"Unable to pathify {stage_object}")
