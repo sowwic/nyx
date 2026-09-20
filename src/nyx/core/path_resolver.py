@@ -87,7 +87,7 @@ class StagePathResolver:
         return pathlib.PurePosixPath(rel_path)
 
     @staticmethod
-    def computer_absolute_path(
+    def compute_absolute_path(
         anchor_path: pathlib.PurePosixPath | str,
         rel_path: pathlib.PurePosixPath | str,
     ):

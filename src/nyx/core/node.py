@@ -329,7 +329,7 @@ class Node(QtGui.QStandardItem, Serializable):
         if isinstance(
             other_node, (str, pathlib.PurePosixPath)
         ) and self.stage.path_resolver.is_relative_path(other_node):
-            other_node = self.stage.path_resolver.computer_absolute_path(
+            other_node = self.stage.path_resolver.compute_absolute_path(
                 self.cached_path, other_node
             )
 
