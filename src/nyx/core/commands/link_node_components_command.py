@@ -9,7 +9,6 @@ from ._base_nyx_command import NyxCommand
 
 if typing.TYPE_CHECKING:
     from ..stage import Stage
-    from ..node import Node
     from ..node_component import NodeComponent
 
 LOGGER = logging.getLogger(__name__)
@@ -32,12 +31,12 @@ class LinkNodeComponentsCommand(NyxCommand):
         ).value
 
     def redo(self) -> None:
-        node = self.stage.node(self.node_path)
+        # node = self.stage.node(self.node_path)
         # self.setText(f"Add component ({node.path}.{component.name} ({self.type_id})")
         return super().redo()
 
     def undo(self) -> None:
-        node = self.stage.node(self.node_path)
+        # node = self.stage.node(self.node_path)
         # node.components_model.remove_component(self.name)
         return super().undo()
 

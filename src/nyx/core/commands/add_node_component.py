@@ -23,12 +23,14 @@ class AddNodeComponentCommand(NyxCommand):
         )
         self.node_path = node.path
         self.type_id = type_id
-        self.name = NameValidator.get_valid_stage_object_name(name)
+        self.name = name
 
     def redo(self) -> None:
         node = self.stage.node(self.node_path)
         component = node.components_model.create_component(self.type_id)
-        self.name = self.name or component.DEFAULT_NAME
+        self.name = NameValidator.get_valid_stage_object_name(
+            self.name or component.DEFAULT_NAME
+        )
         component.name = self.name
         node.components_model.add_component(component)
 

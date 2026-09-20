@@ -37,7 +37,7 @@ class CreateNodeCommand(NyxCommand):
         self.parent_path = (
             pathlib.PurePosixPath(parent_path) if parent_path else stage.root_node.path
         )
-        self.node_name = NameValidator.get_valid_stage_object_name(node_name)
+        self.node_name = node_name
         self.node_type_id = node_type_id
         self.node_data: OrderedDict = None
 
@@ -51,7 +51,9 @@ class CreateNodeCommand(NyxCommand):
 
     def redo(self) -> None:
         node_cls = NYX_REGISTRY.get_node_cls(self.node_type_id)
-        self.node_name = self.node_name or node_cls.DEFAULT_NAME
+        self.node_name = NameValidator.get_valid_stage_object_name(
+            self.node_name or node_cls.DEFAULT_NAME
+        )
         node = node_cls(name=self.node_name)
         self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()

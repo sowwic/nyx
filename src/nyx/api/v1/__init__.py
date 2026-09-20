@@ -15,6 +15,7 @@ __all__ = [
     "NyxPlugin",
     "CoreNodes",
     "CoreNodeComponents",
+    "NodeComponentSolveDirection",
     "NYX_REGISTRY",
     "commands",
 ]
