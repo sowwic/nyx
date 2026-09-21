@@ -7,6 +7,7 @@ from .paste_nodes import PasteNodesCommand
 from .move_node import MoveNodeCommand
 from .add_node_component import AddNodeComponentCommand
 from .delete_node_component import DeleteNodeComponentCommand
+from .rename_node_component import RenameNodeComponentCommand
 
 __all__ = [
     "NyxCommand",
@@ -18,4 +19,5 @@ __all__ = [
     "MoveNodeCommand",
     "AddNodeComponentCommand",
     "DeleteNodeComponentCommand",
+    "RenameNodeComponentCommand",
 ]
