@@ -1,8 +1,8 @@
 from PySide6 import QtCore
 
 from nyx.core.commands import CreateNodeCommand, PasteNodesCommand
-from nyx.core.stage import Stage
 from nyx.editor.utils import clipboard
+from nyx.api.v1 import CoreNodes, Stage
 
 
 def test_paste_node_to_other_stage(nyx_app) -> None:
@@ -12,7 +12,8 @@ def test_paste_node_to_other_stage(nyx_app) -> None:
         nyx_app (NyxApplication): application fixture
     """
     stage1 = Stage()
-    command = CreateNodeCommand(stage=stage1)
+    test_type_id = CoreNodes.ACTION
+    command = CreateNodeCommand(stage=stage1, node_type_id=test_type_id)
     stage1.push_command(command)
 
     node = stage1.node(command.node_path)
@@ -29,6 +30,8 @@ def test_paste_node_to_other_stage(nyx_app) -> None:
 
     assert stage2.total_node_count() == 1
     assert stage2.node(command.node_path) is not None
+    assert stage2.node(command.node_path).get_type_id() == test_type_id
+
     pasted_node = stage2.node(command.node_path)
     assert pasted_node.position() == paste_position
 

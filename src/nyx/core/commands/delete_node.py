@@ -8,6 +8,7 @@ from PySide6 import QtGui
 from nyx.core import Node
 from nyx.core import Stage
 from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from ._base_nyx_command import NyxCommand
 
 LOGGER = logging.getLogger(__name__)
@@ -63,7 +64,8 @@ class DeleteNodeCommand(NyxCommand):
             if node_path not in self.deleted_paths:
                 continue
             parent_path = node_path.parent
-            new_node = Node()
+            new_node_cls = NYX_REGISTRY.get_node_cls(node_data["type_id"])
+            new_node = new_node_cls()
             self.stage.add_node(new_node, parent=parent_path)
             new_node.deserialize(node_data)
         self.serialized_nodes.clear()

@@ -10,6 +10,7 @@ from nyx.core import Node
 from nyx.core import Stage
 from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 
 
 LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,8 @@ class PasteNodesCommand(NyxCommand):
             node_path = pathlib.PurePosixPath(node_data["path"])
             # Create new node and store it's path
             LOGGER.debug(f"Adding {node_path}")
-            new_node = Node(name="pasted_node")
+            new_node_cls = NYX_REGISTRY.get_node_cls(node_data["type_id"])
+            new_node = new_node_cls(name="__pasted_node__")
             self.stage.add_node(new_node, parent=self.parent_path)
             new_node.deserialize(node_data)
             paste_position = self.get_paste_position(new_node.position())

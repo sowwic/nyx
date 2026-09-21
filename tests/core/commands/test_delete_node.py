@@ -4,7 +4,7 @@ import pytest
 
 from nyx.core.commands import CreateNodeCommand, DeleteNodeCommand
 from nyx.core.exceptions import NyxCommandValidationError
-from nyx.core.stage import Stage
+from nyx.api.v1 import Stage, CoreNodes
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,8 +29,11 @@ def test_delete_undo_redo():
     """Test undo and redo of node deletion."""
     stage = Stage()
     test_path = stage.root_node.path / "node_to_delete"
+    test_type_id = CoreNodes.ACTION
     # Create a node to delete
-    create_command = CreateNodeCommand(stage=stage, node_name=test_path.name)
+    create_command = CreateNodeCommand(
+        stage=stage, node_name=test_path.name, node_type_id=test_type_id
+    )
     stage.push_command(create_command)
 
     # Delete the node
@@ -40,6 +43,7 @@ def test_delete_undo_redo():
     # Undo the deletion
     stage.undo_stack.undo()
     assert stage.node(test_path) is not None
+    assert stage.node(test_path).get_type_id() == test_type_id
 
     # Redo the deletion
     stage.undo_stack.redo()
