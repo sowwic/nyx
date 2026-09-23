@@ -6,6 +6,7 @@ from PySide6 import QtGui
 from ._base_nyx_command import NyxCommand
 from ..node import Node
 from ..node_component import NodeComponent
+from ...static.enums import RestoreUuidOption
 from ..exceptions import NyxCommandValidationError
 
 if typing.TYPE_CHECKING:
@@ -45,7 +46,10 @@ class DeleteNodeComponentCommand(NyxCommand):
     def undo(self) -> None:
         node: Node = self.stage.get_object(self.node_uuid)
         component = NodeComponent.deserialize(
-            data=self.serialized_data, component=None, restore_uuid=True
+            data=self.serialized_data,
+            node=node,
+            component=None,
+            restore_uuid=RestoreUuidOption.RESTORE,
         )
         node.components_model.add_component(component)
         return super().undo()

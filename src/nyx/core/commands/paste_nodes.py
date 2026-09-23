@@ -9,6 +9,7 @@ from ._base_nyx_command import NyxCommand
 from ..node import Node, NodeLike
 from ..stage import Stage
 from ..exceptions import NyxCommandValidationError
+from ...static.enums import RestoreUuidOption
 
 
 LOGGER = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class PasteNodesCommand(NyxCommand):
         position: QtCore.QPointF,
         parent_node: NodeLike | None = None,
         parent: QtGui.QUndoCommand | None = None,
-        restore_uuid=False,
+        restore_uuid=RestoreUuidOption.GENERATE_NEW,
     ) -> None:
         super().__init__(stage, "Paste nodes", parent)
         self.serialized_nodes = serialize_nodes

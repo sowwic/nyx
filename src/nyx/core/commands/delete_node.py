@@ -10,6 +10,7 @@ from ..stage import Stage
 from ._base_nyx_command import NyxCommand
 from ..node import Node, NodeLike
 from ..exceptions import NyxCommandValidationError
+from ...static.enums import RestoreUuidOption
 
 LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class DeleteNodeCommand(NyxCommand):
                 serialized_node=node_data,
                 node=None,
                 parent_node=parent_node,
-                restore_uuid=True,
+                restore_uuid=RestoreUuidOption.RESTORE,
             )
 
         self.serialized_nodes.clear()

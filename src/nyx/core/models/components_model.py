@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 from ..node_component import NodeComponent
 from ..plugin_subsystem.registry import NYX_REGISTRY
-from ...static.enums import CoreNodeComponents
+from ...static.enums import CoreNodeComponents, RestoreUuidOption
 
 
 if typing.TYPE_CHECKING:
@@ -49,12 +49,19 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
 
         return data
 
-    def deserialize(self, data: list[dict], restore_uuid: bool = True):
+    def deserialize(
+        self,
+        data: list[dict],
+        restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
+    ):
         for component_data in data:
             component = self.get_component(component_data["name"])
             component_exists = component is not None
             component = NodeComponent.deserialize(
-                data=component_data, component=component, restore_uuid=restore_uuid
+                data=component_data,
+                node=self.node,
+                component=component,
+                restore_uuid=restore_uuid,
             )
             if not component_exists:
                 self.appendRow(component)

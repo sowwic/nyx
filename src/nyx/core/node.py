@@ -14,7 +14,7 @@ from .models.components_model import NodeComponentsModel
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
-from ..static.enums import CoreNodes
+from ..static.enums import CoreNodes, RestoreUuidOption
 
 if typing.TYPE_CHECKING:
     from .stage import Stage
@@ -378,9 +378,15 @@ class Node(QtGui.QStandardItem, StageObject):
         serialized_node: OrderedDict[str, typing.Any],
         node: Node | None = None,
         parent_node: Node | None = None,
-        restore_uuid: bool = True,
+        restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
     ) -> Node:
-        uuid = serialized_node[cls.UUID_KEY] if restore_uuid else None
+        stage = parent_node.stage if parent_node is not None else None
+        uuid = cls.choose_new_uuid(
+            stage=stage,
+            serialized_data=serialized_node,
+            restore_option=restore_uuid,
+        )
+
         if not node:
             node_cls = NYX_REGISTRY.get_node_cls(serialized_node[cls.TYPE_ID_KEY])
             node = node_cls(

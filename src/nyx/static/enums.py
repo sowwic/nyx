@@ -18,3 +18,9 @@ class CoreNodeComponents(enum.StrEnum):
 class NodeComponentSolveDirection(enum.IntEnum):
     BACKWARD = enum.auto()
     FORWARD = enum.auto()
+
+
+class RestoreUuidOption(enum.IntEnum):
+    GENERATE_NEW = enum.auto()
+    RESTORE = enum.auto()
+    ATTEMPT_RESTORE = enum.auto()

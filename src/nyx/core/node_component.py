@@ -8,7 +8,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .plugin_subsystem.registry import NYX_REGISTRY
-from ..static.enums import NodeComponentSolveDirection
+from ..static.enums import NodeComponentSolveDirection, RestoreUuidOption
 
 if typing.TYPE_CHECKING:
     from .node import Node
@@ -241,9 +241,15 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @classmethod
     def deserialize(
-        cls, data: OrderedDict, component: NodeComponent | None = None, restore_uuid=True
+        cls,
+        data: OrderedDict,
+        node: Node,
+        component: NodeComponent | None = None,
+        restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
     ):
-        uuid = data[cls.UUID_KEY] if restore_uuid else None
+        uuid = cls.choose_new_uuid(
+            node.stage, serialized_data=data, restore_option=restore_uuid
+        )
         if not component:
             component_cls = NYX_REGISTRY.get_node_component_cls(data[cls.TYPE_ID_KEY])
             component = component_cls(uuid=uuid)

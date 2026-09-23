@@ -27,7 +27,6 @@ def test_paste_node_to_other_stage(nyx_app) -> None:
         stage=stage2,
         serialize_nodes=clipboard_data,
         position=paste_position,
-        restore_uuid=False,
     )
     stage2.push_command(paste_command)
 

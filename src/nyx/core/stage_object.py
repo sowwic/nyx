@@ -5,6 +5,8 @@ from collections import OrderedDict
 
 from uuid import UUID, uuid4
 
+from ..static.enums import RestoreUuidOption
+
 if typing.TYPE_CHECKING:
     from .stage import Stage
 
@@ -81,3 +83,21 @@ class StageObject:
             return uuid4()
         else:
             raise TypeError(f"Invalid UUID input: {value}")
+
+    @classmethod
+    def choose_new_uuid(
+        cls,
+        stage: Stage | None,
+        serialized_data: OrderedDict[str, typing.Any],
+        restore_option: RestoreUuidOption,
+    ) -> UUID:
+        if restore_option is RestoreUuidOption.GENERATE_NEW:
+            return uuid4()
+
+        serialized_uuid = serialized_data[cls.UUID_KEY]
+        if restore_option is RestoreUuidOption.RESTORE:
+            return serialized_uuid
+        elif restore_option is RestoreUuidOption.ATTEMPT_RESTORE:
+            if stage is None:
+                return serialized_uuid
+            return serialized_uuid if serialized_uuid not in stage.uuid_map else uuid4()
