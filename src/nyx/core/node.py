@@ -361,6 +361,7 @@ class Node(QtGui.QStandardItem, StageObject):
         serialized_data["type_id"] = self.get_type_id()
         serialized_data["active"] = self.is_active()
         serialized_data["position"] = self.serializable_position()
+        serialized_data.update(self.components_model.serialize())
         if self.reference_file_path is not None:
             serialized_data[self.REFERENCE_FILE_KEY] = (
                 self.reference_file_path.as_posix()
@@ -369,7 +370,6 @@ class Node(QtGui.QStandardItem, StageObject):
             serialized_data[self.CHILDREN_KEY] = [
                 child_node.serialize() for child_node in self.list_children()
             ]
-        serialized_data.update(self.components_model.serialize())
         return serialized_data
 
     @classmethod
