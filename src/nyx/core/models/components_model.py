@@ -3,6 +3,7 @@ import logging
 from PySide6 import QtGui, QtCore
 from collections import OrderedDict
 from collections.abc import Iterator
+from uuid import UUID
 
 from ..node_component import NodeComponent
 from ..plugin_subsystem.registry import NYX_REGISTRY
@@ -76,16 +77,22 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         self.node.stage.uuid_map[component.uuid] = component
         LOGGER.debug(f"Added new component: {component}")
 
-    def remove_component(self, name: str) -> None:
+    def remove_component(self, uuid: UUID) -> None:
+        component = self.node.stage.get_object(uuid)
+        if component is None:
+            raise ValueError(f"Component UUID doesn't exist in stage: {uuid}")
+
+        if component.is_built_in:
+            LOGGER.error(f"Can't remove builtin component: {component.path}")
+            return
+        self.node.stage.uuid_map.pop(component.uuid)
+        self.removeRow(component.row())
+
+    def remove_component_by_name(self, name: str) -> None:
         for component in self.list_components():
             if component.name != name:
                 continue
-
-            if component.is_built_in:
-                LOGGER.error(f"Can't remove builtin component: {component.path}")
-                return
-            self.node.stage.uuid_map.pop(component.uuid)
-            self.removeRow(component.row())
+            self.remove_component(component.uuid)
 
     def compose_unique_component_name(self, name: str) -> str:
         """Returns a unique name for the component, indexed if it already exists."""

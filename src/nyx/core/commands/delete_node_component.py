@@ -32,6 +32,10 @@ class DeleteNodeComponentCommand(NyxCommand):
             parent=parent,
         )
 
+    @property
+    def component_uuid(self):
+        return self.serialized_data[NodeComponent.UUID_KEY]
+
     def redo(self) -> None:
         node: Node = self.stage.get_object(self.node_uuid)
         component: NodeComponent = node[self.name]
@@ -39,7 +43,7 @@ class DeleteNodeComponentCommand(NyxCommand):
         self.setText(
             f"Remove component ({node.path}.{self.name} ({component.get_type_id()})"
         )
-        node.components_model.remove_component(self.name)
+        node.components_model.remove_component(self.component_uuid)
 
         return super().redo()
 
