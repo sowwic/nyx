@@ -168,7 +168,7 @@ class Stage(QtGui.QStandardItemModel):
             try:
                 return self.get_object(UUID(stage_object, version=4))
             except (ValueError, AttributeError, TypeError):
-                stage_object = pathlib.Path(stage_object)
+                stage_object = pathlib.PurePosixPath(stage_object)
 
         if isinstance(stage_object, pathlib.PurePosixPath):
             getter = (
@@ -180,8 +180,6 @@ class Stage(QtGui.QStandardItemModel):
                 return getter(stage_object)
             except Exception:
                 return None
-
-        return None
 
     def node_from_path(self, path: pathlib.PurePosixPath | str) -> Node | None:
         path = pathlib.PurePosixPath(path)
