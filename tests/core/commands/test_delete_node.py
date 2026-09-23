@@ -14,15 +14,15 @@ def test_node_deletion():
     stage = Stage()
     test_path = stage.root_node.path / "node_to_delete"
     # Create a node to delete
-    create_command = CreateNodeCommand(stage=stage, node_name=test_path.name)
+    create_command = CreateNodeCommand(stage=stage, name=test_path.name)
     stage.push_command(create_command)
-    assert stage.node(test_path) is not None
+    assert stage.get_object(test_path) is not None
 
     # Now delete the node
     delete_command = DeleteNodeCommand(stage=stage, nodes=[test_path])
     stage.push_command(delete_command)
 
-    assert stage.node(test_path) is None
+    assert stage.get_object(test_path) is None
 
 
 def test_delete_undo_redo():
@@ -32,7 +32,7 @@ def test_delete_undo_redo():
     test_type_id = CoreNodes.ACTION
     # Create a node to delete
     create_command = CreateNodeCommand(
-        stage=stage, node_name=test_path.name, node_type_id=test_type_id
+        stage=stage, name=test_path.name, type_id=test_type_id
     )
     stage.push_command(create_command)
 
@@ -42,12 +42,12 @@ def test_delete_undo_redo():
 
     # Undo the deletion
     stage.undo_stack.undo()
-    assert stage.node(test_path) is not None
-    assert stage.node(test_path).get_type_id() == test_type_id
+    assert stage.get_object(test_path) is not None
+    assert stage.get_object(test_path).get_type_id() == test_type_id
 
     # Redo the deletion
     stage.undo_stack.redo()
-    assert stage.node(test_path) is None
+    assert stage.get_object(test_path) is None
 
 
 def test_delete_multiple_nodes():
@@ -55,7 +55,7 @@ def test_delete_multiple_nodes():
     stage = Stage()
     # Create multiple nodes to delete
     for i in range(3):
-        create_command = CreateNodeCommand(stage=stage, node_name=f"node_{i}")
+        create_command = CreateNodeCommand(stage=stage, name=f"node_{i}")
         stage.push_command(create_command)
 
     # Delete the nodes
@@ -65,7 +65,7 @@ def test_delete_multiple_nodes():
     stage.push_command(delete_command)
 
     for i in range(3):
-        assert stage.node(stage.root_node.path / f"node_{i}") is None
+        assert stage.get_object(stage.root_node.path / f"node_{i}") is None
 
 
 def test_delete_parent_node():
@@ -74,11 +74,11 @@ def test_delete_parent_node():
     parent_path = stage.root_node.path / "parent_node"
     child_path = parent_path / "child_node"
     # Create a parent node and a child node
-    create_parent_command = CreateNodeCommand(stage=stage, node_name="parent_node")
+    create_parent_command = CreateNodeCommand(stage=stage, name="parent_node")
     stage.push_command(create_parent_command)
 
     create_child_command = CreateNodeCommand(
-        stage=stage, parent_path=parent_path, node_name="child_node"
+        stage=stage, parent_node=parent_path, name="child_node"
     )
     stage.push_command(create_child_command)
 
@@ -86,11 +86,11 @@ def test_delete_parent_node():
     delete_command = DeleteNodeCommand(stage=stage, nodes=[parent_path])
     stage.push_command(delete_command)
 
-    assert stage.node(parent_path) is None
-    assert stage.node(child_path) is None
+    assert stage.get_object(parent_path) is None
+    assert stage.get_object(child_path) is None
     stage.undo_stack.undo()  # Undo delete
-    assert stage.node(parent_path) is not None
-    assert stage.node(child_path) is not None
+    assert stage.get_object(parent_path) is not None
+    assert stage.get_object(child_path) is not None
 
 
 def test_delete_non_existent_node_raises_validation_error() -> None:

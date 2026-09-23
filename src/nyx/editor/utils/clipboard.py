@@ -25,8 +25,9 @@ def serialize_nodes_to_clipboard(nodes: Sequence[Node], delete: bool = False) ->
     data = {}
     serialized_nodes = []
     stage = nodes[0].stage
+    top_level_nodes = stage.filter_top_level_nodes(nodes)
     # Serialize to clipboard
-    for each_node in nodes:
+    for each_node in top_level_nodes:
         serialized_nodes.append(each_node.serialize())
     data["nyx_nodes"] = serialized_nodes
     serialized_str = json.dumps(data)
@@ -35,7 +36,7 @@ def serialize_nodes_to_clipboard(nodes: Sequence[Node], delete: bool = False) ->
     # Cut operation
     if delete:
         del_cmd = commands.DeleteNodeCommand(
-            stage=stage, nodes=nodes, command_text="Cut nodes"
+            stage=stage, nodes=top_level_nodes, command_text="Cut nodes"
         )
         stage.push_command(del_cmd)
 

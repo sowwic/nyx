@@ -20,7 +20,7 @@ def test_active_stage_change() -> None:
     )
     stage.push_command(state_set_false_command)
 
-    node = stage.node(test_node_path)
+    node = stage.get_object(test_node_path)
     assert not node.is_active()
     stage.push_command(state_set_true_command)
     assert node.is_active()
@@ -34,7 +34,7 @@ def test_active_set_undo_redo() -> None:
     command = CreateNodeCommand(stage=stage)
     stage.push_command(command)
 
-    node = stage.node(test_node_path)
+    node = stage.get_object(test_node_path)
     default_state = node.is_active()
 
     toggle_active_state_command = SetNodeActiveStateCommand(

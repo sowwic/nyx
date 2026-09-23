@@ -11,19 +11,18 @@ def test_rename_single_top_node():
     original_path = stage.root_node.path / "test_node"
     new_path = original_path.with_name("new_name")
 
-    create_node_command = CreateNodeCommand(stage=stage, node_name=original_path.name)
+    create_node_command = CreateNodeCommand(stage=stage, name=original_path.name)
     stage.push_command(create_node_command)
-    node = stage.node(original_path)
+    node = stage.get_object(original_path)
 
     rename_command = RenameNodeCommand(stage, node=node, new_name="new_name")
     stage.push_command(rename_command)
-    assert stage.node(original_path) is None
-    assert stage.node(new_path) is not None
+    assert stage.get_object(original_path) is None
+    assert stage.get_object(new_path) is not None
 
-    node = stage.node(new_path)
+    node = stage.get_object(new_path)
+    assert node.name == new_path.name
     assert node.path == new_path
-    assert node.cached_path == node.path
-    assert stage.path_map.get(node.path) is node
 
 
 def test_rename_undo_redo() -> None:
@@ -32,20 +31,20 @@ def test_rename_undo_redo() -> None:
     original_path = stage.root_node.path / "test_node"
     new_path = original_path.with_name("new_name")
 
-    create_node_command = CreateNodeCommand(stage=stage, node_name=original_path.name)
+    create_node_command = CreateNodeCommand(stage=stage, name=original_path.name)
     stage.push_command(create_node_command)
-    node = stage.node(original_path)
+    node = stage.get_object(original_path)
 
     rename_command = RenameNodeCommand(stage, node=node, new_name="new_name")
     stage.push_command(rename_command)
 
     stage.undo_stack.undo()
-    assert stage.node(original_path) is not None
-    assert stage.node(new_path) is None
+    assert stage.get_object(original_path) is not None
+    assert stage.get_object(new_path) is None
 
     stage.undo_stack.redo()
-    assert stage.node(original_path) is None
-    assert stage.node(new_path) is not None
+    assert stage.get_object(original_path) is None
+    assert stage.get_object(new_path) is not None
 
 
 def test_rename_non_existent_node_raises_validation_error():
@@ -68,11 +67,11 @@ def test_child_node_path_is_correct_after_renaming() -> None:
     new_parent_path = parent_path.with_name("new_node")
     expected_child_path = new_parent_path / "child_node"
 
-    parent_command = CreateNodeCommand(stage=stage, node_name=parent_path.name)
+    parent_command = CreateNodeCommand(stage=stage, name=parent_path.name)
     stage.push_command(parent_command)
 
     child_command = CreateNodeCommand(
-        stage=stage, parent_path=parent_path, node_name=expected_child_path.name
+        stage=stage, parent_node=parent_path, name=expected_child_path.name
     )
     stage.push_command(child_command)
 
@@ -81,6 +80,6 @@ def test_child_node_path_is_correct_after_renaming() -> None:
     )
     stage.push_command(rename_command)
 
-    child_node = stage.node(expected_child_path)
+    child_node = stage.get_object(expected_child_path)
     assert child_node is not None
-    assert child_node.path == child_node.cached_path == expected_child_path
+    assert child_node.path == expected_child_path

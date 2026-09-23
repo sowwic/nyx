@@ -383,8 +383,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         position = self.last_scene_mouse_pos
         create_cmd = commands.CreateNodeCommand(
             stage=self.stage,
-            node_name="node",
-            parent_path=parent_path,
+            name="node",
+            parent_node=parent_path,
             position=position,
         )
         self.stage.push_command(create_cmd)
@@ -425,7 +425,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             LOGGER.warning("No nodes found in the clipboard!")
             return
 
-        parent_node = self.stage.node(self.graph_editor.get_scope_path())
+        parent_node = self.stage.get_object(self.graph_editor.get_scope_path())
         position = self.last_scene_mouse_pos
         paste_cmd = commands.PasteNodesCommand(
             stage=self.stage,

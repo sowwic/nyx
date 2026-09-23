@@ -4,26 +4,32 @@ import pprint
 import typing
 from collections import OrderedDict
 from collections.abc import Sequence
+from uuid import UUID
 
 from PySide6 import QtCore, QtGui
 
-from nyx.core import Node
-from nyx.core.node_component import NodeComponent
-from nyx.core.path_resolver import StagePathResolver
-from nyx.core.stage_crawler import StageCrawler
-from nyx.utils import file_fn
+from .stage_object import StageObject
+from .node import Node, NodeLike
+from .node_component import NodeComponent, NodeComponentLike
+from .stage_crawler import StageCrawler
+from .plugin_subsystem.registry import NYX_REGISTRY
+from .name_validator import NameValidator
+from ..utils import file_fn
 from ..static.vars import ROOT_NODE_PATH
+from ..static.enums import CoreNodes
 
 if typing.TYPE_CHECKING:
     from nyx.core.commands import NyxCommand
 
 LOGGER = logging.getLogger(__name__)
 
+type StageObjectLike = NodeLike | NodeComponentLike
+
 
 class Stage(QtGui.QStandardItemModel):
     FILE_EXTENSION = ".nyx"
 
-    node_deleted = QtCore.Signal(pathlib.PurePosixPath)
+    node_deleted = QtCore.Signal(UUID)
 
     def __repr__(self) -> str:
         return f"Stage <Nodes: {self.total_node_count()} | File: {self.file_path}>"
@@ -37,8 +43,7 @@ class Stage(QtGui.QStandardItemModel):
         super().__init__()
         self.last_saved_undo_index = 0
         self.file_path: pathlib.Path | None = None
-        self._path_map: dict[pathlib.PurePosixPath, Node] = {}
-        self._path_resolver = StagePathResolver()
+        self._uuid_map: dict[UUID, Node] = {}
         self._crawler = StageCrawler(self)
         self.undo_stack = QtGui.QUndoStack(self)
         self._create_root_node()
@@ -46,21 +51,25 @@ class Stage(QtGui.QStandardItemModel):
         self.create_connections()
 
     @property
-    def path_map(self) -> dict[pathlib.PurePosixPath, Node]:
-        return self._path_map
+    def uuid_map(self) -> dict[UUID, Node]:
+        return self._uuid_map
 
     @property
     def crawler(self) -> StageCrawler:
         return self._crawler
 
-    @property
-    def path_resolver(self) -> StagePathResolver:
-        return self._path_resolver
+    def create_node(
+        self, type_id: str, name: str | None = None, uuid: UUID | str | None = None
+    ) -> Node:
+        node_cls = NYX_REGISTRY.get_node_cls(type_id=type_id)
+        node = node_cls(name=name, uuid=uuid, parent=None)
+        return node
 
     def _create_root_node(self):
-        root_node = Node(name="stage")
+        root_node = self.create_node(type_id=CoreNodes.EMPTY, name=ROOT_NODE_PATH.name)
         root_node.is_locked = True
         self.appendRow(root_node)
+        self.uuid_map[root_node.uuid] = root_node
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
@@ -112,121 +121,103 @@ class Stage(QtGui.QStandardItemModel):
         node = node or self.root_node
         return node.list_children()
 
-    def list_top_nodes(self) -> list[Node]:
-        return self.list_children(self.root_node)
-
-    def list_top_nodes_paths(self) -> list[pathlib.PurePosixPath]:
-        return [node.cached_path for node in self.list_top_nodes()]
-
-    def is_top_node_path(self, path: str | pathlib.PurePosixPath) -> bool:
-        if isinstance(path, str):
-            path = pathlib.PosixPath(path)
-        return path in set(self.list_top_nodes_paths())
-
     @property
     def root_node(self) -> Node:
-        return self.node(ROOT_NODE_PATH)
+        return self.get_object(ROOT_NODE_PATH)
 
     def generate_unique_node_name(
         self,
         base_name: str,
-        parent_node: Node | pathlib.PurePosixPath | str | None = None,
+        parent_node: NodeLike | None = None,
     ):
-        if parent_node:
-            parent_node = self.node(parent_node)
-            parent_path = parent_node.path
-        else:
-            parent_path = ROOT_NODE_PATH
+        base_name = NameValidator.get_valid_stage_object_name(base_name)
+        parent_node: Node = (
+            self.get_object(parent_node) if parent_node else self.root_node
+        )
+        existing_children_names: set[str] = parent_node.child_names_set
+        if base_name not in existing_children_names:
+            return base_name
 
-        new_node_path = parent_path / base_name
-        if new_node_path in self.path_map:
-            index = 1
-            while parent_path / f"{base_name}{index}" in self.path_map:
-                index += 1
-            return f"{base_name}{index}"
-        return base_name
+        index = 1
+        result_name = base_name
+        while result_name in existing_children_names:
+            result_name = f"{base_name}{index}"
+            index += 1
+        return result_name
 
-    def appendRow(self, items: typing.Sequence[Node]) -> None:
-        """Overridden QStandardItemModel method.
+    def filter_top_level_nodes(self, nodes: list[NodeLike]) -> list[Node]:
+        nodes: list[Node] = [self.get_object(node) for node in nodes]
+        paths_set = {node.path for node in nodes}
+        return [
+            node for node in nodes if not set(node.path.parents).intersection(paths_set)
+        ]
 
-        This method will generate a unique path for each item its about to append.
+    def get_object(
+        self, stage_object: NodeLike | NodeComponentLike | None
+    ) -> Node | NodeComponent | None:
+        if stage_object is None:
+            return None
 
-        Args:
-            items (typing.Sequence): sequence of nodes.
+        if isinstance(stage_object, StageObject):
+            return stage_object
 
-        Raises:
-            ValueError: node path is not unique.
+        if isinstance(stage_object, UUID):
+            return self.uuid_map[stage_object]
 
-        """
-        if not isinstance(items, typing.Sequence):
-            items = [items]
+        if isinstance(stage_object, str):
+            try:
+                return self.get_object(UUID(stage_object, version=4))
+            except (ValueError, AttributeError, TypeError):
+                stage_object = pathlib.Path(stage_object)
 
-        for node in items:
-            if node.stage:
-                LOGGER.warning(f"{node} is already in the stage.")
-                continue
-
-            unique_name = self.generate_unique_node_name(
-                node.name, parent_node=node.parent()
+        if isinstance(stage_object, pathlib.PurePosixPath):
+            getter = (
+                self.node_component_from_path
+                if stage_object.suffix
+                else self.node_from_path
             )
-            new_path = ROOT_NODE_PATH / unique_name
-            if new_path in self.path_map:
-                LOGGER.error(f"Duplicate path: {new_path}")
-                raise ValueError
+            try:
+                return getter(stage_object)
+            except Exception:
+                return None
 
-            # Set unique name and check if path exist
-            node.setText(unique_name)
-            super().appendRow(node)
+        return None
 
-            node.cache_current_path()
-            self._path_map[node.cached_path] = node
-            LOGGER.debug(f"{self} | Added {node} to root")
+    def node_from_path(self, path: pathlib.PurePosixPath | str) -> Node | None:
+        path = pathlib.PurePosixPath(path)
+        if path == ROOT_NODE_PATH:
+            return self.item(0)
 
-    def node(self, node: Node | pathlib.PurePosixPath | str | None) -> Node | None:
-        """Get node instance.
-
-        Args:
-            node (Node | pathlib.PurePosixPath | str | None): node or full path.
-
-        Returns:
-            Node | None: node instance if found
-
-        """
-        if node is None:
-            return node
-
-        if isinstance(node, Node):
-            return node
-
-        elif isinstance(node, (pathlib.PurePosixPath, str)):
-            return self.path_map.get(StagePathResolver.as_node_path(node))
-
-        else:
-            LOGGER.exception(f"{self} | Invalid argument type: {type(node)}")
+        segments = path.parts[1:]  # drop the leading "/"
+        if not segments or segments[0] != ROOT_NODE_PATH.name:
             return None
 
-    def node_component(
-        self, component: NodeComponent | pathlib.PurePosixPath | str
+        current = self.root_node
+        for name in segments[1:]:
+            current = current.find_child_by_name(name)
+            if current is None:
+                return None
+        return current
+
+    def node_component_from_path(
+        self, path: pathlib.PurePosixPath | str
     ) -> NodeComponent | None:
-        if isinstance(component, (pathlib.PurePosixPath, str)):
-            if not StagePathResolver.is_node_component_path(component):
-                raise ValueError(f"Not a valid component path: {component}")
+        path = pathlib.PurePosixPath(path)
+        component_name = path.suffix
+        if not component_name:
+            raise ValueError(f"Not valid component path: {path}")
 
-            component_path = pathlib.PurePosixPath(component)
-            node = self.node(component_path.with_suffix(""))
-            if node is None:
-                raise ValueError(f"Node doesn't exist for path: {component_path}")
+        node_path = path.with_suffix("")
+        node = self.get_object(node_path)
+        if not node:
+            raise ValueError(f"Node for given component path doesn't exist: {path}")
 
-            component = node.components_model.get_component(component_path.suffix)
-        if isinstance(component, NodeComponent):
-            return component
-        else:
-            return None
+        return node.components_model.get_component(component_name)
 
     def add_node(
         self,
         node: Node | list[Node],
-        parent: Node | pathlib.PurePosixPath | str | None = None,
+        parent: NodeLike | None = None,
     ):
         """Adds new node as root node.
 
@@ -237,54 +228,39 @@ class Stage(QtGui.QStandardItemModel):
         if not isinstance(node, list):
             node = [node]
 
-        if parent is not None:
-            parent = self.node(parent)
-        else:
-            parent = self.root_node
+        parent: Node = self.get_object(parent) if parent else self.root_node
 
         for each_node in node:
             parent.appendRow(each_node)
 
-    def delete_node(self, nodes: Sequence[Node | pathlib.PurePosixPath | str]):
+    def delete_node(self, nodes: Sequence[NodeLike] | NodeLike):
         """Delete node from stage.
 
         Args:
             node (Node): node to delete.
 
         """
-        if isinstance(nodes, (Node, str, pathlib.PurePosixPath)):
+        if not isinstance(nodes, Sequence):
             nodes = [nodes]
         for node in nodes:
-            node = self.node(node)
+            node = self.get_object(node)
             if node is None:
-                LOGGER.exception(f"{self} | Failed to delete node.", stack_info=True)
-                return
+                raise RuntimeError(f"{self} | Failed to delete node.")
 
             if node.is_locked:
-                raise RuntimeError("Can't delete locked node: %s", node.cached_path)
+                raise RuntimeError("Can't delete locked node: %s", node.path)
 
             # Removed paths
-            node = self.node(node)
-            node_path_to_emit = node.path
-            self._delete_from_path_map(node)
+            self._delete_from_uuid_map(node)
             parent = node.parent()
             self.removeRow(node.row(), parent.index())
-            self.node_deleted.emit(node_path_to_emit)
+            self.node_deleted.emit(node.uuid)
 
-    def _delete_from_path_map(self, node: Node, children=True):
-        """Remove node's path from path map.
-
-        Also handles removal of all children paths.
-
-        Args:
-            node (Node): node to remove path for.
-            children (bool, optional): delete children paths. Defaults to True.
-
-        """
-        self._path_map.pop(node.path)
-        if children:
-            for child in node.list_children_tree():
-                self._path_map.pop(child.path)
+    def _delete_from_uuid_map(self, node: Node):
+        self.uuid_map.pop(node.uuid)
+        descendant_nodes = node.list_children_tree()
+        for child_node in descendant_nodes:
+            self.uuid_map.pop(child_node.uuid)
 
     def on_node_changed(self, node: Node):
         node.on_changed()
@@ -306,7 +282,8 @@ class Stage(QtGui.QStandardItemModel):
 
         """
         try:
-            file_fn.write_json(file_path, self.root_node.serialize(), sort_keys=False)
+            serialized_data = self.root_node.serialize()
+            file_fn.write_json(file_path, serialized_data, sort_keys=False)
             self.file_path = pathlib.Path(file_path)
             self.last_saved_undo_index = self.undo_stack.index()
             LOGGER.info(f"Exported stage: {self.file_path}")
@@ -329,35 +306,14 @@ class Stage(QtGui.QStandardItemModel):
             LOGGER.exception("Failed to load stage from json.")
             return
 
-        self.root_node.deserialize(json_data)
+        Node.deserialize(serialized_node=json_data, node=self.root_node)
         self.file_path = pathlib.Path(file_path)
         self.last_saved_undo_index = self.undo_stack.index()
         LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
 
-    def get_node_children_from_path(
-        self, node_path: pathlib.PurePosixPath | str
-    ) -> list[Node]:
-        """Get children of node with given full path.
-
-        Args:
-            node_path (pathlib.PurePosixPath | str): full node path.
-
-        Returns:
-            _type_: _description_
-
-        """
-        if not isinstance(node_path, pathlib.PurePosixPath):
-            node_path = pathlib.PurePosixPath(node_path)
-
-        if node_path not in self.path_map:
-            LOGGER.warning(f"Can't get children of node with given path: {node_path}")
-            return []
-
-        return self.path_map[node_path].list_children()
-
     def execute_node_from_path(self, path):
-        node = self.node(path)
+        node = self.node_from_path(path)
         node.execute()
 
     def push_command(self, command: NyxCommand):
@@ -375,25 +331,16 @@ class Stage(QtGui.QStandardItemModel):
         command.validate()
         self.undo_stack.push(command)
 
-    def pathify(
-        self, stage_object: Node | NodeComponent | pathlib.PurePosixPath | str
-    ) -> pathlib.PurePosixPath:
-        """Convert object to path.
-
-        Args:
-            node (Node | pathlib.PurePosixPath | str): node to convert
-
-        Raises:
-            TypeError: Invalid object type
-
-        Returns:
-            pathlib.PurePosixPath: node as path
-        """
-        if isinstance(stage_object, Node):
-            return stage_object.cached_path
-        elif isinstance(stage_object, NodeComponent):
-            return stage_object.as_path()
-        elif isinstance(stage_object, (str, pathlib.PurePosixPath)):
-            return pathlib.PurePosixPath(stage_object)
-        else:
-            raise TypeError(f"Unable to pathify {stage_object}")
+    def pathify(self, stage_object: StageObject | UUID | pathlib.PurePosixPath | str):
+        if isinstance(stage_object, pathlib.PurePosixPath):
+            return stage_object
+        elif isinstance(stage_object, str):
+            try:
+                uuid = UUID(stage_object)
+                return self.get_object(uuid)
+            except Exception:
+                return pathlib.PurePosixPath(stage_object)
+        elif isinstance(stage_object, StageObject):
+            return stage_object.path
+        elif isinstance(stage_object, UUID):
+            return self.get_object(stage_object)

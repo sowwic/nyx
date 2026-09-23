@@ -1,5 +1,4 @@
 import logging
-import pathlib
 import typing
 from collections import OrderedDict
 from collections.abc import Iterable
@@ -7,25 +6,26 @@ from collections.abc import Iterable
 from PySide6 import QtCore
 from PySide6 import QtGui
 
-from nyx.core import Stage
-from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
+from ..node import Node, NodeLike
+from ..stage import Stage
+from ..exceptions import NyxCommandValidationError
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ..name_validator import NameValidator
 
 LOGGER = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
-    from nyx.core.node import Node
+    pass
 
 
 class CreateNodeCommand(NyxCommand):
     def __init__(
         self,
         stage: Stage,
-        node_name: str | None = None,
-        node_type_id: str = "core:node",
-        parent_path: str | pathlib.PurePosixPath | None = None,
+        name: str | None = None,
+        type_id: str = "core:node",
+        parent_node: NodeLike | None = None,
         position: QtCore.QPointF | Iterable = QtCore.QPointF(),
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
@@ -33,28 +33,30 @@ class CreateNodeCommand(NyxCommand):
         if not isinstance(position, (QtCore.QPointF, QtCore.QPoint)):
             position = QtCore.QPointF(*position)
 
-        self.position = position
-        self.parent_path = (
-            pathlib.PurePosixPath(parent_path) if parent_path else stage.root_node.path
+        found_parent_node: Node = (
+            self.stage.get_object(parent_node) if parent_node else self.stage.root_node
         )
-        self.node_name = node_name
-        self.node_type_id = node_type_id
+
+        if not found_parent_node:
+            raise ValueError(f"Parent node doesn't exist: {parent_node}")
+
+        self.parent_path = found_parent_node.path
+        self.parent_uuid = found_parent_node.uuid
+        self.position = position
+        self.node_name = name or NYX_REGISTRY.get_node_cls(type_id).DEFAULT_NAME
+        self.node_type_id = type_id
         self.node_data: OrderedDict = None
 
     @property
-    def node_path(self) -> str | None:
-        return self.node_data.get("path")
-
-    @property
     def result_node(self) -> Node:
-        return self.stage.node(self.node_path)
+        return self.stage.get_object(self.node_data[Node.UUID_KEY])
 
     def redo(self) -> None:
-        node_cls = NYX_REGISTRY.get_node_cls(self.node_type_id)
-        self.node_name = NameValidator.get_valid_stage_object_name(
-            self.node_name or node_cls.DEFAULT_NAME
+        self.node_name = NameValidator.get_valid_stage_object_name(self.node_name)
+        node: Node = self.stage.create_node(
+            type_id=self.node_type_id, name=self.node_name
         )
-        node = node_cls(name=self.node_name)
+
         self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()
         if self.position:
@@ -64,7 +66,7 @@ class CreateNodeCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
-        self.stage.delete_node(self.node_data.get("path"))
+        self.stage.delete_node(self.result_node)
         self.node_data = None
         return super().undo()
 
@@ -72,9 +74,8 @@ class CreateNodeCommand(NyxCommand):
         if self.node_type_id not in NYX_REGISTRY.nodes.keys():
             raise NyxCommandValidationError(f"Invalid node type_id: {self.node_type_id}")
 
-        if self.parent_path:
-            is_anchor = self.parent_path.as_posix() == self.parent_path.anchor
-            if not is_anchor and not self.stage.node(self.parent_path):
-                raise NyxCommandValidationError(
-                    f"Invalid parent path: {self.parent_path}"
-                )
+        if self.stage.get_object(self.parent_uuid) is None:
+            raise NyxCommandValidationError(
+                f"Invalid parent node UUID missing from stage: "
+                f"{self.parent_uuid} ({self.parent_path})"
+            )

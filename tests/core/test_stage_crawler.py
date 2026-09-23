@@ -3,7 +3,8 @@ import logging
 
 import pytest
 
-from nyx.api.v1 import Stage, CoreNodes, commands
+from nyx.api.v1 import Stage, Node, CoreNodes, commands
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -12,13 +13,13 @@ def test_crawler_order_correct_with_flat_hierarchy():
     stage = Stage()
 
     flow_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.FLOW_START
+        stage=stage, type_id=CoreNodes.FLOW_START
     )
     action1_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     action2_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     stage.push_command(flow_create_command)
     stage.push_command(action1_create_command)
@@ -33,9 +34,9 @@ def test_crawler_order_correct_with_flat_hierarchy():
     stage.crawler.start()
     assert stage.crawler.visited_node_paths == [
         stage.root_node.path.as_posix(),
-        flow_create_command.node_path,
-        action1_create_command.node_path,
-        action2_create_command.node_path,
+        flow_create_command.result_node.path.as_posix(),
+        action1_create_command.result_node.path.as_posix(),
+        action2_create_command.result_node.path.as_posix(),
     ]
 
 
@@ -73,13 +74,13 @@ def test_crawler_order_correct_with_nested_hierarchy(
     stage = Stage()
     export_path = output_dir / f"{request.node.name}{stage.FILE_EXTENSION}"
     flow_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.FLOW_START
+        stage=stage, type_id=CoreNodes.FLOW_START
     )
     action1_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.LOG
+        stage=stage, type_id=CoreNodes.LOG
     )
     action2_create_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.LOG
+        stage=stage, type_id=CoreNodes.LOG
     )
 
     stage.push_command(flow_create_command)
@@ -93,30 +94,30 @@ def test_crawler_order_correct_with_nested_hierarchy(
     # Setup children of action1
     flow_node1_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id=CoreNodes.FLOW_START,
-        parent_path=action1_node.path,
+        type_id=CoreNodes.FLOW_START,
+        parent_node=action1_node.path,
     )
     child_node1_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id=CoreNodes.LOG,
-        parent_path=action1_node.path,
+        type_id=CoreNodes.LOG,
+        parent_node=action1_node.path,
     )
     stage.push_command(flow_node1_create_command)
     stage.push_command(child_node1_create_command)
 
     action1_flow_start = action1_node.find_flow_start_node()
-    action1_child = stage.node(child_node1_create_command.node_path)
+    action1_child: Node = stage.get_object(child_node1_create_command.result_node.uuid)
 
     # # Setup children of action2
     flow_node2_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id=CoreNodes.FLOW_START,
-        parent_path=action2_node.path,
+        type_id=CoreNodes.FLOW_START,
+        parent_node=action2_node.path,
     )
     child_node2_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id=CoreNodes.LOG,
-        parent_path=action2_node.path,
+        type_id=CoreNodes.LOG,
+        parent_node=action2_node.path,
     )
     stage.push_command(flow_node2_create_command)
     stage.push_command(child_node2_create_command)

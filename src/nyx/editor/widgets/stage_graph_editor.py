@@ -212,7 +212,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     ) -> None:
         previous_scope = self.get_scope_path()
 
-        node = self.stage.node(scope)
+        node = self.stage.get_object(scope)
         if node:
             new_scope = node.path
         else:
@@ -239,7 +239,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             list[Node]: Filtered nodes.
 
         """
-        current_scope_node = self.stage.node(self.get_scope_path())
+        current_scope_node = self.stage.get_object(self.get_scope_path())
         scope_child_nodes = self.stage.list_children(current_scope_node)
         filtered_nodes = list(set(nodes).intersection(set(scope_child_nodes)))
         return filtered_nodes

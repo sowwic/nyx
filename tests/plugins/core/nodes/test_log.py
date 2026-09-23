@@ -8,9 +8,9 @@ if typing.TYPE_CHECKING:
 def test_log_node_creation():
     """Test creating new log node with default parameters."""
     stage = Stage()
-    command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.LOG)
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
     stage.push_command(command)
-    result_node: LogNode | None = stage.node(command.node_path)
+    result_node: LogNode | None = stage.get_object(command.result_node.uuid)
 
     assert result_node is not None
     assert result_node.get_type_id() == CoreNodes.LOG
@@ -35,9 +35,9 @@ def test_log_node_creation():
 def test_execute_components_creates_logger_with_expected_name():
     """Check logger post components execution"""
     stage = Stage()
-    command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.LOG)
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
     stage.push_command(command)
-    log_node: LogNode = stage.node(command.node_path)
+    log_node: LogNode = stage.get_object(command.result_node)
     log_node["message"].value = "test_message"
     log_node.execute_components()
 

@@ -21,7 +21,7 @@ def test_delete_node_component():
     stage = Stage()
     node_create_command = CreateNodeCommand(stage=stage)
     stage.push_command(node_create_command)
-    node = stage.node(node_create_command.node_path)
+    node = stage.get_object(node_create_command.result_node.uuid)
 
     add_cpnt_command = AddNodeComponentCommand(
         node=node, type_id=test_cpnt_type_id, name=test_cpnt_name
@@ -45,7 +45,7 @@ def test_delete_node_component_undo():
     stage = Stage()
     node_create_command = CreateNodeCommand(stage=stage)
     stage.push_command(node_create_command)
-    node = stage.node(node_create_command.node_path)
+    node = stage.get_object(node_create_command.result_node.uuid)
 
     add_cpnt_command = AddNodeComponentCommand(
         node=node, type_id=test_cpnt_type_id, name=test_cpnt_name
@@ -72,7 +72,7 @@ def test_delete_node_component_undo_redo():
     stage = Stage()
     node_create_command = CreateNodeCommand(stage=stage)
     stage.push_command(node_create_command)
-    node = stage.node(node_create_command.node_path)
+    node = stage.get_object(node_create_command.result_node.uuid)
 
     add_cpnt_command = AddNodeComponentCommand(
         node=node, type_id=test_cpnt_type_id, name=test_cpnt_name

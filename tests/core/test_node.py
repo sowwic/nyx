@@ -105,69 +105,42 @@ def test_node_rename():
 
     # Create nested child nodes
     par = node
-    for i in range(5):
+    for _ in range(5):
         par = Node(parent=par)
 
     # Store old data
     children = node.list_children_tree()
-    old_path = node.path
-    old_child_paths = [child.path for child in children]
 
     # Do rename of first node
     new_name = "cool_name"
     node.rename(new_name)
 
-    # Assertions
-    assert node._cached_path == node.path
-    assert old_path not in stage.path_map
-    for old_child_path in old_child_paths:
-        assert old_child_path not in stage.path_map
+    assert node.name == new_name
 
+    # Assertions
     for child in children:
         # ["/", "stage", "cool_name"]
         assert child.path.parts[2] == new_name
-        assert child.path in stage.path_map
 
 
-def test_node_delete_first_paths_map_valid():
+def test_deleting_parent_node_removes_childrens_uuids():
     stage = Stage()
     node = Node()
     stage.add_node(node)
 
     par = node
+    uuids = [node.uuid]
 
     for _ in range(5):
         par = Node(parent=par)
-    LOGGER.debug(f"Path map: {stage.path_map}")
+        uuids.append(par.uuid)
+    LOGGER.debug(f"UUIDS map: {stage.uuid_map}")
 
     node.delete()
-    LOGGER.debug(f"Path map after deletion: {stage.path_map}")
+    LOGGER.debug(f"Path map after deletion: {stage.uuid_map}")
 
-    assert len(stage.path_map) == 1
-    assert stage.path_map.get(stage.root_node.path) is not None
-
-
-def test_node_delete_mid_paths_map_valid():
-    stage = Stage()
-    node = Node()
-    stage.add_node(node)
-
-    par = node
-
-    added_nodes = []
-    for i in range(5):
-        par = Node(parent=par)
-        added_nodes.append(par)
-
-    LOGGER.debug(f"Path map: {stage.path_map}")
-    added_nodes[1].delete()
-
-    LOGGER.debug(f"Path map after deletion: {stage.path_map}")
-
-    assert stage.path_map != {}
-    assert node.path in stage.path_map
-    for child in node.list_children_tree():
-        assert child.path in stage.path_map
+    assert len(stage.uuid_map) == 1
+    assert stage.node_from_path(stage.root_node.path) is not None
 
 
 def test_find_flow_start_node():
@@ -176,11 +149,11 @@ def test_find_flow_start_node():
     stage.push_command(parent_create_command)
     flow_start_create_command = commands.CreateNodeCommand(
         stage=stage,
-        node_type_id=CoreNodes.FLOW_START,
-        parent_path=parent_create_command.node_path,
+        type_id=CoreNodes.FLOW_START,
+        parent_node=parent_create_command.result_node,
     )
     stage.push_command(flow_start_create_command)
-    parent_node = stage.node(parent_create_command.node_path)
+    parent_node = stage.get_object(parent_create_command.result_node.uuid)
 
     flow_start_node: Node = parent_node.find_flow_start_node()
     assert flow_start_node is not None

@@ -67,7 +67,7 @@ def _import_nodes(
 
     # Paste command
     paste_position = stage_graph.gr_view.get_center_position()
-    parent_node = stage_graph.stage.node(stage_graph.get_scope_path())
+    parent_node = stage_graph.stage.get_object(stage_graph.get_scope_path())
     paste_command = commands.PasteNodesCommand(
         stage=stage_graph.stage,
         serialize_nodes=serialized_nodes,
@@ -77,7 +77,7 @@ def _import_nodes(
     command_name = "Reference" if as_reference else "Import"
     if len(serialized_nodes) == 1:
         parent_node_path = (
-            parent_node.cached_path if parent_node else stage_graph.stage.root_node.path
+            parent_node.path if parent_node else stage_graph.stage.root_node.path
         )
         paste_command.setText(
             f"{command_name} node ({parent_node_path / serialized_nodes[0].get('name')})"

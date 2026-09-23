@@ -1,24 +1,27 @@
 import logging
-import pathlib
+import typing
+from uuid import UUID
 from collections import deque
 from collections.abc import Sequence
 
 from PySide6 import QtGui
 
-from nyx.core import Node
-from nyx.core import Stage
-from nyx.core.exceptions import NyxCommandValidationError
-from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
+from ..stage import Stage
 from ._base_nyx_command import NyxCommand
+from ..node import Node, NodeLike
+from ..exceptions import NyxCommandValidationError
 
 LOGGER = logging.getLogger(__name__)
+
+if typing.TYPE_CHECKING:
+    from ..stage import Stage
 
 
 class DeleteNodeCommand(NyxCommand):
     def __init__(
         self,
         stage: Stage,
-        nodes: list[Node | pathlib.PurePosixPath | str],
+        nodes: Sequence[NodeLike] | NodeLike,
         command_text: str = "Delete node",
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
@@ -26,55 +29,57 @@ class DeleteNodeCommand(NyxCommand):
         if not isinstance(nodes, Sequence):
             nodes = [nodes]
 
-        self.nodes_to_delete = [self.stage.pathify(node) for node in nodes]
+        self.requested_nodes = nodes
+        self.parents_map = {}
+        self.deleted_uuids = deque()
         self.serialized_nodes = deque()
-        self.deleted_paths = deque()
 
     def redo(self) -> None:
-        nodes = [self.stage.node(node) for node in self.nodes_to_delete]
-        for each_node in nodes:
+        nodes_to_delete = [self.stage.get_object(node) for node in self.requested_nodes]
+        for each_node in nodes_to_delete:
             self.serialized_nodes.append(each_node.serialize())
 
-        if len(nodes) == 1:
-            self.setText(f"Delete node ({nodes[-1].path.as_posix()})")
+        if len(nodes_to_delete) == 1:
+            self.setText(f"Delete node ({nodes_to_delete[-1].path.as_posix()})")
         else:
             self.setText("Deleted nodes")
 
-        self.deleted_paths.clear()
-        serialized_paths = [
-            pathlib.PurePosixPath(node_data.get("path"))
-            for node_data in self.serialized_nodes
-        ]
-        serialized_paths_set = set(serialized_paths)
+        self.deleted_uuids.clear()
 
-        # Filter paths to delete, so that only parent paths are deleted.
-        for path in serialized_paths:
-            if set(path.parents).intersection(serialized_paths_set):
-                continue
-            self.deleted_paths.append(path)
-
-        self.stage.delete_node(self.deleted_paths)
+        top_level_nodes = self.stage.filter_top_level_nodes(nodes_to_delete)
+        self.deleted_uuids = [node.uuid for node in top_level_nodes]
+        self.parents_uuids_map = {
+            node.uuid: node.parent().uuid for node in top_level_nodes
+        }
+        self.stage.delete_node(self.deleted_uuids)
         return super().redo()
 
     def undo(self) -> None:
         for node_data in self.serialized_nodes:
-            node_path: pathlib.PurePosixPath = pathlib.PurePosixPath(
-                node_data.get("path")
-            )
-            if node_path not in self.deleted_paths:
+            node_uuid = UUID(node_data[Node.UUID_KEY])
+            if node_uuid not in self.deleted_uuids:
                 continue
-            parent_path = node_path.parent
-            new_node_cls = NYX_REGISTRY.get_node_cls(node_data["type_id"])
-            new_node = new_node_cls()
-            self.stage.add_node(new_node, parent=parent_path)
-            new_node.deserialize(node_data)
+
+            parent_node = self.stage.get_object(self.parents_uuids_map[node_uuid])
+
+            Node.deserialize(
+                serialized_node=node_data,
+                node=None,
+                parent_node=parent_node,
+                restore_uuid=True,
+            )
+
         self.serialized_nodes.clear()
+        self.parents_map.clear()
+        self.deleted_uuids.clear()
         return super().undo()
 
     def validate(self):
-        nodes_to_delete = [self.stage.node(node) for node in self.nodes_to_delete]
+        nodes_to_delete = [
+            self.stage.get_object(node_like) for node_like in self.requested_nodes
+        ]
         status = all([node is not None for node in nodes_to_delete])
         if not status:
             raise NyxCommandValidationError(
-                f"Invalid node paths: {self.nodes_to_delete}"
+                f"Invalid requested nodes for deletion: {self.requested_nodes}"
             )

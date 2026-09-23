@@ -132,8 +132,8 @@ class StageTreeView(QtWidgets.QTreeView):
         )
         create_cmd = commands.CreateNodeCommand(
             stage=self.stage,
-            node_name="node",
-            parent_path=parent_path,
+            name="node",
+            parent_node=parent_path,
             position=view_center_position,
         )
         self.stage.push_command(create_cmd)

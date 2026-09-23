@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 def test_stage_create_empty():
     stage = Stage()
     assert stage.undo_stack.isClean()
-    assert stage.list_top_nodes() == []
+    assert stage.root_node.list_children() == []
 
 
 def test_stage_export_import_json(
@@ -21,14 +21,13 @@ def test_stage_export_import_json(
     stage = Stage()
     export_path = output_dir / f"{request.node.name}{stage.FILE_EXTENSION}"
     # Add nodes
-    # TODO: add components to nodes
-    for index in range(3):
-        base_node = Node("node")
+    for _ in range(3):
+        base_node = Node(name="node")
         stage.add_node(base_node)
-        for child_index in range(3):
-            child_node = Node("child_node", base_node)
-            for deep_index in range(2):
-                Node("leaf_node", child_node)
+        for _ in range(3):
+            child_node = Node(name="child_node", parent=base_node)
+            for _ in range(2):
+                Node(name="leaf_node", parent=child_node)
 
     stage.export_json(export_path)
     assert export_path.is_file()
@@ -43,14 +42,13 @@ def test_stage_deserialize(output_dir: pathlib.Path, request: pytest.FixtureRequ
     stage = Stage()
     export_path = output_dir / f"{request.node.name}_export{stage.FILE_EXTENSION}"
     export_path2 = output_dir / f"{request.node.name}_check{stage.FILE_EXTENSION}"
-    # TODO: add components to nodes
-    for index in range(3):
-        base_node = Node("node")
+    for _ in range(3):
+        base_node = Node(name="node")
         stage.add_node(base_node)
-        for child_index in range(3):
-            child_node = Node("child_node", base_node)
-            for deep_index in range(2):
-                Node("leaf_node", child_node)
+        for _ in range(3):
+            child_node = Node(name="child_node", parent=base_node)
+            for _ in range(2):
+                Node(name="leaf_node", parent=child_node)
 
     stage.export_json(export_path)
 
@@ -70,21 +68,21 @@ def test_stage_deserialize_plugin_nodes(
     # TODO: add components to nodes
     for _ in range(3):
         base_node_create_command = commands.CreateNodeCommand(
-            stage=stage, node_type_id=CoreNodes.ACTION
+            stage=stage, type_id=CoreNodes.ACTION
         )
         stage.push_command(base_node_create_command)
         for _ in range(3):
             child_node_create_command = commands.CreateNodeCommand(
                 stage=stage,
-                node_type_id=CoreNodes.ACTION,
-                parent_path=base_node_create_command.node_path,
+                type_id=CoreNodes.ACTION,
+                parent_node=base_node_create_command.result_node.uuid,
             )
             stage.push_command(child_node_create_command)
             for _ in range(2):
                 deep_child_create_command = commands.CreateNodeCommand(
                     stage=stage,
-                    node_type_id=CoreNodes.BRANCH,
-                    parent_path=child_node_create_command.node_path,
+                    type_id=CoreNodes.BRANCH,
+                    parent_node=child_node_create_command.result_node.uuid,
                 )
                 stage.push_command(deep_child_create_command)
 
@@ -93,9 +91,15 @@ def test_stage_deserialize_plugin_nodes(
     stage2 = Stage()
     stage2.import_json(export_path)
 
-    last_imported_deep_child = stage2.node(deep_child_create_command.node_path)
-    last_imported_child_node = stage2.node(child_node_create_command.node_path)
-    last_imported_base_node = stage2.node(base_node_create_command.node_path)
+    last_imported_deep_child = stage2.get_object(
+        deep_child_create_command.result_node.uuid
+    )
+    last_imported_child_node = stage2.get_object(
+        child_node_create_command.result_node.uuid
+    )
+    last_imported_base_node = stage2.get_object(
+        base_node_create_command.result_node.uuid
+    )
 
     assert last_imported_deep_child.get_type_id() == CoreNodes.BRANCH
     assert last_imported_child_node.get_type_id() == CoreNodes.ACTION
@@ -104,17 +108,6 @@ def test_stage_deserialize_plugin_nodes(
     stage2.export_json(export_path2)
 
     assert stage2.root_node.serialize() == stage.root_node.serialize()
-
-
-def test_stage_get_node_from_path():
-    stage = Stage()
-    node = Node()
-    stage.add_node(node)
-
-    for _ in range(5):
-        Node(parent=node)
-
-    assert stage.get_node_children_from_path(node.cached_path) == node.list_children()
 
 
 def test_attempt_deleting_locked_node_raises_error():
@@ -130,12 +123,8 @@ def test_stage_export_import_with_connections(
     export_path = output_dir / f"{request.node.name}{Stage.FILE_EXTENSION}"
 
     stage1 = Stage()
-    node1_create_command = commands.CreateNodeCommand(
-        stage1, node_type_id=CoreNodes.ACTION
-    )
-    node2_create_command = commands.CreateNodeCommand(
-        stage1, node_type_id=CoreNodes.ACTION
-    )
+    node1_create_command = commands.CreateNodeCommand(stage1, type_id=CoreNodes.ACTION)
+    node2_create_command = commands.CreateNodeCommand(stage1, type_id=CoreNodes.ACTION)
 
     stage1.push_command(node1_create_command)
     stage1.push_command(node2_create_command)
@@ -157,25 +146,26 @@ def test_stage_export_import_with_connections(
 def test_stage_convert_to_node():
     # Original stage
     stage = Stage()
-    node1 = Node()
-    node2 = Node()
 
-    stage.add_node(node1)
-    stage.add_node(node2)
+    node1_create_command = commands.CreateNodeCommand(stage=stage)
+    node2_create_command = commands.CreateNodeCommand(stage=stage)
+    stage.push_command(node1_create_command)
+    stage.push_command(node2_create_command)
 
     # Final stage
     main_stage = Stage()
-    stage_node = Node()
+    main_node_create_command = commands.CreateNodeCommand(stage=main_stage)
+    main_stage.push_command(main_node_create_command)
+    stage_node = main_node_create_command.result_node
 
     serialized_stage_node = stage.root_node.serialize()
 
-    main_stage.add_node(stage_node)
-    stage_node.deserialize(serialized_stage_node)
+    stage_node.deserialize(serialized_node=serialized_stage_node, node=stage_node)
     LOGGER.debug(main_stage.describe())
 
     new_child_paths = [
-        stage_node.path / node1.path.name,
-        stage_node.path / node2.path.name,
+        stage_node.path / node1_create_command.result_node.path.name,
+        stage_node.path / node2_create_command.result_node.path.name,
     ]
     assert stage_node.name == stage.root_node.name
     assert stage_node.list_children_paths() == new_child_paths

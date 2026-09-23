@@ -6,11 +6,11 @@ import typing
 from collections import OrderedDict, deque
 from collections.abc import Iterable
 
+from uuid import UUID
 from PySide6 import QtCore, QtGui
 
+from .stage_object import StageObject
 from .models.components_model import NodeComponentsModel
-from .name_validator import NameValidator
-from .serializable import Serializable
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
@@ -26,10 +26,20 @@ if typing.TYPE_CHECKING:
 
 LOGGER = logging.getLogger(__name__)
 
+type NodeLike = Node | UUID | pathlib.PurePosixPath | str
 
-class Node(QtGui.QStandardItem, Serializable):
+
+class Node(QtGui.QStandardItem, StageObject):
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
+
+    TYPE_ID_KEY = "type_id"
+    NAME_KEY = "name"
+    ACTIVE_KEY = "active"
+    POSITION_KEY = "position"
+    REFERENCE_FILE_KEY = "reference_file_path"
+    COMPONENTS_KEY = "components"
+    CHILDREN_KEY = "children"
 
     class Roles(enum.IntEnum):
         TYPE_ID = QtCore.Qt.UserRole + 1
@@ -43,20 +53,17 @@ class Node(QtGui.QStandardItem, Serializable):
     def __init__(
         self,
         name: str | None = None,
-        parent: Node | pathlib.PurePosixPath | str | None = None,
+        uuid: UUID | str | None = None,
+        parent: Node | None = None,
     ) -> None:
         QtGui.QStandardItem.__init__(self, name or self.DEFAULT_NAME)
-        Serializable.__init__(self)
-        self._cached_path = None
-        self.gr_node: GraphicsNode = None
+        StageObject.__init__(self, uuid=uuid)
         self._set_default_role_values()
+        self._components_model = NodeComponentsModel(node=self)
+        self.gr_node: GraphicsNode = None
 
         if parent:
             parent.appendRow(self)
-
-        self._components_model = NodeComponentsModel(node=self)
-        self.setup()
-        self.post_setup_hook()
 
     def setup(self):
         pass
@@ -69,7 +76,7 @@ class Node(QtGui.QStandardItem, Serializable):
             component.mark_as_built_in()
 
     def __repr__(self) -> str:
-        return f"{inspect_fn.class_string(self.__class__)} ({self.cached_path})"
+        return f"{inspect_fn.class_string(self.__class__)} ({self.path})"
 
     def __hash__(self) -> int:
         return hash(self.path)
@@ -98,7 +105,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
     @property
     def is_stage_root_node(self):
-        return self.cached_path == self.stage.root_node.cached_path
+        return self is self.stage.root_node
 
     @property
     def scope(self):
@@ -116,10 +123,6 @@ class Node(QtGui.QStandardItem, Serializable):
         if not self.parent():
             return path / self.name
         return self.parent().path / self.name
-
-    @property
-    def cached_path(self) -> pathlib.PurePosixPath:
-        return self._cached_path
 
     @property
     def stage(self) -> Stage:
@@ -166,10 +169,6 @@ class Node(QtGui.QStandardItem, Serializable):
     def tags(self, new_tags: Iterable) -> None:
         self.setData(set(new_tags), role=self.Roles.TAGS)
 
-    def cache_current_path(self):
-        """Store current path in cache."""
-        self._cached_path = self.path
-
     def is_active(self) -> bool:
         """Query if node's active state.
 
@@ -206,16 +205,10 @@ class Node(QtGui.QStandardItem, Serializable):
     def set_position(self, position: QtCore.QPointF):
         self.setData(position, role=Node.Roles.POSITION)
 
-    def comment(self) -> str:
-        return self.data(role=Node.Roles.COMMENT)
-
-    def set_comment(self, text: str):
-        self.setData(text, role=Node.Roles.COMMENT)
-
     def set_reference_file(self, path: pathlib.Path | str):
         self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH)
 
-    def appendRow(self, items: typing.Sequence[Node]) -> None:
+    def appendRow(self, items: Node | typing.Sequence[Node]) -> None:
         """Override Qt method.
 
         - Generates new unique name.
@@ -233,21 +226,23 @@ class Node(QtGui.QStandardItem, Serializable):
             items = [items]
 
         for node in items:
+            if node.uuid in self.stage.uuid_map:
+                raise KeyError(
+                    "Node with UUID %s already exists: %s",
+                    str(node.uuid),
+                    str(self.stage.get_object(node.uuid).path),
+                )
+
             unique_name = self.stage.generate_unique_node_name(
                 node.name, parent_node=self
             )
-            new_path = self.path / unique_name
-            if new_path in self.stage.path_map:
-                LOGGER.error(f"Duplicate path: {new_path}")
-                raise ValueError
 
             node.setText(unique_name)
             super().appendRow(node)
-            assert node.path == new_path
-            LOGGER.debug(f"{self} | added child node {new_path}")
 
-            node.cache_current_path()
-            self.stage._path_map[node.path] = node
+            self.stage.uuid_map[node.uuid] = node
+            node.setup()
+            node.post_setup_hook()
 
     def rename(self, new_name: str):
         """Rename node.
@@ -261,29 +256,20 @@ class Node(QtGui.QStandardItem, Serializable):
         if new_name == self.name:
             return
 
-        new_name = NameValidator.get_valid_stage_object_name(new_name)
         new_name = self.stage.generate_unique_node_name(
             new_name, parent_node=self.parent()
         )
         self.setText(new_name)
-        self._update_pathmap_entry()
 
-    def _update_pathmap_entry(self):
-        """Update path stored for in stage path map."""
-        self.stage._path_map.pop(self.cached_path)
-        self.stage._path_map[self.path] = self
-        self.cache_current_path()
-        for child_node in self.list_children():
-            child_node._update_pathmap_entry()
-
-    def child_names_set(self):
+    @property
+    def child_names_set(self) -> set[str]:
         """Get set of existing child names.
 
         Returns:
             set[str]: child names.
 
         """
-        return {node.text() for node in self.list_children()}
+        return {node.name for node in self.list_children()}
 
     def list_children(self) -> list[Node]:
         """List child nodes.
@@ -302,7 +288,7 @@ class Node(QtGui.QStandardItem, Serializable):
             list[pathlib.PurePosixPath]: child paths.
 
         """
-        return [child_node.cached_path for child_node in self.list_children()]
+        return [child_node.path for child_node in self.list_children()]
 
     def list_children_tree(self) -> list[Node]:
         """List children tree recursively.
@@ -330,10 +316,10 @@ class Node(QtGui.QStandardItem, Serializable):
             other_node, (str, pathlib.PurePosixPath)
         ) and self.stage.path_resolver.is_relative_path(other_node):
             other_node = self.stage.path_resolver.compute_absolute_path(
-                self.cached_path, other_node
+                self.path, other_node
             )
 
-        other_node = self.stage.node(other_node)
+        other_node = self.stage.get_object(other_node)
         return other_node in set(self.list_children())
 
     def list_parents(self, as_queue=False) -> list[Node] | deque[Node]:
@@ -370,54 +356,68 @@ class Node(QtGui.QStandardItem, Serializable):
             OrderedDict: serialized data
 
         """
-        data = super().serialize()
-        children = [child.serialize() for child in self.list_children()]
-        data["name"] = self.text()
-        data["type_id"] = self.get_type_id()
-        data["active"] = self.is_active()
-        data["position"] = self.serializable_position()
-        data["path"] = self.path.as_posix()
+        serialized_data = super().serialize()
+        serialized_data["name"] = self.name
+        serialized_data["type_id"] = self.get_type_id()
+        serialized_data["active"] = self.is_active()
+        serialized_data["position"] = self.serializable_position()
         if self.reference_file_path is not None:
-            data["reference_file_path"] = self.reference_file_path.as_posix()
+            serialized_data[self.REFERENCE_FILE_KEY] = (
+                self.reference_file_path.as_posix()
+            )
         else:
-            data["children"] = children
-        data.update(self.components_model.serialize())
-        return data
+            serialized_data[self.CHILDREN_KEY] = [
+                child_node.serialize() for child_node in self.list_children()
+            ]
+        serialized_data.update(self.components_model.serialize())
+        return serialized_data
 
-    def deserialize(self, data: OrderedDict):
-        """Deserialize node from serialized node dictionary.
+    @classmethod
+    def deserialize(
+        cls,
+        serialized_node: OrderedDict[str, typing.Any],
+        node: Node | None = None,
+        parent_node: Node | None = None,
+        restore_uuid: bool = True,
+    ) -> Node:
+        uuid = serialized_node[cls.UUID_KEY] if restore_uuid else None
+        if not node:
+            node_cls = NYX_REGISTRY.get_node_cls(serialized_node[cls.TYPE_ID_KEY])
+            node = node_cls(
+                name=serialized_node[cls.NAME_KEY], uuid=uuid, parent=parent_node
+            )
+        else:
+            node.rename(serialized_node[cls.NAME_KEY])
 
-        Args:
-            data (OrderedDict): Node data dictionary.
-
-        """
-        super().deserialize(data)
-
-        LOGGER.debug(f"Desirializing: {data.get('name')}")
-        if self.name != data.get("name", self.name):
-            self.rename(data.get("name"))
+        LOGGER.debug(f"Deserializing: {serialized_node.get(cls.NAME_KEY)}")
+        if uuid is not None:
+            node.uuid = uuid
 
         # Roles that should exist for normal and reference nodes
-        self.set_active(data.get("active", True))
-        self.set_position(QtCore.QPointF(*data.get("position", [0.0, 0.0])))
+        node.set_active(serialized_node.get(cls.ACTIVE_KEY, True))
+        node.set_position(
+            QtCore.QPointF(*serialized_node.get(cls.POSITION_KEY, [0.0, 0.0]))
+        )
 
         # Get data from reference
-        reference_file_path = data.get("reference_file_path")
+        reference_file_path = serialized_node.get(cls.REFERENCE_FILE_KEY)
         if reference_file_path:
             reference_file_path = pathlib.Path(reference_file_path)
-            self.set_reference_file(reference_file_path)
-            data = self._load_reference_file_data()
-
-        self._update_pathmap_entry()
+            node.set_reference_file(reference_file_path)
+            serialized_node = node._load_reference_file_data()
 
         # Components
-        self.components_model.deserialize(data.get("components"))
+        node.components_model.deserialize(serialized_node.get(cls.COMPONENTS_KEY))
 
         # Children
-        for child_data in data.get("children", {}):
-            node_class = NYX_REGISTRY.get_node_cls(child_data.get("type_id"))
-            child_node = node_class(parent=self)
-            child_node.deserialize(child_data)
+        for child_data in serialized_node.get(cls.CHILDREN_KEY, {}):
+            cls.deserialize(
+                serialized_node=child_data,
+                parent_node=node,
+                restore_uuid=restore_uuid,
+            )
+
+        return node
 
     def _load_reference_file_data(self) -> OrderedDict:
         data = OrderedDict()
@@ -453,7 +453,12 @@ class Node(QtGui.QStandardItem, Serializable):
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
         self.deserialize(json_data)
 
-    def find_child_node_of_type(self, type_id: str):
+    def find_child_by_name(self, name) -> Node | None:
+        for node in self.list_children():
+            if node.name == name:
+                return node
+
+    def find_child_node_of_type(self, type_id: str) -> Node | None:
         for node in self.list_children():
             if node.get_type_id() == type_id:
                 return node
@@ -464,7 +469,6 @@ class Node(QtGui.QStandardItem, Serializable):
         Returns:
             FlowStartNode instance.
         """
-        # TODO: Enums for built in NodeTypes
         return self.find_child_node_of_type(type_id=CoreNodes.FLOW_START)
 
     def accept_visitor(self, visitor: NodeVisitor):
@@ -488,7 +492,7 @@ class Node(QtGui.QStandardItem, Serializable):
             raise err
 
         total_time = time.perf_counter() - start_time
-        LOGGER.info(f"Executed in {total_time:.4f}: {self.cached_path}")
+        LOGGER.info(f"Executed in {total_time:.4f}: {self.path}")
 
     def execute_components(self):
         pass

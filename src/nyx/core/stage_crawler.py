@@ -3,7 +3,8 @@ import typing
 from typing import Protocol, runtime_checkable
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node, Stage
+    from ..core import Node, Stage
+    from ..core.node_component import NodeComponent
     from nyx.plugins.core.nodes.flow_start import FlowStartNode
 
 LOGGER = logging.getLogger(__name__)
@@ -144,16 +145,19 @@ class StageCrawler:
             if flow_component.value is None:
                 continue
 
-            next_node = self.stage.node(flow_component.value)
-            if next_node is None:
+            flow_value: NodeComponent | None = self.stage.get_object(
+                flow_component.value
+            )
+            if flow_value is None:
                 raise RuntimeError(
-                    f"{flow_component.as_path()} points to "
+                    f"{flow_component.path} points to "
                     f"{flow_component.value}, which doesn't exist.",
                 )
 
+            next_node = flow_value.node
             if next_node.parent() != node.parent():
                 raise RuntimeError(
-                    f"{flow_component.as_path()} points to "
+                    f"{flow_component.path} points to "
                     f"{flow_component.value}, which is not a sibling node.",
                 )
             next_nodes.append(next_node)

@@ -8,9 +8,9 @@ if typing.TYPE_CHECKING:
 def test_branch_node_creation():
     """Test creating new branch node with default parameters."""
     stage = Stage()
-    command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.BRANCH)
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.BRANCH)
     stage.push_command(command)
-    result_node: BranchNode = stage.node(command.node_path)
+    result_node: BranchNode = stage.get_object(command.result_node.uuid)
 
     assert result_node is not None
     assert result_node.get_type_id() == CoreNodes.BRANCH
@@ -32,9 +32,9 @@ def test_branch_node_creation():
 
 def test_execute_activates_correct_flow_out():
     stage = Stage()
-    command = commands.CreateNodeCommand(stage=stage, node_type_id="core:branch")
+    command = commands.CreateNodeCommand(stage=stage, type_id="core:branch")
     stage.push_command(command)
-    branch_node = stage.node(command.node_path)
+    branch_node = stage.get_object(command.result_node.uuid)
     assert branch_node is not None
 
     # True case

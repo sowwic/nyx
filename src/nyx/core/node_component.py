@@ -4,17 +4,27 @@ import typing
 from collections import OrderedDict
 
 from PySide6 import QtCore, QtGui, QtWidgets
+from uuid import UUID
 
-from .serializable import Serializable
+from .stage_object import StageObject
+from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import NodeComponentSolveDirection
 
 if typing.TYPE_CHECKING:
     from .node import Node
+    from .stage import Stage
     from .models.components_model import NodeComponentsModel
 
+type NodeComponentLike = NodeComponent | UUID | pathlib.PurePosixPath | str
 
-class NodeComponent(QtGui.QStandardItem, Serializable):
+
+class NodeComponent(QtGui.QStandardItem, StageObject):
     DEFAULT_NAME: str = "component"
+    PATH_SEPARATOR = "."
+
+    TYPE_ID_KEY = "type_id"
+    NAME_KEY = "name"
+    ACTIVE_KEY = "active"
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
@@ -34,9 +44,10 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     def __init__(
         self,
         name: str | None = None,
+        uuid: UUID | None = None,
     ):
         QtGui.QStandardItem.__init__(self)
-        Serializable.__init__(self)
+        StageObject.__init__(self, uuid=uuid)
 
         self.name = name or self.DEFAULT_NAME
         self.init_default_data_values()
@@ -50,11 +61,11 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         Raises:
             ValueError: Component with given path wasn't found in the stage.
         """
-        other_component = self.node.stage.node_component(other)
+        other_component = self.node.stage.get_object(other)
         if not isinstance(other_component, NodeComponent):
             raise ValueError(f"Not a valid component path: {other}")
 
-        other_component.value = self.as_path()
+        other_component.value = self.uuid
 
     def __rrshift__(self, other: pathlib.PurePosixPath | str):
         """Handle `other >> self` operator, when `other` doesn't
@@ -66,13 +77,13 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         Raises:
             ValueError: Component with given path wasn't found in the stage.
         """
-        other_component = self.node.stage.node_component(other)
+        other_component = self.node.stage.get_object(other)
         if not isinstance(other_component, NodeComponent):
             raise ValueError(
                 f"Not a valid component: {other_component}, obtained from {other}"
             )
 
-        self.value = other_component.as_path()
+        self.value = other_component.uuid
 
     def __lshift__(self, other: NodeComponent | pathlib.PurePosixPath | str):
         """Handle `self << other` operator
@@ -83,11 +94,11 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         Raises:
             ValueError: Component with given path wasn't found in the stage.
         """
-        other_component = self.node.stage.node_component(other)
+        other_component = self.node.stage.get_object(other)
         if not isinstance(other_component, NodeComponent):
             raise ValueError(f"Not a valid component path: {other}")
 
-        self.value = other_component.as_path()
+        self.value = other_component.uuid
 
     def __rlshift__(self, other: pathlib.PurePosixPath | str):
         """Handle `other << self` operator, when `other` doesn't
@@ -99,13 +110,13 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         Raises:
             ValueError: Component with given path wasn't found in the stage.
         """
-        other_component = self.node.stage.node_component(other)
+        other_component = self.node.stage.get_object(other)
         if not isinstance(other_component, NodeComponent):
             raise ValueError(
                 f"Not a valid component: {other_component}, obtained from {other}"
             )
 
-        other_component.value = self.as_path()
+        other_component.value = self.uuid
 
     def model(self) -> NodeComponentsModel:
         return super().model()
@@ -113,6 +124,14 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
     @property
     def node(self) -> Node:
         return self.model().node
+
+    @property
+    def stage(self) -> Stage:
+        return self.node.stage
+
+    @property
+    def path(self) -> pathlib.PurePosixPath:
+        return self.node.path.with_suffix(self.PATH_SEPARATOR + self.name)
 
     @property
     def name(self) -> str:
@@ -183,9 +202,6 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         self.is_writable = False
         self.value = None
 
-    def as_path(self) -> pathlib.PurePosixPath:
-        return self.node.path.with_suffix("." + self.name)
-
     def create_inspector_widget(self, parent) -> QtWidgets.QWidget:
         widget = QtWidgets.QWidget(parent)
         layout = QtWidgets.QHBoxLayout()
@@ -223,16 +239,26 @@ class NodeComponent(QtGui.QStandardItem, Serializable):
         data["is_writable"] = self.is_writable
         return data
 
-    def deserialize(self, data: OrderedDict):
-        self.name = data["name"]
-        self.value = self.deserialize_value(value=data["value"])
-        self.default_value = self.deserialize_default_value(
+    @classmethod
+    def deserialize(
+        cls, data: OrderedDict, component: NodeComponent | None = None, restore_uuid=True
+    ):
+        uuid = data[cls.UUID_KEY] if restore_uuid else None
+        if not component:
+            component_cls = NYX_REGISTRY.get_node_component_cls(data[cls.TYPE_ID_KEY])
+            component = component_cls(uuid=uuid)
+
+        component.uuid = uuid
+        component.name = data["name"]
+        component.value = component.deserialize_value(value=data["value"])
+        component.default_value = component.deserialize_default_value(
             value=data.get("default_value")
         )
-        self.is_active = data["is_active"]
-        self.is_readable = data["is_readable"]
-        self.is_writable = data["is_writable"]
-        return super().deserialize(data)
+        component.is_active = data["is_active"]
+        component.is_readable = data["is_readable"]
+        component.is_writable = data["is_writable"]
+
+        return component
 
     def execute(self):
         if not self.is_active:

@@ -20,10 +20,10 @@ def test_add_base_component_to_node():
     stage = Stage()
     node = Node("test")
     component = NodeComponent()
-    node.add_component(component)
     stage.add_node(node)
+    node.add_component(component)
 
-    assert component.as_path() == node.cached_path.with_suffix(f".{component.name}")
+    assert component.path == node.path.with_suffix(f".{component.name}")
 
 
 def test_component_name_indexing():
@@ -47,7 +47,7 @@ def test_serialize():
     """Check that serialized data matches components data"""
     stage = Stage()
     create_node_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     stage.push_command(create_node_command)
 
@@ -70,7 +70,7 @@ def test_serialize_deserialize():
     """Check cycle of serialization-deserialization"""
     stage = Stage()
     create_node_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     stage.push_command(create_node_command)
 
@@ -84,13 +84,8 @@ def test_serialize_deserialize():
     flow_component.is_active = False
     data = flow_component.serialize()
 
-    new_flow_component = (
-        create_node_command.result_node.components_model.create_component(
-            CoreNodeComponents.FLOW
-        )
-    )
+    new_flow_component = NodeComponent.deserialize(data=data, restore_uuid=True)
     create_node_command.result_node.add_component(new_flow_component)
-    new_flow_component.deserialize(data)
 
     assert str(new_flow_component.value) == flow_component.value
     assert new_flow_component.is_active == flow_component.is_active
@@ -101,10 +96,10 @@ def test_serialize_deserialize():
 def test_rshift_operator():
     stage = Stage()
     create_node1_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     create_node2_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     stage.push_command(create_node1_command)
     stage.push_command(create_node2_command)
@@ -112,33 +107,33 @@ def test_rshift_operator():
     node2 = create_node2_command.result_node
 
     node1["flow"] >> node2["flow"]
-    assert node2["flow"].value == node1["flow"].as_path()
+    assert node2["flow"].value == node1["flow"].uuid
 
 
 def test_rrshift_operator():
     stage = Stage()
     create_node1_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     create_node2_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     stage.push_command(create_node1_command)
     stage.push_command(create_node2_command)
     node1 = create_node1_command.result_node
     node2 = create_node2_command.result_node
 
-    node1["flow"].as_path() >> node2["flow"]
-    assert node2["flow"].value == node1["flow"].as_path()
+    node1["flow"].path >> node2["flow"]
+    assert node2["flow"].value == node1["flow"].uuid
 
 
 def test_lshift_operator():
     stage = Stage()
     create_node1_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     create_node2_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     stage.push_command(create_node1_command)
     stage.push_command(create_node2_command)
@@ -146,21 +141,21 @@ def test_lshift_operator():
     node2 = create_node2_command.result_node
 
     node2["flow"] << node1["flow"]
-    assert node2["flow"].value == node1["flow"].as_path()
+    assert node2["flow"].value == node1["flow"].uuid
 
 
 def test_rlshift_operator():
     stage = Stage()
     create_node1_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     create_node2_command = commands.CreateNodeCommand(
-        stage=stage, node_type_id=CoreNodes.ACTION
+        stage=stage, type_id=CoreNodes.ACTION
     )
     stage.push_command(create_node1_command)
     stage.push_command(create_node2_command)
     node1 = create_node1_command.result_node
     node2 = create_node2_command.result_node
 
-    node2["flow"].as_path() << node1["flow"]
-    assert node2["flow"].value == node1["flow"].as_path()
+    node2["flow"].path << node1["flow"]
+    assert node2["flow"].value == node1["flow"].uuid

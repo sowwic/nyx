@@ -26,7 +26,7 @@ class AddNodeComponentCommand(NyxCommand):
         self.name = name
 
     def redo(self) -> None:
-        node = self.stage.node(self.node_path)
+        node = self.stage.get_object(self.node_path)
         component = node.components_model.create_component(self.type_id)
         self.name = NameValidator.get_valid_stage_object_name(
             self.name or component.DEFAULT_NAME
@@ -38,12 +38,12 @@ class AddNodeComponentCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
-        node = self.stage.node(self.node_path)
+        node = self.stage.get_object(self.node_path)
         node.components_model.remove_component(self.name)
         return super().undo()
 
     def validate(self):
-        node = self.stage.node(self.node_path)
+        node = self.stage.get_object(self.node_path)
         if node is None:
             raise NyxCommandValidationError(
                 "Target node doesn't exist %s:", str(self.node_path)

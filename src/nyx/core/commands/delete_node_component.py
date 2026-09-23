@@ -3,12 +3,13 @@ import typing
 from collections import OrderedDict
 from PySide6 import QtGui
 
-from nyx.core import Node
-from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
+from ..node import Node
+from ..node_component import NodeComponent
+from ..exceptions import NyxCommandValidationError
 
 if typing.TYPE_CHECKING:
-    from nyx.api.v1 import NodeComponent
+    pass
 
 
 LOGGER = logging.getLogger(__name__)
@@ -21,38 +22,37 @@ class DeleteNodeComponentCommand(NyxCommand):
         name: str | None = None,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
-        super().__init__(
-            stage=node.stage,
-            text=f"Remove component from {node.cached_path}",
-            parent=parent,
-        )
-        self.node_path = node.path
+        self.node_uuid = node.uuid
         self.name = name
         self.serialized_data: OrderedDict = OrderedDict()
+        super().__init__(
+            stage=node.stage,
+            text="Delete component",
+            parent=parent,
+        )
 
     def redo(self) -> None:
-        node = self.stage.node(self.node_path)
+        node: Node = self.stage.get_object(self.node_uuid)
         component: NodeComponent = node[self.name]
         self.serialized_data = component.serialize()
         self.setText(
-            f"Remove component ({self.node_path}.{self.name} ({component.get_type_id()})"
+            f"Remove component ({node.path}.{self.name} ({component.get_type_id()})"
         )
         node.components_model.remove_component(self.name)
 
         return super().redo()
 
     def undo(self) -> None:
-        node = self.stage.node(self.node_path)
-        component = node.components_model.create_component(
-            type_id=self.serialized_data["type_id"]
+        node: Node = self.stage.get_object(self.node_uuid)
+        component = NodeComponent.deserialize(
+            data=self.serialized_data, component=None, restore_uuid=True
         )
-        component.deserialize(self.serialized_data)
         node.components_model.add_component(component)
         return super().undo()
 
     def validate(self):
-        node = self.stage.node(self.node_path)
+        node = self.stage.get_object(self.node_uuid)
         if node is None:
             raise NyxCommandValidationError(
-                "Target node doesn't exist %s:", str(self.node_path)
+                "Target node doesn't exist %s:", str(self.node_uuid)
             )

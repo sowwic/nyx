@@ -12,7 +12,7 @@ def test_rename_component():
     stage = Stage()
     node_create_command = commands.CreateNodeCommand(stage=stage)
     stage.push_command(node_create_command)
-    node = stage.node(node_create_command.node_path)
+    node = stage.get_object(node_create_command.result_node.uuid)
 
     add_cpnt_command = commands.AddNodeComponentCommand(
         node=node, type_id=CoreNodeComponents.VALUE
@@ -38,7 +38,7 @@ def test_rename_component_undo():
     stage = Stage()
     node_create_command = commands.CreateNodeCommand(stage=stage)
     stage.push_command(node_create_command)
-    node = stage.node(node_create_command.node_path)
+    node = stage.get_object(node_create_command.result_node.uuid)
 
     add_cpnt_command = commands.AddNodeComponentCommand(
         node=node, type_id=CoreNodeComponents.VALUE

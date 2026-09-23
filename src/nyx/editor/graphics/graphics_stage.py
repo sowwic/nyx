@@ -132,7 +132,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def get_gr_node(self, node: Node | pathlib.PurePosixPath | str):
         """Returns the GraphicsNode associated with the given node."""
         input_node = node
-        node = self.stage.node(node)
+        node = self.stage.get_object(node)
         if not node:
             LOGGER.exception(f"Failed to find gr node for {input_node}")
             return
@@ -144,7 +144,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def list_selected_node_paths(self):
         """Returns a list of paths for the currently selected GraphicsNode items."""
-        return [gr_node.node.cached_path for gr_node in self.selected_gr_nodes()]
+        return [gr_node.node.path for gr_node in self.selected_gr_nodes()]
 
     def is_gr_node_selection_empty(self):
         """Check if there are no selected GraphicsNode items in the scene."""
@@ -171,7 +171,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         Args:
             node: The node to create a GraphicsNode for.
         """
-        node = self.stage.node(node)
+        node = self.stage.get_object(node)
         gr_node = GraphicsNode(node)
         self.addItem(gr_node)
 
@@ -200,11 +200,11 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         previous_selection = self.list_selected_node_paths()
         self.clear_edges()
         self.clear_nodes()
-        scope_node = self.stage.node(scope_path)
+        scope_node = self.stage.get_object(scope_path)
         self.build_nodes(scope_node)
         self.build_edges(scope_node)
         for path in previous_selection:
-            node = self.stage.node(path)
+            node = self.stage.get_object(path)
             if not node or not node.gr_node:
                 continue
             self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)

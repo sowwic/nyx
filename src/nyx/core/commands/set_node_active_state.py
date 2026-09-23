@@ -26,17 +26,17 @@ class SetNodeActiveStateCommand(NyxCommand):
         self.setText(f"{self.text()} ({self.node_path} -> {self.new_state})")
 
     def redo(self) -> None:
-        node = self.stage.node(self.node_path)
+        node = self.stage.get_object(self.node_path)
         self.old_state = node.is_active()
         node.set_active(self.new_state)
         return super().redo()
 
     def undo(self) -> None:
-        node = self.stage.node(self.node_path)
+        node = self.stage.get_object(self.node_path)
         node.set_active(self.old_state)
         return super().undo()
 
     def validate(self):
-        status = self.stage.node(self.node_path) is not None
+        status = self.stage.get_object(self.node_path) is not None
         if not status:
             raise NyxCommandValidationError(f"Invalid node path: {self.node_path}")

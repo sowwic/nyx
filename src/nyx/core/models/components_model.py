@@ -1,9 +1,9 @@
 import typing
 import logging
 from PySide6 import QtGui, QtCore
+from collections import OrderedDict
 from collections.abc import Iterator
 
-from ..serializable import Serializable
 from ..node_component import NodeComponent
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import CoreNodeComponents
@@ -17,11 +17,10 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
-class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
+class NodeComponentsModel(QtGui.QStandardItemModel):
     def __init__(self, node: Node):
         self._node = node
-        QtGui.QStandardItemModel.__init__(self)
-        Serializable.__init__(self)
+        super().__init__()
 
     @property
     def node(self) -> Node:
@@ -41,25 +40,24 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
         ]
 
     def serialize(self):
-        data = Serializable.serialize(self)
+        data = OrderedDict()
         components = self.list_components()
         serialized_components = [
             each_component.serialize() for each_component in components
         ]
         data["components"] = serialized_components
-        # TODO: serialized components into a list of dicts
 
         return data
 
-    def deserialize(self, data: list[dict]):
-        super().deserialize(data)
-        # Deserialize components
+    def deserialize(self, data: list[dict], restore_uuid: bool = True):
         for component_data in data:
             component = self.get_component(component_data["name"])
-            if component is None:
-                component = self.create_component(component_data["type_id"])
+            component_exists = component is not None
+            component = NodeComponent.deserialize(
+                data=component_data, component=component, restore_uuid=restore_uuid
+            )
+            if not component_exists:
                 self.appendRow(component)
-            component.deserialize(component_data)
 
     def create_component(self, type_id: str) -> NodeComponent:
         component_cls = NYX_REGISTRY.get_node_component_cls(type_id=type_id)
@@ -68,6 +66,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
     def add_component(self, component: NodeComponent):
         component.name = self.compose_unique_component_name(component.name)
         self.appendRow(component)
+        self.node.stage.uuid_map[component.uuid] = component
         LOGGER.debug(f"Added new component: {component}")
 
     def remove_component(self, name: str) -> None:
@@ -76,8 +75,9 @@ class NodeComponentsModel(QtGui.QStandardItemModel, Serializable):
                 continue
 
             if component.is_built_in:
-                LOGGER.error(f"Can't remove builtin component: {component.as_path()}")
+                LOGGER.error(f"Can't remove builtin component: {component.path}")
                 return
+            self.node.stage.uuid_map.pop(component.uuid)
             self.removeRow(component.row())
 
     def compose_unique_component_name(self, name: str) -> str:

@@ -13,10 +13,10 @@ def test_paste_node_to_other_stage(nyx_app) -> None:
     """
     stage1 = Stage()
     test_type_id = CoreNodes.ACTION
-    command = CreateNodeCommand(stage=stage1, node_type_id=test_type_id)
+    command = CreateNodeCommand(stage=stage1, type_id=test_type_id)
     stage1.push_command(command)
 
-    node = stage1.node(command.node_path)
+    node = stage1.get_object(command.result_node.uuid)
     nodes_to_copy = [node]
     clipboard.serialize_nodes_to_clipboard(nodes=nodes_to_copy, delete=False)
 
@@ -24,15 +24,18 @@ def test_paste_node_to_other_stage(nyx_app) -> None:
     clipboard_data = clipboard.get_serialized_nodes_from_clipboard()
     paste_position = QtCore.QPointF(10.0, 10.0)
     paste_command = PasteNodesCommand(
-        stage=stage2, serialize_nodes=clipboard_data, position=paste_position
+        stage=stage2,
+        serialize_nodes=clipboard_data,
+        position=paste_position,
+        restore_uuid=False,
     )
     stage2.push_command(paste_command)
 
     assert stage2.total_node_count() == 1
-    assert stage2.node(command.node_path) is not None
-    assert stage2.node(command.node_path).get_type_id() == test_type_id
+    assert stage2.get_object(command.result_node.path) is not None
+    assert stage2.get_object(command.result_node.path).get_type_id() == test_type_id
 
-    pasted_node = stage2.node(command.node_path)
+    pasted_node = stage2.get_object(command.result_node.path)
     assert pasted_node.position() == paste_position
 
 
@@ -48,7 +51,7 @@ def test_paste_undo_redo(nyx_app) -> None:
     command = CreateNodeCommand(stage=stage)
     stage.push_command(command)
 
-    node = stage.node(test_node_path)
+    node = stage.get_object(test_node_path)
     nodes_to_copy = [node]
     clipboard.serialize_nodes_to_clipboard(nodes=nodes_to_copy, delete=False)
 
@@ -60,13 +63,13 @@ def test_paste_undo_redo(nyx_app) -> None:
     stage.push_command(paste_command)
 
     assert stage.total_node_count() == 2
-    assert stage.node(pasted_node_path) is not None
+    assert stage.get_object(pasted_node_path) is not None
     stage.undo_stack.undo()
     assert stage.total_node_count() == 1
-    assert stage.node(pasted_node_path) is None
+    assert stage.get_object(pasted_node_path) is None
     stage.undo_stack.redo()
     assert stage.total_node_count() == 2
-    assert stage.node(pasted_node_path) is not None
+    assert stage.get_object(pasted_node_path) is not None
 
 
 def test_paste_parent_filter(nyx_app):
@@ -79,21 +82,23 @@ def test_paste_parent_filter(nyx_app):
     node1_path = stage1.root_node.path / "node1"
     node2_path = node1_path / "node2"
 
-    create_command1 = CreateNodeCommand(stage=stage1, node_name="node1")
-    create_command2 = CreateNodeCommand(
-        stage=stage1, node_name=node2_path.name, parent_path=node1_path
-    )
+    create_command1 = CreateNodeCommand(stage=stage1, name="node1")
     stage1.push_command(create_command1)
+
+    create_command2 = CreateNodeCommand(
+        stage=stage1, name=node2_path.name, parent_node=node1_path
+    )
     stage1.push_command(create_command2)
-    node1 = stage1.node(node1_path)
-    node2 = stage1.node(node2_path)
+
+    node1 = stage1.get_object(node1_path)
+    node2 = stage1.get_object(node2_path)
 
     nodes_to_copy = [node1, node2]
     clipboard.serialize_nodes_to_clipboard(nodes=nodes_to_copy, delete=False)
 
     stage2 = Stage()
     parent_node_path = stage2.root_node.path / "parent_node"
-    create_command3 = CreateNodeCommand(stage=stage2, node_name=parent_node_path.name)
+    create_command3 = CreateNodeCommand(stage=stage2, name=parent_node_path.name)
     stage2.push_command(create_command3)
 
     clipboard_data = clipboard.get_serialized_nodes_from_clipboard()
@@ -102,7 +107,6 @@ def test_paste_parent_filter(nyx_app):
     paste_command_filter_check = PasteNodesCommand(
         stage=stage2, serialize_nodes=clipboard_data, position=paste_position
     )
-    paste_command_filter_check.filter_serialized_nodes()
 
     assert len(paste_command_filter_check.serialized_nodes) == 1
 
@@ -114,6 +118,9 @@ def test_paste_parent_filter(nyx_app):
     )
 
     stage2.push_command(paste_command)
-    assert stage2.node(parent_node_path / node1_path.name) is not None
-    assert stage2.node(parent_node_path / node1_path.name / node2_path.name) is not None
+    assert stage2.get_object(parent_node_path / node1_path.name) is not None
+    assert (
+        stage2.get_object(parent_node_path / node1_path.name / node2_path.name)
+        is not None
+    )
     assert stage2.total_node_count() == 3

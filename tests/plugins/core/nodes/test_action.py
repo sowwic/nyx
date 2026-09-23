@@ -8,10 +8,10 @@ if typing.TYPE_CHECKING:
 def test_action_node_creation():
     """Test creating new Action node with default parameters."""
     stage = Stage()
-    command = commands.CreateNodeCommand(stage=stage, node_type_id=CoreNodes.ACTION)
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.ACTION)
     stage.push_command(command)
 
-    result_node: ActionNode = stage.node(command.node_path)
+    result_node: ActionNode = stage.get_object(command.result_node.uuid)
 
     assert result_node is not None
     assert result_node.get_type_id() == CoreNodes.ACTION

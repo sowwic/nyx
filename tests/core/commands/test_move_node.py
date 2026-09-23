@@ -17,7 +17,7 @@ def test_move_single_node(nyx_app) -> None:
     stage = Stage()
     test_node_path = stage.root_node.path / "node"
     stage.push_command(CreateNodeCommand(stage=stage))
-    node = stage.node(test_node_path)
+    node = stage.get_object(test_node_path)
 
     new_position = QPointF(10.0, 10.0)
     assert node.position() != new_position
@@ -34,13 +34,13 @@ def test_move_multiple_nodes(nyx_app) -> None:
         nyx_app (NyxApplication): application fixture
     """
     stage = Stage()
-    stage.push_command(CreateNodeCommand(stage=stage, node_name="node_1"))
-    stage.push_command(CreateNodeCommand(stage=stage, node_name="node_2"))
-    stage.push_command(CreateNodeCommand(stage=stage, node_name="node_3"))
+    stage.push_command(CreateNodeCommand(stage=stage, name="node_1"))
+    stage.push_command(CreateNodeCommand(stage=stage, name="node_2"))
+    stage.push_command(CreateNodeCommand(stage=stage, name="node_3"))
 
-    node1 = stage.node(stage.root_node.path / "node_1")
-    node2 = stage.node(stage.root_node.path / "node_2")
-    node3 = stage.node(stage.root_node.path / "node_3")
+    node1 = stage.get_object(stage.root_node.path / "node_1")
+    node2 = stage.get_object(stage.root_node.path / "node_2")
+    node3 = stage.get_object(stage.root_node.path / "node_3")
 
     new_position1 = QPointF(10.0, 10.0)
     new_position2 = QPointF(5.0, 25.0)
@@ -79,13 +79,13 @@ def test_move_multiple_nodes_undo_redo(nyx_app) -> None:
         assert node3.position() == new_position3
 
     stage = Stage()
-    stage.push_command(CreateNodeCommand(stage=stage, node_name="node_1"))
-    stage.push_command(CreateNodeCommand(stage=stage, node_name="node_2"))
-    stage.push_command(CreateNodeCommand(stage=stage, node_name="node_3"))
+    stage.push_command(CreateNodeCommand(stage=stage, name="node_1"))
+    stage.push_command(CreateNodeCommand(stage=stage, name="node_2"))
+    stage.push_command(CreateNodeCommand(stage=stage, name="node_3"))
 
-    node1 = stage.node(stage.root_node.path / "node_1")
-    node2 = stage.node(stage.root_node.path / "node_2")
-    node3 = stage.node(stage.root_node.path / "node_3")
+    node1 = stage.get_object(stage.root_node.path / "node_1")
+    node2 = stage.get_object(stage.root_node.path / "node_2")
+    node3 = stage.get_object(stage.root_node.path / "node_3")
 
     new_position1 = QPointF(10.0, 10.0)
     new_position2 = QPointF(5.0, 25.0)
