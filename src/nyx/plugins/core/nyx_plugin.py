@@ -4,6 +4,8 @@ from nyx.api.v1 import NyxPluginManager, NyxPlugin, Node
 
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
+from .node_components.script import ScriptComponent
+
 from .nodes.branch import BranchNode
 from .nodes.flow_start import FlowStartNode
 from .nodes.action import ActionNode
@@ -22,7 +24,11 @@ class NyxCore(NyxPlugin):
     @classmethod
     def initialize(cls) -> typing.Self:
         plugin = cls()
-        plugin.contents.node_components = [FlowComponent, ValueComponent]
+        plugin.contents.node_components = [
+            FlowComponent,
+            ValueComponent,
+            ScriptComponent,
+        ]
         plugin.contents.nodes = [
             Node,
             ActionNode,

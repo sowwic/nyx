@@ -78,3 +78,13 @@ def with_plugins(request):
     finally:
         # TODO: Uninitialize extra plugins
         yield plugin_manager
+
+
+@pytest.fixture
+def make_script(tmp_path):
+    def _make_script(content: str, filename: str = "script.py"):
+        path = tmp_path / filename
+        path.write_text(content)
+        return path
+
+    return _make_script
