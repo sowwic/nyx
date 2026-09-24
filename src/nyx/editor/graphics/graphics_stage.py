@@ -13,10 +13,12 @@ from collections import deque
 import shiboken6
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from nyx.core.exceptions import StageObjectQueryError
 from nyx.editor.graphics.graphics_node import GraphicsNode
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
+    from nyx.core.node import Node
+    from nyx.core.stage import Stage
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 LOGGER = logging.getLogger(__name__)
@@ -63,12 +65,12 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.selectionChanged.connect(self.on_selection_changed)
 
     @property
-    def graph_editor(self):
+    def graph_editor(self) -> StageGraphEditor:
         """Returns the graph editor associated with this graphics stage."""
         return self._graph_editor
 
     @property
-    def stage(self):
+    def stage(self) -> Stage:
         """Returns the stage from the graph editor."""
         return self.graph_editor.stage
 
@@ -204,13 +206,17 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.build_nodes(scope_node)
         self.build_edges(scope_node)
         for path in previous_selection:
-            node = self.stage.get_object(path)
+            try:
+                node = self.stage.get_object(path)
+            except StageObjectQueryError:
+                node = None
             if not node or not node.gr_node:
                 continue
             self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def rebuild_current_scope(self):
         """Rebuilds the scene for the current scope, preserving the selection."""
+        self.graph_editor.make_scope_valid()
         self.rebuild_scope(self.graph_editor.get_scope_path())
 
     def on_selection_model_selection_changed(self):

@@ -9,6 +9,7 @@ from ...core import commands
 from ...static.vars import NYX_FILE_FILTER, NYX_FILE_EXTENSION
 from ...utils import file_fn, pyside_fn
 from ...utils.profiling import profile
+from ...static.enums import RestoreUuidOption
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection
@@ -73,6 +74,7 @@ def _import_nodes(
         serialize_nodes=serialized_nodes,
         position=paste_position,
         parent_node=parent_node,
+        restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
     )
     command_name = "Reference" if as_reference else "Import"
     if len(serialized_nodes) == 1:

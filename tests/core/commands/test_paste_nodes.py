@@ -1,8 +1,9 @@
+import pytest
 from PySide6 import QtCore
 
 from nyx.core.commands import CreateNodeCommand, PasteNodesCommand
 from nyx.editor.utils import clipboard
-from nyx.api.v1 import CoreNodes, Stage
+from nyx.api.v1 import CoreNodes, Stage, RestoreUuidOption, exceptions
 
 
 def test_paste_node_to_other_stage(nyx_app) -> None:
@@ -65,7 +66,9 @@ def test_paste_undo_redo(nyx_app) -> None:
     assert stage.get_object(pasted_node_path) is not None
     stage.undo_stack.undo()
     assert stage.total_node_count() == 1
-    assert stage.get_object(pasted_node_path) is None
+
+    with pytest.raises(exceptions.StageObjectQueryError):
+        assert stage.get_object(pasted_node_path) is None
     stage.undo_stack.redo()
     assert stage.total_node_count() == 2
     assert stage.get_object(pasted_node_path) is not None
@@ -123,3 +126,35 @@ def test_paste_parent_filter(nyx_app):
         is not None
     )
     assert stage2.total_node_count() == 3
+
+
+def test_nested_chain_pasting_undo_redo():
+    stage = Stage()
+    node_command_1 = CreateNodeCommand(stage=stage)
+    stage.push_command(node_command_1)
+    serialized_node_1 = node_command_1.result_node.serialize()
+
+    paste_command_1 = PasteNodesCommand(
+        stage=stage,
+        serialize_nodes=[serialized_node_1],
+        position=QtCore.QPointF(),
+        parent_node=node_command_1.result_node,
+        restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
+    )
+    stage.push_command(paste_command_1)
+
+    paste_command_2 = PasteNodesCommand(
+        stage=stage,
+        serialize_nodes=[serialized_node_1],
+        position=QtCore.QPointF(),
+        parent_node=stage.get_object(paste_command_1.created_uuids[0]),
+        restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
+    )
+    stage.push_command(paste_command_2)
+
+    stage.undo_stack.undo()
+    stage.undo_stack.undo()
+    stage.undo_stack.undo()
+    stage.undo_stack.redo()
+    stage.undo_stack.redo()
+    stage.undo_stack.redo()

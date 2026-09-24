@@ -4,7 +4,7 @@ from PySide6 import QtGui
 from ._base_nyx_command import NyxCommand
 from ..node import NodeLike
 from ..stage import Stage
-from ..exceptions import NyxCommandValidationError
+from ..exceptions import NyxCommandValidationError, StageObjectQueryError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ class SetNodeActiveStateCommand(NyxCommand):
         return super().undo()
 
     def validate(self):
-        status = self.stage.get_object(self.node_path) is not None
-        if not status:
+        try:
+            self.stage.get_object(self.node_path)
+        except StageObjectQueryError:
             raise NyxCommandValidationError(f"Invalid node path: {self.node_path}")

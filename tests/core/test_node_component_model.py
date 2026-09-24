@@ -4,7 +4,10 @@ import typing
 from collections import OrderedDict
 
 import pytest
+from PySide6 import QtCore
+
 from nyx.api.v1 import Node, Stage, CoreNodes, CoreNodeComponents, commands
+from nyx.utils import file_fn
 
 if typing.TYPE_CHECKING:
     from nyx.plugins.core.nodes.action import ActionNode
@@ -75,3 +78,52 @@ def test_removing_component_removes_it_from_uuid_map():
 
     stage.undo_stack.undo()
     assert resulting_uuid in stage.uuid_map, f"UUID_MAP: {stage.uuid_map}"
+
+
+def test_attempting_to_remove_builtin_cpnt_does_nothing():
+    stage = Stage()
+    create_node_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.BRANCH
+    )
+    stage.push_command(create_node_command)
+    node = create_node_command.result_node
+
+    old_cpnt_count = node.components_model.rowCount()
+    for builtin_cpnt in node.components_model.list_components():
+        node.components_model.remove_component(builtin_cpnt.uuid)
+    assert old_cpnt_count == node.components_model.rowCount()
+
+
+def test_importing_node_with_extra_components_gives_correct_values(
+    output_dir: pathlib.Path, request: pytest.FixtureRequest
+):
+    export_path = output_dir / f"{request.node.name}{Stage.FILE_EXTENSION}"
+
+    test_cpnt_name = "test_cpnt"
+    test_cpnt_value = "5"
+
+    stage = Stage()
+    create_node_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.BRANCH
+    )
+    stage.push_command(create_node_command)
+    node = create_node_command.result_node
+
+    add_cpnt_command = commands.AddNodeComponentCommand(
+        node=node, type_id=CoreNodeComponents.VALUE, name=test_cpnt_name
+    )
+    stage.push_command(add_cpnt_command)
+    node[test_cpnt_name].value = test_cpnt_value
+
+    serialized_node = node.serialize()
+    file_fn.write_json(export_path, serialized_node)
+
+    other_stage = Stage()
+    paste_command = commands.PasteNodesCommand(
+        stage=other_stage, serialize_nodes=[serialized_node], position=QtCore.QPointF()
+    )
+    other_stage.push_command(paste_command)
+    pasted_node = paste_command.pasted_nodes[0]
+
+    assert pasted_node[test_cpnt_name] is not None
+    assert pasted_node[test_cpnt_name].value == test_cpnt_value

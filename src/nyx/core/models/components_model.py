@@ -56,7 +56,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
     ):
         for component_data in data:
-            component = self.get_component(component_data["name"])
+            try:
+                component = self.get_component(component_data["name"])
+            except ValueError:
+                component is None
             component_exists = component is not None
             component = NodeComponent.deserialize(
                 data=component_data,

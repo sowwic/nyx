@@ -9,7 +9,7 @@ from PySide6 import QtGui
 from ..stage import Stage
 from ._base_nyx_command import NyxCommand
 from ..node import Node, NodeLike
-from ..exceptions import NyxCommandValidationError
+from ..exceptions import NyxCommandValidationError, StageObjectQueryError
 from ...static.enums import RestoreUuidOption
 
 LOGGER = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class DeleteNodeCommand(NyxCommand):
         if not isinstance(nodes, Sequence):
             nodes = [nodes]
 
-        self.requested_nodes = nodes
+        self.requested_nodes = [self.stage.pathify(node) for node in nodes]
         self.parents_map = {}
         self.deleted_uuids = deque()
         self.serialized_nodes = deque()
@@ -76,11 +76,15 @@ class DeleteNodeCommand(NyxCommand):
         return super().undo()
 
     def validate(self):
-        nodes_to_delete = [
-            self.stage.get_object(node_like) for node_like in self.requested_nodes
-        ]
-        status = all([node is not None for node in nodes_to_delete])
-        if not status:
+        invalid_requests = []
+        for node_like in self.requested_nodes:
+            try:
+                self.stage.get_object(node_like)
+            except StageObjectQueryError:
+                invalid_requests.append(node_like)
+                continue
+
+        if invalid_requests:
             raise NyxCommandValidationError(
-                f"Invalid requested nodes for deletion: {self.requested_nodes}"
+                f"Invalid requested nodes for deletion: {invalid_requests}"
             )

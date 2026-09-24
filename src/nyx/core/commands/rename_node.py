@@ -5,7 +5,7 @@ from PySide6 import QtGui
 
 from ..stage import Stage
 from ..node import NodeLike
-from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.exceptions import NyxCommandValidationError, StageObjectQueryError
 from ._base_nyx_command import NyxCommand
 from ..name_validator import NameValidator
 
@@ -47,8 +47,9 @@ class RenameNodeCommand(NyxCommand):
         return super().undo()
 
     def validate(self):
-        status = self.stage.get_object(self.path_to_rename) is not None
-        if not status:
+        try:
+            self.stage.get_object(self.path_to_rename)
+        except StageObjectQueryError:
             raise NyxCommandValidationError(
                 f"Invalid node for renaming: {self.path_to_rename}"
             )

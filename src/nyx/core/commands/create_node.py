@@ -53,8 +53,9 @@ class CreateNodeCommand(NyxCommand):
 
     def redo(self) -> None:
         self.node_name = NameValidator.get_valid_stage_object_name(self.node_name)
+        uuid = self.node_data.get(Node.UUID_KEY) if self.node_data else None
         node: Node = self.stage.create_node(
-            type_id=self.node_type_id, name=self.node_name
+            type_id=self.node_type_id, name=self.node_name, uuid=uuid
         )
 
         self.stage.add_node(node, parent=self.parent_path)
@@ -67,7 +68,6 @@ class CreateNodeCommand(NyxCommand):
 
     def undo(self) -> None:
         self.stage.delete_node(self.result_node)
-        self.node_data = None
         return super().undo()
 
     def validate(self):

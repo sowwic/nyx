@@ -1,7 +1,7 @@
 import pytest
 
 from nyx.core.commands import CreateNodeCommand, RenameNodeCommand
-from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.exceptions import NyxCommandValidationError, StageObjectQueryError
 from nyx.core.stage import Stage
 
 
@@ -17,7 +17,9 @@ def test_rename_single_top_node():
 
     rename_command = RenameNodeCommand(stage, node=node, new_name="new_name")
     stage.push_command(rename_command)
-    assert stage.get_object(original_path) is None
+
+    with pytest.raises(StageObjectQueryError):
+        stage.get_object(original_path)
     assert stage.get_object(new_path) is not None
 
     node = stage.get_object(new_path)
@@ -40,10 +42,13 @@ def test_rename_undo_redo() -> None:
 
     stage.undo_stack.undo()
     assert stage.get_object(original_path) is not None
-    assert stage.get_object(new_path) is None
+
+    with pytest.raises(StageObjectQueryError):
+        stage.get_object(new_path)
 
     stage.undo_stack.redo()
-    assert stage.get_object(original_path) is None
+    with pytest.raises(StageObjectQueryError):
+        stage.get_object(original_path)
     assert stage.get_object(new_path) is not None
 
 

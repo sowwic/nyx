@@ -1,6 +1,7 @@
 from nyx.core.node import Node
 from nyx.core.stage import Stage
 from nyx.core import commands
+from nyx.core import exceptions
 from nyx.core.node_component import NodeComponent
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.core.plugin_subsystem.plugin import NyxPlugin
@@ -26,4 +27,5 @@ __all__ = [
     "RestoreUuidOption",
     "NYX_REGISTRY",
     "commands",
+    "exceptions",
 ]

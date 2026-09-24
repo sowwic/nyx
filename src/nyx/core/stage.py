@@ -14,6 +14,7 @@ from .node_component import NodeComponent, NodeComponentLike
 from .stage_crawler import StageCrawler
 from .plugin_subsystem.registry import NYX_REGISTRY
 from .name_validator import NameValidator
+from .exceptions import StageObjectQueryError
 from ..utils import file_fn
 from ..static.vars import ROOT_NODE_PATH
 from ..static.enums import CoreNodes
@@ -153,7 +154,7 @@ class Stage(QtGui.QStandardItemModel):
         ]
 
     def get_object(
-        self, stage_object: NodeLike | NodeComponentLike | None
+        self, stage_object: NodeLike | NodeComponentLike
     ) -> Node | NodeComponent | None:
         """Get `nyx` stage object.
 
@@ -163,31 +164,35 @@ class Stage(QtGui.QStandardItemModel):
         Returns:
             Found `Node` or `NodeComponent` instance or None if not
         """
-        if stage_object is None:
-            return None
+        original_request = stage_object
+        result = None
 
         if isinstance(stage_object, StageObject):
-            return stage_object
+            result = stage_object
 
-        if isinstance(stage_object, UUID):
-            return self.uuid_map[stage_object]
+        elif isinstance(stage_object, UUID):
+            result = self.uuid_map.get(stage_object)
 
-        if isinstance(stage_object, str):
-            try:
-                return self.get_object(UUID(stage_object, version=4))
-            except (ValueError, AttributeError, TypeError):
-                stage_object = pathlib.PurePosixPath(stage_object)
-
-        if isinstance(stage_object, pathlib.PurePosixPath):
+        elif isinstance(stage_object, pathlib.PurePosixPath):
             getter = (
                 self.node_component_from_path
                 if stage_object.suffix
                 else self.node_from_path
             )
+            result = getter(stage_object)
+
+        elif isinstance(stage_object, str):
             try:
-                return getter(stage_object)
-            except Exception:
-                return None
+                result = self.get_object(UUID(stage_object, version=4))
+            except (ValueError, AttributeError, TypeError):
+                result = self.get_object(pathlib.PurePosixPath(stage_object))
+
+        if result is None:
+            raise StageObjectQueryError(
+                f"Failed to get object from request: {original_request}"
+            )
+
+        return result
 
     def node_from_path(self, path: pathlib.PurePosixPath | str) -> Node | None:
         path = pathlib.PurePosixPath(path)
@@ -333,16 +338,18 @@ class Stage(QtGui.QStandardItemModel):
         command.validate()
         self.undo_stack.push(command)
 
-    def pathify(self, stage_object: StageObject | UUID | pathlib.PurePosixPath | str):
+    def pathify(
+        self, stage_object: StageObject | UUID | pathlib.PurePosixPath | str
+    ) -> pathlib.PurePosixPath:
         if isinstance(stage_object, pathlib.PurePosixPath):
             return stage_object
         elif isinstance(stage_object, str):
             try:
                 uuid = UUID(stage_object)
-                return self.get_object(uuid)
+                return self.get_object(uuid).path
             except Exception:
                 return pathlib.PurePosixPath(stage_object)
         elif isinstance(stage_object, StageObject):
             return stage_object.path
         elif isinstance(stage_object, UUID):
-            return self.get_object(stage_object)
+            return self.get_object(stage_object).path

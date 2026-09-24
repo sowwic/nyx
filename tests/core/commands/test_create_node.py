@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from nyx.core.commands import CreateNodeCommand
-from nyx.core.stage import Stage
+from nyx.api.v1 import Stage, exceptions
 
 
 LOGGER = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ def test_node_creation_with_parent():
 def test_node_creation_with_invalid_parent_raises_validation_error():
     """Test that creating a node with a non-existent parent raises error."""
     stage = Stage()
-    with pytest.raises(ValueError, match="Parent node doesn't exist"):
+    with pytest.raises(exceptions.StageObjectQueryError):
         command = CreateNodeCommand(stage=stage, parent_node="/non_existent_parent")
         stage.push_command(command)
 
@@ -75,11 +75,16 @@ def test_node_creation_undo_redo():
     command = CreateNodeCommand(stage=stage, name=expected_path.name)
 
     stage.push_command(command)
+    uuid_on_creation = command.result_node.uuid
+
     assert stage.get_object(expected_path) is not None
     stage.undo_stack.undo()
-    assert stage.get_object(expected_path) is None
+    with pytest.raises(exceptions.StageObjectQueryError):
+        stage.get_object(expected_path)
     stage.undo_stack.redo()
+
     assert stage.get_object(expected_path) is not None
+    assert stage.get_object(expected_path).uuid == uuid_on_creation
 
 
 def test_node_creation_with_duplicate_name():

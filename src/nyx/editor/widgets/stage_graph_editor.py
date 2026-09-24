@@ -2,16 +2,18 @@ import logging
 import pathlib
 import typing
 
+import shiboken6
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import Stage
+from nyx.core.exceptions import StageObjectQueryError
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
+    from nyx.core.node import NodeLike, Node
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
@@ -207,16 +209,26 @@ class StageGraphEditor(QtWidgets.QWidget):
     def get_scope_path(self) -> pathlib.PurePosixPath:
         return self._scope_path
 
+    def get_next_valid_scope(self, scope: NodeLike):
+        scope_path = self.stage.pathify(scope)
+        paths_to_check = [scope_path]
+        paths_to_check.extend(scope_path.parents)
+        for each_path in paths_to_check:
+            try:
+                self.stage.get_object(each_path)
+                return each_path
+            except StageObjectQueryError:
+                continue
+
+    def make_scope_valid(self):
+        if not shiboken6.isValid(self.stage):
+            return
+        self.set_scope_path(self.get_next_valid_scope(self._scope_path))
+
     def set_scope_path(
         self, scope: Node | pathlib.PurePosixPath | str, silent=False
     ) -> None:
-        previous_scope = self.get_scope_path()
-
-        node = self.stage.get_object(scope)
-        if node:
-            new_scope = node.path
-        else:
-            new_scope = previous_scope
+        new_scope = self.get_next_valid_scope(scope)
 
         self._scope_path = new_scope
         LOGGER.debug(f"Set scope to: {self._scope_path}")
@@ -250,7 +262,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             current_scope == deleted_node_path
             or deleted_node_path in current_scope.parents
         ):
-            self.set_scope_path(self.stage.root_node.path)
+            self.make_scope_valid()
 
     def list_selected_nodes(self) -> list[Node]:
         """List selected nodes.

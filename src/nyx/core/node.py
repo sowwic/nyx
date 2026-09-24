@@ -253,9 +253,8 @@ class Node(QtGui.QStandardItem, StageObject):
         for node in items:
             if node.uuid in self.stage.uuid_map:
                 raise KeyError(
-                    "Node with UUID %s already exists: %s",
-                    str(node.uuid),
-                    str(self.stage.get_object(node.uuid).path),
+                    f"Node with UUID {node.uuid} already exists: "
+                    f"{(self.stage.get_object(node.uuid).path)}"
                 )
 
             unique_name = self.stage.generate_unique_node_name(

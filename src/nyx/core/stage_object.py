@@ -94,7 +94,8 @@ class StageObject:
         if restore_option is RestoreUuidOption.GENERATE_NEW:
             return uuid4()
 
-        serialized_uuid = serialized_data[cls.UUID_KEY]
+        serialized_uuid = cls.as_uuid(serialized_data[cls.UUID_KEY])
+
         if restore_option is RestoreUuidOption.RESTORE:
             return serialized_uuid
         elif restore_option is RestoreUuidOption.ATTEMPT_RESTORE:

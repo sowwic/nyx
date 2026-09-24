@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from nyx.core.commands import CreateNodeCommand, DeleteNodeCommand
-from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.exceptions import NyxCommandValidationError, StageObjectQueryError
 from nyx.api.v1 import Stage, CoreNodes
 
 LOGGER = logging.getLogger(__name__)
@@ -22,7 +22,8 @@ def test_node_deletion():
     delete_command = DeleteNodeCommand(stage=stage, nodes=[test_path])
     stage.push_command(delete_command)
 
-    assert stage.get_object(test_path) is None
+    with pytest.raises(StageObjectQueryError):
+        stage.get_object(test_path)
 
 
 def test_delete_undo_redo():
@@ -36,6 +37,8 @@ def test_delete_undo_redo():
     )
     stage.push_command(create_command)
 
+    uuid_on_creation = create_command.result_node.uuid
+
     # Delete the node
     delete_command = DeleteNodeCommand(stage=stage, nodes=[test_path])
     stage.push_command(delete_command)
@@ -44,10 +47,12 @@ def test_delete_undo_redo():
     stage.undo_stack.undo()
     assert stage.get_object(test_path) is not None
     assert stage.get_object(test_path).get_type_id() == test_type_id
+    assert stage.get_object(test_path).uuid == uuid_on_creation
 
     # Redo the deletion
     stage.undo_stack.redo()
-    assert stage.get_object(test_path) is None
+    with pytest.raises(StageObjectQueryError):
+        stage.get_object(test_path)
 
 
 def test_delete_multiple_nodes():
@@ -65,7 +70,8 @@ def test_delete_multiple_nodes():
     stage.push_command(delete_command)
 
     for i in range(3):
-        assert stage.get_object(stage.root_node.path / f"node_{i}") is None
+        with pytest.raises(StageObjectQueryError):
+            assert stage.get_object(stage.root_node.path / f"node_{i}") is None
 
 
 def test_delete_parent_node():
@@ -86,8 +92,10 @@ def test_delete_parent_node():
     delete_command = DeleteNodeCommand(stage=stage, nodes=[parent_path])
     stage.push_command(delete_command)
 
-    assert stage.get_object(parent_path) is None
-    assert stage.get_object(child_path) is None
+    with pytest.raises(StageObjectQueryError):
+        assert stage.get_object(parent_path) is None
+        assert stage.get_object(child_path) is None
+
     stage.undo_stack.undo()  # Undo delete
     assert stage.get_object(parent_path) is not None
     assert stage.get_object(child_path) is not None
