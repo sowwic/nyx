@@ -25,3 +25,10 @@ class RestoreUuidOption(enum.IntEnum):
     GENERATE_NEW = enum.auto()
     RESTORE = enum.auto()
     ATTEMPT_RESTORE = enum.auto()
+
+
+class NodeExecutionStatus(enum.IntEnum):
+    SUCCESS = enum.auto()
+    ERROR = enum.auto()
+    PENDING = enum.auto()
+    NOT_RAN = enum.auto()

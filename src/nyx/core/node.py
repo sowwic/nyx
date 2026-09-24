@@ -14,7 +14,7 @@ from .models.components_model import NodeComponentsModel
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
-from ..static.enums import CoreNodes, RestoreUuidOption
+from ..static.enums import CoreNodes, RestoreUuidOption, NodeExecutionStatus
 
 if typing.TYPE_CHECKING:
     from .stage import Stage
@@ -42,14 +42,15 @@ class Node(QtGui.QStandardItem, StageObject):
     CHILDREN_KEY = "children"
 
     class Roles(enum.IntEnum):
-        TYPE_ID = QtCore.Qt.UserRole + 1
-        TYPE_DISPLAY_NAME = enum.auto()
+        TYPE_ID_ROLE = QtCore.Qt.UserRole + 1
+        TYPE_DISPLAY_NAME_ROLE = enum.auto()
         ACTIVE_ROLE = enum.auto()
-        POSITION = enum.auto()
-        REFERENCE_FILE_PATH = enum.auto()
-        TAGS = enum.auto()
+        POSITION_ROLE = enum.auto()
+        REFERENCE_FILE_PATH_ROLE = enum.auto()
+        TAGS_ROLE = enum.auto()
         LOCKED_ROLE = enum.auto()
-        RAISED_EXCEPTION = enum.auto()
+        EXECUTION_STATUS_ROLE = enum.auto()
+        RAISED_EXCEPTION_ROLE = enum.auto()
 
     def __init__(
         self,
@@ -86,14 +87,17 @@ class Node(QtGui.QStandardItem, StageObject):
         return self.components_model.get_component(key)
 
     def _set_default_role_values(self):
-        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
+        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID_ROLE)
         self.setData(True, role=self.Roles.ACTIVE_ROLE)
-        self.setData(QtCore.QPointF(), role=self.Roles.POSITION)
-        self.setData(None, role=self.Roles.REFERENCE_FILE_PATH)
+        self.setData(QtCore.QPointF(), role=self.Roles.POSITION_ROLE)
+        self.setData(None, role=self.Roles.REFERENCE_FILE_PATH_ROLE)
         self.setData(False, role=self.Roles.LOCKED_ROLE)
-        self.setData(self.get_tags(), role=self.Roles.TAGS)
-        self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
-        self.setData(None, role=self.Roles.RAISED_EXCEPTION)
+        self.setData(self.get_tags(), role=self.Roles.TAGS_ROLE)
+        self.setData(
+            self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME_ROLE
+        )
+        self.setData(None, role=self.Roles.RAISED_EXCEPTION_ROLE)
+        self.setData(NodeExecutionStatus.NOT_RAN, role=self.Roles.EXECUTION_STATUS_ROLE)
 
     @property
     def name(self):
@@ -147,7 +151,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def reference_file_path(self) -> pathlib.Path | None:
-        return self.data(role=self.Roles.REFERENCE_FILE_PATH)
+        return self.data(role=self.Roles.REFERENCE_FILE_PATH_ROLE)
 
     @property
     def is_referenced(self):
@@ -165,15 +169,30 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def tags(self) -> set[str]:
-        return self.data(role=self.Roles.TAGS)
+        return self.data(role=self.Roles.TAGS_ROLE)
 
     @tags.setter
     def tags(self, new_tags: Iterable) -> None:
-        self.setData(set(new_tags), role=self.Roles.TAGS)
+        self.setData(set(new_tags), role=self.Roles.TAGS_ROLE)
 
     @property
     def raised_exception(self) -> Exception | None:
-        return self.data(self.Roles.RAISED_EXCEPTION)
+        return self.data(self.Roles.RAISED_EXCEPTION_ROLE)
+
+    @raised_exception.setter
+    def raised_exception(self, err: Exception) -> None:
+        return self.setData(err, self.Roles.RAISED_EXCEPTION_ROLE)
+
+    @property
+    def execution_status(self) -> NodeExecutionStatus:
+        return self.data(self.Roles.EXECUTION_STATUS_ROLE)
+
+    @execution_status.setter
+    def execution_status(self, status: NodeExecutionStatus) -> None:
+        self.setData(status, role=self.Roles.EXECUTION_STATUS_ROLE)
+
+    def reset_execution_status(self):
+        self.execution_status = NodeExecutionStatus.NOT_RAN
 
     def is_active(self) -> bool:
         """Query if node's active state.
@@ -202,17 +221,17 @@ class Node(QtGui.QStandardItem, StageObject):
         self.set_active(True)
 
     def position(self) -> QtCore.QPointF:
-        return self.data(role=Node.Roles.POSITION)
+        return self.data(role=Node.Roles.POSITION_ROLE)
 
     def serializable_position(self):
         position = self.position()
         return [position.x(), position.y()]
 
     def set_position(self, position: QtCore.QPointF):
-        self.setData(position, role=Node.Roles.POSITION)
+        self.setData(position, role=Node.Roles.POSITION_ROLE)
 
     def set_reference_file(self, path: pathlib.Path | str):
-        self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH)
+        self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH_ROLE)
 
     def appendRow(self, items: Node | typing.Sequence[Node]) -> None:
         """Override Qt method.
@@ -490,7 +509,7 @@ class Node(QtGui.QStandardItem, StageObject):
         visitor.visit_node(self)
 
     def pre_execution(self):
-        self.setData(None, self.Roles.RAISED_EXCEPTION)
+        self.setData(None, self.Roles.RAISED_EXCEPTION_ROLE)
 
     def pre_execution_hook(self):
         pass
@@ -525,9 +544,11 @@ class Node(QtGui.QStandardItem, StageObject):
             err: run time exception raised during code execution.
 
         """
+        self.reset_execution_status()
         if not self.is_active():
             return
 
+        self.execution_status = NodeExecutionStatus.PENDING
         start_time = time.perf_counter()
         try:
             self.pre_execution_hook()
@@ -538,8 +559,11 @@ class Node(QtGui.QStandardItem, StageObject):
             self.post_execution_hook()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
-            self.setData(err, self.Roles.RAISED_EXCEPTION)
+            self.raised_exception = err
+            self.execution_status = NodeExecutionStatus.ERROR
             raise err
+        else:
+            self.execution_status = NodeExecutionStatus.SUCCESS
 
         total_time = time.perf_counter() - start_time
         LOGGER.info(f"Executed in {total_time:.4f}: {self.path}")

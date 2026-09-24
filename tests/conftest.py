@@ -2,6 +2,7 @@ import os
 import pathlib
 import pytest
 import logging
+from pytest import MonkeyPatch
 
 from PySide6 import QtWidgets
 
@@ -81,10 +82,21 @@ def with_plugins(request):
 
 
 @pytest.fixture
-def make_script(tmp_path):
+def make_script(tmp_path: pathlib.Path):
     def _make_script(content: str, filename: str = "script.py"):
         path = tmp_path / filename
         path.write_text(content)
         return path
 
     return _make_script
+
+
+@pytest.fixture
+def importable_module(tmp_path: pathlib.Path, monkeypatch: MonkeyPatch):
+    def _make_module(name: str, content: str):
+        module_file = tmp_path / f"{name}.py"
+        module_file.write_text(content)
+        monkeypatch.syspath_prepend(str(tmp_path))
+        return name
+
+    yield _make_module

@@ -8,7 +8,10 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .plugin_subsystem.registry import NYX_REGISTRY
-from ..static.enums import NodeComponentSolveDirection, RestoreUuidOption
+from ..static.enums import (
+    NodeComponentSolveDirection,
+    RestoreUuidOption,
+)
 
 if typing.TYPE_CHECKING:
     from .node import Node
@@ -28,11 +31,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
-        TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
-        TYPE_DISPLAY_NAME = enum.auto()
+        TYPE_ID_ROLE = QtCore.Qt.ItemDataRole.UserRole + 1
+        TYPE_DISPLAY_NAME_ROLE = enum.auto()
         VALUE = enum.auto()
         DEFAULT_VALUE = enum.auto()
-        TAGS = enum.auto()
+        TAGS_ROLE = enum.auto()
         IS_BUILT_IN = enum.auto()
         IS_ACTIVE = enum.auto()
         IS_READABLE = enum.auto()
@@ -190,12 +193,14 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def tags(self) -> set[str]:
-        return self.data(self.Roles.TAGS)
+        return self.data(self.Roles.TAGS_ROLE)
 
     def init_default_data_values(self):
-        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
-        self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
-        self.setData(self.get_tags(), role=self.Roles.TAGS)
+        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID_ROLE)
+        self.setData(
+            self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME_ROLE
+        )
+        self.setData(self.get_tags(), role=self.Roles.TAGS_ROLE)
 
         self.is_active = True
         self.is_readable = False

@@ -1,6 +1,13 @@
 import logging
 
-from nyx.api.v1 import Node, Stage, CoreNodes, CoreNodeComponents, commands
+from nyx.api.v1 import (
+    Node,
+    Stage,
+    CoreNodes,
+    CoreNodeComponents,
+    NodeExecutionStatus,
+    commands,
+)
 from nyx.core.protocols.registry_entry import IRegistryEntry
 
 LOGGER = logging.getLogger(__name__)
@@ -68,6 +75,7 @@ def test_node_execute_while_active():
     node.execution_hook()
 
     assert node.is_active()
+    assert node.execution_status is NodeExecutionStatus.SUCCESS
 
 
 def test_node_execute_while_not_active():
@@ -80,6 +88,7 @@ def test_node_execute_while_not_active():
     node.execution_hook()
 
     assert not node.is_active()
+    assert node.execution_status is NodeExecutionStatus.NOT_RAN
     # TODO add asserts for component values
 
 

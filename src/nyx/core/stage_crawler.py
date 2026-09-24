@@ -88,9 +88,6 @@ class StageCrawler:
         self.clear_cached_data()
 
         start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
-        if start_node is None:
-            raise RuntimeError("No start node given and Stage has no FlowStart node")
-
         self._traverse_children(start_node)  # kicks off recursive post-order descent
 
     # -- NodeVisitor -----------------------------------------------------

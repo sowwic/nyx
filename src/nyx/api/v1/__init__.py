@@ -5,7 +5,13 @@ from nyx.core.node_component import NodeComponent
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.core.plugin_subsystem.plugin import NyxPlugin
 from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
-from nyx.static.enums import CoreNodes, CoreNodeComponents, NodeComponentSolveDirection
+from nyx.static.enums import (
+    CoreNodes,
+    CoreNodeComponents,
+    NodeComponentSolveDirection,
+    NodeExecutionStatus,
+    RestoreUuidOption,
+)
 
 __all__ = [
     "Node",
@@ -16,6 +22,8 @@ __all__ = [
     "CoreNodes",
     "CoreNodeComponents",
     "NodeComponentSolveDirection",
+    "NodeExecutionStatus",
+    "RestoreUuidOption",
     "NYX_REGISTRY",
     "commands",
 ]
