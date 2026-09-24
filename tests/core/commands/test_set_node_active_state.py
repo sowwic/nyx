@@ -2,28 +2,27 @@ import pytest
 
 from nyx.core.commands import CreateNodeCommand, SetNodeActiveStateCommand
 from nyx.core.exceptions import NyxCommandValidationError
-from nyx.core.stage import Stage
+from nyx.api.v1 import Stage
 
 
 def test_active_stage_change() -> None:
     """Test command setting node state"""
     stage = Stage()
-    test_node_path = stage / "node"
     command = CreateNodeCommand(stage=stage)
     stage.push_command(command)
 
+    node = stage.get_object(command.result_node.uuid)
     state_set_false_command = SetNodeActiveStateCommand(
-        stage=stage, node=test_node_path, state=False
+        stage=stage, node=command.result_node, state=False
     )
     state_set_true_command = SetNodeActiveStateCommand(
-        stage=stage, node=test_node_path, state=True
+        stage=stage, node=command.result_node.uuid, state=True
     )
     stage.push_command(state_set_false_command)
 
-    node = stage.get_object(test_node_path)
-    assert not node.is_active()
+    assert node.is_active() is False
     stage.push_command(state_set_true_command)
-    assert node.is_active()
+    assert node.is_active() is True
 
 
 def test_active_set_undo_redo() -> None:
@@ -35,7 +34,7 @@ def test_active_set_undo_redo() -> None:
     stage.push_command(command)
 
     node = stage.get_object(test_node_path)
-    default_state = node.is_active()
+    default_state = node.is_active
 
     toggle_active_state_command = SetNodeActiveStateCommand(
         stage=stage, node=test_node_path, state=not default_state

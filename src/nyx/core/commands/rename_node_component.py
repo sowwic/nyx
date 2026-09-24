@@ -1,10 +1,9 @@
 import logging
-import pathlib
 
 from PySide6 import QtGui
 
 from ..stage import Stage
-from ..node_component import NodeComponent
+from ..node_component import NodeComponent, NodeComponentLike
 from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
 from ..name_validator import NameValidator
@@ -17,7 +16,7 @@ class RenameNodeComponentCommand(NyxCommand):
     def __init__(
         self,
         stage: Stage,
-        node_component: NodeComponent | pathlib.PurePosixPath | str,
+        node_component: NodeComponentLike,
         new_name: str,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:

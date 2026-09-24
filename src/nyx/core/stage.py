@@ -155,6 +155,14 @@ class Stage(QtGui.QStandardItemModel):
     def get_object(
         self, stage_object: NodeLike | NodeComponentLike | None
     ) -> Node | NodeComponent | None:
+        """Get `nyx` stage object.
+
+        Args:
+            stage_object: Input to search object by.
+
+        Returns:
+            Found `Node` or `NodeComponent` instance or None if not
+        """
         if stage_object is None:
             return None
 

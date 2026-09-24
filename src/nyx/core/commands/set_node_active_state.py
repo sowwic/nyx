@@ -1,12 +1,10 @@
 import logging
-import pathlib
 
 from PySide6 import QtGui
-
-from nyx.core import Node
-from nyx.core import Stage
-from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
+from ..node import NodeLike
+from ..stage import Stage
+from ..exceptions import NyxCommandValidationError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -15,7 +13,7 @@ class SetNodeActiveStateCommand(NyxCommand):
     def __init__(
         self,
         stage: Stage,
-        node: Node | pathlib.PurePosixPath | str | None,
+        node: NodeLike,
         state: bool,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
@@ -27,7 +25,7 @@ class SetNodeActiveStateCommand(NyxCommand):
 
     def redo(self) -> None:
         node = self.stage.get_object(self.node_path)
-        self.old_state = node.is_active()
+        self.old_state = node.is_active
         node.set_active(self.new_state)
         return super().redo()
 
