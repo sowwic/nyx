@@ -49,6 +49,7 @@ class Node(QtGui.QStandardItem, StageObject):
         REFERENCE_FILE_PATH = enum.auto()
         TAGS = enum.auto()
         LOCKED_ROLE = enum.auto()
+        RAISED_EXCEPTION = enum.auto()
 
     def __init__(
         self,
@@ -92,6 +93,7 @@ class Node(QtGui.QStandardItem, StageObject):
         self.setData(False, role=self.Roles.LOCKED_ROLE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
+        self.setData(None, role=self.Roles.RAISED_EXCEPTION)
 
     @property
     def name(self):
@@ -168,6 +170,10 @@ class Node(QtGui.QStandardItem, StageObject):
     @tags.setter
     def tags(self, new_tags: Iterable) -> None:
         self.setData(set(new_tags), role=self.Roles.TAGS)
+
+    @property
+    def raised_exception(self) -> Exception | None:
+        return self.data(self.Roles.RAISED_EXCEPTION)
 
     def is_active(self) -> bool:
         """Query if node's active state.
@@ -478,9 +484,41 @@ class Node(QtGui.QStandardItem, StageObject):
         return self.find_child_node_of_type(type_id=CoreNodes.FLOW_START)
 
     def accept_visitor(self, visitor: NodeVisitor):
+        if not self.is_active():
+            LOGGER.warning("Not Active: %s", self.path.as_posix())
+            return
         visitor.visit_node(self)
 
+    def pre_execution(self):
+        self.setData(None, self.Roles.RAISED_EXCEPTION)
+
+    def pre_execution_hook(self):
+        pass
+
+    def post_execution_hook(self):
+        pass
+
+    def evaluate(self):
+        """Evaluate components values on this node.
+
+        Raises:
+            err: run time exception raised during code execution.
+
+        """
+        pass
+
     def execute(self):
+        pass
+
+    def evaluate_components(self):
+        for component in self.components_model.list_components():
+            component.evaluate()
+
+    def execute_components(self):
+        for component in self.components_model.list_components():
+            component.execution_hook()
+
+    def execution_hook(self):
         """Execute this node.
 
         Raises:
@@ -492,16 +530,19 @@ class Node(QtGui.QStandardItem, StageObject):
 
         start_time = time.perf_counter()
         try:
+            self.pre_execution_hook()
+            self.evaluate_components()
+            self.evaluate()
             self.execute_components()
+            self.execute()
+            self.post_execution_hook()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
+            self.setData(err, self.Roles.RAISED_EXCEPTION)
             raise err
 
         total_time = time.perf_counter() - start_time
         LOGGER.info(f"Executed in {total_time:.4f}: {self.path}")
-
-    def execute_components(self):
-        pass
 
     @classmethod
     def get_type_id(cls) -> str:

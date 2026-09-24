@@ -318,10 +318,6 @@ class Stage(QtGui.QStandardItemModel):
         LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
 
-    def execute_node_from_path(self, path):
-        node = self.node_from_path(path)
-        node.execute()
-
     def push_command(self, command: NyxCommand):
         """Push command to stage's undo stack.
         Also validates command before pushing and raises error if validation fails.

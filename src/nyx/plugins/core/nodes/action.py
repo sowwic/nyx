@@ -24,6 +24,3 @@ class ActionNode(Node):
         self.flow_cpnt.name = "flow"
 
         self.components_model.add_component(self.flow_cpnt)
-
-    def execute_components(self):
-        pass

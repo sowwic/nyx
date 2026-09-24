@@ -110,7 +110,7 @@ class StageCrawler:
         # Phase 2: only now, after all children are done, execute this node.
         self._current_node = node
         LOGGER.debug("Executing node %s", path)
-        node.execute()
+        node.execution_hook()
         self._execution_paths_stack.append(node.path.as_posix())
 
     def _traverse_children(self, child: Node) -> None:

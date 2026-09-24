@@ -47,6 +47,6 @@ class BranchNode(Node):
         self.components_model.add_component(self.flow_out_false)
         self.components_model.add_component(self.value_cpnt)
 
-    def execute_components(self):
+    def evaluate(self):
         self.flow_out_true.is_active = self.value_cpnt.value
         self.flow_out_false.is_active = not self.value_cpnt.value

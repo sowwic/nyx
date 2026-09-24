@@ -266,9 +266,17 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         return component
 
-    def execute(self):
+    def execution_hook(self):
         if not self.is_active:
             return
+        self.evaluate()
+        self.execute()
+
+    def evaluate(self):
+        pass
+
+    def execute(self):
+        pass
 
     @classmethod
     def get_solve_direction(self):

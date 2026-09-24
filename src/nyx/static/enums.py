@@ -13,6 +13,7 @@ class CoreNodes(enum.StrEnum):
 class CoreNodeComponents(enum.StrEnum):
     VALUE = "core:value"
     FLOW = "core:flow"
+    SCRIPT = "core:script"
 
 
 class NodeComponentSolveDirection(enum.IntEnum):

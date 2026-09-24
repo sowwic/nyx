@@ -4,7 +4,6 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 class FlowStartNode(Node):
     DEFAULT_NAME = "start"
     REQUIRED_PLUGINS = {"NyxCore"}
-    TAGS = {"logic"}
 
     @classmethod
     def get_type_id(cls) -> str:

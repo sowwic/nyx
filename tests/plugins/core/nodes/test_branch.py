@@ -34,19 +34,19 @@ def test_execute_activates_correct_flow_out():
     stage = Stage()
     command = commands.CreateNodeCommand(stage=stage, type_id="core:branch")
     stage.push_command(command)
-    branch_node = stage.get_object(command.result_node.uuid)
+    branch_node: BranchNode = stage.get_object(command.result_node.uuid)
     assert branch_node is not None
 
     # True case
     branch_node["value"].value = True
-    branch_node.execute()
+    branch_node.execution_hook()
 
     assert branch_node["flow_in"].is_active is True
     assert branch_node["flow_out_true"].is_active is True
     assert branch_node["flow_out_false"].is_active is False
     # Switch to false
     branch_node["value"].value = False
-    branch_node.execute()
+    branch_node.execution_hook()
 
     assert branch_node["flow_in"].is_active is True
     assert branch_node["flow_out_true"].is_active is False

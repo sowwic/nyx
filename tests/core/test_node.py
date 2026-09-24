@@ -65,7 +65,7 @@ def test_node_execute_while_active():
     node = Node("node")
     stage.add_node(node)
 
-    node.execute()
+    node.execution_hook()
 
     assert node.is_active()
 
@@ -77,7 +77,7 @@ def test_node_execute_while_not_active():
 
     node.set_active(False)
 
-    node.execute()
+    node.execution_hook()
 
     assert not node.is_active()
     # TODO add asserts for component values

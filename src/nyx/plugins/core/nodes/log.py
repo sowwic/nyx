@@ -68,7 +68,7 @@ class LogNode(Node):
             self._logger = logging.getLogger(expected_logger_name)
         return self._logger
 
-    def execute_components(self) -> None:
+    def execute(self) -> None:
         """Log message"""
         if not self.message.value:
             return

@@ -4,7 +4,6 @@ from nyx.api.v1 import NodeComponent, CoreNodeComponents
 class ValueComponent(NodeComponent):
     DEFAULT_NAME = "value"
     REQUIRED_PLUGINS = {"NyxCore"}
-    TAGS = {"value"}
 
     @classmethod
     def get_type_id(cls) -> str:
