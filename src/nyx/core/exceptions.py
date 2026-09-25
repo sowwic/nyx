@@ -1,6 +1,13 @@
-class NyxCommandValidationError(RuntimeError):
-    pass
+class NyxCommandValidationError(RuntimeError): ...
 
 
-class StageObjectQueryError(RuntimeError):
-    pass
+class StageObjectRegistrationError(RuntimeError, KeyError): ...
+
+
+class StageObjectUnregistrationError(RuntimeError, KeyError): ...
+
+
+class StageObjectQueryError(RuntimeError): ...
+
+
+class NodeComponentLinkError(RuntimeError): ...

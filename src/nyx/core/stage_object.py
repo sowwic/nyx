@@ -61,7 +61,8 @@ class StageObject:
         serialized_data = OrderedDict()
         serialized_data[self.UUID_KEY] = str(self.uuid)
         serialized_data[self.META_DATA_KEY] = self.metadata
-        serialized_data[self.REQUIRED_PLUGINS_KEY] = list(self.REQUIRED_PLUGINS)
+        if self.REQUIRED_PLUGINS:
+            serialized_data[self.REQUIRED_PLUGINS_KEY] = list(self.REQUIRED_PLUGINS)
 
         return serialized_data
 
@@ -74,13 +75,17 @@ class StageObject:
         )
 
     @staticmethod
-    def as_uuid(value: UUID | str | None) -> None:
+    def as_uuid(value: StageObject | UUID | str | None, strict: bool = False) -> UUID:
+        if isinstance(value, StageObject):
+            return value.uuid
         if isinstance(value, UUID):
             return value
         elif isinstance(value, str):
             return UUID(value)
         elif value is None:
-            return uuid4()
+            if not strict:
+                return uuid4()
+            raise ValueError(f"UUID must be of type UUID | str, got {value}")
         else:
             raise TypeError(f"Invalid UUID input: {value}")
 

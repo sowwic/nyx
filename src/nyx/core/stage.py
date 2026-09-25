@@ -11,10 +11,16 @@ from PySide6 import QtCore, QtGui
 from .stage_object import StageObject
 from .node import Node, NodeLike
 from .node_component import NodeComponent, NodeComponentLike
+from .link import Link, LinkLike
 from .stage_crawler import StageCrawler
 from .plugin_subsystem.registry import NYX_REGISTRY
 from .name_validator import NameValidator
-from .exceptions import StageObjectQueryError
+from .exceptions import (
+    StageObjectQueryError,
+    StageObjectRegistrationError,
+    StageObjectUnregistrationError,
+    NodeComponentLinkError,
+)
 from ..utils import file_fn
 from ..static.vars import ROOT_NODE_PATH
 from ..static.enums import CoreNodes
@@ -70,7 +76,7 @@ class Stage(QtGui.QStandardItemModel):
         root_node = self.create_node(type_id=CoreNodes.EMPTY, name=ROOT_NODE_PATH.name)
         root_node.is_locked = True
         self.appendRow(root_node)
-        self.uuid_map[root_node.uuid] = root_node
+        self.register_node(root_node)
 
     def create_connections(self):
         self.itemChanged.connect(self.on_node_changed)
@@ -225,6 +231,84 @@ class Stage(QtGui.QStandardItemModel):
 
         return node.components_model.get_component(component_name)
 
+    def link_components(
+        self,
+        source_component: NodeComponentLike,
+        target_component: NodeComponentLike,
+        use_uuid: UUID | str | None = None,
+    ) -> Link:
+        source_component: NodeComponent = self.get_object(source_component)
+        target_component: NodeComponent = self.get_object(target_component)
+
+        if not source_component.is_readable:
+            raise NodeComponentLinkError(f"Not readable component: {source_component}")
+
+        if not target_component.is_writable:
+            raise NodeComponentLinkError(f"Not writable component: {source_component}")
+
+        new_link = Link(
+            stage=self,
+            source=source_component.uuid,
+            target=target_component.uuid,
+            uuid=use_uuid,
+        )
+        self.register_link(link=new_link)
+        return new_link
+
+    def register_link(self, link: Link):
+        if not link.is_valid:
+            LOGGER.warning(f"Skipping registration of invalid link: {link}")
+            return
+
+        if link.uuid in self.uuid_map:
+            LOGGER.debug(f"Link already in uuid_map: {self.uuid_map[link.uuid]}")
+            return
+
+        self._uuid_map[link.uuid] = link
+        source_cpnt: NodeComponent = self.get_object(link.source)
+        target_cpnt: NodeComponent = self.get_object(link.target)
+        source_cpnt.add_link(link_uuid=link.uuid)
+        target_cpnt.add_link(link_uuid=link.uuid)
+
+    def unregister_link(self, link: LinkLike):
+        link = self.get_object(link)
+        self._uuid_map.pop(link.uuid, None)
+        source_cpnt: NodeComponent = self.get_object(link.source)
+        target_cpnt: NodeComponent = self.get_object(link.target)
+        source_cpnt.remove_link(link_uuid=link.uuid)
+        target_cpnt.remove_link(link_uuid=link.uuid)
+
+    def register_node(self, node: Node):
+        if node.uuid in self.uuid_map:
+            raise StageObjectRegistrationError(
+                f"Node with UUID {node.uuid} already exists: "
+                f"{(self.get_object(node.uuid).path)}"
+            )
+
+        self._uuid_map[node.uuid] = node
+
+        for node_component in node.components_model.list_components():
+            if node_component.uuid in self.uuid_map:
+                raise StageObjectRegistrationError(
+                    f"Component with UUID {node_component.uuid} already exists: "
+                    f"{self.get_object(node_component.uuid)}"
+                )
+            self._uuid_map[node_component.uuid] = node_component
+
+    def unregister_node(self, node: NodeLike):
+        if node is self.root_node:
+            raise StageObjectUnregistrationError("Can't unregister root node")
+
+        node: Node = self.get_object(node)
+        self._uuid_map.pop(node.uuid, None)
+        descendant_nodes = node.list_children_tree()
+        for component in node.components_model.list_components():
+            self._uuid_map.pop(component.uuid)
+
+        for child_node in descendant_nodes:
+            self.unregister_node(child_node)
+            # self.uuid_map.pop(child_node.uuid, None)
+
     def add_node(
         self,
         node: Node | list[Node],
@@ -261,17 +345,12 @@ class Stage(QtGui.QStandardItemModel):
             if node.is_locked:
                 raise RuntimeError("Can't delete locked node: %s", node.path)
 
-            # Removed paths
-            self._delete_from_uuid_map(node)
+            # Removed uuids for node, childrent and components
+            self.unregister_node(node)
+
             parent = node.parent()
             self.removeRow(node.row(), parent.index())
             self.node_deleted.emit(node.uuid)
-
-    def _delete_from_uuid_map(self, node: Node):
-        self.uuid_map.pop(node.uuid)
-        descendant_nodes = node.list_children_tree()
-        for child_node in descendant_nodes:
-            self.uuid_map.pop(child_node.uuid)
 
     def on_node_changed(self, node: Node):
         node.on_changed()

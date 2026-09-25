@@ -108,8 +108,12 @@ def test_rshift_operator():
     node1 = create_node1_command.result_node
     node2 = create_node2_command.result_node
 
-    node1["flow"] >> node2["flow"]
-    assert node2["flow"].value == node1["flow"].uuid
+    link = node1["flow"] >> node2["flow"]
+
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids
 
 
 def test_rrshift_operator():
@@ -125,8 +129,11 @@ def test_rrshift_operator():
     node1 = create_node1_command.result_node
     node2 = create_node2_command.result_node
 
-    node1["flow"].path >> node2["flow"]
-    assert node2["flow"].value == node1["flow"].uuid
+    link = node1["flow"].path >> node2["flow"]
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids
 
 
 def test_lshift_operator():
@@ -142,8 +149,11 @@ def test_lshift_operator():
     node1 = create_node1_command.result_node
     node2 = create_node2_command.result_node
 
-    node2["flow"] << node1["flow"]
-    assert node2["flow"].value == node1["flow"].uuid
+    link = node2["flow"] << node1["flow"]
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids
 
 
 def test_rlshift_operator():
@@ -159,5 +169,8 @@ def test_rlshift_operator():
     node1 = create_node1_command.result_node
     node2 = create_node2_command.result_node
 
-    node2["flow"].path << node1["flow"]
-    assert node2["flow"].value == node1["flow"].uuid
+    link = node2["flow"].path << node1["flow"]
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids

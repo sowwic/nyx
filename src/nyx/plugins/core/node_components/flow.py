@@ -1,6 +1,11 @@
 import pathlib
 
-from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentSolveDirection
+from nyx.api.v1 import (
+    Node,
+    NodeComponent,
+    CoreNodeComponents,
+    NodeComponentSolveDirection,
+)
 
 
 class FlowComponent(NodeComponent):
@@ -32,3 +37,8 @@ class FlowComponent(NodeComponent):
         if value is None:
             return value
         return pathlib.PurePosixPath(value)
+
+    def get_next_node(self) -> Node | None:
+        if self.output_links:
+            return self.output_links[0].target_node
+        return None

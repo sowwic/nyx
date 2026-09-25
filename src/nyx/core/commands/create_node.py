@@ -12,6 +12,7 @@ from ..stage import Stage
 from ..exceptions import NyxCommandValidationError
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ..name_validator import NameValidator
+from ...static.enums import RestoreUuidOption
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,14 +52,25 @@ class CreateNodeCommand(NyxCommand):
     def result_node(self) -> Node:
         return self.stage.get_object(self.node_data[Node.UUID_KEY])
 
+    @property
+    def parent_node(self) -> Node:
+        return self.stage.get_object(self.parent_uuid)
+
     def redo(self) -> None:
         self.node_name = NameValidator.get_valid_stage_object_name(self.node_name)
-        uuid = self.node_data.get(Node.UUID_KEY) if self.node_data else None
-        node: Node = self.stage.create_node(
-            type_id=self.node_type_id, name=self.node_name, uuid=uuid
-        )
+        if self.node_data:
+            node = Node.deserialize(
+                serialized_node=self.node_data,
+                node=None,
+                parent_node=self.parent_node,
+                restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
+            )
+        else:
+            node: Node = self.stage.create_node(
+                type_id=self.node_type_id, name=self.node_name, uuid=None
+            )
+            self.stage.add_node(node, parent=self.parent_path)
 
-        self.stage.add_node(node, parent=self.parent_path)
         self.node_data = node.serialize()
         if self.position:
             node.set_position(self.position)

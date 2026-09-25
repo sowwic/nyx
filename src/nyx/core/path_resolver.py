@@ -59,7 +59,7 @@ class StagePathResolver:
     def compute_relative_path(
         source_path: pathlib.PurePosixPath | str,
         destination_path: pathlib.PurePosixPath | str,
-    ):
+    ) -> pathlib.PurePosixPath:
         """Compute a relative path from source to destination paths.
 
         Args:

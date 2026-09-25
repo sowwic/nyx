@@ -1,6 +1,7 @@
 import enum
 import pathlib
 import typing
+import logging
 from collections import OrderedDict
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -16,9 +17,12 @@ from ..static.enums import (
 if typing.TYPE_CHECKING:
     from .node import Node
     from .stage import Stage
+    from .link import Link
     from .models.components_model import NodeComponentsModel
 
 type NodeComponentLike = NodeComponent | UUID | pathlib.PurePosixPath | str
+
+LOGGER = logging.getLogger(__name__)
 
 
 class NodeComponent(QtGui.QStandardItem, StageObject):
@@ -28,12 +32,14 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
+    LINKS_KEY = "links"
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
         TYPE_ID_ROLE = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME_ROLE = enum.auto()
         VALUE = enum.auto()
+        LINKS_ROLE = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS_ROLE = enum.auto()
         IS_BUILT_IN = enum.auto()
@@ -42,7 +48,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_WRITABLE = enum.auto()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__} ({self.name})"
+        return f"{self.__class__.__name__} ({self.path})"
 
     def __init__(
         self,
@@ -55,7 +61,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.name = name or self.DEFAULT_NAME
         self.init_default_data_values()
 
-    def __rshift__(self, other: NodeComponent | pathlib.PurePosixPath | str):
+    def __rshift__(self, other: NodeComponent | pathlib.PurePosixPath | str) -> Link:
         """Handle `self >> other` operator
 
         Args:
@@ -68,9 +74,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         if not isinstance(other_component, NodeComponent):
             raise ValueError(f"Not a valid component path: {other}")
 
-        other_component.value = self.uuid
+        return self.stage.link_components(
+            source_component=self, target_component=other_component
+        )
 
-    def __rrshift__(self, other: pathlib.PurePosixPath | str):
+    def __rrshift__(self, other: pathlib.PurePosixPath | str) -> Link:
         """Handle `other >> self` operator, when `other` doesn't
             support >> with this type.
 
@@ -86,9 +94,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 f"Not a valid component: {other_component}, obtained from {other}"
             )
 
-        self.value = other_component.uuid
+        return self.stage.link_components(
+            source_component=other_component, target_component=self
+        )
 
-    def __lshift__(self, other: NodeComponent | pathlib.PurePosixPath | str):
+    def __lshift__(self, other: NodeComponent | pathlib.PurePosixPath | str) -> Link:
         """Handle `self << other` operator
 
         Args:
@@ -101,9 +111,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         if not isinstance(other_component, NodeComponent):
             raise ValueError(f"Not a valid component path: {other}")
 
-        self.value = other_component.uuid
+        return self.stage.link_components(
+            source_component=other_component, target_component=self
+        )
 
-    def __rlshift__(self, other: pathlib.PurePosixPath | str):
+    def __rlshift__(self, other: pathlib.PurePosixPath | str) -> Link:
         """Handle `other << self` operator, when `other` doesn't
             support >> with this type.
 
@@ -119,7 +131,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 f"Not a valid component: {other_component}, obtained from {other}"
             )
 
-        other_component.value = self.uuid
+        return self.stage.link_components(
+            source_component=self, target_component=other_component
+        )
 
     def model(self) -> NodeComponentsModel:
         return super().model()
@@ -151,6 +165,30 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @value.setter
     def value(self, new_value):
         self.setData(new_value, self.Roles.VALUE)
+
+    @property
+    def links_uuids(self) -> frozenset[UUID]:
+        return self.data(self.Roles.LINKS_ROLE)
+
+    @property
+    def output_links_uuids(self) -> list[UUID]:
+        return [link.uuid for link in self.output_links]
+
+    @property
+    def input_links_uuids(self) -> list[UUID]:
+        return [link.uuid for link in self.input_links]
+
+    @property
+    def links(self) -> list[Link]:
+        return [self.stage.get_object(uuid) for uuid in list(self.links_uuids)]
+
+    @property
+    def output_links(self) -> list[Link]:
+        return [link for link in self.links if link.source_component is self]
+
+    @property
+    def input_links(self) -> list[Link]:
+        return [link for link in self.links if link.target_component is self]
 
     @property
     def default_value(self) -> typing.Any:
@@ -201,6 +239,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME_ROLE
         )
         self.setData(self.get_tags(), role=self.Roles.TAGS_ROLE)
+        self.setData(set(), role=self.Roles.LINKS_ROLE)
 
         self.is_active = True
         self.is_readable = False
@@ -215,11 +254,23 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         layout.addWidget(line_edit)
         return widget
 
+    def pull_value(self) -> typing.Any:
+        input_links = self.input_links
+        if input_links:
+            return input_links[0].source_component.value
+        return self.value
+
     def reset_value_to_default(self) -> None:
         self.value = self.default_value
 
     def reset_value_to_type_default(self) -> None:
         self.value = self.get_type_default_value()
+
+    def add_link(self, link_uuid: UUID | str):
+        self.data(self.Roles.LINKS_ROLE).add(link_uuid)
+
+    def remove_link(self, link_uuid: UUID | str):
+        self.data(self.Roles.LINKS_ROLE).discard(link_uuid)
 
     def serialize_value(self) -> typing.Any:
         return self.value
@@ -242,6 +293,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         data["is_active"] = self.is_active
         data["is_readable"] = self.is_readable
         data["is_writable"] = self.is_writable
+        data["links"] = [link.serialize() for link in self.links]
         return data
 
     @classmethod
@@ -269,7 +321,24 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.is_readable = data["is_readable"]
         component.is_writable = data["is_writable"]
 
+        component.deserialize_links(
+            links_data=data[cls.LINKS_KEY], restore_uuid=restore_uuid
+        )
         return component
+
+    def deserialize_links(
+        self,
+        links_data: list[OrderedDict[str, typing.Any]],
+        restore_uuid: RestoreUuidOption,
+    ):
+        for each_link_data in links_data:
+            link = Link.deserialize(
+                stage=self.stage,
+                serialized_link=each_link_data,
+                link=None,
+                restore_uuid=restore_uuid,
+            )
+            self.stage.register_link(link)
 
     def execution_hook(self):
         if not self.is_active:

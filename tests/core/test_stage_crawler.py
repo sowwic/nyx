@@ -25,10 +25,10 @@ def test_crawler_order_correct_with_flat_hierarchy():
     stage.push_command(action1_create_command)
     stage.push_command(action2_create_command)
 
-    flow_create_command.result_node["flow"] << action1_create_command.result_node["flow"]
+    flow_create_command.result_node["flow"] >> action1_create_command.result_node["flow"]
     (
         action1_create_command.result_node["flow"]
-        << action2_create_command.result_node["flow"]
+        >> action2_create_command.result_node["flow"]
     )
 
     stage.crawler.start()
@@ -126,11 +126,11 @@ def test_crawler_order_correct_with_nested_hierarchy(
     action2_child = child_node2_create_command.result_node
 
     # Setup flow connections
-    root_flow_start_node["flow"] << action1_node["flow"]
-    action1_node["flow"] << action2_node["flow"]
+    root_flow_start_node["flow"] >> action1_node["flow"]
+    action1_node["flow"] >> action2_node["flow"]
 
-    action1_flow_start["flow"] << action1_child["flow"]
-    action2_flow_start["flow"] << action2_child["flow"]
+    action1_flow_start["flow"] >> action1_child["flow"]
+    action2_flow_start["flow"] >> action2_child["flow"]
 
     # Setup messages
     action1_node["message"].value = "ACTION1"

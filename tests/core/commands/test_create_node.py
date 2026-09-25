@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from nyx.core.commands import CreateNodeCommand
-from nyx.api.v1 import Stage, exceptions
+from nyx.api.v1 import Stage, CoreNodes, exceptions
 
 
 LOGGER = logging.getLogger(__name__)
@@ -101,3 +101,21 @@ def test_node_creation_with_duplicate_name():
     assert stage.get_object(expected_path1) is not None
     assert stage.get_object(expected_path2) is not None
     assert stage.get_object(expected_path3) is not None
+
+
+def test_create_plugin_node_uuids_persist_on_undo_redo():
+    stage = Stage()
+    action_create_command = CreateNodeCommand(stage=stage, type_id=CoreNodes.ACTION)
+
+    stage.push_command(action_create_command)
+    first_node_uuid = action_create_command.result_node.uuid
+    first_flow_cpnt_uuid = action_create_command.result_node["flow"].uuid
+
+    stage.undo_stack.undo()
+    assert first_node_uuid not in stage.uuid_map
+    assert stage.total_node_count() == 0
+
+    stage.undo_stack.redo()
+
+    assert action_create_command.result_node.uuid == first_node_uuid
+    assert action_create_command.result_node["flow"].uuid == first_flow_cpnt_uuid

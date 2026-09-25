@@ -47,7 +47,6 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             each_component.serialize() for each_component in components
         ]
         data["components"] = serialized_components
-
         return data
 
     def deserialize(
@@ -77,7 +76,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
     def add_component(self, component: NodeComponent):
         component.name = self.compose_unique_component_name(component.name)
         self.appendRow(component)
-        self.node.stage.uuid_map[component.uuid] = component
+        if self.node.stage:
+            self.node.stage.uuid_map[component.uuid] = component
         LOGGER.debug(f"Added new component: {component}")
 
     def remove_component(self, uuid: UUID) -> None:
@@ -88,7 +88,9 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         if component.is_built_in:
             LOGGER.error(f"Can't remove builtin component: {component.path}")
             return
-        self.node.stage.uuid_map.pop(component.uuid)
+
+        if self.node.stage:
+            self.node.stage.uuid_map.pop(component.uuid)
         self.removeRow(component.row())
 
     def remove_component_by_name(self, name: str) -> None:

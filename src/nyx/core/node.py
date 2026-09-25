@@ -83,7 +83,7 @@ class Node(QtGui.QStandardItem, StageObject):
     def __hash__(self) -> int:
         return hash(self.path)
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> NodeComponent:
         return self.components_model.get_component(key)
 
     def _set_default_role_values(self):
@@ -251,20 +251,12 @@ class Node(QtGui.QStandardItem, StageObject):
             items = [items]
 
         for node in items:
-            if node.uuid in self.stage.uuid_map:
-                raise KeyError(
-                    f"Node with UUID {node.uuid} already exists: "
-                    f"{(self.stage.get_object(node.uuid).path)}"
-                )
-
             unique_name = self.stage.generate_unique_node_name(
                 node.name, parent_node=self
             )
-
             node.setText(unique_name)
+            self.stage.register_node(node)
             super().appendRow(node)
-
-            self.stage.uuid_map[node.uuid] = node
             node.setup()
             node.post_setup_hook()
 
@@ -436,9 +428,6 @@ class Node(QtGui.QStandardItem, StageObject):
             node.set_reference_file(reference_file_path)
             serialized_node = node._load_reference_file_data()
 
-        # Components
-        node.components_model.deserialize(serialized_node.get(cls.COMPONENTS_KEY))
-
         # Children
         for child_data in serialized_node.get(cls.CHILDREN_KEY, {}):
             cls.deserialize(
@@ -446,6 +435,9 @@ class Node(QtGui.QStandardItem, StageObject):
                 parent_node=node,
                 restore_uuid=restore_uuid,
             )
+
+        # Components
+        node.components_model.deserialize(serialized_node.get(cls.COMPONENTS_KEY))
 
         return node
 
