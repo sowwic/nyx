@@ -6,6 +6,7 @@ def class_string(cls, full_path=False) -> str:
 
     Returns:
         str: class string.
+
     """
     module_name = cls.__module__
     cls_name = cls.__name__

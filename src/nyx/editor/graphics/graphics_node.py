@@ -1,13 +1,9 @@
 import typing
-from collections import deque
 
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
 from nyx.editor.graphics.graphics_node_title import GraphicsNodeTitle
-from nyx.editor.graphics.graphics_attribute import GraphicsNodeAttribute
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -15,19 +11,18 @@ if typing.TYPE_CHECKING:
 
 
 class GraphicsNode(QtWidgets.QGraphicsItem):
-
     MIN_WIDTH = 100
     MIN_HEIGHT = 100
     TITLE_COLOR = QtGui.QColor("#FF313131")
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
 
-    def __init__(self, node: "Node", parent=None):
+    def __init__(self, node: Node, parent=None):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
 
-        self.__node = None
-        self.gr_attribs: "deque[GraphicsNodeAttribute]" = deque()
+        self._node = None
+        # TODO: Create graphics components plugs
 
         self._set_node(node)
         self.setPos(self.node.position())
@@ -37,25 +32,19 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._init_title()
 
         self.create_connections()
-        self._create_gr_attributes()
 
     def create_connections(self):
         pass
 
-    def _set_node(self, node: "Node | None"):
+    def _set_node(self, node: Node | None):
         if node:
             node.gr_node = self
             # Connect signals
         else:
             # Disconnect signals
-            self.__node.gr_node = None
+            self._node.gr_node = None
 
-        self.__node = node
-
-    def _create_gr_attributes(self):
-        for _, attr in self.node.attribs.items():
-            gr_attrib = GraphicsNodeAttribute(attr, self)
-            self.gr_attribs.append(gr_attrib)
+        self._node = node
 
     def _init_sizes(self):
         self.width = self.MIN_WIDTH
@@ -80,23 +69,42 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.title_item = GraphicsNodeTitle(self)
 
     def boundingRect(self):
-        return QtCore.QRectF(0,
-                             0,
-                             self.width,
-                             self.height).normalized()
+        return QtCore.QRectF(0, 0, self.width, self.height).normalized()
 
-    def paint(self, painter: QtGui.QPainter, option: QtWidgets.QStyleOptionGraphicsItem, widget: QtWidgets.QWidget = None) -> None:
-        # self.title_item.setVisible(self.node.scene.view.zoom > self.TEXT_ZOOM_OUT_LIMIT)
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget | None = None,
+    ) -> None:
+        # TODO: Adjust title visibility based on scale
+        # self.title_item.setVisible(
+        #     self.node.scene.view.zoom > self.TEXT_ZOOM_OUT_LIMIT
+        # )
 
         # title
         path_title = QtGui.QPainterPath()
         path_title.setFillRule(QtCore.Qt.WindingFill)
-        path_title.addRoundedRect(0, 0, self.width, self.title_height,
-                                  self.edge_roundness, self.edge_roundness)
-        path_title.addRect(0, self.title_height - self.edge_roundness,
-                           self.edge_roundness, self.edge_roundness)
-        path_title.addRect(self.width - self.edge_roundness,
-                           self.title_height - self.edge_roundness, self.edge_roundness, self.edge_roundness)
+        path_title.addRoundedRect(
+            0,
+            0,
+            self.width,
+            self.title_height,
+            self.edge_roundness,
+            self.edge_roundness,
+        )
+        path_title.addRect(
+            0,
+            self.title_height - self.edge_roundness,
+            self.edge_roundness,
+            self.edge_roundness,
+        )
+        path_title.addRect(
+            self.width - self.edge_roundness,
+            self.title_height - self.edge_roundness,
+            self.edge_roundness,
+            self.edge_roundness,
+        )
         painter.setPen(QtCore.Qt.NoPen)
         painter.setBrush(self._brush_title)
         painter.drawPath(path_title.simplified())
@@ -104,12 +112,23 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         # content
         path_content = QtGui.QPainterPath()
         path_content.setFillRule(QtCore.Qt.WindingFill)
-        path_content.addRoundedRect(0, self.title_height, self.width,
-                                    self.height - self.title_height, self.edge_roundness, self.edge_roundness)
-        path_content.addRect(0, self.title_height,
-                             self.edge_roundness, self.edge_roundness)
-        path_content.addRect(self.width - self.edge_roundness, self.title_height,
-                             self.edge_roundness, self.edge_roundness)
+        path_content.addRoundedRect(
+            0,
+            self.title_height,
+            self.width,
+            self.height - self.title_height,
+            self.edge_roundness,
+            self.edge_roundness,
+        )
+        path_content.addRect(
+            0, self.title_height, self.edge_roundness, self.edge_roundness
+        )
+        path_content.addRect(
+            self.width - self.edge_roundness,
+            self.title_height,
+            self.edge_roundness,
+            self.edge_roundness,
+        )
         painter.setPen(QtCore.Qt.NoPen)
         painter.setBrush(self._brush_background)
         painter.drawPath(path_content.simplified())
@@ -117,19 +136,26 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         # outline
         # TODO: Paint prominent outline if exec input is connected
         path_outline = QtGui.QPainterPath()
-        path_outline.addRoundedRect(-1, -1, self.width + 2, self.height + 2,
-                                    self.edge_roundness, self.edge_roundness)
-        painter.setPen(self._pen_default if not self.isSelected()
-                       else self._pen_selected)
+        path_outline.addRoundedRect(
+            -1,
+            -1,
+            self.width + 2,
+            self.height + 2,
+            self.edge_roundness,
+            self.edge_roundness,
+        )
+        painter.setPen(
+            self._pen_default if not self.isSelected() else self._pen_selected
+        )
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.drawPath(path_outline.simplified())
 
     @property
     def node(self):
-        return self.__node
+        return self._node
 
     @property
-    def gr_stage(self) -> "GraphicsStage":
+    def gr_stage(self) -> GraphicsStage:
         return self.scene()
 
     @property
@@ -157,10 +183,10 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
                 new_positions.append(gr_node.pos())
 
         if moved_nodes:
-            move_cmd = commands.MoveNodeCommand(stage=self.node.stage,
-                                                nodes=moved_nodes,
-                                                new_positions=new_positions)
-            self.node.stage.undo_stack.push(move_cmd)
+            move_cmd = commands.MoveNodeCommand(
+                stage=self.node.stage, nodes=moved_nodes, new_positions=new_positions
+            )
+            self.node.stage.push_command(move_cmd)
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         return super().mouseDoubleClickEvent(event)

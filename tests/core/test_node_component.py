@@ -1,0 +1,176 @@
+from nyx.api.v1 import (
+    Node,
+    Stage,
+    NodeComponent,
+    commands,
+    CoreNodes,
+    CoreNodeComponents,
+)
+from nyx.core.protocols.registry_entry import IRegistryEntry
+
+
+def test_init_base_component():
+    cpnt = NodeComponent()
+    assert cpnt.name == NodeComponent.DEFAULT_NAME
+    assert cpnt.is_active is True
+    assert isinstance(cpnt, IRegistryEntry)
+
+
+def test_add_base_component_to_node():
+    stage = Stage()
+    node = Node("test")
+    component = NodeComponent()
+    stage.add_node(node)
+    node.add_component(component)
+
+    assert component.path == node.path.with_suffix(f".{component.name}")
+
+
+def test_component_name_indexing():
+    stage = Stage()
+    node = Node("test")
+    stage.add_node(node)
+
+    test_name = "test"
+    component1 = NodeComponent(name=test_name)
+    component2 = NodeComponent(name=test_name)
+
+    node.add_component(component1)
+    node.add_component(component2)
+
+    assert len(node.components_model.list_components()) == 2
+    assert component1.name == test_name
+    assert component2.name == test_name + "1"
+
+
+def test_serialize():
+    """Check that serialized data matches components data"""
+    stage = Stage()
+    create_node_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node_command)
+
+    flow_component = next(
+        create_node_command.result_node.components_model.find_components_of_type(
+            CoreNodeComponents.FLOW
+        )
+    )
+    data = flow_component.serialize()
+
+    assert data["type_id"] == flow_component.get_type_id()
+    assert data["name"] == flow_component.name
+    assert data["value"] == flow_component.value
+    assert data["is_active"] == flow_component.is_active
+    assert data["is_readable"] == flow_component.is_readable
+    assert data["is_writable"] == flow_component.is_writable
+
+
+def test_serialize_deserialize():
+    """Check cycle of serialization-deserialization"""
+    stage = Stage()
+    create_node_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node_command)
+
+    flow_component = next(
+        create_node_command.result_node.components_model.find_components_of_type(
+            CoreNodeComponents.FLOW
+        )
+    )
+    flow_component.value = "/stage/test"
+    flow_component.is_readable = False
+    flow_component.is_active = False
+    data = flow_component.serialize()
+
+    new_flow_component = NodeComponent.deserialize(
+        data=data, node=create_node_command.result_node
+    )
+    create_node_command.result_node.add_component(new_flow_component)
+
+    assert str(new_flow_component.value) == flow_component.value
+    assert new_flow_component.is_active == flow_component.is_active
+    assert new_flow_component.is_readable == flow_component.is_readable
+    assert new_flow_component.is_writable == flow_component.is_writable
+
+
+def test_rshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    link = node1["flow"] >> node2["flow"]
+
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids
+
+
+def test_rrshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    link = node1["flow"].path >> node2["flow"]
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids
+
+
+def test_lshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    link = node2["flow"] << node1["flow"]
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids
+
+
+def test_rlshift_operator():
+    stage = Stage()
+    create_node1_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    create_node2_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node1_command)
+    stage.push_command(create_node2_command)
+    node1 = create_node1_command.result_node
+    node2 = create_node2_command.result_node
+
+    link = node2["flow"].path << node1["flow"]
+    assert link.source_component is node1["flow"]
+    assert link.target_component is node2["flow"]
+    assert link.uuid in node1["flow"].links_uuids
+    assert link.uuid in node2["flow"].links_uuids

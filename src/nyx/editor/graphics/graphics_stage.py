@@ -1,40 +1,52 @@
+"""
+This module defines the GraphicsStage class,
+which is a QGraphicsScene that manages the visual representation of
+nodes and edges in the graph editor.
+"""
+
+import logging
 import math
-import typing
 import pathlib
+import typing
 from collections import deque
 
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+import shiboken6
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from nyx import get_main_logger
+from nyx.core.exceptions import StageObjectQueryError
 from nyx.editor.graphics.graphics_node import GraphicsNode
+
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
+    from nyx.core.node import Node
+    from nyx.core.stage import Stage
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
-LOGGER = get_main_logger()
-
-
-class StageSignaller(QtCore.QObject):
-    nodes_selection_cleared = QtCore.Signal()
-    nodes_selection_changed = QtCore.Signal(list)
+LOGGER = logging.getLogger(__name__)
 
 
 class GraphicsStage(QtWidgets.QGraphicsScene):
+    """`GraphicsStage` is a `QGraphicsScene` that manages
+    the visual representation of nodes and edges in the graph editor."""
 
-    def __init__(self, graph_editor: "StageGraphEditor", parent=None):
+    def __init__(
+        self, graph_editor: StageGraphEditor, parent: QtCore.QObject | None = None
+    ):
+        """Initializes the GraphicsStage with the given graph editor and parent.
+
+        Args:
+            graph_editor: The graph editor associated with this graphics stage.
+            parent (QObject, optional): The parent object for this graphics stage.
+        """
         super().__init__(parent=parent)
 
-        self.__graph_editor = graph_editor
+        self._graph_editor = graph_editor
         self._previous_selected_paths: list[pathlib.PurePosixPath] = []
-        self.signals = StageSignaller()
 
         # Settings
         self.grid_size = 20
         self.grid_squares = 5
         self.scene_width = self.scene_height = 64000
-        # ? Note: calling self.setSceneRect(QtCore.QRect) again disables QGraphicsView scrolling
+        # NOTE: calling self.setSceneRect(QtCore.QRect) again disables view scrolling
         self.set_scene_size(self.scene_width, self.scene_height)
         # Colors
         self._color_background = QtGui.QColor("#393939")
@@ -49,15 +61,23 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.create_connections()
 
     def create_connections(self):
+        """Creates signal-slot connections for the graphics stage."""
         self.selectionChanged.connect(self.on_selection_changed)
 
     @property
-    def graph_editor(self):
-        return self.__graph_editor
+    def graph_editor(self) -> StageGraphEditor:
+        """Returns the graph editor associated with this graphics stage."""
+        return self._graph_editor
 
     @property
-    def stage(self):
+    def stage(self) -> Stage:
+        """Returns the stage from the graph editor."""
         return self.graph_editor.stage
+
+    @property
+    def selection_model(self):
+        """Returns the selection model from the graph editor."""
+        return self.graph_editor.selection_model
 
     # ======== Events ========= #
 
@@ -68,9 +88,16 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     # ======== Methods ========= #
 
     def set_scene_size(self, width, height):
+        """Sets the scene rectangle to the specified width and height.
+
+        Args:
+            width (int): The width of the scene rectangle.
+            height (int): The height of the scene rectangle.
+        """
         self.setSceneRect(-width // 2, -height // 2, width, height)
 
     def drawBackground(self, painter, rect):
+        """Draws a grid background for the scene."""
         super().drawBackground(painter, rect)
         left = int(math.floor(rect.left()))
         right = int(math.ceil(rect.right()))
@@ -83,13 +110,13 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         # Compute line drawing
         lines_light, lines_dark = [], []
         for x in range(first_left, right, self.grid_size):
-            if (x % (self.grid_size * self.grid_squares)):
+            if x % (self.grid_size * self.grid_squares):
                 lines_light.append(QtCore.QLine(x, top, x, bottom))
             else:
                 lines_dark.append(QtCore.QLine(x, top, x, bottom))
 
         for y in range(first_top, bottom, self.grid_size):
-            if (y % (self.grid_size * self.grid_squares)):
+            if y % (self.grid_size * self.grid_squares):
                 lines_light.append(QtCore.QLine(left, y, right, y))
             else:
                 lines_dark.append(QtCore.QLine(left, y, right, y))
@@ -101,103 +128,131 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         painter.drawLines(lines_dark)
 
     def gr_nodes(self):
+        """Returns a generator of all GraphicsNode items in the scene."""
         return (item for item in self.items() if isinstance(item, GraphicsNode))
 
-    def get_gr_node(self, node: "Node | pathlib.PurePosixPath | str"):
+    def get_gr_node(self, node: Node | pathlib.PurePosixPath | str):
+        """Returns the GraphicsNode associated with the given node."""
         input_node = node
-        node = self.stage.node(node)
+        node = self.stage.get_object(node)
         if not node:
             LOGGER.exception(f"Failed to find gr node for {input_node}")
             return
         return node.gr_node
 
     def selected_gr_nodes(self):
+        """Returns a generator of all selected GraphicsNode items in the scene."""
         return (item for item in self.selectedItems() if isinstance(item, GraphicsNode))
 
     def list_selected_node_paths(self):
-        return [gr_node.node.cached_path for gr_node in self.selected_gr_nodes()]
+        """Returns a list of paths for the currently selected GraphicsNode items."""
+        return [gr_node.node.path for gr_node in self.selected_gr_nodes()]
 
     def is_gr_node_selection_empty(self):
+        """Check if there are no selected GraphicsNode items in the scene."""
         return next(self.selected_gr_nodes(), None) is None
 
     def get_last_selected_gr_node(self):
+        """Returns the last selected GraphicsNode item in the scene"""
         if self.is_gr_node_selection_empty():
             return None
         return deque(self.selected_gr_nodes(), maxlen=1).pop()
 
     def clear_nodes(self):
+        """Removes all GraphicsNode items from the scene."""
         for gr_node in self.gr_nodes():
             gr_node._set_node(None)
             self.removeItem(gr_node)
 
     def clear_edges(self):
+        """Removes all GraphicsEdge items from the scene."""
         LOGGER.debug("TODO: cleaning edges")
 
-    def add_node(self, node: "Node | pathlib.PurePosixPath | str"):
-        node = self.stage.node(node)
+    def add_node(self, node: Node | pathlib.PurePosixPath | str):
+        """Adds a GraphicsNode item to the scene for the given node.
+        Args:
+            node: The node to create a GraphicsNode for.
+        """
+        node = self.stage.get_object(node)
         gr_node = GraphicsNode(node)
         self.addItem(gr_node)
 
-    def build_nodes(self, scope_node: "Node"):
+    def build_nodes(self, scope_node: Node):
+        """Builds GraphicsNode items for all child nodes of the given scope node."""
         child_nodes = self.stage.list_children(scope_node)
         for node in child_nodes:
             self.add_node(node)
 
-    def build_edges(self, scope_node: "Node"):
+    def build_edges(self, scope_node: Node):
+        """
+        Builds GraphicsEdge items for all connections between child nodes for given node.
+        """
         # TODO: Build graphics edges
         pass
 
     def rebuild_scope(self, scope_path: pathlib.PurePosixPath):
+        """Rebuilds the scene for the given scope path, preserving the selection.
+        Args:
+            scope_path (pathlib.PurePosixPath): The path of the scope to rebuild.
+        """
+        if not shiboken6.isValid(self.stage):
+            return
+
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
         self.clear_edges()
         self.clear_nodes()
-        scope_node = self.stage.node(scope_path)
+        scope_node = self.stage.get_object(scope_path)
         self.build_nodes(scope_node)
         self.build_edges(scope_node)
         for path in previous_selection:
-            node = self.stage.node(path)
+            try:
+                node = self.stage.get_object(path)
+            except StageObjectQueryError:
+                node = None
             if not node or not node.gr_node:
                 continue
-            node.gr_node.setSelected(True)
+            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def rebuild_current_scope(self):
+        """Rebuilds the scene for the current scope, preserving the selection."""
+        self.graph_editor.make_scope_valid()
         self.rebuild_scope(self.graph_editor.get_scope_path())
 
-    def on_selection_changed(self):
-        selected_paths = self.list_selected_node_paths()
-
-        if not selected_paths:
-            self.signals.nodes_selection_cleared.emit()
-            self._previous_selected_paths.clear()
-            return
-
-        if set(selected_paths) != set(self._previous_selected_paths):
-            self._previous_selected_paths = selected_paths
-            self.signals.nodes_selection_changed.emit(selected_paths)
-
-    def on_tree_view_selection_changed(self):
+    def on_selection_model_selection_changed(self):
+        """Updates the scene selection to match the selection in the selection model."""
         self.blockSignals(True)
-        self.clearSelection()
-        tree_view_selected_nodes = self.graph_editor.tree_view.selected_nodes()
-        current_scope_node = self.stage.node(
-            self.graph_editor.get_scope_path())
-        scope_child_nodes = self.stage.list_children(current_scope_node)
-        scope_selected_nodes = list(
-            set(tree_view_selected_nodes).intersection(set(scope_child_nodes)))
-        if not scope_selected_nodes:
-            return
+        try:
+            self.clearSelection()
+            selected_nodes = [
+                self.stage.itemFromIndex(index)
+                for index in self.selection_model.selectedIndexes()
+            ]
+            scope_selected_nodes = self.graph_editor.filter_nodes_by_scope(
+                selected_nodes
+            )
+            if not scope_selected_nodes:
+                return
 
-        for node in scope_selected_nodes:
-            if node.gr_node is None:
-                LOGGER.exception(
-                    f"Missing graphics node for selection: {node}")
-                continue
-            node.gr_node.setSelected(True)
+            for node in scope_selected_nodes:
+                if node.gr_node is None:
+                    LOGGER.exception(f"Missing graphics node for selection: {node}")
+                    continue
+                node.gr_node.setSelected(True)
+        # Ensure signals are always unblocked even on early return
+        finally:
+            self.blockSignals(False)
 
-        self.blockSignals(False)
+    def on_selection_changed(self):
+        """Updates the selection model to match the scene selection."""
+        gr_nodes = self.selected_gr_nodes()
+        nodes = [gr_node.node for gr_node in gr_nodes]
+        self.selection_model.clearSelection()
+        for node in nodes:
+            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
 
     def start_selected_node_rename(self):
+        """Starts editing the title of the last selected GraphicsNode item."""
         gr_node = self.get_last_selected_gr_node()
         if not gr_node:
             return

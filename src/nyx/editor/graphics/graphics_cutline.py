@@ -1,11 +1,9 @@
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class GraphCutLine(QtWidgets.QGraphicsItem):
     def __init__(self, parent=None):
-        super(GraphCutLine, self).__init__(parent)
+        super().__init__(parent)
 
         self.line_points = []
         self._pen = QtGui.QPen(QtCore.Qt.white)

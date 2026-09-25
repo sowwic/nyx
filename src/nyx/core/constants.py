@@ -1,2 +1,0 @@
-NYX_FILE_EXTENSION = ".nyx"
-NYX_FILE_FILTER = f"Nyx files (*{NYX_FILE_EXTENSION});"

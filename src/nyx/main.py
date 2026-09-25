@@ -1,18 +1,23 @@
-from nyx import get_main_logger
-from nyx.utils.logging_fn import get_log_file_path
-from nyx.application import NyxEditorApplication
+import logging
 
-LOGGER = get_main_logger()
+from nyx.core.logger import NyxLogger
+from nyx.utils.logging_fn import add_signal_handler
+
+logging.setLoggerClass(NyxLogger)
+ROOT_LOGGER = logging.getLogger()
+add_signal_handler(ROOT_LOGGER)
+LOGGER = logging.getLogger(__name__)
 
 
 def main():
+    from nyx.application import NyxEditorApplication
+
     app = NyxEditorApplication()
-    status_code = app.exec_()
+    status_code = app.exec()
     if status_code:
         LOGGER.error(f"Application exit with code {status_code}")
     else:
-        app.config().save()
-    LOGGER.info(f"Log file: {get_log_file_path(LOGGER)}")
+        app.config.save()
 
 
 if __name__ == "__main__":

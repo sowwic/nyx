@@ -1,38 +1,42 @@
-import typing
+import logging
 import pathlib
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+import typing
+
+import shiboken6
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import Stage
-from nyx import get_main_logger
+from nyx.core.exceptions import StageObjectQueryError
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
+    from nyx.core.node import NodeLike, Node
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class StageGraphEditor(QtWidgets.QWidget):
-
     DEFAULT_TITLE = "Untitled"
 
+    stage_changed = QtCore.Signal(Stage)
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
 
-    def __init__(self, stage: Stage = None, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(
+        self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
+    ) -> None:
         super().__init__(parent=parent)
-        self.main_window: "NyxEditorMainWindow" = pyside_fn.find_nyx_editor_window()
+        self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
         self.last_saved_undo_index = 0
-        self.__stage: Stage = None
+        self._selection_model = QtCore.QItemSelectionModel()
+        self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
-        self.__scope_path = self.stage.ROOT_ITEM_PATH
+        self._scope_path = self.stage.root_node.path
 
         self.create_actions()
         self.create_widgets()
@@ -42,22 +46,27 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.gr_stage.rebuild_current_scope()
 
     @classmethod
-    def from_json_file(cls, file_path: "pathlib.Path | str"):
+    def from_json_file(cls, file_path: pathlib.Path | str):
         stage = Stage()
         stage.import_json(file_path)
         widget = cls(stage)
         return widget
 
     @property
-    def stage(self):
-        return self.__stage
+    def stage(self) -> Stage:
+        return self._stage
 
-    def set_stage(self, stage: Stage, create_connections=True):
+    @property
+    def selection_model(self) -> QtCore.QItemSelectionModel:
+        return self._selection_model
+
+    def set_stage(self, stage: Stage | None, create_connections=True):
         old_stage = self.stage
         if stage is None:
             stage = Stage()
-        self.__stage = stage
-        self.update_title()
+        self._stage = stage
+        self._selection_model.setModel(stage)
+        self.stage_changed.emit(stage)
         if create_connections:
             self.create_stage_connections()
         if old_stage:
@@ -84,25 +93,21 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def create_stage_connections(self):
         """Create connections between graph widgets and stage."""
+        # Stage connections
         self.stage.undo_stack.indexChanged.connect(self.update_title)
-        self.stage.undo_stack.indexChanged.connect(
-            self.gr_stage.rebuild_current_scope)
-        self.stage.node_deleted.connect(
-            self._handle_scope_path_at_node_deletion)
+        self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope)
+        self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
+        # Selection model connections
+        self.selection_model.selectionChanged.connect(
+            self.gr_stage.on_selection_model_selection_changed
+        )
 
     def create_connections(self):
         """Create signal to slot connections."""
         self.create_stage_connections()
-        self.tree_view.selection_changed.connect(
-            self.gr_stage.on_tree_view_selection_changed)
+        self.stage_changed.connect(self.update_title)
         self.tree_view.node_doubleclicked.connect(self.set_scope_path)
         self.scope_changed.connect(self.gr_stage.rebuild_scope)
-        self.gr_stage.signals.nodes_selection_cleared.connect(
-            self.tree_view.clearSelection)
-        self.gr_stage.signals.nodes_selection_changed.connect(
-            lambda paths: self.tree_view.select_paths(paths, silent=True))
-        self.gr_stage.signals.nodes_selection_changed.connect(
-            self.main_window.attrib_editor.update_node_data_from_stage_graph)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Overridden close event.
@@ -114,6 +119,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         Returns:
             None: super return call.
+
         """
         if self.maybe_save():
             event.accept()
@@ -138,14 +144,22 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         Returns:
             bool: True if user saved the scene or chose discard option.
+
         """
         if self.stage.is_new() or not self.stage.is_modified():
             return True
 
-        stage_title = self.DEFAULT_TITLE if not self.stage.file_path else self.stage.file_path.name
-        res = QtWidgets.QMessageBox.warning(self, 'Stage is not saved',
-                                            f'Save changes to "{stage_title}"?',
-                                            QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel)
+        stage_title = (
+            self.DEFAULT_TITLE if not self.stage.file_path else self.stage.file_path.name
+        )
+        res = QtWidgets.QMessageBox.warning(
+            self,
+            "Stage is not saved",
+            f'Save changes to "{stage_title}"?',
+            QtWidgets.QMessageBox.Save
+            | QtWidgets.QMessageBox.Discard
+            | QtWidgets.QMessageBox.Cancel,
+        )
         if res == QtWidgets.QMessageBox.Save:
             return self.on_stage_save()
         if res == QtWidgets.QMessageBox.Cancel:
@@ -162,7 +176,8 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         file_filter = "Nyx Stage (*.nyx)"
         file_path = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open Stage", None, file_filter)[0]
+            self, "Open Stage", None, file_filter
+        )[0]
         if not file_path:
             return False
 
@@ -183,7 +198,8 @@ class StageGraphEditor(QtWidgets.QWidget):
     def on_stage_save_as(self):
         file_filter = "Nyx Stage (*.nyx)"
         file_path = QtWidgets.QFileDialog.getSaveFileName(
-            self, 'Save stage to file', None, file_filter)[0]
+            self, "Save stage to file", None, file_filter
+        )[0]
         if not file_path:
             return False
         self.stage.export_json(file_path)
@@ -191,39 +207,69 @@ class StageGraphEditor(QtWidgets.QWidget):
         return True
 
     def get_scope_path(self) -> pathlib.PurePosixPath:
-        return self.__scope_path
+        return self._scope_path
 
-    def set_scope_path(self, scope: "Node | pathlib.PurePosixPath | str", silent=False) -> None:
-        previous_scope = self.get_scope_path()
+    def get_next_valid_scope(self, scope: NodeLike):
+        scope_path = self.stage.pathify(scope)
+        paths_to_check = [scope_path]
+        paths_to_check.extend(scope_path.parents)
+        for each_path in paths_to_check:
+            try:
+                self.stage.get_object(each_path)
+                return each_path
+            except StageObjectQueryError:
+                continue
 
-        node = self.stage.node(scope)
-        if node:
-            new_scope = node.path
-        elif scope and pathlib.PurePosixPath(scope) == self.stage.ROOT_ITEM_PATH:
-            new_scope = self.stage.ROOT_ITEM_PATH
-        else:
-            new_scope = previous_scope
+    def make_scope_valid(self):
+        if not shiboken6.isValid(self.stage):
+            return
+        self.set_scope_path(self.get_next_valid_scope(self._scope_path))
 
-        self.__scope_path = new_scope
-        LOGGER.debug(f"Set scope to: {self.__scope_path}")
+    def set_scope_path(
+        self, scope: Node | pathlib.PurePosixPath | str, silent=False
+    ) -> None:
+        new_scope = self.get_next_valid_scope(scope)
+
+        self._scope_path = new_scope
+        LOGGER.debug(f"Set scope to: {self._scope_path}")
         if not silent:
-            self.scope_changed.emit(self.__scope_path)
+            self.scope_changed.emit(self._scope_path)
 
     def scope_back(self) -> None:
         self.set_scope_path(self.get_scope_path().parent)
 
     def scope_root(self) -> None:
-        self.set_scope_path(self.stage.ROOT_ITEM_PATH)
+        self.set_scope_path(self.stage.root_node.path)
+
+    def filter_nodes_by_scope(self, nodes: list[Node]) -> list[Node]:
+        """Filter nodes by scope.
+
+        Args:
+            nodes (list[Node]): Nodes to filter.
+
+        Returns:
+            list[Node]: Filtered nodes.
+
+        """
+        current_scope_node = self.stage.get_object(self.get_scope_path())
+        scope_child_nodes = self.stage.list_children(current_scope_node)
+        filtered_nodes = list(set(nodes).intersection(set(scope_child_nodes)))
+        return filtered_nodes
 
     def _handle_scope_path_at_node_deletion(self, deleted_node_path):
         current_scope = self.get_scope_path()
-        if current_scope == deleted_node_path or deleted_node_path in current_scope.parents:
-            self.set_scope_path(self.stage.ROOT_ITEM_PATH)
+        if (
+            current_scope == deleted_node_path
+            or deleted_node_path in current_scope.parents
+        ):
+            self.make_scope_valid()
 
-    def list_selected_nodes(self) -> "list[Node]":
+    def list_selected_nodes(self) -> list[Node]:
         """List selected nodes.
 
         Returns:
             list[Node]: selected nodes
+
         """
-        return [self.stage.node(path) for path in self.gr_stage.list_selected_node_paths()]
+        selected_indexes = self.selection_model.selectedIndexes()
+        return [self.stage.itemFromIndex(index) for index in selected_indexes]

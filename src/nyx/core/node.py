@@ -1,98 +1,103 @@
 import enum
-import typing
-import time
+import logging
 import pathlib
-from collections import deque
-from collections import OrderedDict
-from PySide2 import QtCore
-from PySide2 import QtGui
+import time
+import typing
+from collections import OrderedDict, deque
+from collections.abc import Iterable
 
-from nyx.core.attribute import Attribute
-from nyx.core import constants
-from nyx.core.serializable import Serializable
-from nyx.core import nyx_exceptions
-from nyx.utils import inspect_fn
-from nyx.utils import file_fn
-from nyx import get_main_logger
+from uuid import UUID
+from PySide6 import QtCore, QtGui
+
+from .stage_object import StageObject
+from .models.components_model import NodeComponentsModel
+from .plugin_subsystem.registry import NYX_REGISTRY
+from ..utils import file_fn, inspect_fn
+from ..static.vars import NYX_FILE_EXTENSION
+from ..static.enums import CoreNodes, RestoreUuidOption, NodeExecutionStatus
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Stage
+    from .stage import Stage
+    from .node_component import NodeComponent
+    from .stage_crawler import NodeVisitor
     from nyx.editor.graphics.graphics_node import GraphicsNode
+    from nyx.plugins.core.nodes.flow_start import FlowStartNode
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
+
+type NodeLike = Node | UUID | pathlib.PurePosixPath | str
 
 
-class NodeSignals(QtCore.QObject):
-    renamed = QtCore.Signal(pathlib.PurePosixPath, pathlib.PurePosixPath)
-    active_state_changed = QtCore.Signal(bool)
-    execution_started = QtCore.Signal()
-    execution_succeed = QtCore.Signal()
-    execution_failed = QtCore.Signal()
-    attr_added = QtCore.Signal(Attribute)
-    attr_deleted = QtCore.Signal(str)
-    attr_renamed = QtCore.Signal(str, str)
-    input_exec_changed = QtCore.Signal()
-    output_exec_changed = QtCore.Signal()
+class Node(QtGui.QStandardItem, StageObject):
+    DEFAULT_NAME = "node"
+    TRACK_NYX_VERSION: bool = True
 
+    TYPE_ID_KEY = "type_id"
+    NAME_KEY = "name"
+    ACTIVE_KEY = "active"
+    POSITION_KEY = "position"
+    REFERENCE_FILE_KEY = "reference_file_path"
+    COMPONENTS_KEY = "components"
+    CHILDREN_KEY = "children"
 
-class Node(QtGui.QStandardItem, Serializable):
+    class Roles(enum.IntEnum):
+        TYPE_ID_ROLE = QtCore.Qt.UserRole + 1
+        TYPE_DISPLAY_NAME_ROLE = enum.auto()
+        ACTIVE_ROLE = enum.auto()
+        POSITION_ROLE = enum.auto()
+        REFERENCE_FILE_PATH_ROLE = enum.auto()
+        TAGS_ROLE = enum.auto()
+        LOCKED_ROLE = enum.auto()
+        EXECUTION_STATUS_ROLE = enum.auto()
+        RAISED_EXCEPTION_ROLE = enum.auto()
 
-    class Roles(enum.Enum):
-        ATTRIBUTES: int = QtCore.Qt.UserRole + 1
-        PYTHON_CODE: int = enum.auto()
-        INPUT_EXEC: int = enum.auto()
-        OUTPUT_EXEC: int = enum.auto()
-        ACTIVE_ROLE: int = enum.auto()
-        EXECUTION_START_PATH: int = enum.auto()
-        POSITION: int = enum.auto()
-        COMMENT: int = enum.auto()
-        REFERENCE_FILE_PATH: int = enum.auto()
-
-    def __init__(self,
-                 name: str = "node",
-                 parent: "Node | pathlib.PurePosixPath | str | None" = None) -> None:
-        QtGui.QStandardItem.__init__(self, name)
-        Serializable.__init__(self)
-        self._cached_path = None
-        self.gr_node: "GraphicsNode" = None
-        self.signals = NodeSignals()
+    def __init__(
+        self,
+        name: str | None = None,
+        uuid: UUID | str | None = None,
+        parent: Node | None = None,
+    ) -> None:
+        QtGui.QStandardItem.__init__(self, name or self.DEFAULT_NAME)
+        StageObject.__init__(self, uuid=uuid)
         self._set_default_role_values()
+        self._components_model = NodeComponentsModel(node=self)
+        self.gr_node: GraphicsNode = None
 
         if parent:
             parent.appendRow(self)
 
+    def setup(self):
+        pass
+
+    def post_setup_hook(self):
+        self._mark_setup_components_as_builtin()
+
+    def _mark_setup_components_as_builtin(self):
+        for component in self.components_model.list_components():
+            component.mark_as_built_in()
+
     def __repr__(self) -> str:
-        return f"{inspect_fn.class_string(self.__class__)} ({self.cached_path})"
+        return f"{inspect_fn.class_string(self.__class__)} ({self.path})"
 
     def __hash__(self) -> int:
         return hash(self.path)
 
-    def __getitem__(self, key) -> Attribute:
-        try:
-            return self.attribs[key]
-        except KeyError:
-            raise nyx_exceptions.NodeNoAttributeExistError
-
-    def __setitem__(self, key: str, value):
-        data = self.attribs
-        if key not in data:
-            data[key] = Attribute(self, value)
-            LOGGER.debug(f"{self} | Added {data[key]}")
-        else:
-            data[key].set(value)
-        self.setData(data, role=Node.Roles.ATTRIBUTES.value)
+    def __getitem__(self, key: str) -> NodeComponent:
+        return self.components_model.get_component(key)
 
     def _set_default_role_values(self):
-        self.setData(OrderedDict(), role=Node.Roles.ATTRIBUTES.value)
-        self.setData(str(), role=Node.Roles.PYTHON_CODE.value)
-        self.setData(None, role=Node.Roles.INPUT_EXEC.value)
-        self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
-        self.setData(True, role=Node.Roles.ACTIVE_ROLE.value)
-        self.setData(None, role=Node.Roles.EXECUTION_START_PATH.value)
-        self.setData(QtCore.QPointF(), role=Node.Roles.POSITION.value)
-        self.setData(str(), role=Node.Roles.COMMENT.value)
-        self.setData(None, role=Node.Roles.REFERENCE_FILE_PATH.value)
+        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID_ROLE)
+        self.setData(True, role=self.Roles.ACTIVE_ROLE)
+        self.setData(QtCore.QPointF(), role=self.Roles.POSITION_ROLE)
+        self.setData(None, role=self.Roles.REFERENCE_FILE_PATH_ROLE)
+        self.setData(False, role=self.Roles.LOCKED_ROLE)
+        self.setData(self.get_tags(), role=self.Roles.TAGS_ROLE)
+        self.setData(
+            self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME_ROLE
+        )
+        self.setData(None, role=self.Roles.RAISED_EXCEPTION_ROLE)
+        self.setData(NodeExecutionStatus.NOT_RAN, role=self.Roles.EXECUTION_STATUS_ROLE)
 
     @property
     def name(self):
@@ -100,8 +105,13 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             str: name.
+
         """
         return self.text()
+
+    @property
+    def is_stage_root_node(self):
+        return self is self.stage.root_node
 
     @property
     def scope(self):
@@ -113,6 +123,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             pathlib.PurePosixPath: absolute node path.
+
         """
         path = pathlib.PurePosixPath("/")
         if not self.parent():
@@ -120,66 +131,86 @@ class Node(QtGui.QStandardItem, Serializable):
         return self.parent().path / self.name
 
     @property
-    def cached_path(self):
-        return self._cached_path
-
-    @property
-    def stage(self) -> "Stage":
+    def stage(self) -> Stage:
         """Utility method pointing to node's stage (model).
 
         Returns:
             Stage: stage node belongs to.
+
         """
         return self.model()
 
     @property
-    def attribs(self) -> "OrderedDict[str, Attribute]":
-        """Node attributes dictionnary.
+    def components_model(self) -> NodeComponentsModel:
+        """Get components model.
 
         Returns:
-            OrderedDict[str, Attribute]: Node attributes.
+            NodeComponentsModel: components model
         """
-        return self.data(role=Node.Roles.ATTRIBUTES.value)
+        return self._components_model
 
     @property
-    def python_code(self) -> str:
-        """Node python code.
-
-        Returns:
-            str: python code string.
-        """
-        return self.data(role=self.Roles.PYTHON_CODE.value)
-
-    @property
-    def reference_file_path(self) -> pathlib.Path:
-        return self.data(role=self.Roles.REFERENCE_FILE_PATH.value)
+    def reference_file_path(self) -> pathlib.Path | None:
+        return self.data(role=self.Roles.REFERENCE_FILE_PATH_ROLE)
 
     @property
     def is_referenced(self):
         nodes = [self]
-        nodes += self.list_parents()
+        nodes.extend(self.list_parents())
         return any([node.reference_file_path is not None for node in nodes])
 
-    def cache_current_path(self):
-        """Store current path in cache."""
-        self._cached_path = self.path
+    @property
+    def is_locked(self):
+        return self.data(self.Roles.LOCKED_ROLE)
+
+    @is_locked.setter
+    def is_locked(self, state: bool):
+        self.setData(state, self.Roles.LOCKED_ROLE)
+
+    @property
+    def tags(self) -> set[str]:
+        return self.data(role=self.Roles.TAGS_ROLE)
+
+    @tags.setter
+    def tags(self, new_tags: Iterable) -> None:
+        self.setData(set(new_tags), role=self.Roles.TAGS_ROLE)
+
+    @property
+    def raised_exception(self) -> Exception | None:
+        return self.data(self.Roles.RAISED_EXCEPTION_ROLE)
+
+    @raised_exception.setter
+    def raised_exception(self, err: Exception) -> None:
+        return self.setData(err, self.Roles.RAISED_EXCEPTION_ROLE)
+
+    @property
+    def execution_status(self) -> NodeExecutionStatus:
+        return self.data(self.Roles.EXECUTION_STATUS_ROLE)
+
+    @execution_status.setter
+    def execution_status(self, status: NodeExecutionStatus) -> None:
+        self.setData(status, role=self.Roles.EXECUTION_STATUS_ROLE)
+
+    def reset_execution_status(self):
+        self.execution_status = NodeExecutionStatus.NOT_RAN
 
     def is_active(self) -> bool:
         """Query if node's active state.
 
         Returns:
             bool: current active state.
+
         """
-        return self.data(role=Node.Roles.ACTIVE_ROLE.value)
+        return self.data(role=Node.Roles.ACTIVE_ROLE)
 
     def set_active(self, state: bool):
         """Set active state.
 
         Args:
             state (bool): new active state.
+
         """
-        self.setData(state, role=Node.Roles.ACTIVE_ROLE.value)
-        self.signals.active_state_changed.emit(state)
+        self.setData(state, role=Node.Roles.ACTIVE_ROLE)
 
     def deactivate(self):
         """Set node's active state to False."""
@@ -190,26 +221,19 @@ class Node(QtGui.QStandardItem, Serializable):
         self.set_active(True)
 
     def position(self) -> QtCore.QPointF:
-        return self.data(role=Node.Roles.POSITION.value)
+        return self.data(role=Node.Roles.POSITION_ROLE)
 
     def serializable_position(self):
         position = self.position()
         return [position.x(), position.y()]
 
     def set_position(self, position: QtCore.QPointF):
-        self.setData(position, role=Node.Roles.POSITION.value)
+        self.setData(position, role=Node.Roles.POSITION_ROLE)
 
-    def comment(self) -> str:
-        return self.data(role=Node.Roles.COMMENT.value)
+    def set_reference_file(self, path: pathlib.Path | str):
+        self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH_ROLE)
 
-    def set_comment(self, text: str):
-        self.setData(text, role=Node.Roles.COMMENT.value)
-
-    def set_reference_file(self, path: "pathlib.Path | str"):
-        self.setData(pathlib.Path(path),
-                     role=Node.Roles.REFERENCE_FILE_PATH.value)
-
-    def appendRow(self, items: typing.Sequence["Node"]) -> None:
+    def appendRow(self, items: Node | typing.Sequence[Node]) -> None:
         """Override Qt method.
 
         - Generates new unique name.
@@ -221,25 +245,20 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Raises:
             ValueError: path exists in stage path map.
+
         """
         if not isinstance(items, typing.Sequence):
             items = [items]
 
         for node in items:
             unique_name = self.stage.generate_unique_node_name(
-                node.name, parent_node=self)
-            new_path = self.path / unique_name
-            if new_path in self.stage.path_map:
-                LOGGER.error(f"Duplicate path: {new_path}")
-                raise ValueError
-
+                node.name, parent_node=self
+            )
             node.setText(unique_name)
+            self.stage.register_node(node)
             super().appendRow(node)
-            assert node.path == new_path
-            LOGGER.debug(f"{self} | added child node {new_path}")
-
-            node.cache_current_path()
-            self.stage._path_map[node.path] = node
+            node.setup()
+            node.post_setup_hook()
 
     def rename(self, new_name: str):
         """Rename node.
@@ -248,62 +267,58 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             new_name (str): new node name.
+
         """
         if new_name == self.name:
             return
 
-        old_path = self.cached_path
         new_name = self.stage.generate_unique_node_name(
-            new_name, parent_node=self.parent())
+            new_name, parent_node=self.parent()
+        )
         self.setText(new_name)
-        self._update_pathmap_entry()
-        self.signals.renamed.emit(old_path, self.cached_path)
 
-    def _update_pathmap_entry(self):
-        """Update path stored for in stage path map."""
-        self.stage._path_map.pop(self.cached_path)
-        self.stage._path_map[self.path] = self
-        self.cache_current_path()
-        for child_node in self.list_children():
-            child_node._update_pathmap_entry()
-
-    def child_names_set(self):
+    @property
+    def child_names_set(self) -> set[str]:
         """Get set of existing child names.
 
         Returns:
             set[str]: child names.
-        """
-        return {node.text() for node in self.list_children()}
 
-    def list_children(self) -> "list[Node]":
+        """
+        return {node.name for node in self.list_children()}
+
+    def list_children(self) -> list[Node]:
         """List child nodes.
 
         Returns:
             list[Node]: child nodes.
+
         """
         children = [self.child(row) for row in range(self.rowCount())]
         return children
 
-    def list_children_paths(self) -> "list[pathlib.PurePosixPath]":
+    def list_children_paths(self) -> list[pathlib.PurePosixPath]:
         """List of child paths.
 
         Returns:
             list[pathlib.PurePosixPath]: child paths.
-        """
-        return [child_node.cached_path for child_node in self.list_children()]
 
-    def list_children_tree(self) -> "list[Node]":
+        """
+        return [child_node.path for child_node in self.list_children()]
+
+    def list_children_tree(self) -> list[Node]:
         """List children tree recursively.
 
         Returns:
             list[Node]: child nodes tree.
+
         """
         children = self.list_children()
         for child in children:
             children += child.list_children()
         return children
 
-    def is_parent_of(self, other_node: "Node | str | pathlib.PurePosixPath"):
+    def is_parent_of(self, other_node: Node | str | pathlib.PurePosixPath):
         """Check if given path is path of one of the child nodes.
 
         Args:
@@ -311,25 +326,31 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             bool: if path belongs to one of children.
-        """
-        if isinstance(other_node, (str, pathlib.PurePosixPath)) and self.stage.resolver.is_relative_path(other_node):
-            other_node = self.stage.resolver.computer_absolute_path(
-                self.cached_path, other_node)
 
-        other_node = self.stage.node(other_node)
+        """
+        if isinstance(
+            other_node, (str, pathlib.PurePosixPath)
+        ) and self.stage.path_resolver.is_relative_path(other_node):
+            other_node = self.stage.path_resolver.compute_absolute_path(
+                self.path, other_node
+            )
+
+        other_node = self.stage.get_object(other_node)
         return other_node in set(self.list_children())
 
-    def list_parents(self, as_queue=False) -> "list[Node] | deque[Node]":
+    def list_parents(self, as_queue=False) -> list[Node] | deque[Node]:
         """List parents recursively.
 
         Args:
-            as_queue (bool, optional): if result should be returned as deque. Defaults to False.
+            as_queue: If result should be returned as deque. Defaults to False.
 
         Returns:
             list[Node] | deque[Node]: parent nodes collection.
+
         """
         parents = deque()
-        if self.parent():
+        direct_parent: Node = self.parent()
+        if direct_parent and not direct_parent.is_stage_root_node:
             parents.appendleft(self.parent())
             parents.extendleft(self.parent().list_parents())
         return parents if as_queue else list(parents)
@@ -338,240 +359,8 @@ class Node(QtGui.QStandardItem, Serializable):
         """Delete this node from stage."""
         self.stage.delete_node(self)
 
-    def add_attr(self, name: str, value=None, resolve=True):
-        name = self.generate_unique_attr_name(name)
-        self[name] = value
-        if resolve:
-            self[name].resolve()
-        self.signals.attr_added.emit(self[name])
-        return self[name]
-
-    def generate_unique_attr_name(self, name: str):
-        if name in self.attribs.keys():
-            index = 1
-            while name + str(index) in self.attribs.keys():
-                index += 1
-            return name + str(index)
-        return name
-
-    def attr(self, name: str) -> Attribute:
-        """Get attribute with name.
-
-        Args:
-            name (str): attribute name.
-
-        Returns:
-            Attribute: attribute instance.
-        """
-        return self[name]
-
-    def set_attr(self, name: str, value: typing.Any):
-        """Set raw attribute value.
-
-        Args:
-            name (str): attribute name.
-            value (typing.Any): new value.
-        """
-        self[name] = value
-
-    def delete_attr(self, name: str):
-        """Delete attribute.
-
-        Args:
-            name (str): attribute name.
-        """
-        data = self.attribs
-        if name not in data.keys():
-            LOGGER.warning(
-                f"Can't delete attribute {name} that doesn't exist!")
-            return
-        data.pop(name)
-        self.setData(data, role=Node.Roles.ATTRIBUTES.value)
-        self.signals.attr_deleted.emit(name)
-        LOGGER.debug(f"{self} | deleted attr {name}")
-
-    def rename_attr(self, name: str, new_name: str):
-        """Rename attribute.
-
-        Args:
-            name (str): attribute name.
-            new_name (str): new attribute name.
-        """
-        if not new_name:
-            LOGGER.error("New attribute name can't be empty string!")
-            return
-
-        data = self.attribs
-        if name not in data.keys():
-            LOGGER.warning(
-                f"Can't rename attribute {name} that doesn't exist!")
-            return
-
-        new_name = self.generate_unique_attr_name(new_name)
-        data[new_name] = data.pop(name)
-        self.setData(data, role=Node.Roles.ATTRIBUTES.value)
-        self.signals.attr_renamed.emit(name, new_name)
-        return data[new_name]
-
-    def stacked_attribs(self):
-        """Dictionary of merged dictionaries.
-
-        parent: {a: 5, b: 10}, child: {a: 15} -> result: {a: 15, b: 10}
-
-        Returns:
-            OrderedDict: merged dictionary.
-        """
-        stacked_attrs = OrderedDict()
-        for parent in self.list_parents(as_queue=True):
-            stacked_attrs.update(parent.attribs)
-        stacked_attrs.update(self.attribs)
-        return stacked_attrs
-
-    def get_input_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
-        """Get path for the node that is set as execution dependency.
-
-        Args:
-            serializable (bool, optional): Return value is serializable. Defaults to False.
-
-        Returns:
-            pathlib.PurePosixPath | str | None: Execution dependency node path.
-        """
-        path: pathlib.PurePosixPath = self.data(
-            role=Node.Roles.INPUT_EXEC.value)
-        if path is None or not serializable:
-            return path
-        return path.as_posix()
-
-    def get_output_exec_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
-        """Get path for the node that is execution dependee of this node.
-
-        Args:
-            serializable (bool, optional): Return value is serializable. Defaults to False.
-
-        Returns:
-            pathlib.PurePosixPath | str | None: Execution dependee node path.
-        """
-        path: pathlib.PurePosixPath = self.data(
-            role=Node.Roles.OUTPUT_EXEC.value)
-        if path is None or not serializable:
-            return path
-        return path.as_posix()
-
-    def is_input_exec_cyclic(self, other_node: "Node | pathlib.PurePosixPath | str") -> bool:
-        other_node = self.stage.node(other_node)
-        return other_node.get_input_exec_path() == self.path
-
-    def set_input_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
-        """Set given node as execution dependency.
-
-        Args:
-            path (pathlib.PurePosixPath | str | Node): Node instance or path.
-            silent (bool, optional): Do not notify other nodes of the change,
-            and just set data. Defaults to False.
-
-        Raises:
-            TypeError: Invalid input provided.
-        """
-        if isinstance(path, Node):
-            path = path.path
-        elif isinstance(path, pathlib.PurePosixPath):
-            pass
-        elif isinstance(path, str):
-            path = pathlib.PurePosixPath(path)
-        elif path is None:
-            pass
-        else:
-            LOGGER.error(f"{self} | Invalid input exec path: {path}")
-            raise TypeError("Invalid input exec path type")
-
-        if silent:
-            self.setData(path, role=Node.Roles.INPUT_EXEC.value)
-            return
-
-        new_input_exec_node: "Node" = self.stage.node(path)
-        previous_input_exec_node = self.stage.node(self.get_input_exec_path())
-        if new_input_exec_node == previous_input_exec_node:
-            LOGGER.debug(f"{self} | exec output set to {path}")
-            return
-
-        if new_input_exec_node and new_input_exec_node.scope != self.scope:
-            LOGGER.error(
-                f"{self} | Invalid new input scope: {new_input_exec_node.scope}")
-            return
-
-        # Set connections
-        if new_input_exec_node is None:
-            self.setData(None, role=Node.Roles.INPUT_EXEC.value)
-        else:
-            self.setData(new_input_exec_node.path,
-                         role=Node.Roles.INPUT_EXEC.value)
-
-        # Reset old input node
-        if previous_input_exec_node is not None:
-            previous_input_exec_node.set_output_exec_path(None, silent=True)
-
-        # Get path from new node to self
-        # If its different from self.path -> store new path
-        if new_input_exec_node is not None:
-            if new_input_exec_node.get_output_exec_path() != self.path:
-                new_input_exec_node.set_output_exec_path(self.path)
-        self.signals.input_exec_changed.emit()
-
-    def set_output_exec_path(self, path: "pathlib.PurePosixPath | str | Node", silent=False) -> None:
-        """Set given node as execution dependee.
-
-        Args:
-            path (pathlib.PurePosixPath | str | Node): Dependee node instance or path.
-            silent (bool, optional): Do not notify other nodes of the change,
-            and just set data. Defaults to False.
-
-        Raises:
-            TypeError: Invalid input provided.
-        """
-        if isinstance(path, Node):
-            path = path.path
-        elif isinstance(path, pathlib.PurePosixPath):
-            pass
-        elif isinstance(path, str):
-            path = pathlib.PurePosixPath(path)
-        elif path is None:
-            pass
-        else:
-            LOGGER.error(f"{self} | Invalid output exec path: {path}")
-            raise TypeError("Invalid output exec path type")
-
-        if silent:
-            self.setData(path, role=Node.Roles.OUTPUT_EXEC.value)
-            return
-
-        new_output_exec_node = self.stage.node(path)
-        previous_output_exec_node = self.stage.node(
-            self.get_output_exec_path())
-        if new_output_exec_node == previous_output_exec_node:
-            LOGGER.debug(f"{self} | exec output set to {path}")
-            return
-
-        if new_output_exec_node and new_output_exec_node.scope != self.scope:
-            LOGGER.error(
-                f"{self} | Invalid new output scope: {new_output_exec_node.scope}")
-            return
-        # Set connections
-        if new_output_exec_node is None:
-            self.setData(None, role=Node.Roles.OUTPUT_EXEC.value)
-        else:
-            self.setData(new_output_exec_node.path,
-                         role=Node.Roles.OUTPUT_EXEC.value)
-
-        # Reset old output node
-        if previous_output_exec_node is not None:
-            previous_output_exec_node.set_input_exec_path(None, silent=True)
-
-        # Get path from new node to self
-        # If its different from self.path -> store new path
-        if new_output_exec_node is not None:
-            if new_output_exec_node.get_output_exec_path() != self.path:
-                new_output_exec_node.set_input_exec_path(self.path)
-        self.signals.output_exec_changed.emit()
+    def add_component(self, node_component: NodeComponent):
+        self.components_model.add_component(node_component)
 
     def on_changed(self):
         pass
@@ -581,88 +370,88 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Returns:
             OrderedDict: serialized data
+
         """
-        data = super().serialize()
-        children = [child.serialize() for child in self.list_children()]
-        attribs = [attr.serialize() for _, attr in self.attribs.items()]
-        metadata = {
-            "type": "node"
-        }
-        data["metadata"].update(metadata)
-        data["name"] = self.text()
-        data["active"] = self.is_active()
-        data["position"] = self.serializable_position()
-        data["path"] = self.path.as_posix()
-        data["input_exec"] = self.get_input_exec_path(serializable=True)
-        data["output_exec"] = self.get_output_exec_path(serializable=True)
+        serialized_data = super().serialize()
+        serialized_data["name"] = self.name
+        serialized_data["type_id"] = self.get_type_id()
+        serialized_data["active"] = self.is_active()
+        serialized_data["position"] = self.serializable_position()
+        serialized_data.update(self.components_model.serialize())
         if self.reference_file_path is not None:
-            data["reference_file_path"] = self.reference_file_path.as_posix()
+            serialized_data[self.REFERENCE_FILE_KEY] = (
+                self.reference_file_path.as_posix()
+            )
         else:
-            data["execution_start_path"] = self.get_execution_start_path(
-                serializable=True)
-            data["attribs"] = attribs
-            data["children"] = children
-            data["code"] = self.python_code
-            data["comment"] = self.comment()
-        return data
+            serialized_data[self.CHILDREN_KEY] = [
+                child_node.serialize() for child_node in self.list_children()
+            ]
+        return serialized_data
 
-    def deserialize(self, data: OrderedDict, restore_id=True):
-        """Deserialize node from serialized node dictionary.
+    @classmethod
+    def deserialize(
+        cls,
+        serialized_node: OrderedDict[str, typing.Any],
+        node: Node | None = None,
+        parent_node: Node | None = None,
+        restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
+    ) -> Node:
+        stage = parent_node.stage if parent_node is not None else None
+        uuid = cls.choose_new_uuid(
+            stage=stage,
+            serialized_data=serialized_node,
+            restore_option=restore_uuid,
+        )
 
-        Args:
-            data (OrderedDict): Node data dictionary.
-            restore_id (bool, optional): Restore node uuid. Defaults to True.
-        """
-        super().deserialize(data, restore_id=restore_id)
+        if not node:
+            node_cls = NYX_REGISTRY.get_node_cls(serialized_node[cls.TYPE_ID_KEY])
+            node = node_cls(
+                name=serialized_node[cls.NAME_KEY], uuid=uuid, parent=parent_node
+            )
+        else:
+            node.rename(serialized_node[cls.NAME_KEY])
 
-        if self.name != data.get("name", self.name):
-            self.rename(data.get("name"))
+        LOGGER.debug(f"Deserializing: {serialized_node.get(cls.NAME_KEY)}")
+        if uuid is not None:
+            node.uuid = uuid
 
         # Roles that should exist for normal and reference nodes
-        self.set_active(data.get("active", True))
-        self.set_input_exec_path(data.get("input_exec", ""), silent=True)
-        self.set_output_exec_path(data.get("output_exec", ""), silent=True)
-        self.set_position(QtCore.QPointF(*data.get("position", [0.0, 0.0])))
+        node.set_active(serialized_node.get(cls.ACTIVE_KEY, True))
+        node.set_position(
+            QtCore.QPointF(*serialized_node.get(cls.POSITION_KEY, [0.0, 0.0]))
+        )
 
         # Get data from reference
-        reference_file_path = data.get("reference_file_path")
+        reference_file_path = serialized_node.get(cls.REFERENCE_FILE_KEY)
         if reference_file_path:
             reference_file_path = pathlib.Path(reference_file_path)
-            self.set_reference_file(reference_file_path)
-            data = self._load_reference_file_data()
-
-        self.set_execution_start_path(data.get("execution_start_path"))
-        self.set_python_code(data.get("code", ""))
-        self.set_comment(data.get("comment", ""))
-
-        self._update_pathmap_entry()
-
-        # Attributes
-        for attr_data in data.get("attribs", {}):
-            attr_name = attr_data["name"]
-            self.set_attr(attr_name, attr_data.get("value"))
-            self[attr_name].deserialize(attr_data, restore_id=True)
+            node.set_reference_file(reference_file_path)
+            serialized_node = node._load_reference_file_data()
 
         # Children
-        for child_data in data.get("children", {}):
-            child_node = Node(parent=self)
-            child_node.deserialize(child_data, restore_id=True)
+        for child_data in serialized_node.get(cls.CHILDREN_KEY, {}):
+            cls.deserialize(
+                serialized_node=child_data,
+                parent_node=node,
+                restore_uuid=restore_uuid,
+            )
+
+        # Components
+        node.components_model.deserialize(serialized_node.get(cls.COMPONENTS_KEY))
+
+        return node
 
     def _load_reference_file_data(self) -> OrderedDict:
         data = OrderedDict()
         try:
-            if self.reference_file_path.suffix == constants.NYX_FILE_EXTENSION:
+            if self.reference_file_path.suffix == NYX_FILE_EXTENSION:
                 data = file_fn.load_json(
-                    self.reference_file_path, object_pairs_hook=OrderedDict)
-                if data["metadata"]["type"] == "stage":
-                    data = self.stage.convert_stage_to_node(
-                        stage=data, name=self.reference_file_path.stem)
+                    self.reference_file_path, object_pairs_hook=OrderedDict
+                )
             else:
-                raise ValueError(
-                    f"Invalid file type: {self.reference_file_path}")
+                raise ValueError(f"Invalid file type: {self.reference_file_path}")
         except FileNotFoundError:
-            LOGGER.exception(
-                f"Reference file doesn't exist: {self.reference_file_path}")
+            LOGGER.exception(f"Reference file doesn't exist: {self.reference_file_path}")
         return data
 
     def export_to_json(self, file_path: pathlib.Path):
@@ -670,6 +459,7 @@ class Node(QtGui.QStandardItem, Serializable):
 
         Args:
             file_path (pathlib.Path): json file path.
+
         """
         data = self.serialize()
         file_fn.write_json(file_path, data)
@@ -680,129 +470,103 @@ class Node(QtGui.QStandardItem, Serializable):
         Args:
             file_path (pathlib.Path): json file path.
             as_reference (bool, optional): if node should be locked. Defaults to False.
+
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
-        self.deserialize(json_data, restore_id=False)
+        self.deserialize(json_data)
 
-    def get_python_code(self) -> str:
-        """Node python code.
+    def find_child_by_name(self, name) -> Node | None:
+        for node in self.list_children():
+            if node.name == name:
+                return node
+
+    def find_child_node_of_type(self, type_id: str) -> Node | None:
+        for node in self.list_children():
+            if node.get_type_id() == type_id:
+                return node
+
+    def find_flow_start_node(self) -> FlowStartNode:
+        """Find first child flow start node
 
         Returns:
-            str: python code.
+            FlowStartNode instance.
         """
-        return self.python_code
+        return self.find_child_node_of_type(type_id=CoreNodes.FLOW_START)
 
-    def set_python_code(self, code_str) -> None:
-        """Set python code string.
+    def accept_visitor(self, visitor: NodeVisitor):
+        if not self.is_active():
+            LOGGER.warning("Not Active: %s", self.path.as_posix())
+            return
+        visitor.visit_node(self)
 
-        Args:
-            code_str (str): python code.
-        """
-        self.setData(code_str, role=Node.Roles.PYTHON_CODE.value)
+    def pre_execution(self):
+        self.setData(None, self.Roles.RAISED_EXCEPTION_ROLE)
 
-    def resolve_python_code(self) -> str:
+    def pre_execution_hook(self):
         pass
 
-    def resolve(self):
-        for attr in self.attribs.values():
-            attr.resolve()
+    def post_execution_hook(self):
+        pass
 
-    def execute_code(self):
-        """Execute code string."""
-        exec(self.python_code, {"self": self})
+    def evaluate(self):
+        """Evaluate components values on this node.
 
-    def clear_attributes_caches(self):
-        """Clear all attributes caches."""
-        for attr in self.attribs.values():
-            attr.clear_cache()
+        Raises:
+            err: run time exception raised during code execution.
 
-    def cache_attributes_values(self):
-        """Push current attributes values to cache."""
-        for attr in self.attribs.values():
-            attr.cache_current_value()
-
-    def set_execution_start_path(self, child_path: "pathlib.PurePosixPath | str | None"):
-        """Set execution start path to one of the child node's path.
-
-        Args:
-            child_path (pathlib.PurePosixPath | None): execution start node path.
         """
-        if isinstance(child_path, Node):
-            child_path = child_path.cached_path
-
-        elif isinstance(child_path, str):
-            child_path = pathlib.PurePosixPath(child_path)
-
-        self.setData(
-            child_path, role=Node.Roles.EXECUTION_START_PATH.value)
-        LOGGER.info(f"{self} | Set execution start path to: {child_path}")
-
-    def get_execution_start_path(self, serializable=False) -> "pathlib.PurePosixPath | str | None":
-        """Get execution start path. Can be child path or None.
-
-        Args:
-            serializable (bool, optional): get path as jsonable str or None. Defaults to False.
-
-        Returns:
-            pathlib.PurePosixPath | str | None: execution start path
-        """
-        path = self.data(role=Node.Roles.EXECUTION_START_PATH.value)
-        if serializable and isinstance(path, pathlib.PurePosixPath):
-            path = path.as_posix()
-        return path
-
-    def build_execution_queue(self) -> "deque[pathlib.PurePosixPath]":
-        """Build execution queue from given node.
-
-        Returns:
-            deque[pathlib.PurePosixPath]: Execution queue.
-        """
-        exec_queue = deque()
-        if self.is_active():
-            exec_queue.append(self.cached_path)
-            child_path = self.get_execution_start_path()
-            if child_path:
-                # TODO: check if relative and convert to abs
-                if self.stage.resolver.is_relative_path(child_path):
-                    child_path = self.stage.resolver.computer_absolute_path(
-                        self.cached_path, child_path)
-                child_node = self.stage.node(child_path)
-                if child_node:
-                    exec_queue.extend(child_node.build_execution_queue())
-                else:
-                    LOGGER.warning(
-                        f"{self} | start path doesn't exist: {child_path}")
-
-        output_path = self.get_output_exec_path()
-        if output_path:
-            output_node = self.stage.node(output_path)
-            if output_node:
-                exec_queue.extend(output_node.build_execution_queue())
-            else:
-                LOGGER.warning(
-                    f"{self} | output exec path doesn't exist: {output_path} ")
-
-        return exec_queue
+        pass
 
     def execute(self):
+        pass
+
+    def evaluate_components(self):
+        for component in self.components_model.list_components():
+            component.evaluate()
+
+    def execute_components(self):
+        for component in self.components_model.list_components():
+            component.execution_hook()
+
+    def execution_hook(self):
         """Execute this node.
 
         Raises:
             err: run time exception raised during code execution.
+
         """
+        self.reset_execution_status()
         if not self.is_active():
             return
 
+        self.execution_status = NodeExecutionStatus.PENDING
         start_time = time.perf_counter()
         try:
-            self.signals.execution_started.emit()
-            self.cache_attributes_values()
-            self.execute_code()
+            self.pre_execution_hook()
+            self.evaluate_components()
+            self.evaluate()
+            self.execute_components()
+            self.execute()
+            self.post_execution_hook()
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error.")
-            self.signals.execution_failed.emit()
+            self.raised_exception = err
+            self.execution_status = NodeExecutionStatus.ERROR
             raise err
+        else:
+            self.execution_status = NodeExecutionStatus.SUCCESS
 
-        self.signals.execution_succeed.emit()
         total_time = time.perf_counter() - start_time
-        LOGGER.info(f"Executed in {total_time:.4f}: {self.cached_path}")
+        LOGGER.info(f"Executed in {total_time:.4f}: {self.path}")
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        return CoreNodes.EMPTY
+
+    @classmethod
+    def get_type_display_name(cls) -> str:
+        return cls.__name__
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
+        return set()

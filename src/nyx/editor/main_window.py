@@ -1,53 +1,57 @@
 import pathlib
+import typing
+import logging
 
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+from PySide6 import QtCore
+from PySide6 import QtGui
+from PySide6 import QtWidgets
 
-from nyx._version import _version
-from nyx import get_main_logger
-from nyx.core.config import Config
-from nyx.editor.views.stage_tree_view import StageTreeView
-from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
-from nyx.editor.widgets.logger_widget import LoggerWidget
-from nyx.editor.widgets.attribute_editor import AttributeEditor
-from nyx.editor.widgets.code_editor import CodeEditor
-from nyx.editor.widgets.editor_toolbar import EditorToolBar
-from nyx.editor.widgets import menubar_menus
-from nyx.utils import pyside_fn
+from ..version import __version__
+from .views.stage_tree_view import StageTreeView
+from .widgets.stage_graph_editor import StageGraphEditor
+from .widgets.logger_widget import LoggerWidget
+from .widgets.inspector import Inspector
+from .widgets.editor_toolbar import EditorToolBar
+from .widgets import menubar_menus
+from .widgets.stage_mdi_window import StageMdiSubWindow
 
 
-LOGGER = get_main_logger()
+if typing.TYPE_CHECKING:
+    from nyx.api.v1 import Stage
+    from ..application import NyxEditorApplication
+    from ..core.layered_config import NyxConfig
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class NyxEditorMainWindow(QtWidgets.QMainWindow):
+    _INSTANCE: NyxEditorMainWindow = None
 
-    __INSTANCE: "NyxEditorMainWindow" = None
-
-    DEFAULT_TITLE = f"Nyx Editor v{_version}"
+    DEFAULT_TITLE = f"Nyx Editor v{__version__}"
     MINIMUM_SIZE = (500, 400)
 
     @classmethod
     def instance(cls):
-        return cls.__INSTANCE
+        return cls._INSTANCE
 
     @classmethod
     def display(cls):
-        if not cls.__INSTANCE:
-            cls.__INSTANCE = cls()
+        if not cls._INSTANCE:
+            cls._INSTANCE = cls()
 
-        if cls.__INSTANCE.isHidden():
-            cls.__INSTANCE.show()
+        if cls._INSTANCE.isHidden():
+            cls._INSTANCE.show()
         else:
-            cls.__INSTANCE.raise_()
-            cls.__INSTANCE.activateWindow()
+            cls._INSTANCE.raise_()
+            cls._INSTANCE.activateWindow()
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self._is_nyx_editor_window = True
         self.setWindowTitle(self.DEFAULT_TITLE)
         self.setMinimumSize(*self.MINIMUM_SIZE)
-        self.undo_group = QtWidgets.QUndoGroup(self)
+        self.undo_group = QtGui.QUndoGroup(self)
 
         # Initialize ui
         self.create_actions()
@@ -59,27 +63,35 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.apply_config_values()
 
     @property
-    def config(self) -> "Config":
-        return Config.load()
+    def config(self) -> NyxConfig:
+        return self.application.config
 
     @property
-    def current_stage_graph(self) -> "StageGraphEditor | None":
+    def current_stage_graph(self) -> StageGraphEditor | None:
         if not self.current_mdi_window:
             return None
         return self.current_mdi_window.widget()
 
     @property
-    def current_mdi_window(self) -> "QtWidgets.QMdiSubWindow | None":
+    def current_mdi_window(self) -> QtWidgets.QMdiSubWindow | None:
         return self.mdi_area.currentSubWindow()
 
+    @property
+    def application(self):
+        app: NyxEditorApplication = QtWidgets.QApplication.instance()
+        return app
+
     def create_actions(self):
-        self.execute_stage_action = QtWidgets.QAction(
-            pyside_fn.get_standard_icon(self, "SP_MediaPlay"), "Execute stage", self)
-        self.execute_from_selected_node_action = QtWidgets.QAction(
-            pyside_fn.get_standard_icon(self, "SP_MediaSkipForward"), "Execute from selected node", self)
+        self.execute_stage_action = QtGui.QAction(
+            QtGui.QIcon(":/icons/exec_stage"), "Execute stage", self
+        )
+        self.execute_from_selected_node_action = QtGui.QAction(
+            QtGui.QIcon(":/icons/exec_from"), "Execute from selected node", self
+        )
         self.execute_stage_action.triggered.connect(self.execute_stage_graph)
         self.execute_from_selected_node_action.triggered.connect(
-            self.execute_from_selected_node)
+            self.execute_from_selected_node
+        )
 
     def create_menubar(self):
         self.menubar_file_menu = menubar_menus.FileMenu(self)
@@ -94,8 +106,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_widgets(self):
         self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
-        self.code_editor = CodeEditor(self)
-        self.attrib_editor = AttributeEditor(self)
+        self.inspector = Inspector(self)
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
         self.tool_bar = EditorToolBar(self)
@@ -111,12 +122,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.mdi_area.setTabsMovable(True)
 
         # Dock Widgets
-        self.setTabPosition(QtCore.Qt.RightDockWidgetArea,
-                            QtWidgets.QTabWidget.East)
-        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea,
-                            QtWidgets.QTabWidget.West)
-        self.setTabPosition(QtCore.Qt.BottomDockWidgetArea,
-                            QtWidgets.QTabWidget.North)
+        self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
+        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.West)
+        self.setTabPosition(QtCore.Qt.BottomDockWidgetArea, QtWidgets.QTabWidget.North)
         # Tree dock
         self.stage_tree_dock = QtWidgets.QDockWidget("Tree View")
         self.stage_tree_dock.setWidget(self.stage_tree_view)
@@ -126,36 +134,36 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Logger dock
         self.logger_dock = QtWidgets.QDockWidget("Output Log")
         self.logger_dock.setWidget(self.logger_widget)
-        # Code editor dock
-        self.code_editor_dock = QtWidgets.QDockWidget("Code Editor")
-        self.code_editor_dock.setWidget(self.code_editor)
+        # Components dock
+        # self.components_dock = QtWidgets.QDockWidget("Components")
+        # self.components_dock.setWidget(self.components_view)
         # Toolbar dock
         self.toolbar_dock = QtWidgets.QDockWidget("Tools")
         self.toolbar_dock.setAllowedAreas(
-            QtCore.Qt.TopDockWidgetArea | QtCore.Qt.BottomDockWidgetArea)
+            QtCore.Qt.TopDockWidgetArea | QtCore.Qt.BottomDockWidgetArea
+        )
         self.toolbar_dock.setWidget(self.tool_bar)
-        # Attribute editor dock
-        self.attrib_editor_dock = QtWidgets.QDockWidget("Attribute Editor")
-        self.attrib_editor_dock.setWidget(self.attrib_editor)
+        # Inspector dock
+        self.inspector_dock = QtWidgets.QDockWidget("Inspector")
+        self.inspector_dock.setWidget(self.inspector)
 
         # Add dock widgets
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
-                           self.attrib_editor_dock)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
-                           self.code_editor_dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.inspector_dock)
+        # self.addDockWidget(QtCore.Qt.RightDockWidgetArea,
+        #                    self.components_dock)
         self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.toolbar_dock)
 
     def create_layouts(self):
         pass
 
     def create_connections(self):
-        self.mdi_area.subWindowActivated.connect(
-            self.on_node_graph_window_activated)
+        self.mdi_area.subWindowActivated.connect(self.on_node_graph_window_activated)
         self.mdi_area.subWindowActivated.connect(self.update_title)
         self.undo_group.indexChanged.connect(self.update_title)
+        self.undo_group.indexChanged.connect(self.inspector.update_data)
 
     # Events
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
@@ -174,37 +182,42 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     # Config methods
     def save_config_value(self):
-        self.config.window_position = (self.pos().x(), self.pos().y())
-        self.config.window_size = (self.width(), self.height())
+        self.config.values.main_window.position = (self.pos().x(), self.pos().y())
+        self.config.values.main_window.size = (self.width(), self.height())
         # self.config.window_always_on_top = self.pin_window_btn.isChecked()
+        # self.config.save()
 
     def apply_config_values(self):
         """Apply values from application config."""
-        self.resize(QtCore.QSize(*self.config.window_size))
-        if not self.config.window_position:
-            center_position: QtCore.QPoint = self.pos(
-            ) + QtWidgets.QApplication.primaryScreen().geometry().center() - self.geometry().center()
-            self.config.window_position = (
-                center_position.x(), center_position.y())
-        self.move(QtCore.QPoint(*self.config.window_position))
+        self.resize(QtCore.QSize(*self.config.values.main_window.size))
+        self.move(QtCore.QPoint(*self.config.values.main_window.position))
 
         # TODO: add always on top toggle
         # self.toggle_always_on_top(self.config.window_always_on_top)
-        LOGGER.setLevel(self.config.logging_level)
+        LOGGER.setLevel(self.config.values.logging_level)
 
     def reset_application_config(self):
         """Reset application config and apply changes."""
         self.config.reset()
         self.apply_config_values()
 
-    def create_stage_node_graph(self, stage=None, file_path: "pathlib.Path | str" = None):
+    def create_stage_node_graph(
+        self, stage: Stage | None = None, file_path: pathlib.Path | str | None = None
+    ):
         if file_path:
-            graph_widget = StageGraphEditor.from_json_file(file_path)
+            stage_graph_editor_widget = StageGraphEditor.from_json_file(file_path)
         else:
-            graph_widget = StageGraphEditor(stage)
-        sub_wnd: QtWidgets.QMdiSubWindow = self.mdi_area.addSubWindow(
-            graph_widget)
-        return sub_wnd
+            stage_graph_editor_widget = StageGraphEditor(stage)
+
+        mdi_sub_window = StageMdiSubWindow(self.mdi_area)
+        mdi_sub_window.setWidget(stage_graph_editor_widget)
+        self.mdi_area.addSubWindow(mdi_sub_window)
+
+        # Connect signals
+        stage_graph_editor_widget.selection_model.selectionChanged.connect(
+            self.inspector.update_data
+        )
+        return mdi_sub_window
 
     # Slots
     def update_title(self):
@@ -216,7 +229,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(title)
 
     @QtCore.Slot(QtWidgets.QMdiSubWindow)
-    def on_node_graph_window_activated(self, mdi_window: QtWidgets.QMdiSubWindow):
+    def on_node_graph_window_activated(self, mdi_window: QtWidgets.QMdiSubWindow | None):
         if mdi_window is None:
             self.stage_tree_view.set_stage(None)
             self.undo_group.setActiveStack(None)
@@ -225,25 +238,36 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         stage_graph: StageGraphEditor = mdi_window.widget()
         self.stage_tree_view.set_stage(stage_graph.stage)
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
+        self.stage_tree_view.setSelectionModel(stage_graph.selection_model)
 
-    def on_stage_open(self):
-        sub_wnd = self.current_mdi_window if self.current_mdi_window else self.create_stage_node_graph()
+    def on_stage_open(self, tabbed: bool = False):
+        created_new = tabbed or self.current_mdi_window is None
+        sub_wnd = (
+            self.create_stage_node_graph() if created_new else self.current_mdi_window
+        )
+
         stage_graph: StageGraphEditor = sub_wnd.widget()
-        stage_graph.on_stage_open()
+        file_opened = stage_graph.on_stage_open()
+
+        if not file_opened:
+            if created_new:
+                self.mdi_area.removeSubWindow(sub_wnd)
+            # else: cancelled opening into an existing window — leave it alone
+            return
+
+        self.mdi_area.setActiveSubWindow(sub_wnd)
+        sub_wnd.show()
+        self.on_node_graph_window_activated(sub_wnd)
 
     def on_stage_open_tabbed(self):
-        sub_wnd = self.create_stage_node_graph()
-        stage_graph: StageGraphEditor = sub_wnd.widget()
-        file_opened: bool = stage_graph.on_stage_open()
-        if not file_opened:
-            self.mdi_area.removeSubWindow(sub_wnd)
+        self.on_stage_open(tabbed=True)
 
     def on_stage_new(self):
         try:
             sub_wnd = self.create_stage_node_graph()
             sub_wnd.show()
         except Exception:
-            LOGGER.exception('Failed to create new stage view window')
+            LOGGER.exception("Failed to create new stage view window")
 
     def on_stage_save(self):
         if self.current_stage_graph:
@@ -256,15 +280,15 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def execute_stage_graph(self):
         if not self.current_stage_graph:
             return
-        self.current_stage_graph.stage.handler.run()
+        self.current_stage_graph.stage.crawler.start()
 
     def execute_from_selected_node(self):
         if not self.current_stage_graph:
             return
 
-        selected_gr_node = self.current_stage_graph.gr_stage.get_last_selected_gr_node()
-        if not selected_gr_node:
+        selected_nodes = self.current_stage_graph.list_selected_nodes()
+        if not selected_nodes:
             LOGGER.warning("No node selected for execution")
             return
 
-        self.current_stage_graph.stage.handler.run(selected_gr_node.node)
+        self.current_stage_graph.stage.crawler.start(start_node=selected_nodes[-1])

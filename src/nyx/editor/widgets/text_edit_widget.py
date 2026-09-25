@@ -1,10 +1,8 @@
-from PySide2 import QtCore
-from PySide2 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 
 class NyxTextEdit(QtWidgets.QTextEdit):
-    """
-    A TextEdit editor that sends editingFinished events
+    """A TextEdit editor that sends editingFinished events
     when the text was changed and focus is lost.
     """
 

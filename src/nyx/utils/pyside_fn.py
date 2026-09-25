@@ -1,15 +1,17 @@
 import typing
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+
+from PySide6 import QtCore, QtGui, QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
 def move_window_to_screen_center(window: QtWidgets.QWidget):
-    center_position = window.pos() + QtWidgets.QApplication.primaryScreen().geometry().center() - \
-        window.geometry().center()
+    center_position = (
+        window.pos()
+        + QtWidgets.QApplication.primaryScreen().geometry().center()
+        - window.geometry().center()
+    )
     window.move(center_position)
 
 
@@ -37,7 +39,7 @@ def set_dark_fusion_palette(application: QtWidgets.QApplication):
     application.setPalette(dark_fusion_palette())
 
 
-def min_bounding_rect(rects: "list[QtCore.QRect]"):
+def min_bounding_rect(rects: list[QtCore.QRect]):
     min_x = rects[0].left()
     min_y = rects[0].top()
     max_x = rects[0].right()
@@ -58,7 +60,7 @@ def get_standard_icon(widget, icon_name: str):
     return icon
 
 
-def find_nyx_editor_window() -> "NyxEditorMainWindow":
+def find_nyx_editor_window() -> NyxEditorMainWindow:
     """Find nyx editor main window.
 
     Raises:
@@ -66,6 +68,7 @@ def find_nyx_editor_window() -> "NyxEditorMainWindow":
 
     Returns:
         NyxEditorMainWindow: editor's main window
+
     """
     top_widgets = QtWidgets.QApplication.topLevelWidgets()
     for widget in top_widgets:

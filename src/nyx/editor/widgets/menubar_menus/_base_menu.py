@@ -1,15 +1,17 @@
 import typing
-from PySide2 import QtWidgets
+
+from PySide6 import QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
 class BaseMenu(QtWidgets.QMenu):
-
-    def __init__(self, main_window: "NyxEditorMainWindow", title: str = "Menu", parent=None):
-        super(BaseMenu, self).__init__(title, parent)
-        self.__main_window = main_window
+    def __init__(
+        self, main_window: NyxEditorMainWindow, title: str = "Menu", parent=None
+    ):
+        super().__init__(title, parent)
+        self._main_window = main_window
 
         self.setTearOffEnabled(True)
         self.create_actions()
@@ -18,7 +20,7 @@ class BaseMenu(QtWidgets.QMenu):
 
     @property
     def main_window(self):
-        return self.__main_window
+        return self._main_window
 
     @property
     def current_stage_graph(self):

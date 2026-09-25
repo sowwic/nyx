@@ -1,27 +1,25 @@
-import typing
 import enum
-# import pathlib
-from PySide2 import QtCore
-from PySide2 import QtGui
-from PySide2 import QtWidgets
+import logging
+import typing
 
-from nyx import get_main_logger
+# import pathlib
+from PySide6 import QtCore, QtGui, QtWidgets
+
 from nyx.core import commands
-from nyx.editor.utils import clipboard
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
+from nyx.editor.utils import clipboard
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
-    from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
     from nyx.editor.graphics.graphics_stage import GraphicsStage
+    from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 
-LOGGER = get_main_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class StageGraphView(QtWidgets.QGraphicsView):
-
     # Signals
     item_drag_entered = QtCore.Signal(QtGui.QDragEnterEvent)
     item_dropped = QtCore.Signal(QtGui.QDropEvent)
@@ -35,12 +33,13 @@ class StageGraphView(QtWidgets.QGraphicsView):
         EDGE_DRAG = enum.auto()
         EDGE_CUT = enum.auto()
 
-    def __init__(self, graph_editor: "StageGraphEditor", parent: QtWidgets.QWidget = None) -> None:
-
+    def __init__(
+        self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget | None = None
+    ) -> None:
         super().__init__(graph_editor.gr_stage, parent=parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.graph_editor: "StageGraphEditor" = graph_editor
-        self.__interaction_mode = StageGraphView.InteractionMode.NOOP
+        self.graph_editor: StageGraphEditor = graph_editor
+        self._interaction_mode = StageGraphView.InteractionMode.NOOP
         self.cutline = GraphCutLine()
         self.scene().addItem(self.cutline)
 
@@ -56,14 +55,14 @@ class StageGraphView(QtWidgets.QGraphicsView):
         # Toggles
         self.rubberband_dragging_rect = False
 
-        self.__setup_view()
+        self._setup_view()
         self.update_render_hints()
         self.create_actions()
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
 
-    def __setup_view(self):
+    def _setup_view(self):
         self.setInteractive(True)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -74,24 +73,26 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def update_render_hints(self):
         if self.zoom > self.HIGH_QUALITY_ZOOM:
-            self.setRenderHints(QtGui.QPainter.RenderHint.Antialiasing |
-                                QtGui.QPainter.RenderHint.TextAntialiasing | QtGui.QPainter.RenderHint.SmoothPixmapTransform)
+            self.setRenderHints(
+                QtGui.QPainter.RenderHint.Antialiasing
+                | QtGui.QPainter.RenderHint.TextAntialiasing
+                | QtGui.QPainter.RenderHint.SmoothPixmapTransform
+            )
         else:
-            self.setRenderHints(QtGui.QPainter.RenderHint.Antialiasing |
-                                QtGui.QPainter.RenderHint.SmoothPixmapTransform)
+            self.setRenderHints(
+                QtGui.QPainter.RenderHint.Antialiasing
+                | QtGui.QPainter.RenderHint.SmoothPixmapTransform
+            )
 
     def create_actions(self):
-        self.create_node_action = QtWidgets.QAction(
-            "Create Node", self.gr_stage)
-        self.copy_selected_action = QtWidgets.QAction("Copy", self.gr_stage)
-        self.cut_selected_action = QtWidgets.QAction("Cut", self.gr_stage)
-        self.paste_action = QtWidgets.QAction("Paste", self.gr_stage)
-        self.delete_selected_action = QtWidgets.QAction(
-            "Delete", self.gr_stage)
-        self.focus_on_selected_nodes_action = QtWidgets.QAction(
-            "Focus on selected nodes", self.gr_stage)
-        self.set_selected_node_as_parent_execution_start_action = QtWidgets.QAction(
-            "Set selected node as parent execution start", self.gr_stage)
+        self.create_node_action = QtGui.QAction("Create Node", self.gr_stage)
+        self.copy_selected_action = QtGui.QAction("Copy", self.gr_stage)
+        self.cut_selected_action = QtGui.QAction("Cut", self.gr_stage)
+        self.paste_action = QtGui.QAction("Paste", self.gr_stage)
+        self.delete_selected_action = QtGui.QAction("Delete", self.gr_stage)
+        self.focus_on_selected_nodes_action = QtGui.QAction(
+            "Focus on selected nodes", self.gr_stage
+        )
 
         self.create_node_action.triggered.connect(self.create_new_node)
         self.copy_selected_action.triggered.connect(self.copy_selected_nodes)
@@ -99,9 +100,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
         self.delete_selected_action.triggered.connect(self.delete_selected)
         self.focus_on_selected_nodes_action.triggered.connect(
-            self.focus_on_selected_nodes)
-        self.set_selected_node_as_parent_execution_start_action.triggered.connect(
-            self.set_selected_node_as_parent_execution_start)
+            self.focus_on_selected_nodes
+        )
 
         self.copy_selected_action.setShortcut("Ctrl+C")
         self.cut_selected_action.setShortcut("Ctrl+X")
@@ -120,8 +120,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def update_actions(self):
         is_selection_empty = self.gr_stage.is_gr_node_selection_empty()
-        self.set_selected_node_as_parent_execution_start_action.setDisabled(
-            is_selection_empty)
         self.copy_selected_action.setDisabled(is_selection_empty)
         self.cut_selected_action.setDisabled(is_selection_empty)
         self.delete_selected_action.setDisabled(is_selection_empty)
@@ -137,14 +135,14 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     @property
     def interaction_mode(self):
-        return self.__interaction_mode
+        return self._interaction_mode
 
     @property
-    def gr_stage(self) -> "GraphicsStage":
+    def gr_stage(self) -> GraphicsStage:
         return self.scene()
 
-    def set_interaction_mode(self, mode: "StageGraphView.InteractionMode"):
-        self.__interaction_mode = mode
+    def set_interaction_mode(self, mode: StageGraphView.InteractionMode):
+        self._interaction_mode = mode
         LOGGER.debug(f"Interaction mode: {mode}")
 
     def get_center_position(self) -> QtCore.QPointF:
@@ -221,7 +219,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
                 self.cutline.update()
 
         except Exception:
-            LOGGER.exception('mouseMoveEvent exception')
+            LOGGER.exception("mouseMoveEvent exception")
 
         self.last_scene_mouse_pos = scene_pos
         super().mouseMoveEvent(event)
@@ -246,13 +244,20 @@ class StageGraphView(QtWidgets.QGraphicsView):
         if not item:
             if event.modifiers() & QtCore.Qt.ControlModifier:
                 self.set_interaction_mode(self.InteractionMode.EDGE_CUT)
-                fake_event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, event.localPos(), event.screenPos(),
-                                               QtCore.Qt.LeftButton, QtCore.Qt.NoButton, event.modifiers())
+                fake_event = QtGui.QMouseEvent(
+                    QtCore.QEvent.MouseButtonRelease,
+                    event.localPos(),
+                    event.screenPos(),
+                    QtCore.Qt.LeftButton,
+                    QtCore.Qt.NoButton,
+                    event.modifiers(),
+                )
                 super().mouseReleaseEvent(fake_event)
                 event.ignore()
                 return
             else:
-                self.gr_stage.clearSelection()
+                if not self.is_dragging:
+                    self.gr_stage.selection_model.clearSelection()
                 self.rubberband_dragging_rect = True
 
         super().mousePressEvent(event)
@@ -280,7 +285,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
                 event.accept()
                 return
         except Exception:
-            LOGGER.exception('Left mouse release exception')
+            LOGGER.exception("Left mouse release exception")
 
         super().mouseReleaseEvent(event)
 
@@ -291,25 +296,45 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def right_mouse_release(self, event: QtGui.QMouseEvent):
         super().mouseReleaseEvent(event)
 
-    def get_item_at_click(self, event: QtGui.QMouseEvent) -> "QtWidgets.QGraphicsItem | None":
+    def get_item_at_click(
+        self, event: QtGui.QMouseEvent
+    ) -> QtWidgets.QGraphicsItem | None:
         """Object at click event position"""
         item = self.itemAt(event.pos())
         return item
 
     # Middle mouse
     def middle_mouse_press(self, event: QtGui.QMouseEvent):
-        release_event = QtGui.QMouseEvent(QtCore.QEvent.MouseButtonRelease, event.localPos(), event.screenPos(),
-                                          QtCore.Qt.LeftButton, QtCore.Qt.NoButton, event.modifiers())
+        release_event = QtGui.QMouseEvent(
+            QtCore.QEvent.MouseButtonRelease,
+            event.localPos(),
+            event.screenPos(),
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.NoButton,
+            event.modifiers(),
+        )
         super().mouseReleaseEvent(release_event)
         self.setInteractive(False)
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
-        fake_event = QtGui.QMouseEvent(event.type(), event.localPos(), event.screenPos(),
-                                       QtCore.Qt.LeftButton, event.buttons() | QtCore.Qt.LeftButton, event.modifiers())
+        fake_event = QtGui.QMouseEvent(
+            event.type(),
+            event.localPos(),
+            event.screenPos(),
+            QtCore.Qt.LeftButton,
+            event.buttons() | QtCore.Qt.LeftButton,
+            event.modifiers(),
+        )
         super().mousePressEvent(fake_event)
 
     def middle_mouse_release(self, event: QtGui.QMouseEvent):
-        fake_event = QtGui.QMouseEvent(event.type(), event.localPos(), event.screenPos(),
-                                       QtGui.Qt.LeftButton, event.buttons() & ~QtGui.Qt.LeftButton, event.modifiers())
+        fake_event = QtGui.QMouseEvent(
+            event.type(),
+            event.localPos(),
+            event.screenPos(),
+            QtGui.Qt.LeftButton,
+            event.buttons() & ~QtGui.Qt.LeftButton,
+            event.modifiers(),
+        )
         super().mouseReleaseEvent(fake_event)
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.setInteractive(True)
@@ -326,7 +351,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.update_actions()
         # Add actions
         menu.addAction(self.create_node_action)
-        menu.addAction(self.set_selected_node_as_parent_execution_start_action)
         menu.addSeparator()
         menu.addAction(self.copy_selected_action)
         menu.addAction(self.cut_selected_action)
@@ -349,7 +373,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         #         edge.remove()
         #         cut_result = True
         if cut_result:
-            # TODO: Disconnect attributes here
+            # TODO: Disconnect plugs here
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
 
@@ -357,11 +381,13 @@ class StageGraphView(QtWidgets.QGraphicsView):
         parent_path = self.graph_editor.get_scope_path()
 
         position = self.last_scene_mouse_pos
-        create_cmd = commands.CreateNodeCommand(stage=self.stage,
-                                                node_name="node",
-                                                parent_path=parent_path,
-                                                position=position)
-        self.stage.undo_stack.push(create_cmd)
+        create_cmd = commands.CreateNodeCommand(
+            stage=self.stage,
+            name="node",
+            parent_node=parent_path,
+            position=position,
+        )
+        self.stage.push_command(create_cmd)
 
     def delete_selected(self):
         if not self.stage:
@@ -372,16 +398,13 @@ class StageGraphView(QtWidgets.QGraphicsView):
             return
 
         selected_gr_nodes = self.scene().selected_gr_nodes()
-        nodes_to_delete: "list[Node]" = [
-            gr_node.node for gr_node in selected_gr_nodes]
-        del_cmd = commands.DeleteNodeCommand(stage=self.stage,
-                                             nodes=nodes_to_delete)
-        self.stage.undo_stack.push(del_cmd)
+        nodes_to_delete: list[Node] = [gr_node.node for gr_node in selected_gr_nodes]
+        del_cmd = commands.DeleteNodeCommand(stage=self.stage, nodes=nodes_to_delete)
+        self.stage.push_command(del_cmd)
         self.scene().rebuild_current_scope()
 
     def copy_selected_nodes(self):
-        selected_nodes = [
-            gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
+        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
         if not selected_nodes:
             return
 
@@ -389,8 +412,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         LOGGER.info("Copied selected nodes")
 
     def cut_selected_nodes(self):
-        selected_nodes = [
-            gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
+        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
         if not selected_nodes:
             return
 
@@ -403,14 +425,15 @@ class StageGraphView(QtWidgets.QGraphicsView):
             LOGGER.warning("No nodes found in the clipboard!")
             return
 
-        # gr_view_center_position = self.current_stage_graph.gr_view.get_center_position()
-        parent_node = self.stage.node(self.graph_editor.get_scope_path())
+        parent_node = self.stage.get_object(self.graph_editor.get_scope_path())
         position = self.last_scene_mouse_pos
-        paste_cmd = commands.PasteNodesCommand(stage=self.stage,
-                                               serialize_nodes=serialized_nodes,
-                                               position=position,
-                                               parent_node=parent_node)
-        self.stage.undo_stack.push(paste_cmd)
+        paste_cmd = commands.PasteNodesCommand(
+            stage=self.stage,
+            serialize_nodes=serialized_nodes,
+            position=position,
+            parent_node=parent_node,
+        )
+        self.stage.push_command(paste_cmd)
 
     def focus_on_selected_nodes(self):
         selected_nodes = list(self.gr_stage.selected_gr_nodes())
@@ -420,21 +443,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         mid_point = QtCore.QPointF()
         for gr_node in selected_nodes:
             mid_point += gr_node.pos()
-        mid_point /= len(selected_nodes)
+
+        n = len(selected_nodes)
+        mid_point = QtCore.QPointF(mid_point.x() / n, mid_point.y() / n)
         self.centerOn(mid_point)
-
-    def set_selected_node_as_parent_execution_start(self):
-        last_selected_gr_node = self.gr_stage.get_last_selected_gr_node()
-        if not last_selected_gr_node:
-            return
-
-        node = last_selected_gr_node.node
-        if node.parent():
-            set_execution_start_cmd = commands.SetNodeExecStartCommand(stage=node.stage,
-                                                                       node=node.parent(),
-                                                                       path=node.path)
-        else:
-            set_execution_start_cmd = commands.SetStageExecStartCommand(stage=node.stage,
-                                                                        path=node.path)
-
-        node.stage.undo_stack.push(set_execution_start_cmd)
