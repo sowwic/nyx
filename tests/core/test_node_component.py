@@ -62,8 +62,7 @@ def test_serialize():
     assert data["name"] == flow_component.name
     assert data["value"] == flow_component.value
     assert data["is_active"] == flow_component.is_active
-    assert data["is_readable"] == flow_component.is_readable
-    assert data["is_writable"] == flow_component.is_writable
+    assert data["flags"] == flow_component.component_flags
 
 
 def test_serialize_deserialize():
@@ -80,7 +79,7 @@ def test_serialize_deserialize():
         )
     )
     flow_component.value = "/stage/test"
-    flow_component.is_readable = False
+    flow_component.produces_output = False
     flow_component.is_active = False
     data = flow_component.serialize()
 
@@ -91,8 +90,8 @@ def test_serialize_deserialize():
 
     assert str(new_flow_component.value) == flow_component.value
     assert new_flow_component.is_active == flow_component.is_active
-    assert new_flow_component.is_readable == flow_component.is_readable
-    assert new_flow_component.is_writable == flow_component.is_writable
+    assert new_flow_component.produces_output == flow_component.produces_output
+    assert new_flow_component.accepts_input == flow_component.accepts_input
 
 
 def test_rshift_operator():

@@ -4,7 +4,6 @@ from nyx.api.v1 import (
     Node,
     NodeComponent,
     CoreNodeComponents,
-    NodeComponentSolveDirection,
 )
 
 
@@ -23,10 +22,6 @@ class FlowComponent(NodeComponent):
     @classmethod
     def get_tags(cls) -> set[str]:
         return {"logic"}
-
-    @classmethod
-    def get_solve_direction(cls):
-        return NodeComponentSolveDirection.FORWARD
 
     def serialize_value(self) -> str:
         if self.value:

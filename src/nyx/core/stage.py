@@ -31,6 +31,7 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 type StageObjectLike = NodeLike | NodeComponentLike
+TStageObject = typing.TypeVar("TStageObject", bound=Node | NodeComponent | Link)
 
 
 class Stage(QtGui.QStandardItemModel):
@@ -160,15 +161,17 @@ class Stage(QtGui.QStandardItemModel):
         ]
 
     def get_object(
-        self, stage_object: NodeLike | NodeComponentLike
-    ) -> Node | NodeComponent | None:
+        self,
+        stage_object: NodeLike | NodeComponentLike | LinkLike,
+        expected_type: type[TStageObject] | None = None,
+    ) -> TStageObject:
         """Get `nyx` stage object.
 
         Args:
             stage_object: Input to search object by.
 
         Returns:
-            Found `Node` or `NodeComponent` instance or None if not
+            Found `Node`, `NodeComponent` or `Link` instance or None if not
         """
         original_request = stage_object
         result = None
@@ -196,6 +199,11 @@ class Stage(QtGui.QStandardItemModel):
         if result is None:
             raise StageObjectQueryError(
                 f"Failed to get object from request: {original_request}"
+            )
+        if expected_type is not None and not isinstance(result, expected_type):
+            raise StageObjectQueryError(
+                f"Expected result from {original_request} is of type "
+                f"{expected_type.__name__}, got {type(result).__name__} instead"
             )
 
         return result
@@ -240,10 +248,10 @@ class Stage(QtGui.QStandardItemModel):
         source_component: NodeComponent = self.get_object(source_component)
         target_component: NodeComponent = self.get_object(target_component)
 
-        if not source_component.is_readable:
+        if not source_component.produces_output:
             raise NodeComponentLinkError(f"Not readable component: {source_component}")
 
-        if not target_component.is_writable:
+        if not target_component.accepts_input:
             raise NodeComponentLinkError(f"Not writable component: {source_component}")
 
         new_link = Link(

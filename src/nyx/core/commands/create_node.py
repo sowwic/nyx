@@ -50,11 +50,11 @@ class CreateNodeCommand(NyxCommand):
 
     @property
     def result_node(self) -> Node:
-        return self.stage.get_object(self.node_data[Node.UUID_KEY])
+        return self.stage.get_object(self.node_data[Node.UUID_KEY], expected_type=Node)
 
     @property
     def parent_node(self) -> Node:
-        return self.stage.get_object(self.parent_uuid)
+        return self.stage.get_object(self.parent_uuid, expected_type=Node)
 
     def redo(self) -> None:
         self.node_name = NameValidator.get_valid_stage_object_name(self.node_name)

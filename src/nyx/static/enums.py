@@ -3,6 +3,8 @@ import enum
 
 class CoreNodes(enum.StrEnum):
     EMPTY = "core:node"
+    GET = "core:get"
+    SET = "core:set"
     ACTION = "core:action"
     FLOW_START = "core:flow_start"
     BRANCH = "core:branch"
@@ -32,3 +34,11 @@ class NodeExecutionStatus(enum.IntEnum):
     ERROR = enum.auto()
     PENDING = enum.auto()
     NOT_RAN = enum.auto()
+
+
+class NodeComponentFlag(enum.IntFlag):
+    NONE = 0
+    BUILT_IN = enum.auto()
+    ACCEPTS_INPUTS = enum.auto()
+    PRODUCES_OUTPUT = enum.auto()
+    EDITABLE = enum.auto()

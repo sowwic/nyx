@@ -45,7 +45,7 @@ class StageObject:
             str(self._uuid),
             str(value),
         )
-        self.stage.uuid_map.pop(self._uuid)
+        self.stage.uuid_map.pop(self._uuid, None)
         self._uuid = value
         self.stage.uuid_map[self._uuid] = self
 

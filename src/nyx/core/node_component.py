@@ -8,16 +8,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from uuid import UUID
 
 from .stage_object import StageObject
+from .link import Link
 from .plugin_subsystem.registry import NYX_REGISTRY
-from ..static.enums import (
-    NodeComponentSolveDirection,
-    RestoreUuidOption,
-)
+from ..static.enums import RestoreUuidOption, NodeComponentFlag
 
 if typing.TYPE_CHECKING:
     from .node import Node
     from .stage import Stage
-    from .link import Link
     from .models.components_model import NodeComponentsModel
 
 type NodeComponentLike = NodeComponent | UUID | pathlib.PurePosixPath | str
@@ -42,10 +39,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         LINKS_ROLE = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS_ROLE = enum.auto()
-        IS_BUILT_IN = enum.auto()
+        FLAGS_ROLE = enum.auto()
         IS_ACTIVE = enum.auto()
-        IS_READABLE = enum.auto()
-        IS_WRITABLE = enum.auto()
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__} ({self.path})"
@@ -207,31 +202,53 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(state, self.Roles.IS_ACTIVE)
 
     @property
-    def is_readable(self) -> bool:
-        return self.data(self.Roles.IS_READABLE)
+    def produces_output(self) -> bool:
+        return NodeComponentFlag.PRODUCES_OUTPUT in self.component_flags
 
-    @is_readable.setter
-    def is_readable(self, state: bool) -> None:
-        self.setData(state, self.Roles.IS_READABLE)
+    @produces_output.setter
+    def produces_output(self, state: bool) -> None:
+        if state:
+            self.component_flags |= NodeComponentFlag.PRODUCES_OUTPUT
+        else:
+            self.component_flags &= ~NodeComponentFlag.PRODUCES_OUTPUT
 
     @property
-    def is_writable(self) -> bool:
-        return self.data(self.Roles.IS_WRITABLE)
+    def accepts_input(self) -> bool:
+        return NodeComponentFlag.ACCEPTS_INPUTS in self.component_flags
 
-    @is_writable.setter
-    def is_writable(self, state: bool) -> None:
-        self.setData(state, self.Roles.IS_WRITABLE)
+    @accepts_input.setter
+    def accepts_input(self, state: bool) -> None:
+        if state:
+            self.component_flags |= NodeComponentFlag.ACCEPTS_INPUTS
+        else:
+            self.component_flags &= ~NodeComponentFlag.ACCEPTS_INPUTS
+
+    @property
+    def is_editable(self) -> bool:
+        return NodeComponentFlag.EDITABLE in self.component_flags
+
+    @is_editable.setter
+    def is_editable(self, state: bool) -> None:
+        if state:
+            self.component_flags |= NodeComponentFlag.EDITABLE
+        else:
+            self.component_flags &= ~NodeComponentFlag.EDITABLE
 
     @property
     def is_built_in(self) -> bool:
-        return self.data(self.Roles.IS_BUILT_IN)
-
-    def mark_as_built_in(self):
-        self.setData(True, self.Roles.IS_BUILT_IN)
+        return NodeComponentFlag.BUILT_IN in self.component_flags
 
     @property
     def tags(self) -> set[str]:
         return self.data(self.Roles.TAGS_ROLE)
+
+    @property
+    def component_flags(self) -> NodeComponentFlag:
+        return self.data(self.Roles.FLAGS_ROLE)
+
+    @component_flags.setter
+    def component_flags(self, flags: NodeComponentFlag) -> None:
+        self.setData(flags, role=self.Roles.FLAGS_ROLE)
 
     def init_default_data_values(self):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID_ROLE)
@@ -240,11 +257,15 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         )
         self.setData(self.get_tags(), role=self.Roles.TAGS_ROLE)
         self.setData(set(), role=self.Roles.LINKS_ROLE)
+        self.component_flags = self.get_type_default_flags()
 
         self.is_active = True
-        self.is_readable = False
-        self.is_writable = False
+        self.produces_output = False
+        self.accepts_input = False
         self.value = None
+
+    def mark_as_built_in(self):
+        self.component_flags |= NodeComponentFlag.BUILT_IN
 
     def create_inspector_widget(self, parent) -> QtWidgets.QWidget:
         widget = QtWidgets.QWidget(parent)
@@ -257,7 +278,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def pull_value(self) -> typing.Any:
         input_links = self.input_links
         if input_links:
-            return input_links[0].source_component.value
+            return input_links[0].source_component.pull_value()
         return self.value
 
     def reset_value_to_default(self) -> None:
@@ -287,12 +308,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def serialize(self) -> OrderedDict[str, typing.Any]:
         data = super().serialize()
         data["type_id"] = self.get_type_id()
+        data["flags"] = self.component_flags
         data["name"] = self.name
         data["value"] = self.serialize_value()
         data["default_value"] = self.serialize_default_value()
         data["is_active"] = self.is_active
-        data["is_readable"] = self.is_readable
-        data["is_writable"] = self.is_writable
         data["links"] = [link.serialize() for link in self.links]
         return data
 
@@ -318,8 +338,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             value=data.get("default_value")
         )
         component.is_active = data["is_active"]
-        component.is_readable = data["is_readable"]
-        component.is_writable = data["is_writable"]
+        component.component_flags = NodeComponentFlag(data["flags"])
 
         component.deserialize_links(
             links_data=data[cls.LINKS_KEY], restore_uuid=restore_uuid
@@ -343,18 +362,18 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def execution_hook(self):
         if not self.is_active:
             return
-        self.evaluate()
         self.execute()
+
+    def evaluation_hook(self):
+        if not self.is_active:
+            return
+        self.evaluate()
 
     def evaluate(self):
         pass
 
     def execute(self):
         pass
-
-    @classmethod
-    def get_solve_direction(self):
-        return NodeComponentSolveDirection.BACKWARD
 
     @classmethod
     def get_type_default_value(self) -> typing.Any:
@@ -367,6 +386,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_type_display_name(cls) -> str:
         return cls.__name__
+
+    @classmethod
+    def get_type_default_flags(cls) -> NodeComponentFlag:
+        return NodeComponentFlag.NONE
 
     @classmethod
     def get_tags(cls) -> set[str]:

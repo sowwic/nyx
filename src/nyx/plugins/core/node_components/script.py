@@ -4,7 +4,7 @@ import runpy
 import importlib.util
 import typing
 
-from nyx.api.v1 import NodeComponent, CoreNodeComponents
+from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentFlag
 
 
 LOGGER = logging.getLogger(__name__)
@@ -35,18 +35,19 @@ class ScriptComponent(NodeComponent):
         return {"common", "script", "logic"}
 
     def execute(self):
-        if not self.value:
+        script_value = self.pull_value()
+        if not script_value:
             return
 
         ran_as_module = False
-        ran_as_file = self.run_as_script_path()
+        ran_as_file = self.run_as_script_path(script_path=script_value)
         if not ran_as_file:
-            ran_as_module = self.run_as_module_entry_point()
+            ran_as_module = self.run_as_module_entry_point(entry_point_path=script_value)
 
         if not (ran_as_file or ran_as_module):
             raise ValueError(
                 f"{self.name}: Provided value is not script path "
-                f"or module entry point path: {self.value}"
+                f"or module entry point path: {script_value}"
             )
 
     def build_globals(self):
@@ -55,15 +56,15 @@ class ScriptComponent(NodeComponent):
             self.GLOBALS_COMPONENT_REF_NAME: self,
         }
 
-    def run_as_script_path(self) -> bool:
-        file_path = pathlib.Path(self.value)
+    def run_as_script_path(self, script_path: str | pathlib.Path) -> bool:
+        file_path = pathlib.Path(script_path)
         if file_path.is_file():
-            runpy.run_path(file_path.as_posix(), init_globals=self.build_globals())
+            runpy.run_path(script_path, init_globals=self.build_globals())
             return True
         return False
 
-    def run_as_module_entry_point(self) -> bool:
-        module_name, entry_point = self.value.split(self.ENTRY_POINT_SEPARATOR)
+    def run_as_module_entry_point(self, entry_point_path: str) -> bool:
+        module_name, entry_point = entry_point_path.split(self.ENTRY_POINT_SEPARATOR)
         found_module = importlib.util.find_spec(name=module_name) is not None
         if not found_module:
             return False
@@ -74,7 +75,11 @@ class ScriptComponent(NodeComponent):
         )
         entry_point_func: typing.Callable | None = module_namespace.get(entry_point)
         if entry_point_func is None:
-            raise ValueError(f"Failed to find entry point: {self.value}")
+            raise ValueError(f"Failed to find entry point: {entry_point_path}")
 
         entry_point_func()
         return True
+
+    @classmethod
+    def get_type_default_flags(cls) -> NodeComponentFlag:
+        return NodeComponentFlag.EDITABLE

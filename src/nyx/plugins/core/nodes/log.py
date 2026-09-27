@@ -24,14 +24,15 @@ class LogNode(Node):
         self.flow_cpnt = self.components_model.create_component(
             type_id=CoreNodeComponents.FLOW
         )
-        self.flow_cpnt.is_readable = True
-        self.flow_cpnt.is_writable = True
+        self.flow_cpnt.produces_output = True
+        self.flow_cpnt.accepts_input = True
 
         self.message = self.components_model.create_component(
             type_id=CoreNodeComponents.VALUE
         )
         self.message.name = "message"
-        self.message.is_writable = True
+        self.message.is_editable = True
+        self.message.accepts_input = True
         self.message.value = ""
 
         self.level = self.components_model.create_component(
@@ -39,7 +40,8 @@ class LogNode(Node):
         )
         self.level.name = "level"
         self.level.value = 10
-        self.level.is_writable = True
+        self.level.is_editable = True
+        self.level.accepts_input = True
 
         self.components_model.add_component(self.flow_cpnt)
         self.components_model.add_component(self.message)
@@ -73,5 +75,5 @@ class LogNode(Node):
         if not self.message.value:
             return
 
-        message = f"({self.name}): {self.message.value}"
-        self.logger.log(level=int(self.level.value), msg=message)
+        message = f"({self.name}): {self.message.pull_value()}"
+        self.logger.log(level=int(self.level.pull_value()), msg=message)

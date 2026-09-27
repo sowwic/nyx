@@ -11,10 +11,12 @@ from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
 from nyx.static.enums import (
     CoreNodes,
     CoreNodeComponents,
-    NodeComponentSolveDirection,
     NodeExecutionStatus,
     RestoreUuidOption,
+    NodeComponentFlag,
 )
+from nyx.static import vars as static_vars
+from nyx.static import paths as static_paths
 
 __all__ = [
     "StageObject",
@@ -25,14 +27,16 @@ __all__ = [
     "LinkLike",
     "NodeComponent",
     "NodeComponentLike",
+    "NodeComponentFlag",
     "NyxPluginManager",
     "NyxPlugin",
     "CoreNodes",
     "CoreNodeComponents",
-    "NodeComponentSolveDirection",
     "NodeExecutionStatus",
     "RestoreUuidOption",
     "NYX_REGISTRY",
     "commands",
     "exceptions",
+    "static_vars",
+    "static_paths",
 ]
