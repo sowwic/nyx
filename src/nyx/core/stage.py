@@ -240,10 +240,10 @@ class Stage(QtGui.QStandardItemModel):
         source_component: NodeComponent = self.get_object(source_component)
         target_component: NodeComponent = self.get_object(target_component)
 
-        if not source_component.is_readable:
+        if not source_component.produces_output:
             raise NodeComponentLinkError(f"Not readable component: {source_component}")
 
-        if not target_component.is_writable:
+        if not target_component.accepts_input:
             raise NodeComponentLinkError(f"Not writable component: {source_component}")
 
         new_link = Link(

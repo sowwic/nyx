@@ -32,3 +32,11 @@ class NodeExecutionStatus(enum.IntEnum):
     ERROR = enum.auto()
     PENDING = enum.auto()
     NOT_RAN = enum.auto()
+
+
+class NodeComponentFlag(enum.IntFlag):
+    NONE = 0
+    BUILT_IN = enum.auto()
+    ACCEPTS_INPUTS = enum.auto()
+    PRODUCES_OUTPUT = enum.auto()
+    ALLOWS_EDITING = enum.auto()

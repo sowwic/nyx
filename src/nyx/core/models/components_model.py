@@ -134,12 +134,12 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
 
     def find_writable_flow_components(self) -> Iterator[FlowComponent]:
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
-            if flow_component.is_active and flow_component.is_writable:
+            if flow_component.is_active and flow_component.accepts_input:
                 yield flow_component  # ty: ignore
 
     def find_readable_flow_components(self) -> Iterator[FlowComponent]:
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
-            if flow_component.is_active and flow_component.is_readable:
+            if flow_component.is_active and flow_component.produces_output:
                 yield flow_component  # ty: ignore
 
     def find_components_of_type(self, type_id: str) -> Iterator[NodeComponent]:

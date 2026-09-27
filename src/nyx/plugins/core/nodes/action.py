@@ -19,8 +19,8 @@ class ActionNode(Node):
 
     def setup(self):
         self.flow_cpnt = self.components_model.create_component(CoreNodeComponents.FLOW)
-        self.flow_cpnt.is_readable = True
-        self.flow_cpnt.is_writable = True
+        self.flow_cpnt.produces_output = True
+        self.flow_cpnt.accepts_input = True
         self.flow_cpnt.name = "flow"
 
         self.components_model.add_component(self.flow_cpnt)

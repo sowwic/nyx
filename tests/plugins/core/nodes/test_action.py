@@ -20,5 +20,5 @@ def test_action_node_creation():
         result_node.components_model.find_components_of_type(CoreNodeComponents.FLOW)
     )
     assert len(flow_components) == 1
-    assert flow_components[0].is_readable is True
-    assert flow_components[0].is_writable is True
+    assert flow_components[0].produces_output is True
+    assert flow_components[0].accepts_input is True
