@@ -86,6 +86,10 @@ class Node(QtGui.QStandardItem, StageObject):
     def __getitem__(self, key: str) -> NodeComponent:
         return self.components_model.get_component(key)
 
+    def __setitem__(self, key: str, value: typing.Any) -> None:
+        component = self.components_model.get_component(key)
+        component.value = value
+
     def _set_default_role_values(self):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID_ROLE)
         self.setData(True, role=self.Roles.ACTIVE_ROLE)

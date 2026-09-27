@@ -23,11 +23,13 @@ def test_setter_creation():
     in_node_path = result_node["node_path"]
     assert in_node_path.get_type_id() == CoreNodeComponents.VALUE
     assert in_node_path.default_value == static_vars.ROOT_NODE_PATH.as_posix()
+    assert in_node_path.is_editable is True
     assert in_node_path.accepts_input is True
     assert in_node_path.produces_output is False
 
     in_cpnt_name = result_node["cpnt_name"]
     assert in_cpnt_name.get_type_id() == CoreNodeComponents.VALUE
+    assert in_cpnt_name.is_editable is True
     assert in_cpnt_name.accepts_input is True
     assert in_cpnt_name.produces_output is False
 

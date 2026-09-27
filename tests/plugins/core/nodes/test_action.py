@@ -22,3 +22,4 @@ def test_action_node_creation():
     assert len(flow_components) == 1
     assert flow_components[0].produces_output is True
     assert flow_components[0].accepts_input is True
+    assert flow_components[0].is_editable is False

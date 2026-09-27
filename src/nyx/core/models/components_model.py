@@ -109,7 +109,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
 
         return name
 
-    def get_component(self, name: str) -> NodeComponent | None:
+    def get_component(self, name: str) -> NodeComponent:
         """Get component from name.
 
         Args:

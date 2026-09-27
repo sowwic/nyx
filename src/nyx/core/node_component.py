@@ -8,13 +8,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from uuid import UUID
 
 from .stage_object import StageObject
+from .link import Link
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import RestoreUuidOption, NodeComponentFlag
 
 if typing.TYPE_CHECKING:
     from .node import Node
     from .stage import Stage
-    from .link import Link
     from .models.components_model import NodeComponentsModel
 
 type NodeComponentLike = NodeComponent | UUID | pathlib.PurePosixPath | str
@@ -224,6 +224,17 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             self.component_flags &= ~NodeComponentFlag.ACCEPTS_INPUTS
 
     @property
+    def is_editable(self) -> bool:
+        return NodeComponentFlag.EDITABLE in self.component_flags
+
+    @is_editable.setter
+    def is_editable(self, state: bool) -> None:
+        if state:
+            self.component_flags |= NodeComponentFlag.EDITABLE
+        else:
+            self.component_flags &= ~NodeComponentFlag.EDITABLE
+
+    @property
     def is_built_in(self) -> bool:
         return NodeComponentFlag.BUILT_IN in self.component_flags
 
@@ -267,7 +278,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def pull_value(self) -> typing.Any:
         input_links = self.input_links
         if input_links:
-            return input_links[0].source_component.value
+            return input_links[0].source_component.pull_value()
         return self.value
 
     def reset_value_to_default(self) -> None:
