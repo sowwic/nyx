@@ -351,8 +351,12 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def execution_hook(self):
         if not self.is_active:
             return
-        self.evaluate()
         self.execute()
+
+    def evaluation_hook(self):
+        if not self.is_active:
+            return
+        self.evaluate()
 
     def evaluate(self):
         pass

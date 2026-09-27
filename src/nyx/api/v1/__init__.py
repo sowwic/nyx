@@ -15,6 +15,8 @@ from nyx.static.enums import (
     RestoreUuidOption,
     NodeComponentFlag,
 )
+from nyx.static import vars as static_vars
+from nyx.static import paths as static_paths
 
 __all__ = [
     "StageObject",
@@ -35,4 +37,6 @@ __all__ = [
     "NYX_REGISTRY",
     "commands",
     "exceptions",
+    "static_vars",
+    "static_paths",
 ]

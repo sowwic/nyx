@@ -6,6 +6,7 @@ from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
 from .node_components.script import ScriptComponent
 
+from .nodes.setter import SetterNode
 from .nodes.branch import BranchNode
 from .nodes.flow_start import FlowStartNode
 from .nodes.action import ActionNode
@@ -31,6 +32,7 @@ class NyxCore(NyxPlugin):
         ]
         plugin.contents.nodes = [
             Node,
+            SetterNode,
             ActionNode,
             BranchNode,
             FlowStartNode,

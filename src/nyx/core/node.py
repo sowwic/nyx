@@ -522,7 +522,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     def evaluate_components(self):
         for component in self.components_model.list_components():
-            component.evaluate()
+            component.evaluation_hook()
 
     def execute_components(self):
         for component in self.components_model.list_components():
