@@ -69,9 +69,8 @@ class Link(StageObject):
 
     @property
     def path_connection_str(self) -> str:
-        # try:
-        #     self.source_component
-
+        if not self.is_valid:
+            return "INVALID"
         return f"{self.source_path} -> {self.target_path}"
 
     @property

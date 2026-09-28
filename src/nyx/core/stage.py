@@ -287,10 +287,11 @@ class Stage(QtGui.QStandardItemModel):
         source_cpnt.remove_link(link_uuid=link.uuid)
         target_cpnt.remove_link(link_uuid=link.uuid)
 
-    def collect_links(self) -> list[Link]:
+    def collect_links(self, from_node: NodeLike | None = None) -> list[Link]:
         result = []
-        serialized_root = self.root_node.serialize()
-        for link_data in serialized_root[Node.LINKS_KEY]:
+        from_node = self.get_object(from_node) if from_node else self.root_node
+        serialized_node = from_node.serialize()
+        for link_data in serialized_node[Node.LINKS_KEY]:
             result.append(self.get_object(link_data[StageObject.UUID_KEY]))
         return result
 

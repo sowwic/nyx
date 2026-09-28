@@ -17,7 +17,6 @@ from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
 from ..static.enums import CoreNodes, RestoreUuidOption, NodeExecutionStatus
-from ..utils.profiling import profile
 
 if typing.TYPE_CHECKING:
     from .stage import Stage
@@ -406,7 +405,6 @@ class Node(QtGui.QStandardItem, StageObject):
         return serialized_data
 
     @classmethod
-    @profile(text="Node deserialized in {seconds:.4f}s")
     def deserialize(
         cls,
         serialized_node: OrderedDict[str, typing.Any],

@@ -8,6 +8,8 @@ from PySide6 import QtGui
 
 from ..stage import Stage
 from ._base_nyx_command import NyxCommand
+from .unlink_node_components import UnlinkNodeComponentsCommand
+from ..contexts.serialization import NodeDeserializationContext
 from ..node import Node, NodeLike
 from ..exceptions import NyxCommandValidationError, StageObjectQueryError
 from ...static.enums import RestoreUuidOption
@@ -34,8 +36,12 @@ class DeleteNodeCommand(NyxCommand):
         self.parents_map = {}
         self.deleted_uuids = deque()
         self.serialized_nodes = deque()
+        self._component_unlink_commands: list[UnlinkNodeComponentsCommand] = []
+
+        self._build_child_unlink_commands()
 
     def redo(self) -> None:
+        self._redo_unlink()
         nodes_to_delete = [self.stage.get_object(node) for node in self.requested_nodes]
         for each_node in nodes_to_delete:
             self.serialized_nodes.append(each_node.serialize())
@@ -47,6 +53,7 @@ class DeleteNodeCommand(NyxCommand):
 
         self.deleted_uuids.clear()
 
+        # TODO: Unlink any links
         top_level_nodes = self.stage.filter_top_level_nodes(nodes_to_delete)
         self.deleted_uuids = [node.uuid for node in top_level_nodes]
         self.parents_uuids_map = {
@@ -62,29 +69,46 @@ class DeleteNodeCommand(NyxCommand):
                 continue
 
             parent_node = self.stage.get_object(self.parents_uuids_map[node_uuid])
-
+            context = NodeDeserializationContext(
+                stage=self.stage, entry_node=None, defer_links=True
+            )
             Node.deserialize(
                 serialized_node=node_data,
                 node=None,
                 parent_node=parent_node,
+                context=context,
                 restore_uuid=RestoreUuidOption.RESTORE,
             )
 
         self.serialized_nodes.clear()
         self.parents_map.clear()
         self.deleted_uuids.clear()
-        return super().undo()
 
-    def validate(self):
-        invalid_requests = []
-        for node_like in self.requested_nodes:
-            try:
-                self.stage.get_object(node_like)
-            except StageObjectQueryError:
-                invalid_requests.append(node_like)
+        result = super().undo()
+
+        self._undo_unlink()
+        return result
+
+    def _build_child_unlink_commands(self):
+        links_to_unlink = set()
+        for node_path in self.requested_nodes:
+            node = self.stage.get_object(node_path, expected_type=Node)
+            collected_links = self.stage.collect_links(from_node=node)
+            if not collected_links:
                 continue
+            for link in collected_links:
+                links_to_unlink.add(link.uuid)
 
-        if invalid_requests:
-            raise NyxCommandValidationError(
-                f"Invalid requested nodes for deletion: {invalid_requests}"
+        for link_uuid in list(links_to_unlink):
+            unlink_command = UnlinkNodeComponentsCommand(
+                stage=self.stage, link_uuid=link_uuid
             )
+            self._component_unlink_commands.append(unlink_command)
+
+    def _redo_unlink(self):
+        for unlink_commad in self._component_unlink_commands:
+            unlink_commad.redo()
+
+    def _undo_unlink(self):
+        for unlink_command in self._component_unlink_commands:
+            unlink_command.undo()
