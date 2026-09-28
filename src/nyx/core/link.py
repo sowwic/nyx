@@ -69,9 +69,8 @@ class Link(StageObject):
 
     @property
     def path_connection_str(self) -> str:
-        # try:
-        #     self.source_component
-
+        if not self.is_valid:
+            return "INVALID"
         return f"{self.source_path} -> {self.target_path}"
 
     @property
@@ -132,8 +131,9 @@ class Link(StageObject):
                 stage=stage,
                 source=serialized_link[cls.SOURCE_UUID_KEY],
                 target=serialized_link[cls.TARGET_UUID_KEY],
+                uuid=new_uuid,
             )
-
-        link.uuid = new_uuid
+        else:
+            link.uuid = new_uuid
 
         return link

@@ -2,8 +2,12 @@ import logging
 
 import pytest
 
-from nyx.core.commands import CreateNodeCommand, DeleteNodeCommand
-from nyx.core.exceptions import NyxCommandValidationError, StageObjectQueryError
+from nyx.core.commands import (
+    CreateNodeCommand,
+    DeleteNodeCommand,
+    LinkNodeComponentsCommand,
+)
+from nyx.core.exceptions import StageObjectQueryError
 from nyx.api.v1 import Stage, CoreNodes
 
 LOGGER = logging.getLogger(__name__)
@@ -105,6 +109,68 @@ def test_delete_non_existent_node_raises_validation_error() -> None:
     """Test deleting a non existing node raises a validation error"""
     stage = Stage()
     # Delete the parent node
-    delete_command = DeleteNodeCommand(stage=stage, nodes=["/test_node"])
-    with pytest.raises(NyxCommandValidationError):
-        stage.push_command(delete_command)
+    with pytest.raises(StageObjectQueryError):
+        DeleteNodeCommand(stage=stage, nodes=["/test_node"])
+
+
+def test_deleting_node_with_links_deletes_links():
+    stage = Stage()
+
+    # Create two action nodes
+    action1_command = CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION, name="action_one"
+    )
+    action2_command = CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION, name="action_two"
+    )
+    stage.push_command(action1_command, action2_command)
+
+    # Create child nodes under action_one
+    child_1_command = CreateNodeCommand(
+        stage=stage,
+        name="child_one",
+        type_id=CoreNodes.ACTION,
+        parent_node=action1_command.result_node,
+    )
+    child_2_command = CreateNodeCommand(
+        stage=stage,
+        name="child_two",
+        type_id=CoreNodes.ACTION,
+        parent_node=action1_command.result_node,
+    )
+    stage.push_command(child_1_command, child_2_command)
+
+    # Create links
+    link1_command = LinkNodeComponentsCommand(
+        stage=stage,
+        source=action1_command.result_node["flow"],
+        target=action2_command.result_node["flow"],
+    )
+
+    link2_command = LinkNodeComponentsCommand(
+        stage=stage,
+        source=child_1_command.result_node["flow"],
+        target=child_2_command.result_node["flow"],
+    )
+    stage.push_command(link1_command, link2_command)
+
+    action_1_uuid_pre = action1_command.result_node.uuid
+    child_1_uuid_pre = child_1_command.result_node.uuid
+    child_2_uuid_pre = child_2_command.result_node.uuid
+    link1_uuid_pre = link1_command.result_link_uuid
+    link2_uuid_pre = link2_command.result_link_uuid
+
+    delete_action1_command = DeleteNodeCommand(
+        stage=stage, nodes=[action1_command.result_node]
+    )
+
+    assert len(delete_action1_command._component_unlink_commands) == 2
+    stage.push_command(delete_action1_command)
+    assert len(stage.collect_links()) == 0
+
+    stage.undo_stack.undo()
+    assert action_1_uuid_pre == action1_command.result_node.uuid
+    assert child_1_uuid_pre == child_1_command.result_node.uuid
+    assert child_2_uuid_pre == child_2_command.result_node.uuid
+    assert link1_uuid_pre in stage.uuid_map
+    assert link2_uuid_pre in stage.uuid_map

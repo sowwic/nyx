@@ -86,6 +86,9 @@ class LinkNodeComponentsCommand(NyxCommand):
         )
 
     def validate(self):
+        if self.target_component is self.source_component:
+            raise NyxCommandValidationError("Can't connect component to itself")
+
         if not isinstance(self.target_component, type(self.source_component)):
             raise NyxCommandValidationError(
                 "Can't connect components of different type: "
