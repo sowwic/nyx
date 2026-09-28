@@ -4,6 +4,7 @@ from collections import OrderedDict
 from PySide6 import QtGui
 
 from ._base_nyx_command import NyxCommand
+from .unlink_node_components import UnlinkNodeComponentsCommand
 from ..node import Node
 from ..node_component import NodeComponent
 from ..contexts.serialization import NodeDeserializationContext
@@ -33,11 +34,16 @@ class DeleteNodeComponentCommand(NyxCommand):
             parent=parent,
         )
 
+        self._unlink_commands: list[UnlinkNodeComponentsCommand] = []
+
+        self._build_child_unlink_commands()
+
     @property
     def component_uuid(self):
         return self.serialized_data[NodeComponent.UUID_KEY]
 
     def redo(self) -> None:
+        self._redo_unlink()
         node: Node = self.stage.get_object(self.node_uuid)
         component: NodeComponent = node[self.name]
         self.serialized_data = component.serialize()
@@ -62,7 +68,28 @@ class DeleteNodeComponentCommand(NyxCommand):
             restore_uuid=RestoreUuidOption.RESTORE,
         )
         node.components_model.add_component(component)
-        return super().undo()
+
+        result = super().undo()
+        self._undo_unlink()
+        return result
+
+    def _redo_unlink(self):
+        for command in self._unlink_commands:
+            command.redo()
+
+    def _undo_unlink(self):
+        for command in self._unlink_commands:
+            command.undo()
+
+    def _build_child_unlink_commands(self):
+        node: Node = self.stage.get_object(self.node_uuid)
+        component: NodeComponent = node[self.name]
+        if not component.links_uuids:
+            return
+        for link_uuid in list(component.links_uuids):
+            self._unlink_commands.append(
+                UnlinkNodeComponentsCommand(stage=self.stage, link_uuid=link_uuid)
+            )
 
     def validate(self):
         node = self.stage.get_object(self.node_uuid)

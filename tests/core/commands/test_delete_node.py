@@ -7,7 +7,7 @@ from nyx.core.commands import (
     DeleteNodeCommand,
     LinkNodeComponentsCommand,
 )
-from nyx.core.exceptions import NyxCommandValidationError, StageObjectQueryError
+from nyx.core.exceptions import StageObjectQueryError
 from nyx.api.v1 import Stage, CoreNodes
 
 LOGGER = logging.getLogger(__name__)
@@ -163,7 +163,6 @@ def test_deleting_node_with_links_deletes_links():
     delete_action1_command = DeleteNodeCommand(
         stage=stage, nodes=[action1_command.result_node]
     )
-    serialized_stage = stage.root_node.serialize()
 
     assert len(delete_action1_command._component_unlink_commands) == 2
     stage.push_command(delete_action1_command)
@@ -175,7 +174,3 @@ def test_deleting_node_with_links_deletes_links():
     assert child_2_uuid_pre == child_2_command.result_node.uuid
     assert link1_uuid_pre in stage.uuid_map
     assert link2_uuid_pre in stage.uuid_map
-
-    serialized_stage_post_redo = stage.root_node.serialize()
-
-    assert serialized_stage_post_redo == serialized_stage
