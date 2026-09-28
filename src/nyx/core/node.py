@@ -10,7 +10,9 @@ from uuid import UUID
 from PySide6 import QtCore, QtGui
 
 from .stage_object import StageObject
+from .link import Link
 from .models.components_model import NodeComponentsModel
+from .contexts.serialization import NodeSerializationContext, NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
@@ -40,6 +42,7 @@ class Node(QtGui.QStandardItem, StageObject):
     REFERENCE_FILE_KEY = "reference_file_path"
     COMPONENTS_KEY = "components"
     CHILDREN_KEY = "children"
+    LINKS_KEY = "links"
 
     class Roles(enum.IntEnum):
         TYPE_ID_ROLE = QtCore.Qt.UserRole + 1
@@ -369,27 +372,36 @@ class Node(QtGui.QStandardItem, StageObject):
     def on_changed(self):
         pass
 
-    def serialize(self) -> OrderedDict:
+    def serialize(
+        self, context: NodeSerializationContext | None = None
+    ) -> OrderedDict[str, typing.Any]:
         """Serialize node to dict.
 
         Returns:
             OrderedDict: serialized data
 
         """
+        context = context or NodeSerializationContext(stage=self.stage, entry_node=self)
+
         serialized_data = super().serialize()
         serialized_data["name"] = self.name
         serialized_data["type_id"] = self.get_type_id()
         serialized_data["active"] = self.is_active()
         serialized_data["position"] = self.serializable_position()
         serialized_data.update(self.components_model.serialize())
+        context.collect_links(from_node=self)
         if self.reference_file_path is not None:
             serialized_data[self.REFERENCE_FILE_KEY] = (
                 self.reference_file_path.as_posix()
             )
         else:
             serialized_data[self.CHILDREN_KEY] = [
-                child_node.serialize() for child_node in self.list_children()
+                child_node.serialize(context=context)
+                for child_node in self.list_children()
             ]
+
+        if context.entry_node is self:
+            serialized_data[Node.LINKS_KEY] = context.get_serialized_links()
         return serialized_data
 
     @classmethod
@@ -398,9 +410,15 @@ class Node(QtGui.QStandardItem, StageObject):
         serialized_node: OrderedDict[str, typing.Any],
         node: Node | None = None,
         parent_node: Node | None = None,
+        context: NodeDeserializationContext | None = None,
         restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
     ) -> Node:
-        stage = parent_node.stage if parent_node is not None else None
+        if not (node or parent_node):
+            raise ValueError(
+                "Either parent node or node must be provided for deserialization."
+            )
+
+        stage = parent_node.stage if parent_node else node.stage
         uuid = cls.choose_new_uuid(
             stage=stage,
             serialized_data=serialized_node,
@@ -415,9 +433,22 @@ class Node(QtGui.QStandardItem, StageObject):
         else:
             node.rename(serialized_node[cls.NAME_KEY])
 
+        context = context or NodeDeserializationContext(
+            stage=stage,
+            entry_node=node,
+        )
+        if context.entry_node is None:
+            context.entry_node = node
+
         LOGGER.debug(f"Deserializing: {serialized_node.get(cls.NAME_KEY)}")
         if uuid is not None:
             node.uuid = uuid
+
+        # Read these BEFORE the reference-file swap below replaces serialized_node
+        context.register(
+            serialized_uuid=serialized_node[cls.UUID_KEY], new_uuid=node.uuid
+        )
+        links_data = serialized_node.get(cls.LINKS_KEY, [])
 
         # Roles that should exist for normal and reference nodes
         node.set_active(serialized_node.get(cls.ACTIVE_KEY, True))
@@ -438,12 +469,43 @@ class Node(QtGui.QStandardItem, StageObject):
                 serialized_node=child_data,
                 parent_node=node,
                 restore_uuid=restore_uuid,
+                context=context,
             )
 
         # Components
-        node.components_model.deserialize(serialized_node.get(cls.COMPONENTS_KEY))
+        node.components_model.deserialize(
+            serialized_node.get(cls.COMPONENTS_KEY),
+            context=context,
+            restore_uuid=restore_uuid,
+        )
+
+        # Links
+        if context.defer_links:
+            context.collect_links(links_data)
+        elif context.entry_node is node:
+            node.deserialize_links(
+                links_data=links_data, restore_uuid=restore_uuid, context=context
+            )
 
         return node
+
+    def deserialize_links(
+        self,
+        links_data: list[OrderedDict[str, typing.Any]],
+        restore_uuid: RestoreUuidOption,
+        context: NodeDeserializationContext,
+    ):
+        for each_link_data in links_data:
+            link_data = context.remap_link(each_link_data)
+            if link_data is None:
+                continue
+            link = Link.deserialize(
+                stage=self.stage,
+                serialized_link=link_data,
+                link=None,
+                restore_uuid=restore_uuid,
+            )
+            self.stage.register_link(link)
 
     def _load_reference_file_data(self) -> OrderedDict:
         data = OrderedDict()

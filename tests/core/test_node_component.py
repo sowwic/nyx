@@ -5,6 +5,7 @@ from nyx.api.v1 import (
     commands,
     CoreNodes,
     CoreNodeComponents,
+    NodeDeserializationContext,
 )
 from nyx.core.protocols.registry_entry import IRegistryEntry
 
@@ -83,8 +84,11 @@ def test_serialize_deserialize():
     flow_component.is_active = False
     data = flow_component.serialize()
 
+    context = NodeDeserializationContext(
+        stage=stage, entry_node=create_node_command.result_node
+    )
     new_flow_component = NodeComponent.deserialize(
-        data=data, node=create_node_command.result_node
+        data=data, node=create_node_command.result_node, context=context
     )
     create_node_command.result_node.add_component(new_flow_component)
 

@@ -9,6 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
+from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import RestoreUuidOption, NodeComponentFlag
 
@@ -29,7 +30,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
-    LINKS_KEY = "links"
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
@@ -293,6 +293,23 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def remove_link(self, link_uuid: UUID | str):
         self.data(self.Roles.LINKS_ROLE).discard(link_uuid)
 
+    def is_linked_to(
+        self, other_component: NodeComponent, as_source=False, as_target=False
+    ) -> bool:
+        linked_as_source = False
+        linked_as_target = False
+
+        for link in self.links:
+            if link.source == self.uuid and link.target == other_component.uuid:
+                linked_as_source = True
+            if link.source == other_component.uuid and link.target == self.uuid:
+                linked_as_target = True
+        if as_source:
+            return linked_as_source
+        if as_target:
+            return linked_as_target
+        return linked_as_source or linked_as_target
+
     def serialize_value(self) -> typing.Any:
         return self.value
 
@@ -313,7 +330,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         data["value"] = self.serialize_value()
         data["default_value"] = self.serialize_default_value()
         data["is_active"] = self.is_active
-        data["links"] = [link.serialize() for link in self.links]
         return data
 
     @classmethod
@@ -321,6 +337,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         cls,
         data: OrderedDict,
         node: Node,
+        context: NodeDeserializationContext,
         component: NodeComponent | None = None,
         restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
     ):
@@ -332,6 +349,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             component = component_cls(uuid=uuid)
 
         component.uuid = uuid
+        context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
         component.value = component.deserialize_value(value=data["value"])
         component.default_value = component.deserialize_default_value(
@@ -340,24 +358,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.is_active = data["is_active"]
         component.component_flags = NodeComponentFlag(data["flags"])
 
-        component.deserialize_links(
-            links_data=data[cls.LINKS_KEY], restore_uuid=restore_uuid
-        )
         return component
-
-    def deserialize_links(
-        self,
-        links_data: list[OrderedDict[str, typing.Any]],
-        restore_uuid: RestoreUuidOption,
-    ):
-        for each_link_data in links_data:
-            link = Link.deserialize(
-                stage=self.stage,
-                serialized_link=each_link_data,
-                link=None,
-                restore_uuid=restore_uuid,
-            )
-            self.stage.register_link(link)
 
     def execution_hook(self):
         if not self.is_active:

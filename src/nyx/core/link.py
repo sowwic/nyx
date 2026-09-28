@@ -132,8 +132,9 @@ class Link(StageObject):
                 stage=stage,
                 source=serialized_link[cls.SOURCE_UUID_KEY],
                 target=serialized_link[cls.TARGET_UUID_KEY],
+                uuid=new_uuid,
             )
-
-        link.uuid = new_uuid
+        else:
+            link.uuid = new_uuid
 
         return link

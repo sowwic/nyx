@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from uuid import UUID
 
 from ..node_component import NodeComponent
+from ..contexts.serialization import NodeDeserializationContext
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import CoreNodeComponents, RestoreUuidOption
 
@@ -52,17 +53,20 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
     def deserialize(
         self,
         data: list[dict],
+        context: NodeDeserializationContext,
         restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
     ):
         for component_data in data:
             try:
                 component = self.get_component(component_data["name"])
             except ValueError:
-                component is None
+                component = None
+
             component_exists = component is not None
             component = NodeComponent.deserialize(
                 data=component_data,
                 node=self.node,
+                context=context,
                 component=component,
                 restore_uuid=restore_uuid,
             )

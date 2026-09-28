@@ -277,6 +277,7 @@ class Stage(QtGui.QStandardItemModel):
         target_cpnt: NodeComponent = self.get_object(link.target)
         source_cpnt.add_link(link_uuid=link.uuid)
         target_cpnt.add_link(link_uuid=link.uuid)
+        LOGGER.debug("Registered link: %s (%s)", str(link), str(link.uuid))
 
     def unregister_link(self, link: LinkLike):
         link = self.get_object(link)
@@ -285,6 +286,13 @@ class Stage(QtGui.QStandardItemModel):
         target_cpnt: NodeComponent = self.get_object(link.target)
         source_cpnt.remove_link(link_uuid=link.uuid)
         target_cpnt.remove_link(link_uuid=link.uuid)
+
+    def collect_links(self) -> list[Link]:
+        result = []
+        serialized_root = self.root_node.serialize()
+        for link_data in serialized_root[Node.LINKS_KEY]:
+            result.append(self.get_object(link_data[StageObject.UUID_KEY]))
+        return result
 
     def register_node(self, node: Node):
         if node.uuid in self.uuid_map:
@@ -410,7 +418,7 @@ class Stage(QtGui.QStandardItemModel):
         LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
 
-    def push_command(self, command: NyxCommand):
+    def push_command(self, *commands: NyxCommand):
         """Push command to stage's undo stack.
         Also validates command before pushing and raises error if validation fails.
 
@@ -419,11 +427,13 @@ class Stage(QtGui.QStandardItemModel):
         Raises:
             NyxCommandValidationError: if command validation fails.
         """
-        if self is not command.stage:
-            raise ValueError("Command stage doesn't match current stage.")
+        for command in commands:
+            if self is not command.stage:
+                raise ValueError("Command stage doesn't match current stage.")
+            command.validate()
 
-        command.validate()
-        self.undo_stack.push(command)
+        for command in commands:
+            self.undo_stack.push(command)
 
     def pathify(
         self, stage_object: StageObject | UUID | pathlib.PurePosixPath | str

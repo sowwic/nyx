@@ -43,6 +43,7 @@ class DeleteNodeComponentCommand(NyxCommand):
         self.setText(
             f"Remove component ({node.path}.{self.name} ({component.get_type_id()})"
         )
+        # TODO: unlink any links first
         node.components_model.remove_component(self.component_uuid)
 
         return super().redo()

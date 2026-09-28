@@ -5,6 +5,10 @@ from nyx.core.stage_object import StageObject
 from nyx.core import commands
 from nyx.core import exceptions
 from nyx.core.node_component import NodeComponent, NodeComponentLike
+from nyx.core.contexts.serialization import (
+    NodeDeserializationContext,
+    NodeSerializationContext,
+)
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.core.plugin_subsystem.plugin import NyxPlugin
 from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
@@ -28,6 +32,8 @@ __all__ = [
     "NodeComponent",
     "NodeComponentLike",
     "NodeComponentFlag",
+    "NodeSerializationContext",
+    "NodeDeserializationContext",
     "NyxPluginManager",
     "NyxPlugin",
     "CoreNodes",
