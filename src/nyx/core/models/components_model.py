@@ -9,6 +9,7 @@ from ..node_component import NodeComponent
 from ..contexts.serialization import NodeDeserializationContext
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import CoreNodeComponents, RestoreUuidOption
+from ...utils import names_fn
 
 
 if typing.TYPE_CHECKING:
@@ -23,10 +24,50 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
     def __init__(self, node: Node):
         self._node = node
         super().__init__()
+        self._register_qml_role_names()
 
     @property
     def node(self) -> Node:
         return self._node
+
+    def _register_qml_role_names(self) -> None:
+        names = dict(self.roleNames())
+        names.update(names_fn.enum_to_dict(NodeComponent.Roles))  # ty: ignore
+        self.setItemRoleNames(names)
+
+    def data(
+        self,
+        index: QtCore.QModelIndex,
+        role: QtCore.Qt.ItemDataRole = QtCore.Qt.ItemDataRole.DisplayRole,
+    ) -> typing.Any:
+        if not index.isValid():
+            return
+
+        if role in NodeComponent.Roles.virtual_roles():
+            component: NodeComponent = self.itemFromIndex(index)
+            if role == NodeComponent.Roles.UUID:
+                return str(component.uuid)
+            if role == NodeComponent.Roles.PATH:
+                return component.path.as_posix()
+            if role == NodeComponent.Roles.EDITOR_QML_FILE:
+                return component.get_qml_editor_url()
+            if role == NodeComponent.Roles.IS_EDITABLE:
+                return component.is_editable
+            if role == NodeComponent.Roles.IS_BUILT_IN:
+                return component.is_built_in
+            else:
+                LOGGER.error(f"No value defined for virtual role: {role}")
+                return None
+
+        value = super().data(index, role)
+
+        if role == NodeComponent.Roles.LINKS:
+            return [str(uuid) for uuid in (value or ())]
+        if role == NodeComponent.Roles.TAGS:
+            return sorted(value or ())
+        if role == NodeComponent.Roles.COMPONENT_FLAGS:
+            return int(getattr(value, "value", value) or 0)
+        return value
 
     def list_components(self, type_id_filter: str | None = None) -> list[NodeComponent]:
         all_components: list[NodeComponent] = [
