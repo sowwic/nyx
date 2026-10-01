@@ -3,7 +3,6 @@ from nyx.api.v1 import Node, NodeComponent, CoreNodes, CoreNodeComponents, stati
 
 class SetterNode(Node):
     DEFAULT_NAME = "set"
-    REQUIRED_PLUGINS = {"NyxCore"}
 
     @classmethod
     def get_type_id(cls) -> str:

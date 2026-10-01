@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import dataclasses
 import typing
+import pathlib
+import inspect
 
 
 if typing.TYPE_CHECKING:
@@ -32,8 +34,22 @@ class NyxPlugin(ABC):
         contents: NyxPluginContents instance
     """
 
+    QML_DIRECTORY_NAME = "qml"
+
     def __init__(self):
         self.contents = NyxPluginContents()
+
+    @classmethod
+    def path(cls) -> pathlib.Path:
+        return pathlib.Path(inspect.getfile(cls))
+
+    @classmethod
+    def root_directory(cls) -> pathlib.Path:
+        return cls.path().parent
+
+    @classmethod
+    def qml_directory(cls) -> pathlib.Path:
+        return cls.root_directory() / "qml"
 
     @classmethod
     @abstractmethod

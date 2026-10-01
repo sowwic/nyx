@@ -2,12 +2,14 @@ import typing
 import pathlib
 import logging
 from collections import OrderedDict
-
 from uuid import UUID, uuid4
+
+from PySide6 import QtCore
 
 from ..static.enums import RestoreUuidOption
 
 if typing.TYPE_CHECKING:
+    from .plugin_subsystem.registry import NyxPluginRegistryEntry
     from .stage import Stage
 
 
@@ -15,12 +17,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class StageObject:
-    REQUIRED_PLUGINS = set()
-
     UUID_KEY = "uuid"
     META_DATA_KEY: str = "metadata"
-    REQUIRED_PLUGINS_KEY: str = "required_plugins"
+    SOURCE_PLUGIN_KEY: str = "source_plugin"
     NYX_VERSION_METADATA_KEY: str = "nyx_version"
+
+    SOURCE_PLUGIN: NyxPluginRegistryEntry | None = None
 
     def __init__(self, uuid: UUID | str | None = None):
         self._uuid = self.as_uuid(uuid)
@@ -61,8 +63,10 @@ class StageObject:
         serialized_data = OrderedDict()
         serialized_data[self.UUID_KEY] = str(self.uuid)
         serialized_data[self.META_DATA_KEY] = self.metadata
-        if self.REQUIRED_PLUGINS:
-            serialized_data[self.REQUIRED_PLUGINS_KEY] = list(self.REQUIRED_PLUGINS)
+        if self.SOURCE_PLUGIN is not None:
+            serialized_data[self.SOURCE_PLUGIN_KEY] = (
+                self.SOURCE_PLUGIN.plugin_cls.get_type_id()
+            )
 
         return serialized_data
 
@@ -73,6 +77,17 @@ class StageObject:
         raise NotImplementedError(
             "StageObject subclass must implement deserialize() method"
         )
+
+    @classmethod
+    def resolve_qml_source(cls, component_path: str) -> QtCore.QUrl:
+        if not cls.SOURCE_PLUGIN:
+            return None
+
+        path = cls.SOURCE_PLUGIN.plugin_cls.qml_directory() / component_path
+        if not path.is_file():
+            raise ValueError(f"Invalid QML source file: {path}")
+
+        return QtCore.QUrl.fromLocalFile(str(path))
 
     @staticmethod
     def as_uuid(value: StageObject | UUID | str | None, strict: bool = False) -> UUID:

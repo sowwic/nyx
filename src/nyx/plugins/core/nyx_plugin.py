@@ -1,5 +1,6 @@
 import typing
 import logging
+
 from nyx.api.v1 import NyxPluginManager, NyxPlugin, Node
 
 from .node_components.value import ValueComponent
@@ -13,6 +14,7 @@ from .nodes.flow_start import FlowStartNode
 from .nodes.action import ActionNode
 from .nodes.sequence import SequenceNode
 from .nodes.log import LogNode
+
 
 LOGGER = logging.getLogger(__name__)
 

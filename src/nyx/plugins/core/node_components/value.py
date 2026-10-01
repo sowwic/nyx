@@ -3,7 +3,6 @@ from nyx.api.v1 import NodeComponent, CoreNodeComponents
 
 class ValueComponent(NodeComponent):
     DEFAULT_NAME = "value"
-    REQUIRED_PLUGINS = {"NyxCore"}
 
     @classmethod
     def get_type_id(cls) -> str:

@@ -12,7 +12,6 @@ LOGGER = logging.getLogger(__name__)
 
 class ScriptComponent(NodeComponent):
     DEFAULT_NAME = "script"
-    REQUIRED_PLUGINS = {"NyxCore"}
     ENTRY_POINT_SEPARATOR = ":"
 
     GLOBALS_NODE_REF_NAME = "nyx_node"

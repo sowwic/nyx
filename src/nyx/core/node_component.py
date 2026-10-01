@@ -4,7 +4,7 @@ import typing
 import logging
 from collections import OrderedDict
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 from uuid import UUID
 
 from .stage_object import StageObject
@@ -26,7 +26,8 @@ LOGGER = logging.getLogger(__name__)
 
 class NodeComponent(QtGui.QStandardItem, StageObject):
     DEFAULT_NAME: str = "component"
-    PATH_SEPARATOR = "."
+    EDITOR_QML: str | None = None
+    PATH_SEPARATOR: str = "."
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
@@ -384,7 +385,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         pass
 
     @classmethod
-    def get_qml_editor_url(cls):
+    def get_qml_editor_url(cls) -> QtCore.QUrl:
+        if cls.EDITOR_QML and cls.SOURCE_PLUGIN:
+            return cls.resolve_qml_source(cls.EDITOR_QML)
         return QtCore.QUrl.fromLocalFile(str(DEFAULT_QML_NODE_COMPONENT_EDITOR))
 
     @classmethod

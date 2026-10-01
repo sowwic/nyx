@@ -4,7 +4,6 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 class LogNode(Node):
     DEFAULT_NAME = "log"
-    REQUIRED_PLUGINS = {"NyxCore"}
 
     @classmethod
     def get_type_id(cls) -> str:

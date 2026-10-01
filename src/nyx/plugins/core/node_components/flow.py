@@ -9,7 +9,6 @@ from nyx.api.v1 import (
 
 class FlowComponent(NodeComponent):
     DEFAULT_NAME = "flow"
-    REQUIRED_PLUGINS = {"NyxCore"}
 
     @classmethod
     def get_type_id(cls) -> str:

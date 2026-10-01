@@ -112,6 +112,7 @@ class NyxRegistry:
                 continue
 
             self.node_components[node_component_cls.get_type_id()] = node_component_cls
+            node_component_cls.SOURCE_PLUGIN = plugin_entry
             LOGGER.debug(
                 "Registered node component: %s (%s) from %s",
                 node_component_cls.get_type_id(),
@@ -135,6 +136,7 @@ class NyxRegistry:
                 continue
 
             self.nodes[node_cls.get_type_id()] = node_cls
+            node_cls.SOURCE_PLUGIN = plugin_entry
             LOGGER.debug(
                 "Registered node %s (%s) from %s",
                 node_cls.get_type_id(),
