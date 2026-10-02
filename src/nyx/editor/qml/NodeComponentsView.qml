@@ -127,7 +127,7 @@ Rectangle {
                 font.bold: true
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Remove component")
-                onClicked: console.log("TODO: remove component")
+                onClicked: componentsController.deleteSelectedNodeComponents()
 
                 background: Rectangle {
                     radius: 4

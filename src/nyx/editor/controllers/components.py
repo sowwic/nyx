@@ -3,10 +3,12 @@ import typing
 
 from PySide6 import QtCore, QtGui
 
+from ...core.commands import DeleteNodeComponentCommand
 from ...static.enums import ItemSelectionMode
 
 
 if typing.TYPE_CHECKING:
+    from ...core.node_component import NodeComponent
     from ...core.models.components_model import NodeComponentsModel
 
 LOGGER = logging.getLogger(__name__)
@@ -85,6 +87,21 @@ class ComponentsController(QtCore.QObject):
                 clicked_index, flags.ClearAndSelect | flags.Rows
             )
             self._selection_model.setCurrentIndex(clicked_index, flags.NoUpdate)
+
+    @QtCore.Slot()
+    def deleteSelectedNodeComponents(self):
+        selection = self.selection_model.selection()
+        if selection.isEmpty():
+            return
+
+        delete_commands = []
+        for item_index in selection.indexes():
+            component: NodeComponent = self.components_model.itemFromIndex(item_index)
+            command = DeleteNodeComponentCommand(
+                node=self.components_model.node, name=component.name
+            )
+            delete_commands.append(command)
+        self.components_model.node.stage.push_command(*delete_commands)
 
     selectionModel = QtCore.Property(
         QtCore.QObject,
