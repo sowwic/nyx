@@ -12,7 +12,8 @@ Item {
     // Whatever is declared inside a DraggableDelegate { ... } lands in contentSlot
     default property alias content: contentSlot.data
 
-    property bool dragEnabled: true
+    property bool dragEnabled: true   // can this row be picked up?
+    property bool dropEnabled: true   // can other rows be dragged over it?
 
     signal moveRequested(int from, int to)
 
@@ -22,6 +23,7 @@ Item {
 
     // Each row is a drop target
     DropArea {
+        enabled: root.dropEnabled
         anchors.fill: parent
         onEntered: drag => {
             const from = drag.source.visualIndex;
@@ -47,9 +49,8 @@ Item {
             spacing: 4
 
             Label {                       // drag handle
-                visible: root.dragEnabled
                 text: "\u2630"
-                opacity: handleArea.containsMouse ? 1 : 0.5
+                opacity: !root.dragEnabled ? 0.15 : handleArea.containsMouse ? 1 : 0.5
                 Layout.alignment: Qt.AlignTop
                 Layout.topMargin: 6
 

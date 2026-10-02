@@ -13,6 +13,7 @@ DraggableDelegate {
     required property bool isActive
     required property bool isExpanded
     required property url editorQmlFile
+    required property bool isBuiltIn
 
     readonly property bool showExpanded: isExpanded && !isDragging
 
@@ -25,6 +26,9 @@ DraggableDelegate {
     }
 
     onIsDraggingChanged: animateHeight = true
+
+    dragEnabled: !isBuiltIn
+    dropEnabled: !isBuiltIn
 
     Rectangle {
         id: card

@@ -77,6 +77,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         if from_row == to_row or not (0 <= from_row < n) or not (0 <= to_row < n):
             return False
 
+        root: QtGui.QStandardItem = self.invisibleRootItem()
+        if root.child(from_row).is_build_in or root.child(to_row).is_built_in:
+            return False
+
         dest = to_row + 1 if to_row > from_row else to_row
 
         if not self.beginMoveRows(
