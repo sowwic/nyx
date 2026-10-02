@@ -62,6 +62,11 @@ DraggableDelegate {
                 Layout.fillWidth: true
                 spacing: 6
 
+                DragHandle {
+                    row: itemRoot
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
                 Switch {
                     checked: itemRoot.isActive
                     onToggled: itemRoot.model.isActive = checked
