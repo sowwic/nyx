@@ -55,6 +55,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_editable
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
+            if role == NodeComponent.Roles.IS_STATIC:
+                return component.is_static
             else:
                 LOGGER.error(f"No value defined for virtual role: {role}")
                 return None

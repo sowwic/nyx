@@ -22,4 +22,4 @@ class CommentComponent(NodeComponent):
 
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
-        return NodeComponentFlag.EDITABLE
+        return NodeComponentFlag.EDITABLE | NodeComponentFlag.STATIC

@@ -33,6 +33,10 @@ class ScriptComponent(NodeComponent):
     def get_tags(self) -> set[str]:
         return {"common", "script", "logic"}
 
+    @classmethod
+    def get_type_default_flags(cls) -> NodeComponentFlag:
+        return NodeComponentFlag.EDITABLE
+
     def execute(self):
         script_value = self.pull_value()
         if not script_value:
@@ -78,7 +82,3 @@ class ScriptComponent(NodeComponent):
 
         entry_point_func()
         return True
-
-    @classmethod
-    def get_type_default_flags(cls) -> NodeComponentFlag:
-        return NodeComponentFlag.EDITABLE

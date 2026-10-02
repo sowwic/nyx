@@ -49,6 +49,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         PATH = enum.auto()
         EDITOR_QML_FILE = enum.auto()
         IS_EDITABLE = enum.auto()
+        IS_STATIC = enum.auto()
         IS_BUILT_IN = enum.auto()
 
         @classmethod
@@ -59,6 +60,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.EDITOR_QML_FILE,
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
+                cls.IS_STATIC,
             )
 
     def __repr__(self) -> str:
@@ -254,6 +256,17 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             self.component_flags &= ~NodeComponentFlag.EDITABLE
 
     @property
+    def is_static(self) -> bool:
+        return NodeComponentFlag.STATIC in self.component_flags
+
+    @is_static.setter
+    def is_static(self, state: bool) -> None:
+        if state:
+            self.component_flags |= NodeComponentFlag.STATIC
+        else:
+            self.component_flags &= ~NodeComponentFlag.STATIC
+
+    @property
     def is_built_in(self) -> bool:
         return NodeComponentFlag.BUILT_IN in self.component_flags
 
@@ -263,7 +276,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def component_flags(self) -> NodeComponentFlag:
-        return self.data(self.Roles.COMPONENT_FLAGS)
+        return self.data(self.Roles.COMPONENT_FLAGS) or NodeComponentFlag.NONE
 
     @component_flags.setter
     def component_flags(self, flags: NodeComponentFlag) -> None:
@@ -286,8 +299,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
-        self.produces_output = False
-        self.accepts_input = False
         self.value = None
 
     def mark_as_built_in(self):
@@ -379,6 +390,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return component
 
     def execution_hook(self):
+        if self.is_static:
+            return
         if not self.is_active:
             return
         self.execute()

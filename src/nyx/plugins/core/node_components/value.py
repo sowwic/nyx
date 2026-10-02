@@ -1,4 +1,4 @@
-from nyx.api.v1 import NodeComponent, CoreNodeComponents
+from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentFlag
 
 
 class ValueComponent(NodeComponent):
@@ -15,3 +15,7 @@ class ValueComponent(NodeComponent):
     @classmethod
     def get_tags(cls) -> set[str]:
         return {"common", "value"}
+
+    @classmethod
+    def get_type_default_flags(cls) -> NodeComponentFlag:
+        return NodeComponentFlag.STATIC | NodeComponentFlag.EDITABLE

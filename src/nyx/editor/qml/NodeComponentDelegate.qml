@@ -54,6 +54,7 @@ Rectangle {
             Switch {
                 checked: itemRoot.isActive
                 onToggled: itemRoot.model.isActive = checked
+                visible: !itemRoot.model.isStatic
             }
 
             Item {

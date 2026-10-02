@@ -10,6 +10,11 @@ ColumnLayout {
 
     Label {
         Layout.fillWidth: true
+        text: "Source QML: " + root.component.editorQmlFile
+    }
+
+    Label {
+        Layout.fillWidth: true
         text: "UUID: " + root.component.uuid
     }
     Label {
@@ -38,7 +43,15 @@ ColumnLayout {
     }
     Label {
         Layout.fillWidth: true
+        text: "Active: " + root.component.isActive
+    }
+    Label {
+        Layout.fillWidth: true
         text: "Editable: " + root.component.isEditable
+    }
+    Label {
+        Layout.fillWidth: true
+        text: "Static: " + root.component.isStatic
     }
     Label {
         Layout.fillWidth: true

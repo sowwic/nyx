@@ -19,11 +19,6 @@ class CoreNodeComponents(enum.StrEnum):
     SCRIPT = "core:script"
 
 
-class NodeComponentSolveDirection(enum.IntEnum):
-    BACKWARD = enum.auto()
-    FORWARD = enum.auto()
-
-
 class RestoreUuidOption(enum.IntEnum):
     GENERATE_NEW = enum.auto()
     RESTORE = enum.auto()
@@ -43,3 +38,4 @@ class NodeComponentFlag(enum.IntFlag):
     ACCEPTS_INPUTS = enum.auto()
     PRODUCES_OUTPUT = enum.auto()
     EDITABLE = enum.auto()
+    STATIC = enum.auto()
