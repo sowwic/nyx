@@ -101,7 +101,10 @@ Rectangle {
             Button {
                 id: addButton
                 Layout.fillWidth: true
-                text: "+ Add"
+                icon.source: "qrc:/icons/plus.png"
+                icon.width: 16
+                icon.height: 16
+                text: "Add"
                 font.bold: true
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Add component")
@@ -111,19 +114,15 @@ Rectangle {
                     radius: 4
                     color: !addButton.enabled ? Qt.alpha("#2e7d32", 0.35) : addButton.down ? Qt.darker("#2e7d32", 1.3) : addButton.hovered ? Qt.lighter("#2e7d32", 1.15) : "#2e7d32"
                 }
-                contentItem: Label {
-                    text: addButton.text
-                    font: addButton.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
             }
 
             Button {
                 id: removeButton
                 Layout.fillWidth: true
-                text: "\u2212 Remove"
+                icon.source: "qrc:/icons/delete.png"
+                icon.width: 16
+                icon.height: 16
+                text: "Remove"
                 font.bold: true
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Remove component")
@@ -132,13 +131,6 @@ Rectangle {
                 background: Rectangle {
                     radius: 4
                     color: !removeButton.enabled ? Qt.alpha("#c62828", 0.35) : removeButton.down ? Qt.darker("#c62828", 1.3) : removeButton.hovered ? Qt.lighter("#c62828", 1.15) : "#c62828"
-                }
-                contentItem: Label {
-                    text: removeButton.text
-                    font: removeButton.font
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
             }
         }
