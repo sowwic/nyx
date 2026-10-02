@@ -118,6 +118,7 @@ Rectangle {
 
             Button {
                 id: removeButton
+                enabled: componentsController.selectionModel.hasSelection
                 Layout.fillWidth: true
                 icon.source: "qrc:/icons/delete.png"
                 icon.width: 16

@@ -15,6 +15,13 @@ DraggableDelegate {
     required property url editorQmlFile
     required property bool isBuiltIn
 
+    readonly property bool isSelected: {
+        if (!componentsModel)
+            return false;
+
+        componentsController.selectionModel.selection;
+        return componentsController.selectionModel.isSelected(componentsController.selectionModel.model.index(index, 0));
+    }
     readonly property bool showExpanded: isExpanded && !isDragging
 
     // Becomes true on the first user toggle, so creation doesn't animate.
@@ -36,8 +43,9 @@ DraggableDelegate {
         height: mainLayout.implicitHeight + 2 * mainLayout.anchors.margins
         clip: true
         radius: 4
-        color: palette.base
-        border.color: itemRoot.showExpanded ? palette.highlight : palette.mid
+        color: itemRoot.isSelected ? Qt.alpha(palette.highlight, 0.15) : palette.base
+        border.width: itemRoot.isSelected ? 2 : 1
+        border.color: itemRoot.isSelected ? palette.highlight : palette.mid
 
         Behavior on height {
             enabled: itemRoot.animateHeight
@@ -45,6 +53,22 @@ DraggableDelegate {
                 duration: 120
                 easing.type: Easing.OutCubic
             }
+        }
+
+        TapHandler {
+            acceptedModifiers: Qt.NoModifier
+            onTapped: componentsController.selectRow(itemRoot.index, 0)
+            onDoubleTapped: itemRoot.toggleExpanded()
+        }
+
+        TapHandler {
+            acceptedModifiers: Qt.ControlModifier
+            onTapped: componentsController.selectRow(itemRoot.index, 1)
+        }
+
+        TapHandler {
+            acceptedModifiers: Qt.ShiftModifier
+            onTapped: componentsController.selectRow(itemRoot.index, 2)
         }
 
         ColumnLayout {
@@ -93,10 +117,6 @@ DraggableDelegate {
                             text: itemRoot.typeDisplayName
                             opacity: 0.6
                         }
-                    }
-
-                    TapHandler {
-                        onTapped: itemRoot.toggleExpanded()
                     }
                 }
 

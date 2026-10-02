@@ -39,3 +39,9 @@ class NodeComponentFlag(enum.IntFlag):
     PRODUCES_OUTPUT = enum.auto()
     EDITABLE = enum.auto()
     STATIC = enum.auto()
+
+
+class ItemSelectionMode(enum.IntEnum):
+    REPLACE = 0
+    TOGGLE = enum.auto()
+    RANGE = enum.auto()
