@@ -71,6 +71,31 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             return int(getattr(value, "value", value) or 0)
         return value
 
+    @QtCore.Slot(int, int, int, result=bool)
+    def move(self, from_row: int, to_row: int, count: int = 1) -> bool:
+        n = self.rowCount()
+        if from_row == to_row or not (0 <= from_row < n) or not (0 <= to_row < n):
+            return False
+
+        dest = to_row + 1 if to_row > from_row else to_row
+
+        if not self.beginMoveRows(
+            QtCore.QModelIndex(), from_row, from_row, QtCore.QModelIndex(), dest
+        ):
+            return False
+
+        # Reorder the real rows, but suppress the remove/insert signals so views
+        # only see the single "rows moved" notification.
+        self.blockSignals(True)
+        try:
+            items = self.takeRow(from_row)
+            self.insertRow(to_row, items)
+        finally:
+            self.blockSignals(False)
+
+        self.endMoveRows()
+        return True
+
     def list_components(self, type_id_filter: str | None = None) -> list[NodeComponent]:
         all_components: list[NodeComponent] = [
             self.invisibleRootItem().child(row)

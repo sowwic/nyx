@@ -34,7 +34,9 @@ Rectangle {
             }
         }
 
-        delegate: NodeComponentDelegate {}
+        delegate: NodeComponentDelegate {
+            onMoveRequested: (from, to) => componentsModel.move(from, to, 1)
+        }
 
         add: Transition {
             NumberAnimation {
