@@ -17,4 +17,4 @@ PROFILING_DIR = APP_DATA_DIR / "profiling"
 
 PACKAGE_ROOT = pathlib.Path(__file__).resolve().parents[1]
 QML_DIR = PACKAGE_ROOT / "editor" / "qml"
-DEFAULT_QML_NODE_COMPONENT_EDITOR = QML_DIR / "NodeComponentItem.qml"
+DEFAULT_QML_NODE_COMPONENT_ITEM = QML_DIR / "NodeComponentItem.qml"

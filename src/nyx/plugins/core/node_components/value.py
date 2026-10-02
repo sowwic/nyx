@@ -13,5 +13,5 @@ class ValueComponent(NodeComponent):
         return "Value"
 
     @classmethod
-    def get_tags(self) -> set[str]:
+    def get_tags(cls) -> set[str]:
         return {"common", "value"}

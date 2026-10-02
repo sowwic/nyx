@@ -12,7 +12,7 @@ from .link import Link
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import RestoreUuidOption, NodeComponentFlag
-from ..static.paths import DEFAULT_QML_NODE_COMPONENT_EDITOR
+from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
 if typing.TYPE_CHECKING:
     from .node import Node
@@ -43,6 +43,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TAGS = enum.auto()
         COMPONENT_FLAGS = enum.auto()
         IS_ACTIVE = enum.auto()
+        IS_EXPANDED = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
@@ -268,6 +269,14 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def component_flags(self, flags: NodeComponentFlag) -> None:
         self.setData(flags, role=self.Roles.COMPONENT_FLAGS)
 
+    @property
+    def is_expanded(self):
+        return bool(self.data(self.Roles.IS_EXPANDED))
+
+    @is_expanded.setter
+    def is_expanded(self, state: bool) -> None:
+        self.setData(state, role=self.Roles.IS_EXPANDED)
+
     def init_default_data_values(self):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
@@ -276,6 +285,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.component_flags = self.get_type_default_flags()
 
         self.is_active = True
+        self.is_expanded = self.get_default_expanded_state()
         self.produces_output = False
         self.accepts_input = False
         self.value = None
@@ -388,7 +398,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def get_qml_editor_url(cls) -> QtCore.QUrl:
         if cls.EDITOR_QML and cls.SOURCE_PLUGIN:
             return cls.resolve_qml_source(cls.EDITOR_QML)
-        return QtCore.QUrl.fromLocalFile(str(DEFAULT_QML_NODE_COMPONENT_EDITOR))
+        return QtCore.QUrl.fromLocalFile(str(DEFAULT_QML_NODE_COMPONENT_ITEM))
 
     @classmethod
     def get_type_default_value(self) -> typing.Any:
@@ -409,3 +419,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_tags(cls) -> set[str]:
         return set()
+
+    @classmethod
+    def get_default_expanded_state(cls) -> bool:
+        return True

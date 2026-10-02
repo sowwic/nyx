@@ -10,15 +10,26 @@ Rectangle {
     required property string name
     required property string typeDisplayName
     required property bool isActive
+    required property bool isExpanded
     required property url editorQmlFile
+
+    // Becomes true on the first user toggle, so creation doesn't animate.
+    property bool animateHeight: false
+
+    function toggleExpanded() {
+        animateHeight = true;
+        model.isExpanded = !isExpanded;
+    }
 
     width: ListView.view ? ListView.view.width : 0
     height: mainLayout.implicitHeight + 2 * mainLayout.anchors.margins
     clip: true
     radius: 4
     color: palette.base
+    border.color: isExpanded ? palette.highlight : palette.mid
 
     Behavior on height {
+        enabled: itemRoot.animateHeight
         NumberAnimation {
             duration: 120
             easing.type: Easing.OutCubic
@@ -35,68 +46,75 @@ Rectangle {
         }
         spacing: 4
 
-        Label {
+        // ---- Header (always visible) ----
+        RowLayout {
             Layout.fillWidth: true
-            text: "UUID: " + itemRoot.model.uuid
+            spacing: 6
+
+            Switch {
+                checked: itemRoot.isActive
+                onToggled: itemRoot.model.isActive = checked
+            }
+
+            Item {
+                Layout.fillWidth: true
+                implicitHeight: headerRow.implicitHeight
+
+                RowLayout {
+                    id: headerRow
+                    anchors.fill: parent
+                    spacing: 8
+                    opacity: itemRoot.isActive ? 1.0 : 0.5
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: itemRoot.name
+                        font.bold: true
+                        elide: Text.ElideRight
+                    }
+                    Label {
+                        text: itemRoot.typeDisplayName
+                        opacity: 0.6
+                    }
+                }
+
+                TapHandler {
+                    onTapped: itemRoot.toggleExpanded()
+                }
+            }
+
+            ToolButton {
+                text: itemRoot.isExpanded ? "\u25BE" : "\u25B8"
+                onClicked: itemRoot.toggleExpanded()
+            }
         }
 
-        Label {
+        // ---- Per-type editor (created only while expanded) ----
+        Loader {
+            id: editorLoader
             Layout.fillWidth: true
-            text: "Type ID: " + itemRoot.model.typeId
+            Layout.leftMargin: 8
+            Layout.rightMargin: 8
+            Layout.bottomMargin: 4
+            active: itemRoot.isExpanded
+            visible: active
+
+            // While `active` is false this only stores the source and properties.
+            Component.onCompleted: setSource(itemRoot.editorQmlFile, {
+                "component": itemRoot.model
+            })
+
+            onStatusChanged: {
+                if (status === Loader.Error)
+                    console.warn("Editor failed to load:", itemRoot.editorQmlFile);
+            }
         }
 
         Label {
-            Layout.fillWidth: true
-            text: "Type: " + itemRoot.model.typeDisplayName
-        }
-
-        Label {
-            Layout.fillWidth: true
-            text: "Active: " + itemRoot.model.isActive
-        }
-
-        Label {
-            Layout.fillWidth: true
-            text: "Name: " + itemRoot.model.name
-        }
-
-        Label {
-            Layout.fillHeight: true
-            text: "Value: " + itemRoot.model.value
-        }
-
-        Label {
-            Layout.fillHeight: true
-            text: "Default Value: " + itemRoot.model.defaultValue
-        }
-
-        Label {
-            Layout.fillHeight: true
-            text: "Tags: " + itemRoot.model.tags
-        }
-
-        Label {
-            Layout.fillHeight: true
-            text: "Links: " + itemRoot.model.links
-        }
-
-        Label {
-            Layout.fillHeight: true
-            text: "Path: " + itemRoot.model.path
-        }
-
-        Label {
-            Layout.fillHeight: true
-            text: "Editable: " + itemRoot.model.isEditable
-        }
-        Label {
-            Layout.fillHeight: true
-            text: "Built-in: " + itemRoot.model.isBuiltIn
-        }
-
-        Label {
-            Layout.fillHeight: true
-            text: "QML Source: " + itemRoot.model.editorQmlFile
+            visible: editorLoader.status === Loader.Error
+            text: qsTr("Editor could not be loaded")
+            color: "firebrick"
+            Layout.leftMargin: 8
         }
     }
 }
