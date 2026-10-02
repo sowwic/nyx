@@ -3,6 +3,7 @@ import logging
 
 from nyx.api.v1 import NyxPluginManager, NyxPlugin, Node
 
+from .node_components.comment import CommentComponent
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
 from .node_components.script import ScriptComponent
@@ -29,6 +30,7 @@ class NyxCore(NyxPlugin):
     def initialize(cls) -> typing.Self:
         plugin = cls()
         plugin.contents.node_components = [
+            CommentComponent,
             FlowComponent,
             ValueComponent,
             ScriptComponent,
