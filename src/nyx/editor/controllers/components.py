@@ -1,7 +1,7 @@
 import logging
 import typing
 
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore
 
 from ...core.commands import DeleteNodeComponentCommand
 from ...static.enums import ItemSelectionMode

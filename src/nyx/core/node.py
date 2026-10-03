@@ -476,6 +476,7 @@ class Node(QtGui.QStandardItem, StageObject):
             context=context,
             restore_uuid=restore_uuid,
         )
+        stage.register_node(node)
 
         # Links
         if context.defer_links:
