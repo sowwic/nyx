@@ -268,9 +268,11 @@ class Stage(QtGui.QStandardItemModel):
             LOGGER.warning(f"Skipping registration of invalid link: {link}")
             return
 
-        if link.uuid in self.uuid_map:
-            LOGGER.debug(f"Link already in uuid_map: {self.uuid_map[link.uuid]}")
-            return
+        if link.uuid in self._uuid_map and self._uuid_map[link.uuid] is not link:
+            raise StageObjectRegistrationError(
+                f"Link with UUID {link.uuid} already exists: "
+                f"{(self.get_object(link.uuid, expected_type=Link))}"
+            )
 
         self._uuid_map[link.uuid] = link
         source_cpnt: NodeComponent = self.get_object(link.source)
@@ -296,7 +298,7 @@ class Stage(QtGui.QStandardItemModel):
         return result
 
     def register_node(self, node: Node):
-        if node.uuid in self.uuid_map:
+        if node.uuid in self.uuid_map and self.uuid_map[node.uuid] is not node:
             raise StageObjectRegistrationError(
                 f"Node with UUID {node.uuid} already exists: "
                 f"{(self.get_object(node.uuid).path)}"
@@ -305,7 +307,10 @@ class Stage(QtGui.QStandardItemModel):
         self._uuid_map[node.uuid] = node
 
         for node_component in node.components_model.list_components():
-            if node_component.uuid in self.uuid_map:
+            if (
+                node_component.uuid in self.uuid_map
+                and self.uuid_map[node_component.uuid] is not node_component
+            ):
                 raise StageObjectRegistrationError(
                     f"Component with UUID {node_component.uuid} already exists: "
                     f"{self.get_object(node_component.uuid)}"

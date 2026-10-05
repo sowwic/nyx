@@ -4,7 +4,7 @@ import typing
 import logging
 from collections import OrderedDict
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 from uuid import UUID
 
 from .stage_object import StageObject
@@ -12,6 +12,7 @@ from .link import Link
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import RestoreUuidOption, NodeComponentFlag
+from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
 if typing.TYPE_CHECKING:
     from .node import Node
@@ -25,7 +26,8 @@ LOGGER = logging.getLogger(__name__)
 
 class NodeComponent(QtGui.QStandardItem, StageObject):
     DEFAULT_NAME: str = "component"
-    PATH_SEPARATOR = "."
+    EDITOR_QML: str | None = None
+    PATH_SEPARATOR: str = "."
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
@@ -33,14 +35,33 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     class Roles(enum.IntEnum):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
-        TYPE_ID_ROLE = QtCore.Qt.ItemDataRole.UserRole + 1
-        TYPE_DISPLAY_NAME_ROLE = enum.auto()
+        TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
+        TYPE_DISPLAY_NAME = enum.auto()
         VALUE = enum.auto()
-        LINKS_ROLE = enum.auto()
+        LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
-        TAGS_ROLE = enum.auto()
-        FLAGS_ROLE = enum.auto()
+        TAGS = enum.auto()
+        COMPONENT_FLAGS = enum.auto()
         IS_ACTIVE = enum.auto()
+        IS_EXPANDED = enum.auto()
+        # Virtual roles, computed in NodeComponentsModel.data()
+        UUID = enum.auto()
+        PATH = enum.auto()
+        EDITOR_QML_FILE = enum.auto()
+        IS_EDITABLE = enum.auto()
+        IS_STATIC = enum.auto()
+        IS_BUILT_IN = enum.auto()
+
+        @classmethod
+        def virtual_roles(cls):
+            return (
+                cls.UUID,
+                cls.PATH,
+                cls.EDITOR_QML_FILE,
+                cls.IS_BUILT_IN,
+                cls.IS_EDITABLE,
+                cls.IS_STATIC,
+            )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__} ({self.path})"
@@ -163,7 +184,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
-        return self.data(self.Roles.LINKS_ROLE)
+        return self.data(self.Roles.LINKS)
 
     @property
     def output_links_uuids(self) -> list[UUID]:
@@ -235,45 +256,53 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             self.component_flags &= ~NodeComponentFlag.EDITABLE
 
     @property
+    def is_static(self) -> bool:
+        return NodeComponentFlag.STATIC in self.component_flags
+
+    @is_static.setter
+    def is_static(self, state: bool) -> None:
+        if state:
+            self.component_flags |= NodeComponentFlag.STATIC
+        else:
+            self.component_flags &= ~NodeComponentFlag.STATIC
+
+    @property
     def is_built_in(self) -> bool:
         return NodeComponentFlag.BUILT_IN in self.component_flags
 
     @property
     def tags(self) -> set[str]:
-        return self.data(self.Roles.TAGS_ROLE)
+        return self.data(self.Roles.TAGS)
 
     @property
     def component_flags(self) -> NodeComponentFlag:
-        return self.data(self.Roles.FLAGS_ROLE)
+        return self.data(self.Roles.COMPONENT_FLAGS) or NodeComponentFlag.NONE
 
     @component_flags.setter
     def component_flags(self, flags: NodeComponentFlag) -> None:
-        self.setData(flags, role=self.Roles.FLAGS_ROLE)
+        self.setData(flags, role=self.Roles.COMPONENT_FLAGS)
+
+    @property
+    def is_expanded(self) -> bool:
+        return bool(self.data(self.Roles.IS_EXPANDED))
+
+    @is_expanded.setter
+    def is_expanded(self, state: bool) -> None:
+        self.setData(state, role=self.Roles.IS_EXPANDED)
 
     def init_default_data_values(self):
-        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID_ROLE)
-        self.setData(
-            self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME_ROLE
-        )
-        self.setData(self.get_tags(), role=self.Roles.TAGS_ROLE)
-        self.setData(set(), role=self.Roles.LINKS_ROLE)
+        self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
+        self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
+        self.setData(self.get_tags(), role=self.Roles.TAGS)
+        self.setData(set(), role=self.Roles.LINKS)
         self.component_flags = self.get_type_default_flags()
 
         self.is_active = True
-        self.produces_output = False
-        self.accepts_input = False
+        self.is_expanded = self.get_default_expanded_state()
         self.value = None
 
     def mark_as_built_in(self):
         self.component_flags |= NodeComponentFlag.BUILT_IN
-
-    def create_inspector_widget(self, parent) -> QtWidgets.QWidget:
-        widget = QtWidgets.QWidget(parent)
-        layout = QtWidgets.QHBoxLayout()
-        line_edit = QtWidgets.QLineEdit()
-        widget.setLayout(layout)
-        layout.addWidget(line_edit)
-        return widget
 
     def pull_value(self) -> typing.Any:
         input_links = self.input_links
@@ -288,10 +317,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.value = self.get_type_default_value()
 
     def add_link(self, link_uuid: UUID | str):
-        self.data(self.Roles.LINKS_ROLE).add(link_uuid)
+        self.data(self.Roles.LINKS).add(link_uuid)
 
     def remove_link(self, link_uuid: UUID | str):
-        self.data(self.Roles.LINKS_ROLE).discard(link_uuid)
+        self.data(self.Roles.LINKS).discard(link_uuid)
 
     def is_linked_to(
         self, other_component: NodeComponent, as_source=False, as_target=False
@@ -340,7 +369,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         context: NodeDeserializationContext,
         component: NodeComponent | None = None,
         restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
-    ):
+    ) -> NodeComponent:
         uuid = cls.choose_new_uuid(
             node.stage, serialized_data=data, restore_option=restore_uuid
         )
@@ -361,6 +390,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return component
 
     def execution_hook(self):
+        if self.is_static:
+            return
         if not self.is_active:
             return
         self.execute()
@@ -375,6 +406,12 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def execute(self):
         pass
+
+    @classmethod
+    def get_qml_editor_url(cls) -> QtCore.QUrl:
+        if cls.EDITOR_QML and cls.SOURCE_PLUGIN:
+            return cls.resolve_qml_source(cls.EDITOR_QML)
+        return QtCore.QUrl.fromLocalFile(str(DEFAULT_QML_NODE_COMPONENT_ITEM))
 
     @classmethod
     def get_type_default_value(self) -> typing.Any:
@@ -395,3 +432,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_tags(cls) -> set[str]:
         return set()
+
+    @classmethod
+    def get_default_expanded_state(cls) -> bool:
+        return True

@@ -3,7 +3,6 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 class SequenceNode(Node):
     DEFAULT_NAME = "sequence"
-    REQUIRED_PLUGINS = {"NyxCore"}
     DEFAULT_OUTPUTS_COUNT = 4
 
     @classmethod

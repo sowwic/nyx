@@ -15,12 +15,8 @@ class CoreNodes(enum.StrEnum):
 class CoreNodeComponents(enum.StrEnum):
     VALUE = "core:value"
     FLOW = "core:flow"
+    COMMENT = "core:comment"
     SCRIPT = "core:script"
-
-
-class NodeComponentSolveDirection(enum.IntEnum):
-    BACKWARD = enum.auto()
-    FORWARD = enum.auto()
 
 
 class RestoreUuidOption(enum.IntEnum):
@@ -42,3 +38,10 @@ class NodeComponentFlag(enum.IntFlag):
     ACCEPTS_INPUTS = enum.auto()
     PRODUCES_OUTPUT = enum.auto()
     EDITABLE = enum.auto()
+    STATIC = enum.auto()
+
+
+class ItemSelectionMode(enum.IntEnum):
+    REPLACE = 0
+    TOGGLE = enum.auto()
+    RANGE = enum.auto()

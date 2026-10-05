@@ -4,12 +4,12 @@ from nyx.api.v1 import (
     Node,
     NodeComponent,
     CoreNodeComponents,
+    NodeComponentFlag,
 )
 
 
 class FlowComponent(NodeComponent):
     DEFAULT_NAME = "flow"
-    REQUIRED_PLUGINS = {"NyxCore"}
 
     @classmethod
     def get_type_id(cls) -> str:
@@ -22,6 +22,10 @@ class FlowComponent(NodeComponent):
     @classmethod
     def get_tags(cls) -> set[str]:
         return {"logic"}
+
+    @classmethod
+    def get_type_default_flags(cls) -> NodeComponentFlag:
+        return NodeComponentFlag.STATIC
 
     def serialize_value(self) -> str:
         if self.value:

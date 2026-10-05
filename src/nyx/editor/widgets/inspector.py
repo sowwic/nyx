@@ -46,11 +46,10 @@ class Inspector(QtWidgets.QWidget):
 
     def update_data(self):
         selected_nodes = self.current_stage_graph.list_selected_nodes()
-        if not selected_nodes:
-            LOGGER.info("TODO: Inspector::set_place_holder_widget")
-            return
-
-        LOGGER.debug(selected_nodes)
-        for node in selected_nodes:
-            LOGGER.info("TODO: Inspector::update_data %s", node)
-        self._node_components_view.setModel(selected_nodes[0].components_model)
+        node = (
+            selected_nodes[0]
+            if selected_nodes
+            else self.current_stage_graph.stage.root_node
+        )
+        LOGGER.debug(f"Updating inspector: {node.path}")
+        self._node_components_view.setModel(node.components_model)

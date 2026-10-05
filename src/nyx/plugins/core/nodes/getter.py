@@ -3,7 +3,6 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents, static_vars
 
 class GetterNode(Node):
     DEFAULT_NAME = "get"
-    REQUIRED_PLUGINS = {"NyxCore"}
 
     @classmethod
     def get_type_id(cls) -> str:

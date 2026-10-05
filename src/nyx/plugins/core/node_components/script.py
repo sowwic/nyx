@@ -12,7 +12,6 @@ LOGGER = logging.getLogger(__name__)
 
 class ScriptComponent(NodeComponent):
     DEFAULT_NAME = "script"
-    REQUIRED_PLUGINS = {"NyxCore"}
     ENTRY_POINT_SEPARATOR = ":"
 
     GLOBALS_NODE_REF_NAME = "nyx_node"
@@ -33,6 +32,10 @@ class ScriptComponent(NodeComponent):
     @classmethod
     def get_tags(self) -> set[str]:
         return {"common", "script", "logic"}
+
+    @classmethod
+    def get_type_default_flags(cls) -> NodeComponentFlag:
+        return NodeComponentFlag.EDITABLE
 
     def execute(self):
         script_value = self.pull_value()
@@ -79,7 +82,3 @@ class ScriptComponent(NodeComponent):
 
         entry_point_func()
         return True
-
-    @classmethod
-    def get_type_default_flags(cls) -> NodeComponentFlag:
-        return NodeComponentFlag.EDITABLE

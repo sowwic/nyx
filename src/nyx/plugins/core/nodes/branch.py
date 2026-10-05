@@ -3,7 +3,6 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 class BranchNode(Node):
     DEFAULT_NAME = "branch"
-    REQUIRED_PLUGINS = {"NyxCore"}
 
     @classmethod
     def get_type_id(cls) -> str:
