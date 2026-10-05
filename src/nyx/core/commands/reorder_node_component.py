@@ -4,9 +4,7 @@ from PySide6 import QtGui
 
 from ..stage import Stage
 from ..node_component import NodeComponent, NodeComponentLike
-from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
-from ..name_validator import NameValidator
 
 
 LOGGER = logging.getLogger(__name__)
