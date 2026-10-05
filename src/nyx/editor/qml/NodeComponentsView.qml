@@ -16,6 +16,9 @@ Rectangle {
             margins: 6
             rightMargin: 6 + verticalScrollBar.width
         }
+
+        property var reorderState: ReorderState {}
+
         model: componentsModel
         spacing: 4
         clip: true
@@ -35,7 +38,8 @@ Rectangle {
         }
 
         delegate: NodeComponentDelegate {
-            onMoveRequested: (from, to) => componentsModel.move(from, to, 1)
+            reorderState: componentsListView.reorderState
+            onMoveRequested: (from, to) => componentsController.reorderComponent(from, to)
         }
 
         add: Transition {
