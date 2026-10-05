@@ -28,6 +28,9 @@ class DeleteNodeComponentCommand(NyxCommand):
         self.node_uuid = node.uuid
         self.name = name
         self.serialized_data: OrderedDict = OrderedDict()
+        self.expanded_state = True
+        self.model_row = None
+
         super().__init__(
             stage=node.stage,
             text="Delete component",
@@ -47,10 +50,12 @@ class DeleteNodeComponentCommand(NyxCommand):
         node: Node = self.stage.get_object(self.node_uuid)
         component: NodeComponent = node[self.name]
         self.serialized_data = component.serialize()
+        self.expanded_state = component.is_expanded
+        self.model_row = component.row()
+
         self.setText(
             f"Remove component ({node.path}.{self.name} ({component.get_type_id()})"
         )
-        # TODO: unlink any links first
         node.components_model.remove_component(self.component_uuid)
 
         return super().redo()
@@ -67,7 +72,8 @@ class DeleteNodeComponentCommand(NyxCommand):
             component=None,
             restore_uuid=RestoreUuidOption.RESTORE,
         )
-        node.components_model.add_component(component)
+        node.components_model.add_component(component, at_row=self.model_row)
+        component.is_expanded = self.expanded_state
 
         result = super().undo()
         self._undo_unlink()

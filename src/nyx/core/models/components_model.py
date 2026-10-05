@@ -149,9 +149,13 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         component_cls = NYX_REGISTRY.get_node_component_cls(type_id=type_id)
         return component_cls()
 
-    def add_component(self, component: NodeComponent):
+    def add_component(self, component: NodeComponent, at_row: int | None = None):
         component.name = self.compose_unique_component_name(component.name)
-        self.appendRow(component)
+        if at_row:
+            self.insertRow(at_row, component)
+        else:
+            self.appendRow(component)
+
         if self.node.stage:
             self.node.stage.uuid_map[component.uuid] = component
         LOGGER.debug(f"Added new component: {component}")

@@ -283,7 +283,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(flags, role=self.Roles.COMPONENT_FLAGS)
 
     @property
-    def is_expanded(self):
+    def is_expanded(self) -> bool:
         return bool(self.data(self.Roles.IS_EXPANDED))
 
     @is_expanded.setter
@@ -369,7 +369,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         context: NodeDeserializationContext,
         component: NodeComponent | None = None,
         restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
-    ):
+    ) -> NodeComponent:
         uuid = cls.choose_new_uuid(
             node.stage, serialized_data=data, restore_option=restore_uuid
         )
