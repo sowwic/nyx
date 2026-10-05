@@ -3,11 +3,12 @@ import typing
 
 from PySide6 import QtCore
 
-from ...core.commands import DeleteNodeComponentCommand
+from ...core.commands import DeleteNodeComponentCommand, ReorderNodeComponentCommand
 from ...static.enums import ItemSelectionMode
 
 
 if typing.TYPE_CHECKING:
+    from ...core.stage import Stage
     from ...core.node_component import NodeComponent
     from ...core.models.components_model import NodeComponentsModel
 
@@ -28,6 +29,10 @@ class ComponentsController(QtCore.QObject):
         self._current_item_before_move = None
 
         self._connect_models()
+
+    @property
+    def stage(self) -> Stage:
+        return self.components_model.node.stage
 
     @property
     def selection_model(self) -> QtCore.QItemSelectionModel:
@@ -102,6 +107,16 @@ class ComponentsController(QtCore.QObject):
             )
             delete_commands.append(command)
         self.components_model.node.stage.push_command(*delete_commands)
+
+    @QtCore.Slot(int, int)
+    def reorderComponent(self, from_row: int, to_row: int):
+        component = self.components_model.item(from_row, 0)
+        reorder_command = ReorderNodeComponentCommand(
+            stage=self.stage,
+            node_component=component,
+            to_row=to_row,
+        )
+        self.stage.push_command(reorder_command)
 
     selectionModel = QtCore.Property(
         QtCore.QObject,

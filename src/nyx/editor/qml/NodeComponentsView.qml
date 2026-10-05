@@ -6,6 +6,9 @@ Rectangle {
     id: root
     color: palette.window
 
+    readonly property var activeModel: typeof componentsModel !== "undefined" ? componentsModel : null
+    readonly property var activeController: typeof componentsController !== "undefined" ? componentsController : null
+
     ListView {
         id: componentsListView
         anchors {
@@ -16,7 +19,10 @@ Rectangle {
             margins: 6
             rightMargin: 6 + verticalScrollBar.width
         }
-        model: componentsModel
+
+        property var reorderState: ReorderState {}
+
+        model: root.activeModel
         spacing: 4
         clip: true
         boundsBehavior: Flickable.StopAtBounds
@@ -35,7 +41,8 @@ Rectangle {
         }
 
         delegate: NodeComponentDelegate {
-            onMoveRequested: (from, to) => componentsModel.move(from, to, 1)
+            reorderState: componentsListView.reorderState
+            onMoveRequested: (from, to) => componentsController.reorderComponent(from, to)
         }
 
         add: Transition {
@@ -118,7 +125,7 @@ Rectangle {
 
             Button {
                 id: removeButton
-                enabled: componentsController.selectionModel.hasSelection
+                enabled: root.activeController !== null && root.activeController.selectionModel.hasSelection
                 Layout.fillWidth: true
                 icon.source: "qrc:/icons/delete.png"
                 icon.width: 16
@@ -127,7 +134,7 @@ Rectangle {
                 font.bold: true
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Remove component")
-                onClicked: componentsController.deleteSelectedNodeComponents()
+                onClicked: root.activeController.deleteSelectedNodeComponents()
 
                 background: Rectangle {
                     radius: 4
