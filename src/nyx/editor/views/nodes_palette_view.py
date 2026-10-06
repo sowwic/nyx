@@ -40,5 +40,9 @@ class NodesPaletteView(QQuickWidget):
         self.setSource(self.source_url)
 
     @property
+    def nodes_spawner(self) -> NodeSpawner:
+        return self._node_spawner
+
+    @property
     def source_url(self) -> QtCore.QUrl:
         return QtCore.QUrl((QML_DIR / self.QML_COMPONENT).as_posix())

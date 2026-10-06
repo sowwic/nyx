@@ -11,6 +11,7 @@ if typing.TYPE_CHECKING:
     from ....application import NyxEditorApplication
 
 
+# TODO: Potentially a singleton?
 class PopupNodesPalette(QtWidgets.QDialog):
     def __init__(self, scene_pos, parent=None):
         super().__init__(
@@ -24,6 +25,7 @@ class PopupNodesPalette(QtWidgets.QDialog):
 
         self._create_widgets()
         self._create_layouts()
+        self._create_connections()
 
     def _create_widgets(self):
         self._nodes_palette_view = NodesPaletteView(self)
@@ -33,6 +35,12 @@ class PopupNodesPalette(QtWidgets.QDialog):
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._main_layout)
         self._main_layout.addWidget(self._nodes_palette_view)
+
+    def _create_connections(self):
+        self._nodes_palette_view.nodes_spawner.nodeSpawned.connect(self.deleteLater)
+
+    def set_spawner_position(self, position: QtCore.QPointF):
+        self._nodes_palette_view.nodes_spawner.spawn_position = position
 
     @classmethod
     def get_current_editor(cls) -> StageGraphEditor | None:
@@ -53,6 +61,7 @@ class PopupNodesPalette(QtWidgets.QDialog):
         )
 
         palette = cls(scene_pos, parent=stage_graph_view.window())
+        palette.set_spawner_position(QtCore.QPointF(scene_pos.x(), scene_pos.y()))
         palette.move(global_pos)
         palette.exec()
         return palette
