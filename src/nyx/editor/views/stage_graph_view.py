@@ -109,6 +109,18 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.delete_selected_action.setShortcut("Delete")
         self.focus_on_selected_nodes_action.setShortcut("F")
 
+        for action in (
+            self.copy_selected_action,
+            self.cut_selected_action,
+            self.paste_action,
+            self.delete_selected_action,
+            self.focus_on_selected_nodes_action,
+        ):
+            action.setShortcutContext(
+                QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut
+            )
+            self.addAction(action)
+
     def create_widgets(self):
         pass
 
@@ -437,14 +449,16 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.stage.push_command(paste_cmd)
 
     def focus_on_selected_nodes(self):
-        selected_nodes = list(self.gr_stage.selected_gr_nodes())
-        if not selected_nodes:
+        selected_nodes = self.gr_stage.graph_editor.list_selected_nodes()
+        nodes_in_scope = self.gr_stage.graph_editor.filter_nodes_by_scope(selected_nodes)
+
+        if not nodes_in_scope:
             return
 
         mid_point = QtCore.QPointF()
-        for gr_node in selected_nodes:
-            mid_point += gr_node.pos()
+        for node in nodes_in_scope:
+            mid_point += node.position()
 
-        n = len(selected_nodes)
+        n = len(nodes_in_scope)
         mid_point = QtCore.QPointF(mid_point.x() / n, mid_point.y() / n)
         self.centerOn(mid_point)
