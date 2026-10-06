@@ -143,7 +143,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         return super().closeEvent(event)
 
-    def update_title(self):
+    def update_title(self) -> None:
         if not self.stage.file_path:
             title = self.DEFAULT_TITLE
         else:
@@ -153,7 +153,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             title += "*"
         self.setWindowTitle(title)
 
-    def maybe_save(self):
+    def maybe_save(self) -> bool:
         """Prompt user to save current scene it is new or has been modified.
 
         Returns:

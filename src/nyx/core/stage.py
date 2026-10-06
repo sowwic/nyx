@@ -353,11 +353,11 @@ class Stage(QtGui.QStandardItemModel):
         for each_node in node:
             parent.appendRow(each_node)
 
-    def delete_node(self, nodes: Sequence[NodeLike] | NodeLike):
+    def delete_node(self, nodes: Sequence[NodeLike] | NodeLike) -> None:
         """Delete node from stage.
 
         Args:
-            node (Node): node to delete.
+            nodes: nodes to delete.
 
         """
         if not isinstance(nodes, Sequence):
@@ -380,7 +380,7 @@ class Stage(QtGui.QStandardItemModel):
     def on_node_changed(self, node: Node):
         node.on_changed()
 
-    def describe(self):
+    def describe(self) -> str:
         """Pretty format serialized scene.
 
         Returns:
@@ -389,7 +389,7 @@ class Stage(QtGui.QStandardItemModel):
         """
         return pprint.pformat(self.root_node.serialize())
 
-    def export_json(self, file_path: pathlib.Path | str):
+    def export_json(self, file_path: pathlib.Path | str) -> None:
         """Serialize scene and write it to json file.
 
         Args:
@@ -432,7 +432,7 @@ class Stage(QtGui.QStandardItemModel):
         Also validates command before pushing and raises error if validation fails.
 
         Args:
-            command (NyxCommand): command to push.
+            commands (NyxCommand): command to push.
         Raises:
             NyxCommandValidationError: if command validation fails.
         """

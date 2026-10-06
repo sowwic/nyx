@@ -6,7 +6,7 @@ import pathlib
 
 
 class DirectoryStruct(abc.ABC):
-    def make_dirs(self, exist_ok=True):
+    def make_dirs(self, exist_ok: bool = True):
         """Create directory for each path field.
 
         Args:
@@ -33,10 +33,10 @@ class DirectoryStruct(abc.ABC):
 def write_json(
     path: pathlib.Path | str,
     data: dict,
-    as_string=False,
-    sort_keys=True,
-    indent=4,
-):
+    as_string: bool = False,
+    sort_keys: bool = True,
+    indent: int = 4,
+) -> pathlib.Path:
     """Write json file.
 
     Args:
@@ -67,7 +67,7 @@ def load_json(
     path: pathlib.Path | str | None = None,
     input_str: str | None = None,
     object_pairs_hook=None,
-):
+) -> dict:
     """Load json data from file or string.
 
     Args:

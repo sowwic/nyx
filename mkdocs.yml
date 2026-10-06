@@ -13,6 +13,8 @@ plugins:
         - "**/hooks-pyside6.py"
         - "**/main.py"
         - "**/resources/*"
+        - "**/plugins/*"
+        - "**/plugins/**/*"
       autoapi_file_patterns:
         - "*.py"
   - mkdocstrings:

@@ -105,7 +105,7 @@ class Node(QtGui.QStandardItem, StageObject):
         self.setData(NodeExecutionStatus.NOT_RAN, role=self.Roles.EXECUTION_STATUS)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Node name
 
         Returns:
@@ -323,27 +323,7 @@ class Node(QtGui.QStandardItem, StageObject):
             children += child.list_children()
         return children
 
-    def is_parent_of(self, other_node: Node | str | pathlib.PurePosixPath):
-        """Check if given path is path of one of the child nodes.
-
-        Args:
-            path (str | pathlib.PurePosixPath): path to test.
-
-        Returns:
-            bool: if path belongs to one of children.
-
-        """
-        if isinstance(
-            other_node, (str, pathlib.PurePosixPath)
-        ) and self.stage.path_resolver.is_relative_path(other_node):
-            other_node = self.stage.path_resolver.compute_absolute_path(
-                self.path, other_node
-            )
-
-        other_node = self.stage.get_object(other_node)
-        return other_node in set(self.list_children())
-
-    def list_parents(self, as_queue=False) -> list[Node] | deque[Node]:
+    def list_parents(self, as_queue: bool = False) -> list[Node] | deque[Node]:
         """List parents recursively.
 
         Args:
@@ -534,7 +514,6 @@ class Node(QtGui.QStandardItem, StageObject):
 
         Args:
             file_path (pathlib.Path): json file path.
-            as_reference (bool, optional): if node should be locked. Defaults to False.
 
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)

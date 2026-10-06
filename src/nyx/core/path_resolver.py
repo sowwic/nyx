@@ -9,7 +9,7 @@ LOGGER = logging.getLogger(__name__)
 
 class StagePathResolver:
     @staticmethod
-    def is_absolute_path(path: pathlib.PurePosixPath | str):
+    def is_absolute_path(path: pathlib.PurePosixPath | str) -> bool:
         """Is given path absolute.
 
         Args:
@@ -22,7 +22,7 @@ class StagePathResolver:
         return pathlib.PurePosixPath(path).is_absolute()
 
     @staticmethod
-    def is_relative_path(path: pathlib.PurePosixPath | str):
+    def is_relative_path(path: pathlib.PurePosixPath | str) -> bool:
         """Is given path relative.
 
         Args:
@@ -90,7 +90,7 @@ class StagePathResolver:
     def compute_absolute_path(
         anchor_path: pathlib.PurePosixPath | str,
         rel_path: pathlib.PurePosixPath | str,
-    ):
+    ) -> pathlib.PurePosixPath:
         """Compute absolute path from given anchor and relative paths.
 
         Args:
