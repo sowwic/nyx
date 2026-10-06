@@ -15,6 +15,7 @@ from .widgets.logger_widget import LoggerWidget
 from .widgets.inspector import Inspector
 from .widgets.editor_toolbar import EditorToolBar
 from .widgets import menubar_menus
+from .widgets.stage_mdi_window import StageMdiSubWindow
 from .widgets.stage_mdi_area import StageMdiArea
 from ..utils import pyside_fn
 from ..static.enums import EditorUIObject
@@ -73,7 +74,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.create_connections()
 
         self.apply_config_values()
-        self.update_title()
 
     @property
     def config(self) -> NyxConfig:

@@ -43,6 +43,8 @@ Rectangle {
 
             width: ListView.view.width
             text: model.typeDisplayName
+
+            onClicked: nodeSpawner.spawnNodeAtCenter(model.typeId)
         }
     }
 

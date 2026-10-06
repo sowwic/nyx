@@ -3,6 +3,7 @@ import typing
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtQuickWidgets import QQuickWidget
 
+from ..controllers.node_spawner import NodeSpawner
 from ...core.plugin_subsystem.registry import NYX_REGISTRY
 from ...core.models.registry_model import RegistryListModel
 from ...static.paths import QML_DIR
@@ -27,6 +28,7 @@ class NodesPaletteView(QQuickWidget):
         self._nodes_registry_model = RegistryListModel(
             get_items=lambda: NYX_REGISTRY.nodes, parent=self
         )
+        self._node_spawner = NodeSpawner(self)
 
         # Let QML files import siblings
         self.engine().addImportPath(QML_DIR.as_posix())
@@ -34,6 +36,7 @@ class NodesPaletteView(QQuickWidget):
         self.rootContext().setContextProperty(
             "nodesRegistryModel", self._nodes_registry_model
         )
+        self.rootContext().setContextProperty("nodeSpawner", self._node_spawner)
         self.setSource(self.source_url)
 
     @property

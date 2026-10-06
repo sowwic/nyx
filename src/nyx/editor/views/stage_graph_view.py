@@ -377,6 +377,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
 
+    # TODO: Replace with palette dialog
     def create_new_node(self):
         parent_path = self.graph_editor.get_scope_path()
 

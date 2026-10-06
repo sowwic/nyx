@@ -121,6 +121,7 @@ class StageTreeView(QtWidgets.QTreeView):
 
         return super().mousePressEvent(event)
 
+    # TODO: Replace with palette dialog
     def create_new_node(self):
         if self.current_stage_graph is None:
             return
