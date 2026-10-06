@@ -18,7 +18,7 @@ class PopupNodesPalette(QtWidgets.QDialog):
             parent, QtCore.Qt.WindowType.Dialog | QtCore.Qt.FramelessWindowHint
         )
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setFixedSize(400, 600)
+        self.setFixedSize(400, 500)
 
         self._scene_pos = scene_pos
         self._chosen_node_type_id: UUID | None

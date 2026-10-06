@@ -13,6 +13,7 @@ from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 from nyx.utils import pyside_fn
+from .dim_overlay import dimmed_ovelay
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import NodeLike, Node
@@ -295,5 +296,6 @@ class StageGraphEditor(QtWidgets.QWidget):
         )
         if not self.gr_view.viewport().rect().contains(point_under_cursor_in_gr_view):
             return
-        PopupNodesPalette.popup()
-        # TODO: Get selected node from popup
+
+        with dimmed_ovelay(self.window()):
+            PopupNodesPalette.popup()
