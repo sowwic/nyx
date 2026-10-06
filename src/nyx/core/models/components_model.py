@@ -151,8 +151,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             raise ValueError(f"Component UUID doesn't exist in stage: {uuid}")
 
         if component.is_built_in:
-            LOGGER.error(f"Can't remove builtin component: {component.path}")
-            return
+            raise ValueError(f"Can't remove builtin component: {component.path}")
 
         if self.node.stage:
             self.node.stage.uuid_map.pop(component.uuid)

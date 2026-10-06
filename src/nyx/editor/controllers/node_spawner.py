@@ -4,7 +4,6 @@ import typing
 from PySide6 import QtCore, QtWidgets
 
 from ...core.node import Node
-from ...core.plugin_subsystem.registry import NYX_REGISTRY
 from ...core.commands import CreateNodeCommand
 
 

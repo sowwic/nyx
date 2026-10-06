@@ -102,6 +102,10 @@ class ComponentsController(QtCore.QObject):
         delete_commands = []
         for item_index in selection.indexes():
             component: NodeComponent = self.components_model.itemFromIndex(item_index)
+            if component.is_built_in:
+                LOGGER.warning("Can't delete built-in component %s", str(component.path))
+                return
+
             command = DeleteNodeComponentCommand(
                 node=self.components_model.node, name=component.name
             )
