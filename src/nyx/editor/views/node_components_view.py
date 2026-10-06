@@ -25,7 +25,7 @@ class NodeComponentsView(QQuickWidget):
         self.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setClearColor(self.palette().color(QtGui.QPalette.ColorRole.Window))
-        self.setMinimumWidth(240)
+        self.setMinimumWidth(350)
 
         # Let QML files import siblings
         self.engine().addImportPath(QML_DIR.as_posix())

@@ -10,6 +10,7 @@ from nyx.core.exceptions import StageObjectQueryError
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
+from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
@@ -74,7 +75,17 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def create_actions(self):
         """Create and setup actions."""
-        pass
+        self._show_nodes_palette_action = QtGui.QAction("Add Node...", self)
+        self._show_nodes_palette_action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key.Key_Tab)
+        )
+        self._show_nodes_palette_action.setShortcutContext(
+            QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._show_nodes_palette_action.triggered.connect(
+            self._shows_popup_nodes_palette
+        )
+        self.addAction(self._show_nodes_palette_action)
 
     def create_widgets(self):
         """Create and setup widgets."""
@@ -273,3 +284,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
+
+    def _shows_popup_nodes_palette(self):
+        point_under_cursor_in_gr_view = self.gr_view.viewport().mapFromGlobal(
+            QtGui.QCursor.pos()
+        )
+        if not self.gr_view.viewport().rect().contains(point_under_cursor_in_gr_view):
+            return
+        palette = PopupNodesPalette.popup()
