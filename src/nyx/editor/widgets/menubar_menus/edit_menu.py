@@ -15,14 +15,14 @@ class EditMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
-        self.reset_editor_config_action = QtGui.QAction("Reset config", self)
+        self.reset_editor_config_action = QtGui.QAction("Reset Config", self)
         self.undo_action: QtGui.QAction = self.main_window.undo_group.createUndoAction(
             self
         )
         self.redo_action: QtGui.QAction = self.main_window.undo_group.createRedoAction(
             self
         )
-        self.rename_selected_node_action = QtGui.QAction("Rename selected node", self)
+        self.rename_selected_node_action = QtGui.QAction("Rename Selected Node", self)
 
         self.undo_action.setShortcut("Ctrl+Z")
         self.redo_action.setShortcut("Ctrl+Y")

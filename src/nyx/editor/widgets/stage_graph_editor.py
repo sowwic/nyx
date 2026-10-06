@@ -45,6 +45,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.create_connections()
 
         self.gr_stage.rebuild_current_scope()
+        self.update_title()
 
     @classmethod
     def from_json_file(cls, file_path: pathlib.Path | str):

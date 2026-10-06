@@ -16,6 +16,7 @@ from .widgets.inspector import Inspector
 from .widgets.editor_toolbar import EditorToolBar
 from .widgets import menubar_menus
 from .widgets.stage_mdi_window import StageMdiSubWindow
+from .widgets.stage_mdi_area import StageMdiArea
 from ..utils import pyside_fn
 from ..static.enums import EditorUIObject
 
@@ -73,6 +74,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.create_connections()
 
         self.apply_config_values()
+        self.update_title()
 
     @property
     def config(self) -> NyxConfig:
@@ -144,14 +146,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.tool_bar = EditorToolBar(self)
 
         # mdi area
-        self.mdi_area = QtWidgets.QMdiArea()
+        self.mdi_area = StageMdiArea()
         self.setCentralWidget(self.mdi_area)
-        self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.mdi_area.setViewMode(QtWidgets.QMdiArea.TabbedView)
-        self.mdi_area.setDocumentMode(True)
-        self.mdi_area.setTabsClosable(True)
-        self.mdi_area.setTabsMovable(True)
 
     def _create_dock_widgets(self):
         # Dock Widgets
@@ -310,9 +306,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         else:
             stage_graph_editor_widget = StageGraphEditor(stage)
 
-        mdi_sub_window = StageMdiSubWindow(self.mdi_area)
-        mdi_sub_window.setWidget(stage_graph_editor_widget)
-        self.mdi_area.addSubWindow(mdi_sub_window)
+        mdi_sub_window = self.mdi_area.addSubWindow(stage_graph_editor_widget)
 
         # Connect signals
         stage_graph_editor_widget.selection_model.selectionChanged.connect(

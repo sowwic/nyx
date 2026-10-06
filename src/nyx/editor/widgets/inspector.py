@@ -43,6 +43,10 @@ class Inspector(QtWidgets.QWidget):
         return self.main_window.current_stage_graph
 
     def update_data(self):
+        if not self.current_stage_graph:
+            self._node_components_view.setModel(None)
+            return
+
         selected_nodes = self.current_stage_graph.list_selected_nodes()
         node = (
             selected_nodes[0]

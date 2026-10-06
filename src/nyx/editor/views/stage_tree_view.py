@@ -122,6 +122,8 @@ class StageTreeView(QtWidgets.QTreeView):
         return super().mousePressEvent(event)
 
     def create_new_node(self):
+        if self.current_stage_graph is None:
+            return
         parent_path = None
         selected_nodes = self.selected_nodes()
         if selected_nodes:
