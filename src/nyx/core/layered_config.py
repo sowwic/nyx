@@ -1,9 +1,15 @@
 import logging
+import base64
 
 from pydantic.dataclasses import Field
 from json_config.api import ConfigLayer, ConfigValues, LayeredConfig
 
 from ..static.paths import USER_CONFIG_FILE_PATH
+
+
+class NyxMainWindowLayoutConfigValues(ConfigValues):
+    version: int = Field(default=0)
+    state: str | None = Field(default=None)
 
 
 class NyxMainWindowConfigValues(ConfigValues):
@@ -15,9 +21,12 @@ class NyxMainWindowConfigValues(ConfigValues):
         is_always_on_top: window stays on top
     """
 
-    size: tuple[int, int] = Field(default=(600, 400))
-    position: tuple[int, int] = Field(default=(0, 0))
+    size: tuple[int, int] | None = Field(default=None)
+    position: tuple[int, int] | None = Field(default=None)
     is_always_on_top: bool = Field(default=False)
+    layout: NyxMainWindowLayoutConfigValues = Field(
+        default_factory=NyxMainWindowLayoutConfigValues, alias="layout"
+    )
 
 
 class NyxEditorStyleConfigValues(ConfigValues):

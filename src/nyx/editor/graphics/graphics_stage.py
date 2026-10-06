@@ -198,6 +198,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         if not shiboken6.isValid(self.stage):
             return
 
+        if scope_path is None:
+            return
+
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
         self.clear_links()

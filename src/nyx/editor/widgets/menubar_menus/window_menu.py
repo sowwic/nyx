@@ -14,9 +14,6 @@ class WindowMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def populate(self):
-        self.addAction(self.main_window.inspector_dock.toggleViewAction())
-        self.addAction(self.main_window.stage_tree_dock.toggleViewAction())
-        self.addAction(self.main_window.undo_dock.toggleViewAction())
-        self.addAction(self.main_window.logger_dock.toggleViewAction())
-        # self.addAction(self.main_window.components_dock.toggleViewAction())
-        self.addAction(self.main_window.toolbar_dock.toggleViewAction())
+        self.addSection("Visibility")
+        for dock_widget in self.main_window.dock_widgets:
+            self.addAction(dock_widget.toggleViewAction())

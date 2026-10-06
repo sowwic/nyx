@@ -15,6 +15,7 @@ class EditMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
+        self.reset_editor_config_action = QtGui.QAction("Reset config", self)
         self.undo_action: QtGui.QAction = self.main_window.undo_group.createUndoAction(
             self
         )
@@ -29,12 +30,17 @@ class EditMenu(BaseMenu):
 
     def create_connections(self):
         self.rename_selected_node_action.triggered.connect(self.on_rename_selected_node)
+        self.reset_editor_config_action.triggered.connect(
+            self.main_window.reset_application_config
+        )
 
     def populate(self):
         self.addAction(self.undo_action)
         self.addAction(self.redo_action)
         self.addSeparator()
         self.addAction(self.rename_selected_node_action)
+        self.addSection("Editor")
+        self.addAction(self.reset_editor_config_action)
 
     def on_rename_selected_node(self):
         if not self.main_window.current_stage_graph:
