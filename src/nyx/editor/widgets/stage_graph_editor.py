@@ -7,6 +7,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import Stage
 from nyx.core.exceptions import StageObjectQueryError
+from nyx.static.vars import ROOT_NODE_PATH
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
@@ -37,7 +38,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self._selection_model = QtCore.QItemSelectionModel()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
-        self._scope_path = self.stage.root_node.path
+        self._scope_path = ROOT_NODE_PATH
 
         self.create_actions()
         self.create_widgets()
@@ -248,6 +249,8 @@ class StageGraphEditor(QtWidgets.QWidget):
             self.scope_changed.emit(self._scope_path)
 
     def scope_back(self) -> None:
+        if self.get_scope_path() == ROOT_NODE_PATH:
+            return
         self.set_scope_path(self.get_scope_path().parent)
 
     def scope_root(self) -> None:
