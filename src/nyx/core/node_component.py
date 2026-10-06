@@ -435,4 +435,4 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @classmethod
     def get_default_expanded_state(cls) -> bool:
-        return True
+        return False
