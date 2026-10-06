@@ -110,6 +110,7 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, int)
     def reorderComponent(self, from_row: int, to_row: int):
+        self._selection_model.clear()
         component = self.components_model.item(from_row, 0)
         reorder_command = ReorderNodeComponentCommand(
             stage=self.stage,

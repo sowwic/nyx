@@ -46,6 +46,7 @@ Rectangle {
         }
 
         add: Transition {
+            enabled: !componentsListView.reorderState.committing
             NumberAnimation {
                 property: "opacity"
                 from: 0
@@ -54,6 +55,7 @@ Rectangle {
             }
         }
         remove: Transition {
+            enabled: !componentsListView.reorderState.committing
             NumberAnimation {
                 property: "opacity"
                 to: 0
@@ -61,6 +63,7 @@ Rectangle {
             }
         }
         displaced: Transition {
+            enabled: !componentsListView.reorderState.committing
             NumberAnimation {
                 properties: "y"
                 duration: 120
