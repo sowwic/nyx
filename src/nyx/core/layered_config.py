@@ -1,5 +1,4 @@
 import logging
-import base64
 
 from pydantic.dataclasses import Field
 from json_config.api import ConfigLayer, ConfigValues, LayeredConfig

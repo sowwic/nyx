@@ -292,4 +292,5 @@ class StageGraphEditor(QtWidgets.QWidget):
         )
         if not self.gr_view.viewport().rect().contains(point_under_cursor_in_gr_view):
             return
-        palette = PopupNodesPalette.popup()
+        PopupNodesPalette.popup()
+        # TODO: Get selected node from popup

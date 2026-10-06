@@ -1,10 +1,10 @@
 import logging
 import typing
 
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtWidgets
 
 if typing.TYPE_CHECKING:
-    from ..widgets.stage_graph_editor import StageGraphEditor
+    pass
 
 
 LOGGER = logging.getLogger(__name__)

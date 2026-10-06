@@ -19,7 +19,7 @@ class PlaceholderPainter:
         self.gap = gap
 
     def paint(self, widget: QtWidgets.QWidget, target: QtWidgets.QWidget | None = None):
-        """Paint onto `target` (defaults to `widget`) using `widget`'s font and palette."""
+        """Paint onto `target` using `widget`'s font and palette."""
         target = target or widget
         painter = QtGui.QPainter(target)
         painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing)
