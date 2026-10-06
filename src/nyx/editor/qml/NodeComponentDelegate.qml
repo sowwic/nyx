@@ -19,6 +19,9 @@ DraggableDelegate {
         if (!componentsModel)
             return false;
 
+        if (!componentsController.selectionModel.model)
+            return false;
+
         componentsController.selectionModel.selection;
         return componentsController.selectionModel.isSelected(componentsController.selectionModel.model.index(index, 0));
     }

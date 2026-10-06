@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from PySide6 import QtCore, QtGui
+import shiboken6
 
 from .stage_object import StageObject
 from .node import Node, NodeLike
@@ -86,6 +87,8 @@ class Stage(QtGui.QStandardItemModel):
         return not self.undo_stack.count() and self.file_path is None
 
     def is_modified(self):
+        if not shiboken6.isValid(self.undo_stack):
+            return False
         return (
             self.file_path is None
             or self.last_saved_undo_index != self.undo_stack.index()
@@ -193,7 +196,7 @@ class Stage(QtGui.QStandardItemModel):
         elif isinstance(stage_object, str):
             try:
                 result = self.get_object(UUID(stage_object, version=4))
-            except (ValueError, AttributeError, TypeError):
+            except ValueError, AttributeError, TypeError:
                 result = self.get_object(pathlib.PurePosixPath(stage_object))
 
         if result is None:
