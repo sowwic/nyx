@@ -7,10 +7,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import Stage
 from nyx.core.exceptions import StageObjectQueryError
+from nyx.static.vars import ROOT_NODE_PATH
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
+from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 from nyx.utils import pyside_fn
+from .dim_overlay import dimmed_ovelay
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import NodeLike, Node
@@ -25,6 +28,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     stage_changed = QtCore.Signal(Stage)
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
+    node_type_dropped = QtCore.Signal(str, QtCore.QPointF)
 
     def __init__(
         self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
@@ -36,7 +40,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self._selection_model = QtCore.QItemSelectionModel()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
-        self._scope_path = self.stage.root_node.path
+        self._scope_path = ROOT_NODE_PATH
 
         self.create_actions()
         self.create_widgets()
@@ -44,6 +48,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.create_connections()
 
         self.gr_stage.rebuild_current_scope()
+        self.update_title()
 
     @classmethod
     def from_json_file(cls, file_path: pathlib.Path | str):
@@ -74,7 +79,17 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def create_actions(self):
         """Create and setup actions."""
-        pass
+        self._show_nodes_palette_action = QtGui.QAction("Add Node...", self)
+        self._show_nodes_palette_action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key.Key_Tab)
+        )
+        self._show_nodes_palette_action.setShortcutContext(
+            QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self._show_nodes_palette_action.triggered.connect(
+            self._shows_popup_nodes_palette
+        )
+        self.addAction(self._show_nodes_palette_action)
 
     def create_widgets(self):
         """Create and setup widgets."""
@@ -129,7 +144,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         return super().closeEvent(event)
 
-    def update_title(self):
+    def update_title(self) -> None:
         if not self.stage.file_path:
             title = self.DEFAULT_TITLE
         else:
@@ -139,7 +154,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             title += "*"
         self.setWindowTitle(title)
 
-    def maybe_save(self):
+    def maybe_save(self) -> bool:
         """Prompt user to save current scene it is new or has been modified.
 
         Returns:
@@ -236,6 +251,8 @@ class StageGraphEditor(QtWidgets.QWidget):
             self.scope_changed.emit(self._scope_path)
 
     def scope_back(self) -> None:
+        if self.get_scope_path() == ROOT_NODE_PATH:
+            return
         self.set_scope_path(self.get_scope_path().parent)
 
     def scope_root(self) -> None:
@@ -273,3 +290,13 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
+
+    def _shows_popup_nodes_palette(self):
+        point_under_cursor_in_gr_view = self.gr_view.viewport().mapFromGlobal(
+            QtGui.QCursor.pos()
+        )
+        if not self.gr_view.viewport().rect().contains(point_under_cursor_in_gr_view):
+            return
+
+        with dimmed_ovelay(self.window()):
+            PopupNodesPalette.popup()

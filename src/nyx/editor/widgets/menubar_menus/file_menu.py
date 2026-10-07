@@ -17,8 +17,10 @@ class FileMenu(BaseMenu):
 
     def create_actions(self):
         self.new_stage_action = QtGui.QAction("New Stage", self)
-        self.open_stage_action = QtGui.QAction("Open Stage", self)
-        self.open_stage_as_new_tab_action = QtGui.QAction("Open Stage As New Tab", self)
+        self.open_stage_action = QtGui.QAction("Open Stage...", self)
+        self.open_stage_as_new_tab_action = QtGui.QAction(
+            "Open Stage As New Tab...", self
+        )
         self.save_stage_action = QtGui.QAction("Save Stage", self)
         self.save_stage_as_action = QtGui.QAction("Save Stage As...", self)
         self.export_selected_nodes_action = QtGui.QAction(
@@ -32,9 +34,11 @@ class FileMenu(BaseMenu):
         self.save_stage_action.setShortcut("Ctrl+Shift+S")
 
     def populate(self):
+        self.addSection("Open")
         self.addAction(self.new_stage_action)
         self.addAction(self.open_stage_action)
         self.addAction(self.open_stage_as_new_tab_action)
+        self.addSection("Save")
         self.addAction(self.save_stage_action)
         self.addAction(self.save_stage_as_action)
         self.addSection("Nodes")

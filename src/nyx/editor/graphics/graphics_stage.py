@@ -164,7 +164,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             gr_node._set_node(None)
             self.removeItem(gr_node)
 
-    def clear_edges(self):
+    def clear_links(self):
         """Removes all GraphicsEdge items from the scene."""
         LOGGER.debug("TODO: cleaning edges")
 
@@ -183,7 +183,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         for node in child_nodes:
             self.add_node(node)
 
-    def build_edges(self, scope_node: Node):
+    def build_links(self, scope_node: Node):
         """
         Builds GraphicsEdge items for all connections between child nodes for given node.
         """
@@ -198,14 +198,19 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         if not shiboken6.isValid(self.stage):
             return
 
+        if scope_path is None:
+            return
+
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
-        self.clear_edges()
+        self.clear_links()
         self.clear_nodes()
         scope_node = self.stage.get_object(scope_path)
         self.build_nodes(scope_node)
-        self.build_edges(scope_node)
+        self.build_links(scope_node)
         for path in previous_selection:
+            if not path:
+                continue
             try:
                 node = self.stage.get_object(path)
             except StageObjectQueryError:

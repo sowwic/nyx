@@ -81,23 +81,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         if root.child(from_row).is_built_in or root.child(to_row).is_built_in:
             return False
 
-        dest = to_row + 1 if to_row > from_row else to_row
-
-        if not self.beginMoveRows(
-            QtCore.QModelIndex(), from_row, from_row, QtCore.QModelIndex(), dest
-        ):
-            return False
-
-        # Reorder the real rows, but suppress the remove/insert signals so views
-        # only see the single "rows moved" notification.
-        self.blockSignals(True)
-        try:
-            items = self.takeRow(from_row)
-            self.insertRow(to_row, items)
-        finally:
-            self.blockSignals(False)
-
-        self.endMoveRows()
+        items = self.takeRow(from_row)
+        self.insertRow(to_row, items)
         return True
 
     def list_components(self, type_id_filter: str | None = None) -> list[NodeComponent]:
@@ -166,8 +151,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             raise ValueError(f"Component UUID doesn't exist in stage: {uuid}")
 
         if component.is_built_in:
-            LOGGER.error(f"Can't remove builtin component: {component.path}")
-            return
+            raise ValueError(f"Can't remove builtin component: {component.path}")
 
         if self.node.stage:
             self.node.stage.uuid_map.pop(component.uuid)

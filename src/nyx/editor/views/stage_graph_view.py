@@ -9,6 +9,7 @@ from nyx.core import commands
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.utils import clipboard
+from nyx.static.vars import NODE_TYPE_MIME
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -38,6 +39,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
     ) -> None:
         super().__init__(graph_editor.gr_stage, parent=parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.graph_editor: StageGraphEditor = graph_editor
         self._interaction_mode = StageGraphView.InteractionMode.NOOP
         self.cutline = GraphCutLine()
@@ -108,6 +110,18 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.paste_action.setShortcut("Ctrl+V")
         self.delete_selected_action.setShortcut("Delete")
         self.focus_on_selected_nodes_action.setShortcut("F")
+
+        for action in (
+            self.copy_selected_action,
+            self.cut_selected_action,
+            self.paste_action,
+            self.delete_selected_action,
+            self.focus_on_selected_nodes_action,
+        ):
+            action.setShortcutContext(
+                QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut
+            )
+            self.addAction(action)
 
     def create_widgets(self):
         pass
@@ -340,11 +354,30 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.setInteractive(True)
 
     # Dragging
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> bool:
+        if self._is_node_type_drag(event):
+            event.acceptProposedAction()
+            return
         self.item_drag_entered.emit(event)
 
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent):
+        if self._is_node_type_drag(event):
+            event.acceptProposedAction()
+            return
+        super().dragMoveEvent(event)
+
     def dropEvent(self, event: QtGui.QDropEvent):
+        if self._is_node_type_drag(event):
+            type_id: str = bytes(event.mimeData().data(NODE_TYPE_MIME)).decode()
+            scene_position = self.mapToScene(event.position().toPoint())
+            self.graph_editor.node_type_dropped.emit(type_id, scene_position)
+            event.acceptProposedAction()
+            return
         self.item_dropped.emit(event)
+
+    @staticmethod
+    def _is_node_type_drag(event: QtGui.QDragEnterEvent):
+        return event.mimeData().hasFormat(NODE_TYPE_MIME)
 
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu("", self)
@@ -377,6 +410,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
 
+    # TODO: Replace with palette dialog
     def create_new_node(self):
         parent_path = self.graph_editor.get_scope_path()
 
@@ -436,14 +470,17 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.stage.push_command(paste_cmd)
 
     def focus_on_selected_nodes(self):
-        selected_nodes = list(self.gr_stage.selected_gr_nodes())
-        if not selected_nodes:
+        selected_nodes = self.gr_stage.graph_editor.list_selected_nodes()
+        nodes_in_scope = self.gr_stage.graph_editor.filter_nodes_by_scope(selected_nodes)
+
+        if not nodes_in_scope:
             return
 
         mid_point = QtCore.QPointF()
-        for gr_node in selected_nodes:
-            mid_point += gr_node.pos()
+        for node in nodes_in_scope:
+            mid_point += node.position()
 
-        n = len(selected_nodes)
+        n = len(nodes_in_scope)
         mid_point = QtCore.QPointF(mid_point.x() / n, mid_point.y() / n)
         self.centerOn(mid_point)
+        self.fit

@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from PySide6 import QtCore, QtGui
+import shiboken6
 
 from .stage_object import StageObject
 from .node import Node, NodeLike
@@ -86,6 +87,8 @@ class Stage(QtGui.QStandardItemModel):
         return not self.undo_stack.count() and self.file_path is None
 
     def is_modified(self):
+        if not shiboken6.isValid(self.undo_stack):
+            return False
         return (
             self.file_path is None
             or self.last_saved_undo_index != self.undo_stack.index()
@@ -193,7 +196,7 @@ class Stage(QtGui.QStandardItemModel):
         elif isinstance(stage_object, str):
             try:
                 result = self.get_object(UUID(stage_object, version=4))
-            except (ValueError, AttributeError, TypeError):
+            except ValueError, AttributeError, TypeError:
                 result = self.get_object(pathlib.PurePosixPath(stage_object))
 
         if result is None:
@@ -350,11 +353,11 @@ class Stage(QtGui.QStandardItemModel):
         for each_node in node:
             parent.appendRow(each_node)
 
-    def delete_node(self, nodes: Sequence[NodeLike] | NodeLike):
+    def delete_node(self, nodes: Sequence[NodeLike] | NodeLike) -> None:
         """Delete node from stage.
 
         Args:
-            node (Node): node to delete.
+            nodes: nodes to delete.
 
         """
         if not isinstance(nodes, Sequence):
@@ -377,7 +380,7 @@ class Stage(QtGui.QStandardItemModel):
     def on_node_changed(self, node: Node):
         node.on_changed()
 
-    def describe(self):
+    def describe(self) -> str:
         """Pretty format serialized scene.
 
         Returns:
@@ -386,7 +389,7 @@ class Stage(QtGui.QStandardItemModel):
         """
         return pprint.pformat(self.root_node.serialize())
 
-    def export_json(self, file_path: pathlib.Path | str):
+    def export_json(self, file_path: pathlib.Path | str) -> None:
         """Serialize scene and write it to json file.
 
         Args:
@@ -429,7 +432,7 @@ class Stage(QtGui.QStandardItemModel):
         Also validates command before pushing and raises error if validation fails.
 
         Args:
-            command (NyxCommand): command to push.
+            commands (NyxCommand): command to push.
         Raises:
             NyxCommandValidationError: if command validation fails.
         """

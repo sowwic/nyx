@@ -29,7 +29,7 @@ class NyxPluginLoader:
 
         Args:
             plugin_source_paths: optional paths override.
-            If not provided will default to built-in + `NYX_PLUGIN_PATH` env variable
+                If not provided will default to built-in + `NYX_PLUGIN_PATH` env variable
         """
         if plugin_source_paths is None:
             plugin_source_paths = [

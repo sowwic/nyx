@@ -30,6 +30,7 @@ class StageTreeView(QtWidgets.QTreeView):
         super().__init__(parent)
         self.setModel(stage)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setHeaderHidden(True)
         self.setSelectionMode(self.SelectionMode.ExtendedSelection)
         self.setExpandsOnDoubleClick(False)
@@ -121,7 +122,10 @@ class StageTreeView(QtWidgets.QTreeView):
 
         return super().mousePressEvent(event)
 
+    # TODO: Replace with palette dialog
     def create_new_node(self):
+        if self.current_stage_graph is None:
+            return
         parent_path = None
         selected_nodes = self.selected_nodes()
         if selected_nodes:

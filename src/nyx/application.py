@@ -50,5 +50,5 @@ class NyxEditorApplication(NyxApplication):
         NyxEditorMainWindow.display()
         self.main_window().on_stage_new()
 
-    def main_window(self):
+    def main_window(self) -> NyxEditorMainWindow:
         return NyxEditorMainWindow.instance()

@@ -80,7 +80,7 @@ def test_removing_component_removes_it_from_uuid_map():
     assert resulting_uuid in stage.uuid_map, f"UUID_MAP: {stage.uuid_map}"
 
 
-def test_attempting_to_remove_builtin_cpnt_does_nothing():
+def test_attempting_to_remove_builtin_cpnt_raises_value_error():
     stage = Stage()
     create_node_command = commands.CreateNodeCommand(
         stage=stage, type_id=CoreNodes.BRANCH
@@ -90,7 +90,8 @@ def test_attempting_to_remove_builtin_cpnt_does_nothing():
 
     old_cpnt_count = node.components_model.rowCount()
     for builtin_cpnt in node.components_model.list_components():
-        node.components_model.remove_component(builtin_cpnt.uuid)
+        with pytest.raises(ValueError, match="Can't remove builtin component"):
+            node.components_model.remove_component(builtin_cpnt.uuid)
     assert old_cpnt_count == node.components_model.rowCount()
 
 

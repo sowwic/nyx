@@ -35,16 +35,18 @@ class Inspector(QtWidgets.QWidget):
 
     def create_layouts(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.addWidget(self._node_components_view)
-        # self._node_components_view.setModel(
-        #     RegistryListModel(lambda: NYX_REGISTRY.get_plugins_types_dict())
-        # )
 
     @property
     def current_stage_graph(self) -> StageGraphEditor:
         return self.main_window.current_stage_graph
 
     def update_data(self):
+        if not self.current_stage_graph:
+            self._node_components_view.setModel(None)
+            return
+
         selected_nodes = self.current_stage_graph.list_selected_nodes()
         node = (
             selected_nodes[0]

@@ -45,3 +45,12 @@ class ItemSelectionMode(enum.IntEnum):
     REPLACE = 0
     TOGGLE = enum.auto()
     RANGE = enum.auto()
+
+
+class EditorUIObject(enum.StrEnum):
+    NODES_PALETTE_DOCK = "nodes_palette_dock"
+    STAGE_TREE_DOCK = "stage_tree_dock"
+    UNDO_HISTORY_DOCK = "undo_history_dock"
+    LOG_OUTPUT_DOCK = "log_output_dock"
+    TOOLBAR_DOCK = "toolbar_dock"
+    INSPECTOR_DOCK = "inspector_dock"

@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: root
-    required property var component
+    property var component
 
     spacing: 4
 

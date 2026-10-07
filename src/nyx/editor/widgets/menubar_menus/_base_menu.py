@@ -19,7 +19,7 @@ class BaseMenu(QtWidgets.QMenu):
         self.create_connections()
 
     @property
-    def main_window(self):
+    def main_window(self) -> NyxEditorMainWindow:
         return self._main_window
 
     @property

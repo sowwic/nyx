@@ -52,7 +52,6 @@ class DeleteNodeCommand(NyxCommand):
 
         self.deleted_uuids.clear()
 
-        # TODO: Unlink any links
         top_level_nodes = self.stage.filter_top_level_nodes(nodes_to_delete)
         self.deleted_uuids = [node.uuid for node in top_level_nodes]
         self.parents_uuids_map = {
