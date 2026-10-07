@@ -30,6 +30,7 @@ class StageTreeView(QtWidgets.QTreeView):
         super().__init__(parent)
         self.setModel(stage)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setHeaderHidden(True)
         self.setSelectionMode(self.SelectionMode.ExtendedSelection)
         self.setExpandsOnDoubleClick(False)

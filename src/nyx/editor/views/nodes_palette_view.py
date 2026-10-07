@@ -28,15 +28,24 @@ class NodesPaletteView(QQuickWidget):
         self._nodes_registry_model = RegistryListModel(
             get_items=lambda: NYX_REGISTRY.nodes, parent=self
         )
+        self._filter_proxy_model = QtCore.QSortFilterProxyModel()
+        self._filter_proxy_model.setFilterRole(QtCore.Qt.ItemDataRole.DisplayRole)
+        self._filter_proxy_model.setSourceModel(self._nodes_registry_model)
+        self._filter_proxy_model.setFilterCaseSensitivity(
+            QtCore.Qt.CaseSensitivity.CaseInsensitive
+        )
+
         self._node_spawner = NodeSpawner(self)
 
         # Let QML files import siblings
         self.engine().addImportPath(QML_DIR.as_posix())
-
-        self.rootContext().setContextProperty(
-            "nodesRegistryModel", self._nodes_registry_model
+        self.setInitialProperties(
+            {
+                "nodesRegistryFilterModel": self._filter_proxy_model,
+                "nodeSpawner": self._node_spawner,
+            }
         )
-        self.rootContext().setContextProperty("nodeSpawner", self._node_spawner)
+
         self.setSource(self.source_url)
 
     @property

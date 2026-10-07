@@ -21,10 +21,16 @@ class ComponentsController(QtCore.QObject):
 
     componentsModelChanged = QtCore.Signal()
 
-    def __init__(self, components_model: NodeComponentsModel | None = None, parent=None):
+    def __init__(
+        self,
+        components_filter_model: QtCore.QSortFilterProxyModel | None = None,
+        parent=None,
+    ):
         super().__init__(parent)
-        self._components_model = components_model
-        self._selection_model = QtCore.QItemSelectionModel(components_model, self)
+        self._components_filter_model = components_filter_model
+        self._selection_model = QtCore.QItemSelectionModel(
+            self._components_filter_model, self
+        )
         self._items_selected_before_move = []
         self._current_item_before_move = None
 
@@ -40,48 +46,55 @@ class ComponentsController(QtCore.QObject):
 
     @property
     def components_model(self) -> NodeComponentsModel:
-        return self._components_model
+        if self._components_filter_model is None:
+            return None
+        return self.components_filter_model.sourceModel()
+
+    @property
+    def components_filter_model(self) -> QtCore.QSortFilterProxyModel:
+        return self._components_filter_model
 
     @components_model.setter
     def components_model(self, model: NodeComponentsModel) -> None:
-        if model is self._components_model:
+        if self.components_model is model:
             return
 
-        self._disconnect_models()
-        self._components_model = model
-        self._selection_model.setModel(model)
-        self._connect_models()
-        self.componentsModelChanged.emit()
+        if self.components_model is not None:
+            self._disconnect_models()
+        self.components_filter_model.setSourceModel(model)
+        if self.components_model is not None:
+            self._connect_models()
 
     def _connect_models(self):
-        if self._components_model is None:
+        if self.components_model is None:
             return
 
-        self._components_model.rowsAboutToBeMoved.connect(self._selection_model.clear)
+        self.components_model.rowsAboutToBeMoved.connect(self._selection_model.clear)
 
     def _disconnect_models(self):
-        if self._components_model is None:
+        if self.components_model is None:
             return
 
-        self._components_model.rowsAboutToBeMoved.disconnect(self._selection_model.clear)
+        self.components_model.rowsAboutToBeMoved.disconnect(self._selection_model.clear)
 
     @QtCore.Slot(int, int)
     def selectRow(self, clicked_row: int, selection_mode: ItemSelectionMode):
-        if not 0 <= clicked_row < self._components_model.rowCount():
+        model = self.components_filter_model
+        if not 0 <= clicked_row < model.rowCount():
             return
 
         if isinstance(selection_mode, int):
             selection_mode = ItemSelectionMode(selection_mode)
 
         flags = QtCore.QItemSelectionModel.SelectionFlag
-        clicked_index = self._components_model.index(clicked_row, 0)
+        clicked_index = model.index(clicked_row, 0)
         anchor_index = self._selection_model.currentIndex()
 
         if selection_mode is ItemSelectionMode.RANGE and anchor_index.isValid():
             first_row, last_row = sorted((anchor_index.row(), clicked_row))
             row_range = QtCore.QItemSelection(
-                self._components_model.index(first_row, 0),
-                self._components_model.index(last_row, 0),
+                model.index(first_row, 0),
+                model.index(last_row, 0),
             )
             self._selection_model.select(row_range, flags.ClearAndSelect | flags.Rows)
         elif selection_mode is ItemSelectionMode.TOGGLE:
@@ -100,8 +113,11 @@ class ComponentsController(QtCore.QObject):
             return
 
         delete_commands = []
-        for item_index in selection.indexes():
-            component: NodeComponent = self.components_model.itemFromIndex(item_index)
+        for item_index in self.selection_model.selectedRows():
+            source_model_index = self.components_filter_model.mapToSource(item_index)
+            component: NodeComponent = self.components_model.itemFromIndex(
+                source_model_index
+            )
             if component.is_built_in:
                 LOGGER.warning("Can't delete built-in component %s", str(component.path))
                 return
@@ -115,13 +131,26 @@ class ComponentsController(QtCore.QObject):
     @QtCore.Slot(int, int)
     def reorderComponent(self, from_row: int, to_row: int):
         self._selection_model.clear()
-        component = self.components_model.item(from_row, 0)
-        reorder_command = ReorderNodeComponentCommand(
-            stage=self.stage,
-            node_component=component,
-            to_row=to_row,
+        proxy = self.components_filter_model
+
+        from_source = proxy.mapToSource(proxy.index(from_row, 0))
+        to_source = proxy.mapToSource(proxy.index(to_row, 0))
+        if not from_source.isValid():
+            return
+
+        # to_row == rowCount() (drop after last item) gives an invalid index
+        to_source_row = (
+            to_source.row() if to_source.isValid() else self.components_model.rowCount()
         )
-        self.stage.push_command(reorder_command)
+
+        component = self.components_model.item(from_source.row(), 0)
+        self.stage.push_command(
+            ReorderNodeComponentCommand(
+                stage=self.stage,
+                node_component=component,
+                to_row=to_source_row,
+            )
+        )
 
     selectionModel = QtCore.Property(
         QtCore.QObject,

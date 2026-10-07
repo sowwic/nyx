@@ -6,8 +6,8 @@ Rectangle {
     id: root
     color: palette.window
 
-    readonly property var activeModel: typeof nodesRegistryModel !== "undefined" ? nodesRegistryModel : null
-    // readonly property var activeController: typeof componentsController !== "undefined" ? componentsController : null
+    required property var nodesRegistryFilterModel
+    required property var nodeSpawner
 
     // Current text in the search field (hook this up to your filtering, see TODO below)
     property alias searchText: searchField.text
@@ -27,8 +27,7 @@ Rectangle {
             Layout.rightMargin: 6
             placeholderText: qsTr("Search...")
             selectByMouse: true
-
-            // TODO: apply the filter, e.g. via a proxy model filtering on typeDisplayName
+            onTextChanged: root.nodesRegistryFilterModel.setFilterFixedString(text)
         }
 
         // ---- List area ----
@@ -46,7 +45,7 @@ Rectangle {
                     rightMargin: verticalScrollBar.width
                 }
 
-                model: root.activeModel
+                model: root.nodesRegistryFilterModel
                 spacing: 4
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -70,7 +69,7 @@ Rectangle {
                     width: ListView.view.width
                     text: model.typeDisplayName
 
-                    onClicked: nodeSpawner.spawnNode(model.typeId)
+                    onClicked: root.nodeSpawner.spawnNode(model.typeId)
                 }
             }
 

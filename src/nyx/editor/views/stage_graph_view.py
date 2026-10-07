@@ -38,6 +38,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
     ) -> None:
         super().__init__(graph_editor.gr_stage, parent=parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.graph_editor: StageGraphEditor = graph_editor
         self._interaction_mode = StageGraphView.InteractionMode.NOOP
         self.cutline = GraphCutLine()
@@ -462,3 +463,4 @@ class StageGraphView(QtWidgets.QGraphicsView):
         n = len(nodes_in_scope)
         mid_point = QtCore.QPointF(mid_point.x() / n, mid_point.y() / n)
         self.centerOn(mid_point)
+        self.fit

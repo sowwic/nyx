@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -6,11 +8,11 @@ Rectangle {
     id: root
     color: palette.window
 
-    readonly property var activeModel: typeof componentsModel !== "undefined" ? componentsModel : null
-    readonly property var activeController: typeof componentsController !== "undefined" ? componentsController : null
+    required property var componentsFilterModel
+    required property var componentsController
 
-    // Current text in the search field (hook this up to your filtering, see TODO below)
     property alias searchText: searchField.text
+    property bool hasActiveFilters: searchText.length > 0
 
     ColumnLayout {
         id: mainLayout
@@ -28,9 +30,7 @@ Rectangle {
             Layout.rightMargin: 6
             placeholderText: qsTr("Search...")
             selectByMouse: true
-
-            // TODO: apply the filter, e.g. via a proxy model or controller call
-            // onTextChanged: root.activeController.setFilterText(text)
+            onTextChanged: root.componentsFilterModel.setFilterFixedString(text)
         }
 
         // ---- List area ----
@@ -50,7 +50,7 @@ Rectangle {
 
                 property var reorderState: ReorderState {}
 
-                model: root.activeModel
+                model: root.componentsFilterModel
                 spacing: 4
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -70,7 +70,8 @@ Rectangle {
 
                 delegate: NodeComponentDelegate {
                     reorderState: componentsListView.reorderState
-                    onMoveRequested: (from, to) => componentsController.reorderComponent(from, to)
+                    filtersActive: root.hasActiveFilters
+                    onMoveRequested: (from, to) => root.componentsController.reorderComponent(from, to)
                 }
 
                 add: Transition {
@@ -154,7 +155,7 @@ Rectangle {
 
                 Button {
                     id: removeButton
-                    enabled: root.activeController !== null && root.activeController.selectionModel.hasSelection
+                    enabled: root.componentsController.selectionModel.hasSelection
                     Layout.fillWidth: true
                     icon.source: "qrc:/icons/delete.png"
                     icon.width: 16
@@ -163,7 +164,7 @@ Rectangle {
                     font.bold: true
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Remove component")
-                    onClicked: root.activeController.deleteSelectedNodeComponents()
+                    onClicked: root.componentsController.deleteSelectedNodeComponents()
 
                     background: Rectangle {
                         radius: 4

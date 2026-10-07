@@ -15,15 +15,14 @@ DraggableDelegate {
     required property url editorQmlFile
     required property bool isBuiltIn
 
+    required property bool filtersActive
+
     readonly property bool isSelected: {
-        if (!componentsModel)
+        if (!root.componentsController.selectionModel.model)
             return false;
 
-        if (!componentsController.selectionModel.model)
-            return false;
-
-        componentsController.selectionModel.selection;
-        return componentsController.selectionModel.isSelected(componentsController.selectionModel.model.index(index, 0));
+        root.componentsController.selectionModel.selection;
+        return root.componentsController.selectionModel.isSelected(root.componentsController.selectionModel.model.index(index, 0));
     }
     readonly property bool showExpanded: isExpanded && !isDragging
 
@@ -37,8 +36,8 @@ DraggableDelegate {
 
     onIsDraggingChanged: animateHeight = true
 
-    dragEnabled: !isBuiltIn
-    dropEnabled: !isBuiltIn
+    dragEnabled: !isBuiltIn && !filtersActive
+    dropEnabled: !isBuiltIn && !filtersActive
 
     Rectangle {
         id: card
@@ -60,18 +59,18 @@ DraggableDelegate {
 
         TapHandler {
             acceptedModifiers: Qt.NoModifier
-            onTapped: componentsController.selectRow(itemRoot.index, 0)
+            onTapped: root.componentsController.selectRow(itemRoot.index, 0)
             onDoubleTapped: itemRoot.toggleExpanded()
         }
 
         TapHandler {
             acceptedModifiers: Qt.ControlModifier
-            onTapped: componentsController.selectRow(itemRoot.index, 1)
+            onTapped: root.componentsController.selectRow(itemRoot.index, 1)
         }
 
         TapHandler {
             acceptedModifiers: Qt.ShiftModifier
-            onTapped: componentsController.selectRow(itemRoot.index, 2)
+            onTapped: root.componentsController.selectRow(itemRoot.index, 2)
         }
 
         ColumnLayout {
