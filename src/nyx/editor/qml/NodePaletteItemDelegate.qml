@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 
 ItemDelegate {
-    id: root
+    id: itemRoot
 
     required property var model
 
@@ -22,7 +22,7 @@ ItemDelegate {
     onDownChanged: {
         if (down && dragEnabled)
             grabToImage(function (result) {
-                root.Drag.imageSource = result.url;
+                itemRoot.Drag.imageSource = result.url;
             });
     }
 
@@ -32,13 +32,13 @@ ItemDelegate {
     Drag.proposedAction: Qt.CopyAction
     Drag.mimeData: {
         let data = {};
-        data[root.mimeType] = String(model.typeId);
+        data[itemRoot.mimeType] = String(model.typeId);
         return data;
     }
 
     DragHandler {
         id: dragHandler
-        enabled: root.dragEnabled
+        enabled: itemRoot.dragEnabled
         target: null                         // the row stays put; only the drag image moves
         acceptedButtons: Qt.LeftButton
     }
