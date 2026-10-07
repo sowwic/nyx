@@ -9,6 +9,7 @@ from nyx.core import commands
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.utils import clipboard
+from nyx.static.vars import NODE_TYPE_MIME
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -353,11 +354,30 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.setInteractive(True)
 
     # Dragging
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent):
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> bool:
+        if self._is_node_type_drag(event):
+            event.acceptProposedAction()
+            return
         self.item_drag_entered.emit(event)
 
+    def dragMoveEvent(self, event: QtGui.QDragMoveEvent):
+        if self._is_node_type_drag(event):
+            event.acceptProposedAction()
+            return
+        super().dragMoveEvent(event)
+
     def dropEvent(self, event: QtGui.QDropEvent):
+        if self._is_node_type_drag(event):
+            type_id: str = bytes(event.mimeData().data(NODE_TYPE_MIME)).decode()
+            scene_position = self.mapToScene(event.position().toPoint())
+            self.graph_editor.node_type_dropped.emit(type_id, scene_position)
+            event.acceptProposedAction()
+            return
         self.item_dropped.emit(event)
+
+    @staticmethod
+    def _is_node_type_drag(event: QtGui.QDragEnterEvent):
+        return event.mimeData().hasFormat(NODE_TYPE_MIME)
 
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu("", self)

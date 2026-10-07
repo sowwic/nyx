@@ -28,6 +28,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     stage_changed = QtCore.Signal(Stage)
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
+    node_type_dropped = QtCore.Signal(str, QtCore.QPointF)
 
     def __init__(
         self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None

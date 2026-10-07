@@ -138,7 +138,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
         self.inspector = Inspector(self)
-        self.nodes_palette_view = NodesPaletteView(self)
+        self.nodes_palette_view = NodesPaletteView(drag_enabled=True, parent=self)
+
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
         self.tool_bar = EditorToolBar(self)
@@ -309,6 +310,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Connect signals
         stage_graph_editor_widget.selection_model.selectionChanged.connect(
             self.inspector.update_data
+        )
+        stage_graph_editor_widget.node_type_dropped.connect(
+            self.nodes_palette_view.on_node_dropped
         )
         return mdi_sub_window
 

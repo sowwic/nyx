@@ -7,6 +7,7 @@ from ..controllers.node_spawner import NodeSpawner
 from ...core.plugin_subsystem.registry import NYX_REGISTRY
 from ...core.models.registry_model import RegistryListModel
 from ...static.paths import QML_DIR
+from ...static.vars import NODE_TYPE_MIME
 
 if typing.TYPE_CHECKING:
     pass
@@ -17,6 +18,7 @@ class NodesPaletteView(QQuickWidget):
 
     def __init__(
         self,
+        drag_enabled: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent=parent)
@@ -25,6 +27,7 @@ class NodesPaletteView(QQuickWidget):
         self.setClearColor(self.palette().color(QtGui.QPalette.ColorRole.Window))
         self.setMinimumWidth(240)
 
+        self._drag_enabled = drag_enabled
         self._nodes_registry_model = RegistryListModel(
             get_items=lambda: NYX_REGISTRY.nodes, parent=self
         )
@@ -43,10 +46,26 @@ class NodesPaletteView(QQuickWidget):
             {
                 "nodesRegistryFilterModel": self._filter_proxy_model,
                 "nodeSpawner": self._node_spawner,
+                "dragEnabled": self._drag_enabled,
+                "nodeMimeType": NODE_TYPE_MIME,
             }
         )
 
         self.setSource(self.source_url)
+
+    def on_node_dropped(self, type_id: str, position: QtCore.QPointF):
+        self.nodes_spawner.spawn_position = position
+        self.nodes_spawner.spawnNode(type_id)
+
+    @property
+    def drag_enabled(self) -> bool:
+        return self._drag_enabled
+
+    @drag_enabled.setter
+    def drag_enabled(self, state: bool) -> None:
+        self._drag_enabled = state
+        if root := self.rootObject():
+            root.setProperty("dragEnabled", state)
 
     @property
     def nodes_spawner(self) -> NodeSpawner:

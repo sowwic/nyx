@@ -28,7 +28,7 @@ class PopupNodesPalette(QtWidgets.QDialog):
         self._create_connections()
 
     def _create_widgets(self):
-        self._nodes_palette_view = NodesPaletteView(self)
+        self._nodes_palette_view = NodesPaletteView(drag_enabled=False, parent=self)
 
     def _create_layouts(self):
         self._main_layout = QtWidgets.QVBoxLayout()

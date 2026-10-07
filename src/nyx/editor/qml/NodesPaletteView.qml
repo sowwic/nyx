@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -8,6 +10,8 @@ Rectangle {
 
     required property var nodesRegistryFilterModel
     required property var nodeSpawner
+    property bool dragEnabled: false
+    property string nodeMimeType: ""
 
     // Current text in the search field (hook this up to your filtering, see TODO below)
     property alias searchText: searchField.text
@@ -63,13 +67,11 @@ Rectangle {
                     }
                 }
 
-                delegate: ItemDelegate {
-                    required property var model
-
+                delegate: NodePaletteItemDelegate {
+                    dragEnabled: root.dragEnabled
+                    mimeType: root.nodeMimeType
+                    onSpawnRequested: typeId => root.nodeSpawner.spawnNode(typeId)
                     width: ListView.view.width
-                    text: model.typeDisplayName
-
-                    onClicked: root.nodeSpawner.spawnNode(model.typeId)
                 }
             }
 
