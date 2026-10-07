@@ -89,10 +89,10 @@ class PasteNodesCommand(NyxCommand):
                 context=context,
                 restore_uuid=restore_uuid,
             )
-            paste_position = self.get_paste_position(new_node.position())
-            new_node.set_position(paste_position)
             self.created_uuids.append(new_node.uuid)
             new_nodes.append(new_node)
+
+        self._apply_paste_positions(new_nodes)
 
         if first_run:
             # First time through: record whatever UUIDs were actually
@@ -155,19 +155,6 @@ class PasteNodesCommand(NyxCommand):
         for child_data, child_record in zip(children_data, record["children"]):
             PasteNodesCommand._apply_uuids(child_data, child_record)
 
-    def get_paste_position(self, serialized_node_position: QtCore.QPointF):
-        min_x, max_x, min_y, max_y = 10_000_000, -10_000_000, 10_000_000, -10_000_000
-        pos_x = serialized_node_position.x()
-        pos_y = serialized_node_position.y()
-        min_x = min(pos_x, min_x)
-        max_x = max(pos_x, max_x)
-        min_y = min(pos_y, min_y)
-        max_y = max(pos_y, max_y)
-
-        new_x = self.position.x() + pos_x - min_x
-        new_y = self.position.y() + pos_y - min_y
-        return QtCore.QPointF(new_x, new_y)
-
     def validate(self):
         if self.parent_node_uuid is not None:
             parent_node = self.stage.get_object(self.parent_node_uuid)
@@ -206,3 +193,24 @@ class PasteNodesCommand(NyxCommand):
 
         if first_run:
             self._link_pairs = accepted
+
+    def _apply_paste_positions(self, new_nodes: list[Node]) -> None:
+        """Move the pasted nodes so the center of their bounding box sits at
+        self.position, keeping their relative arrangement."""
+        if not new_nodes:
+            return
+
+        original_positions = [node.position() for node in new_nodes]
+        xs = [pos.x() for pos in original_positions]
+        ys = [pos.y() for pos in original_positions]
+
+        center_x = (min(xs) + max(xs)) / 2
+        center_y = (min(ys) + max(ys)) / 2
+
+        for node, pos in zip(new_nodes, original_positions):
+            node.set_position(
+                QtCore.QPointF(
+                    self.position.x() + (pos.x() - center_x),
+                    self.position.y() + (pos.y() - center_y),
+                )
+            )
