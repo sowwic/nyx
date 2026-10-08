@@ -2,6 +2,9 @@ import logging
 import typing
 from typing import Protocol, runtime_checkable
 
+
+from ..static.enums import NodeExecutionOrderFlag
+
 if typing.TYPE_CHECKING:
     from ..core import Node, Stage
     from nyx.plugins.core.nodes.flow_start import FlowStartNode
@@ -92,36 +95,48 @@ class StageCrawler:
     # -- NodeVisitor -----------------------------------------------------
 
     def visit_node(self, node: Node) -> None:
-        path = str(node.path)
-        if path in self._visited_node_paths:
-            LOGGER.warning("Cycle/convergence at %s, not re-visiting", path)
+        node_path_as_string = str(node.path)
+
+        if self._has_node_already_been_visited(node_path_as_string):
+            LOGGER.warning(
+                "Cycle/convergence at %s, not re-visiting", node_path_as_string
+            )
             return
-        self._visited_node_paths.append(path)
+        self._visited_node_paths.append(node_path_as_string)
 
-        # Phase 1: fully resolve this node's own children before anything else.
-        start_child = node.find_flow_start_node()
-        if start_child is not None:
-            self._traverse_children(start_child)
+        node_execution_order = node.get_type_execution_order()
 
-        # Phase 2: only now, after all children are done, execute this node.
+        if node_execution_order is NodeExecutionOrderFlag.BEFORE_CHILDREN:
+            self._execute_node_and_record_its_path(node)
+            self._resolve_children_of_node(node)
+        elif node_execution_order is NodeExecutionOrderFlag.AFTER_CHILDREN:
+            self._resolve_children_of_node(node)
+            self._execute_node_and_record_its_path(node)
+
+    def _has_node_already_been_visited(self, node_path_as_string: str) -> bool:
+        return node_path_as_string in self._visited_node_paths
+
+    def _execute_node_and_record_its_path(self, node: Node) -> None:
         self._current_node = node
-        LOGGER.debug("Executing node %s", path)
+        LOGGER.debug("Executing node %s", node.path)
         node.execution_hook()
         self._execution_paths_stack.append(node.path.as_posix())
 
-    def _traverse_children(self, child: Node) -> None:
-        # child.accept(self) -> visit_node(child): this resolves child's own
-        # children first, then executes child. Only after child has executed
-        # do we look at its core:flow components to find the next flow-sibling.
+    def _resolve_children_of_node(self, node: Node) -> None:
+        # Fully resolve this node's own children before anything else.
+        flow_start_child_node = node.find_flow_start_node()
+        if flow_start_child_node is not None:
+            self._traverse_children(flow_start_child_node)
 
-        if str(child.path) in self.visited_node_paths:
-            LOGGER.warning("Cycle/convergence at %s, not re-visiting", child.path)
-            return
+    def _traverse_children(self, child_node: Node) -> None:
+        # child_node.accept_visitor(self) -> visit_node(child_node): this resolves
+        # the child's own children first, then executes the child. Only after the
+        # child has executed do we look at its core:flow components to find the
+        # next flow-sibling.
+        child_node.accept_visitor(self)
 
-        child.accept_visitor(self)
-
-        for next_child in self._find_next_nodes(child):
-            self._traverse_children(next_child)
+        for next_sibling_node in self._find_next_nodes(child_node):
+            self._traverse_children(next_sibling_node)
 
     def _find_next_nodes(self, node: Node) -> list[Node]:
         """Resolve the (possibly zero, one, or many) next nodes after ``node``.

@@ -16,7 +16,12 @@ from .contexts.serialization import NodeSerializationContext, NodeDeserializatio
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from ..static.vars import NYX_FILE_EXTENSION
-from ..static.enums import CoreNodes, RestoreUuidOption, NodeExecutionStatus
+from ..static.enums import (
+    CoreNodes,
+    RestoreUuidOption,
+    NodeExecutionStatus,
+    NodeExecutionOrderFlag,
+)
 
 if typing.TYPE_CHECKING:
     from .stage import Stage
@@ -39,6 +44,7 @@ class Node(QtGui.QStandardItem, StageObject):
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
     POSITION_KEY = "position"
+    EXECUTION_ORDER_KEY = "execution_order"
     REFERENCE_FILE_KEY = "reference_file_path"
     COMPONENTS_KEY = "components"
     CHILDREN_KEY = "children"
@@ -53,6 +59,7 @@ class Node(QtGui.QStandardItem, StageObject):
         TAGS = enum.auto()
         IS_LOCKED = enum.auto()
         EXECUTION_STATUS = enum.auto()
+        EXECUTION_ORDER = enum.auto()
         RAISED_EXCEPTION = enum.auto()
 
     def __init__(
@@ -103,6 +110,7 @@ class Node(QtGui.QStandardItem, StageObject):
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(None, role=self.Roles.RAISED_EXCEPTION)
         self.setData(NodeExecutionStatus.NOT_RAN, role=self.Roles.EXECUTION_STATUS)
+        self.setData(self.get_type_execution_order(), role=self.Roles.EXECUTION_ORDER)
 
     @property
     def name(self) -> str:
@@ -187,6 +195,16 @@ class Node(QtGui.QStandardItem, StageObject):
     @raised_exception.setter
     def raised_exception(self, err: Exception) -> None:
         return self.setData(err, self.Roles.RAISED_EXCEPTION)
+
+    @property
+    def execution_order(self) -> NodeExecutionOrderFlag:
+        return self.data(self.Roles.EXECUTION_ORDER)
+
+    @execution_order.setter
+    def execution_order(self, order_flag: NodeExecutionOrderFlag | int) -> None:
+        if isinstance(order_flag, int):
+            order_flag = NodeExecutionOrderFlag(order_flag)
+        self.setData(order_flag, self.Roles.EXECUTION_ORDER)
 
     @property
     def execution_status(self) -> NodeExecutionStatus:
@@ -362,10 +380,11 @@ class Node(QtGui.QStandardItem, StageObject):
         context = context or NodeSerializationContext(stage=self.stage, entry_node=self)
 
         serialized_data = super().serialize()
-        serialized_data["name"] = self.name
-        serialized_data["type_id"] = self.get_type_id()
-        serialized_data["active"] = self.is_active()
-        serialized_data["position"] = self.serializable_position()
+        serialized_data[self.NAME_KEY] = self.name
+        serialized_data[self.TYPE_ID_KEY] = self.get_type_id()
+        serialized_data[self.ACTIVE_KEY] = self.is_active()
+        serialized_data[self.POSITION_KEY] = self.serializable_position()
+        serialized_data[self.EXECUTION_ORDER_KEY] = self.execution_order
         serialized_data.update(self.components_model.serialize())
         context.collect_links(from_node=self)
         if self.reference_file_path is not None:
@@ -432,6 +451,9 @@ class Node(QtGui.QStandardItem, StageObject):
         node.set_active(serialized_node.get(cls.ACTIVE_KEY, True))
         node.set_position(
             QtCore.QPointF(*serialized_node.get(cls.POSITION_KEY, [0.0, 0.0]))
+        )
+        node.execution_order = serialized_node.get(
+            cls.EXECUTION_ORDER_KEY, cls.get_type_execution_order()
         )
 
         # Get data from reference
@@ -610,6 +632,10 @@ class Node(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_type_display_name(cls) -> str:
         return cls.__name__
+
+    @classmethod
+    def get_type_execution_order(cls) -> NodeExecutionOrderFlag:
+        return NodeExecutionOrderFlag.BEFORE_CHILDREN
 
     @classmethod
     def get_tags(cls) -> set[str]:

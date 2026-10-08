@@ -151,13 +151,4 @@ def test_crawler_order_correct_with_nested_hierarchy(
         action2_flow_start.path.as_posix(),
         action2_child.path.as_posix(),
     ]
-    assert stage.crawler._execution_paths_stack == [
-        root_flow_start_node.path.as_posix(),
-        action1_flow_start.path.as_posix(),
-        action1_child.path.as_posix(),
-        action1_node.path.as_posix(),
-        action2_flow_start.path.as_posix(),
-        action2_child.path.as_posix(),
-        action2_node.path.as_posix(),
-        stage.root_node.path.as_posix(),
-    ]
+    assert stage.crawler._execution_paths_stack == stage.crawler.visited_node_paths

@@ -32,6 +32,11 @@ class NodeExecutionStatus(enum.IntEnum):
     NOT_RAN = enum.auto()
 
 
+class NodeExecutionOrderFlag(enum.IntFlag):
+    BEFORE_CHILDREN = enum.auto()
+    AFTER_CHILDREN = enum.auto()
+
+
 class NodeComponentFlag(enum.IntFlag):
     NONE = 0
     BUILT_IN = enum.auto()
