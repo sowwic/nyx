@@ -22,7 +22,7 @@ from .exceptions import (
     StageObjectUnregistrationError,
     NodeComponentLinkError,
 )
-from ..utils import file_fn
+from ..utils import file_fn, names_fn
 from ..static.vars import ROOT_NODE_PATH
 from ..static.enums import CoreNodes
 
@@ -43,7 +43,7 @@ class Stage(QtGui.QStandardItemModel):
     def __repr__(self) -> str:
         return f"Stage <Nodes: {self.total_node_count()} | File: {self.file_path}>"
 
-    def __truediv__(self, other: str) -> pathlib.PurePosixPath:
+    def __truediv__(self, other: typing.Any) -> pathlib.PurePosixPath:
         if isinstance(other, str):
             return self.root_node.path / other
         raise NotImplementedError
@@ -66,6 +66,11 @@ class Stage(QtGui.QStandardItemModel):
     @property
     def crawler(self) -> StageCrawler:
         return self._crawler
+
+    def _register_qml_role_names(self) -> None:
+        names = dict(self.roleNames())
+        names.update(names_fn.enum_to_dict(Node.Roles))  # ty: ignore
+        self.setItemRoleNames(names)
 
     def create_node(
         self, type_id: str, name: str | None = None, uuid: UUID | str | None = None
