@@ -9,7 +9,9 @@ Rectangle {
     color: palette.window
 
     required property var componentsFilterModel
+    required property var componentsRegistryFilterModel
     required property var componentsController
+    required property var componentsSpawner
 
     property alias searchText: searchField.text
     property bool hasActiveFilters: searchText.length > 0
@@ -145,7 +147,7 @@ Rectangle {
                     font.bold: true
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Add component")
-                    onClicked: console.log("TODO: add component")
+                    onClicked: palettePopup.opened ? palettePopup.close() : palettePopup.open()
 
                     background: Rectangle {
                         radius: 4
@@ -172,6 +174,18 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    NodeComponentsPalettePopup {
+        id: palettePopup
+        parent: root
+        bottomReserved: root.height - buttonBar.y
+
+        componentsRegistryFilterModel: root.componentsRegistryFilterModel
+        onSpawnRequested: typeId => {
+            root.componentsSpawner.spawnComponent(typeId, root.componentsFilterModel.node);
+            palettePopup.close();
         }
     }
 }
