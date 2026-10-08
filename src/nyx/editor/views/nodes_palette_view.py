@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 
 
 class NodesPaletteView(QQuickWidget):
-    QML_COMPONENT = "NodesPaletteView.qml"
+    QML_COMPONENT = "nodes_palette/NodesPaletteView.qml"
 
     def __init__(
         self,

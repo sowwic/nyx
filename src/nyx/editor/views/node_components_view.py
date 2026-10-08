@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
 
 
 class NodeComponentsView(QQuickWidget):
-    QML_COMPONENT = "NodeComponentsView.qml"
+    QML_COMPONENT = "components_view/NodeComponentsView.qml"
 
     def __init__(
         self,
