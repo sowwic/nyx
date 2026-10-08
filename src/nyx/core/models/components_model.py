@@ -49,6 +49,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return str(component.uuid)
             if role == NodeComponent.Roles.PATH:
                 return component.path.as_posix()
+            if role == NodeComponent.Roles.NODE:
+                return self.node
             if role == NodeComponent.Roles.EDITOR_QML_FILE:
                 return component.get_qml_editor_url()
             if role == NodeComponent.Roles.IS_EDITABLE:

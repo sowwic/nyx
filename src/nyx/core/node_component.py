@@ -47,6 +47,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
+        NODE = enum.auto()
         EDITOR_QML_FILE = enum.auto()
         IS_EDITABLE = enum.auto()
         IS_STATIC = enum.auto()
@@ -57,6 +58,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             return (
                 cls.UUID,
                 cls.PATH,
+                cls.NODE,
                 cls.EDITOR_QML_FILE,
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
