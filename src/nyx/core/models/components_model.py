@@ -169,8 +169,9 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         """Returns a unique name for the component, indexed if it already exists."""
         existing_names = [component.name for component in self.list_components()]
         index = 1
+        result_name = name
         while name in existing_names:
-            name = f"{name}{index}"
+            name = f"{result_name}{index}"
             index += 1
 
         return name
