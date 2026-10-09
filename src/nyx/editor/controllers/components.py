@@ -116,7 +116,7 @@ class ComponentsController(QtCore.QObject):
         if selection.isEmpty():
             return
 
-        delete_commands = []
+        component_names_to_delete = []
         for item_index in self.selection_model.selectedRows():
             source_model_index = self.components_filter_model.mapToSource(item_index)
             component: NodeComponent = self.components_model.itemFromIndex(
@@ -126,11 +126,12 @@ class ComponentsController(QtCore.QObject):
                 LOGGER.warning("Can't delete built-in component %s", str(component.path))
                 return
 
-            command = DeleteNodeComponentCommand(
-                node=self.components_model.node, name=component.name
-            )
-            delete_commands.append(command)
-        self.components_model.node.stage.push_command(*delete_commands)
+            component_names_to_delete.append(component.name)
+
+        command = DeleteNodeComponentCommand(
+            node=self.components_model.node, component_names=component_names_to_delete
+        )
+        self.components_model.node.stage.push_command(command)
 
     @QtCore.Slot(int, bool)
     def setSetComponentActiveState(self, row: int, state: bool):
