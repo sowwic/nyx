@@ -32,8 +32,10 @@ class AddNodeComponentCommand(NyxCommand):
         return self.stage.get_object(self.component_uuid)
 
     def redo(self) -> None:
-        node = self.stage.get_object(self.node_uuid)
-        component = node.components_model.create_component(self.type_id)
+        node = self.stage.get_object(self.node_uuid, expected_type=Node)
+        component = node.components_model.create_component(
+            self.type_id, uuid=self.component_uuid
+        )
         self.name = NameValidator.get_valid_stage_object_name(
             self.name or component.DEFAULT_NAME
         )

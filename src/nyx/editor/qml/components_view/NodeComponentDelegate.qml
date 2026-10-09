@@ -97,7 +97,7 @@ DraggableDelegate {
 
                 Switch {
                     checked: itemRoot.isActive
-                    onToggled: itemRoot.model.isActive = checked
+                    onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
                     visible: !itemRoot.model.isStatic
                 }
 

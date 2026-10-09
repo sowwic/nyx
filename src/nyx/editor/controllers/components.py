@@ -3,7 +3,11 @@ import typing
 
 from PySide6 import QtCore
 
-from ...core.commands import DeleteNodeComponentCommand, ReorderNodeComponentCommand
+from ...core.commands import (
+    DeleteNodeComponentCommand,
+    ReorderNodeComponentCommand,
+    SetNodeComponentActiveStateCommand,
+)
 from ...static.enums import ItemSelectionMode
 
 
@@ -127,6 +131,19 @@ class ComponentsController(QtCore.QObject):
             )
             delete_commands.append(command)
         self.components_model.node.stage.push_command(*delete_commands)
+
+    @QtCore.Slot(int, bool)
+    def setSetComponentActiveState(self, row: int, state: bool):
+        proxy_index = self.components_filter_model.index(row, 0)
+        source_model_index = self.components_filter_model.mapToSource(proxy_index)
+        component: NodeComponent = self.components_model.itemFromIndex(
+            source_model_index
+        )
+
+        set_active_command = SetNodeComponentActiveStateCommand(
+            stage=component.stage, node_component=component, state=state
+        )
+        component.stage.push_command(set_active_command)
 
     @QtCore.Slot(int, int)
     def reorderComponent(self, from_row: int, to_row: int):

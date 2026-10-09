@@ -3,6 +3,7 @@ from .create_node import CreateNodeCommand
 from .delete_node import DeleteNodeCommand
 from .rename_node import RenameNodeCommand
 from .set_node_active_state import SetNodeActiveStateCommand
+from .set_component_active_state import SetNodeComponentActiveStateCommand
 from .paste_nodes import PasteNodesCommand
 from .move_node import MoveNodeCommand
 from .add_node_component import AddNodeComponentCommand
@@ -18,6 +19,7 @@ __all__ = [
     "DeleteNodeCommand",
     "RenameNodeCommand",
     "SetNodeActiveStateCommand",
+    "SetNodeComponentActiveStateCommand",
     "PasteNodesCommand",
     "MoveNodeCommand",
     "AddNodeComponentCommand",
