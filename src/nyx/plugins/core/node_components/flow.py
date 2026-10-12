@@ -20,6 +20,10 @@ class FlowComponent(NodeComponent):
         return "Flow"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/flow_cpnt"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"logic"}
 

@@ -1,0 +1,16 @@
+
+<!DOCTYPE RCC>
+<RCC>
+  <qresource prefix="/core/">
+    <file>icons/branch_node.png</file>
+    <file>icons/log_node.png</file>
+    <file>icons/flow_start_node.png</file>
+    <file>icons/action_node.png</file>
+    <file>icons/sequence_node.png</file>
+
+    <file>icons/value_cpnt.png</file>
+    <file>icons/flow_cpnt.png</file>
+    <file>icons/comment_cpnt.png</file>
+    <file>icons/script_cpnt.png</file>
+  </qresource>
+</RCC>

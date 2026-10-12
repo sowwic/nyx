@@ -17,6 +17,7 @@ class RegistryListModel(QtCore.QAbstractListModel):
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_CLASS = enum.auto()
         TYPE_DISPLAY_NAME = enum.auto()
+        TYPE_ICON = enum.auto()
         TYPE_TAGS = enum.auto()
 
     def __init__(self, get_items: typing.Callable[[], OrderedDict], parent=None):
@@ -60,6 +61,8 @@ class RegistryListModel(QtCore.QAbstractListModel):
             return cls.get_type_id()
         if role == self.Roles.TYPE_CLASS:
             return cls
+        if role == self.Roles.TYPE_ICON:
+            return cls.get_type_icon()
         if role == self.Roles.TYPE_TAGS:
             return cls.get_tags()
         return None

@@ -32,6 +32,7 @@ class InspectorNodeHeader(QtWidgets.QWidget):
 
     def _create_widgets(self) -> None:
         self.active_checkbox = QtWidgets.QCheckBox()
+        self.icon_label = QtWidgets.QLabel()
         self.name_field = QtWidgets.QLineEdit()
         self.info_button = QtWidgets.QToolButton()
         self.info_button.setFixedSize(28, 28)
@@ -39,6 +40,7 @@ class InspectorNodeHeader(QtWidgets.QWidget):
 
     def _create_layouts(self) -> None:
         self.main_layout = QtWidgets.QHBoxLayout(self)
+        self.main_layout.addWidget(self.icon_label)
         self.main_layout.addWidget(self.active_checkbox)
         self.main_layout.addWidget(self.name_field)
         self.main_layout.addWidget(self.info_button)
@@ -63,7 +65,9 @@ class InspectorNodeHeader(QtWidgets.QWidget):
                 self.clear()
                 return
 
-            node = self.node
+            node: Node = self.node
+            # TODO: Antialiasing?
+            self.icon_label.setPixmap(QtGui.QPixmap(node.get_type_icon()))
             self.active_checkbox.setEnabled(not node.is_locked)
             self.name_field.setEnabled(not node.is_locked)
             self.active_checkbox.setChecked(node.is_active())

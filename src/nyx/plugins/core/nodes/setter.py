@@ -16,6 +16,10 @@ class SetterNode(Node):
     def get_tags(cls) -> set[str]:
         return {"logic", "value"}
 
+    @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/icons/function"
+
     def setup(self):
         self.flow_cpnt = self.components_model.create_component(CoreNodeComponents.FLOW)
         self.flow_cpnt.produces_output = True

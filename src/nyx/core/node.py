@@ -53,6 +53,7 @@ class Node(QtGui.QStandardItem, StageObject):
     class Roles(enum.IntEnum):
         TYPE_ID = QtCore.Qt.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
+        TYPE_ICON = enum.auto()
         IS_ACTIVE = enum.auto()
         POSITION = enum.auto()
         REFERENCE_FILE_PATH = enum.auto()
@@ -102,6 +103,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     def _set_default_role_values(self):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
+        self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
         self.setData(True, role=self.Roles.IS_ACTIVE)
         self.setData(QtCore.QPointF(), role=self.Roles.POSITION)
         self.setData(None, role=self.Roles.REFERENCE_FILE_PATH)
@@ -627,11 +629,11 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @classmethod
     def get_type_id(cls) -> str:
-        return CoreNodes.EMPTY
+        raise NotImplementedError
 
     @classmethod
     def get_type_display_name(cls) -> str:
-        return cls.__name__
+        raise NotImplementedError
 
     @classmethod
     def get_type_execution_order(cls) -> NodeExecutionOrderFlag:

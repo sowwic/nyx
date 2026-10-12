@@ -121,4 +121,9 @@ class StageObject:
         elif restore_option is RestoreUuidOption.ATTEMPT_RESTORE:
             if stage is None:
                 return serialized_uuid
+
             return serialized_uuid if serialized_uuid not in stage.uuid_map else uuid4()
+
+    @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/icons/stage_object"

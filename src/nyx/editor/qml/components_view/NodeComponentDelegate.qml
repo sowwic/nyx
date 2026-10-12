@@ -28,6 +28,9 @@ DraggableDelegate {
     }
     readonly property bool showExpanded: isExpanded && !isDragging
 
+    // Emitted when the "?" button in the header is clicked.
+    signal helpRequested
+
     // Becomes true on the first user toggle, so creation doesn't animate.
     property bool animateHeight: false
 
@@ -86,47 +89,96 @@ DraggableDelegate {
             spacing: 4
 
             // ---- Header (always visible) ----
-            RowLayout {
+            // Grabbing anywhere on the header (except its buttons and switch) drags the whole row.
+            // Left to right: expand/collapse toggle, active switch, icon, spacer,
+            // name, then right-aligned help and options buttons.
+            Item {
+                id: headerDragSurface
                 Layout.fillWidth: true
-                spacing: 6
+                implicitHeight: headerLayout.implicitHeight
 
-                DragHandle {
+                // Declared first so it sits underneath the controls and never steals their clicks.
+                RowDragHandler {
+                    id: headerRowDragHandler
                     row: itemRoot
-                    Layout.alignment: Qt.AlignVCenter
                 }
 
-                Switch {
-                    checked: itemRoot.isActive
-                    onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
-                    visible: !itemRoot.model.isStatic
-                }
+                RowLayout {
+                    id: headerLayout
+                    anchors.fill: parent
+                    spacing: 6
 
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: headerRow.implicitHeight
+                    ToolButton {
+                        id: expandCollapseToggleButton
+                        Layout.alignment: Qt.AlignVCenter
+                        text: itemRoot.showExpanded ? "\u25BE" : "\u25B8"
+                        onClicked: itemRoot.toggleExpanded()
+                    }
 
-                    RowLayout {
-                        id: headerRow
-                        anchors.fill: parent
-                        spacing: 8
+                    Image {
+                        id: componentTypeIconImage
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 16
+                        Layout.preferredHeight: 16
+                        source: "qrc" + itemRoot.model.typeIcon
+                        sourceSize: Qt.size(16, 16)
+                        fillMode: Image.PreserveAspectFit
+                        opacity: itemRoot.isActive ? 1.0 : 0.5
+                    }
+
+                    CheckBox {
+                        id: componentActiveStateSwitch
+                        Layout.alignment: Qt.AlignVCenter
+                        checked: itemRoot.isActive
+                        visible: !itemRoot.model.isStatic
+                        onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
+                    }
+
+                    Label {
+                        id: componentNameLabel
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        text: itemRoot.name
+                        font.bold: true
+                        elide: Text.ElideRight
                         opacity: itemRoot.isActive ? 1.0 : 0.5
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: itemRoot.name
-                            font.bold: true
-                            elide: Text.ElideRight
-                        }
-                        Label {
-                            text: itemRoot.typeDisplayName
-                            opacity: 0.6
+                        ToolTip.visible: componentNameHoverHandler.hovered
+                        ToolTip.delay: 600
+                        ToolTip.text: itemRoot.typeDisplayName
+
+                        HoverHandler {
+                            id: componentNameHoverHandler
                         }
                     }
-                }
 
-                ToolButton {
-                    text: itemRoot.showExpanded ? "\u25BE" : "\u25B8"
-                    onClicked: itemRoot.toggleExpanded()
+                    ToolButton {
+                        id: helpButton
+                        Layout.alignment: Qt.AlignVCenter
+                        text: "?"
+                        font.bold: true
+                        onClicked: itemRoot.helpRequested()
+
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 600
+                        ToolTip.text: qsTr("Help")
+                    }
+
+                    ToolButton {
+                        id: optionsMenuButton
+                        Layout.alignment: Qt.AlignVCenter
+                        text: "\u22EE"   // vertical three dots
+                        onClicked: componentOptionsMenu.popup(optionsMenuButton, 0, optionsMenuButton.height)
+
+                        Menu {
+                            id: componentOptionsMenu
+
+                            MenuItem {
+                                text: "Rename"
+                                visible: !itemRoot.isBuiltIn
+                            }
+                        }
+                    }
                 }
             }
 

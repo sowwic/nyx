@@ -13,6 +13,10 @@ class CommentComponent(NodeComponent):
         return "Comment"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/comment_cpnt"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"common", "utility"}
 

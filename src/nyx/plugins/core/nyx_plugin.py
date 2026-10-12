@@ -1,13 +1,15 @@
 import typing
 import logging
 
-from nyx.api.v1 import NyxPluginManager, NyxPlugin, Node
+from .resources import resources_rc
+from nyx.api.v1 import NyxPluginManager, NyxPlugin
 
 from .node_components.comment import CommentComponent
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
 from .node_components.script import ScriptComponent
 
+from .nodes.blank import BlankNode
 from .nodes.setter import SetterNode
 from .nodes.getter import GetterNode
 from .nodes.branch import BranchNode
@@ -36,7 +38,7 @@ class NyxCore(NyxPlugin):
             ScriptComponent,
         ]
         plugin.contents.nodes = [
-            Node,
+            BlankNode,
             SetterNode,
             GetterNode,
             ActionNode,

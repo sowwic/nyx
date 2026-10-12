@@ -7,6 +7,7 @@ ItemDelegate {
     required property var model
 
     signal spawnRequested(string typeId, var targetNode)
+    icon.source: "qrc" + model.typeIcon
 
     text: model.typeDisplayName
     onClicked: {

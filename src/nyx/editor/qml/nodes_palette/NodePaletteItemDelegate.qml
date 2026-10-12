@@ -11,6 +11,7 @@ ItemDelegate {
 
     signal spawnRequested(string typeId)
 
+    icon.source: "qrc" + model.typeIcon
     text: model.typeDisplayName
     onClicked: {
         if (dragEnabled)
