@@ -3,7 +3,7 @@ import logging
 
 from PySide6 import QtWidgets
 
-from .inpector_node_header import InspectorNodeHeader
+from .inspector_node_header import InspectorNodeHeader
 from ..views.node_components_view import NodeComponentsView
 
 if typing.TYPE_CHECKING:
