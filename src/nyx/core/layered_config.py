@@ -48,6 +48,16 @@ class NyxEditorLogWidgetConfigValues(ConfigValues):
     auto_scroll: bool = Field(default=True)
 
 
+class NyxEditorGraphicsNodeConfigValues(ConfigValues):
+    hover_diagnostics: bool = Field(default=False)
+
+
+class NyxEditorGraphicsStageConfigValues(ConfigValues):
+    nodes: NyxEditorGraphicsNodeConfigValues = Field(
+        default_factory=NyxEditorGraphicsNodeConfigValues, alias="nodes"
+    )
+
+
 class NyxEditorWidgetsConfigValues(ConfigValues):
     """Container for nyx editor widget configurations
 
@@ -57,6 +67,9 @@ class NyxEditorWidgetsConfigValues(ConfigValues):
 
     log_widget: NyxEditorLogWidgetConfigValues = Field(
         default_factory=NyxEditorLogWidgetConfigValues, alias="log_widget"
+    )
+    graphics_stage: NyxEditorGraphicsStageConfigValues = Field(
+        default_factory=NyxEditorGraphicsStageConfigValues, alias="graphics_stage"
     )
 
 
