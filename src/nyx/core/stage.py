@@ -56,6 +56,7 @@ class Stage(QtGui.QStandardItemModel):
         self._crawler = StageCrawler(self)
         self.undo_stack = QtGui.QUndoStack(self)
         self._create_root_node()
+        self._register_qml_role_names()
 
         self.create_connections()
 

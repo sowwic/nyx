@@ -1,11 +1,15 @@
 import typing
 from uuid import UUID
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...core import commands
 from ...core.name_validator import NameValidator
-from ..utils.common import get_current_stage_graph, blocked_signals
+from .dialogs.roles_diagnostics import RoleDiagnisticsDialog
+from ..utils.common import (
+    get_current_stage_graph,
+    blocked_signals,
+)
 
 if typing.TYPE_CHECKING:
     from ...core.node import Node
@@ -30,6 +34,8 @@ class InspectorNodeHeader(QtWidgets.QWidget):
         self.active_checkbox = QtWidgets.QCheckBox()
         self.name_field = QtWidgets.QLineEdit()
         self.info_button = QtWidgets.QToolButton()
+        self.info_button.setFixedSize(28, 28)
+        self.info_button.setIcon(QtGui.QIcon(":/icons/frame_bug"))
 
     def _create_layouts(self) -> None:
         self.main_layout = QtWidgets.QHBoxLayout(self)
@@ -40,6 +46,7 @@ class InspectorNodeHeader(QtWidgets.QWidget):
     def _create_connections(self) -> None:
         self.name_field.editingFinished.connect(self._on_name_edited)
         self.active_checkbox.stateChanged.connect(self._on_active_changed)
+        self.info_button.clicked.connect(self._on_info_button_clicked)
 
     def set_node(self, node_uuid: UUID | str | None) -> None:
         self._node_uuid = node_uuid
@@ -81,3 +88,8 @@ class InspectorNodeHeader(QtWidgets.QWidget):
             stage=node.stage, node=node, state=state
         )
         node.stage.push_command(set_active_command)
+
+    def _on_info_button_clicked(self):
+        node: Node = self.node
+        diagnistics_dialog = RoleDiagnisticsDialog(node.index())
+        diagnistics_dialog.exec()
