@@ -69,8 +69,7 @@ def test_removing_component_removes_it_from_uuid_map():
     assert resulting_uuid in stage.uuid_map
 
     delete_component_command = commands.DeleteNodeComponentCommand(
-        node=action_node,
-        name=add_component_command.result_component.name,
+        node=action_node, component_names=[add_component_command.result_component.name]
     )
     stage.push_command(delete_component_command)
 

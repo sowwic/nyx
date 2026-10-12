@@ -132,13 +132,15 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             if not component_exists:
                 self.appendRow(component)
 
-    def create_component(self, type_id: str) -> NodeComponent:
+    def create_component(
+        self, type_id: str, uuid: UUID | str | None = None
+    ) -> NodeComponent:
         component_cls = NYX_REGISTRY.get_node_component_cls(type_id=type_id)
-        return component_cls()
+        return component_cls(uuid=uuid)
 
     def add_component(self, component: NodeComponent, at_row: int | None = None):
         component.name = self.compose_unique_component_name(component.name)
-        if at_row:
+        if at_row is not None:
             self.insertRow(at_row, component)
         else:
             self.appendRow(component)
@@ -169,8 +171,9 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         """Returns a unique name for the component, indexed if it already exists."""
         existing_names = [component.name for component in self.list_components()]
         index = 1
+        result_name = name
         while name in existing_names:
-            name = f"{name}{index}"
+            name = f"{result_name}{index}"
             index += 1
 
         return name

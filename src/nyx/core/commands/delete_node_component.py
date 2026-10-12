@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import typing
 from collections import OrderedDict
@@ -18,22 +19,44 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass
+class DeletedComponentRecord:
+    """Everything needed to restore one deleted component on undo."""
+
+    component_name: str
+    serialized_component_data: OrderedDict = dataclasses.field(
+        default_factory=OrderedDict
+    )
+    was_component_expanded: bool = True
+    model_row_before_deletion: int | None = None
+
+    @property
+    def component_uuid(self):
+        return self.serialized_component_data[NodeComponent.UUID_KEY]
+
+
 class DeleteNodeComponentCommand(NyxCommand):
     def __init__(
         self,
         node: Node,
-        name: str | None = None,
+        component_names: typing.Sequence[str],
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
         self.node_uuid = node.uuid
-        self.name = name
-        self.serialized_data: OrderedDict = OrderedDict()
-        self.expanded_state = True
-        self.model_row = None
+
+        # Remove duplicates while preserving the order the caller gave us.
+        self.component_names_to_delete: list[str] = list(
+            OrderedDict.fromkeys(component_names)
+        )
+
+        self.deleted_component_records: list[DeletedComponentRecord] = [
+            DeletedComponentRecord(component_name=component_name)
+            for component_name in self.component_names_to_delete
+        ]
 
         super().__init__(
             stage=node.stage,
-            text="Delete component",
+            text="Delete components",
             parent=parent,
         )
 
@@ -42,64 +65,113 @@ class DeleteNodeComponentCommand(NyxCommand):
         self._build_child_unlink_commands()
 
     @property
-    def component_uuid(self):
-        return self.serialized_data[NodeComponent.UUID_KEY]
+    def deleted_component_uuids(self) -> list:
+        return [
+            deleted_component_record.component_uuid
+            for deleted_component_record in self.deleted_component_records
+        ]
 
     def redo(self) -> None:
         self._redo_unlink()
         node: Node = self.stage.get_object(self.node_uuid)
-        component: NodeComponent = node[self.name]
-        self.serialized_data = component.serialize()
-        self.expanded_state = component.is_expanded
-        self.model_row = component.row()
+
+        removed_component_descriptions: list[str] = []
+
+        for deleted_component_record in self.deleted_component_records:
+            component: NodeComponent = node[deleted_component_record.component_name]
+
+            deleted_component_record.serialized_component_data = component.serialize()
+            deleted_component_record.was_component_expanded = component.is_expanded
+            # Recorded immediately before removal, so the row already accounts
+            # for any components removed earlier in this loop.
+            deleted_component_record.model_row_before_deletion = component.row()
+
+            removed_component_descriptions.append(
+                f"{deleted_component_record.component_name} ({component.get_type_id()})"
+            )
+
+            node.components_model.remove_component(
+                deleted_component_record.component_uuid
+            )
 
         self.setText(
-            f"Remove component ({node.path}.{self.name} ({component.get_type_id()})"
+            f"Remove components ({node.path}: "
+            f"{', '.join(removed_component_descriptions)})"
         )
-        node.components_model.remove_component(self.component_uuid)
 
         return super().redo()
 
     def undo(self) -> None:
         node: Node = self.stage.get_object(self.node_uuid)
-        context = NodeDeserializationContext(
-            stage=self.stage, entry_node=node, defer_links=False
-        )
-        component = NodeComponent.deserialize(
-            data=self.serialized_data,
-            node=node,
-            context=context,
-            component=None,
-            restore_uuid=RestoreUuidOption.RESTORE,
-        )
-        node.components_model.add_component(component, at_row=self.model_row)
-        component.is_expanded = self.expanded_state
+
+        # Restore in reverse so each component returns to the row it had at the
+        # moment it was removed.
+        for deleted_component_record in reversed(self.deleted_component_records):
+            deserialization_context = NodeDeserializationContext(
+                stage=self.stage, entry_node=node, defer_links=False
+            )
+            restored_component = NodeComponent.deserialize(
+                data=deleted_component_record.serialized_component_data,
+                node=node,
+                context=deserialization_context,
+                component=None,
+                restore_uuid=RestoreUuidOption.RESTORE,
+            )
+            node.components_model.add_component(
+                restored_component,
+                at_row=deleted_component_record.model_row_before_deletion,
+            )
+            restored_component.is_expanded = (
+                deleted_component_record.was_component_expanded
+            )
 
         result = super().undo()
         self._undo_unlink()
         return result
 
-    def _redo_unlink(self):
-        for command in self._unlink_commands:
-            command.redo()
+    def _redo_unlink(self) -> None:
+        for unlink_command in self._unlink_commands:
+            unlink_command.redo()
 
-    def _undo_unlink(self):
-        for command in self._unlink_commands:
-            command.undo()
+    def _undo_unlink(self) -> None:
+        for unlink_command in reversed(self._unlink_commands):
+            unlink_command.undo()
 
-    def _build_child_unlink_commands(self):
+    def _build_child_unlink_commands(self) -> None:
         node: Node = self.stage.get_object(self.node_uuid)
-        component: NodeComponent = node[self.name]
-        if not component.links_uuids:
-            return
-        for link_uuid in list(component.links_uuids):
+
+        # A link between two components that are both being deleted shows up on
+        # each of them, so collect link uuids in an ordered, de-duplicated way
+        # to avoid unlinking the same link twice.
+        unique_link_uuids: OrderedDict = OrderedDict()
+
+        for component_name in self.component_names_to_delete:
+            component: NodeComponent = node[component_name]
+            for link_uuid in list(component.links_uuids or []):
+                unique_link_uuids[link_uuid] = None
+
+        for link_uuid in unique_link_uuids:
             self._unlink_commands.append(
                 UnlinkNodeComponentsCommand(stage=self.stage, link_uuid=link_uuid)
             )
 
-    def validate(self):
+    def validate(self) -> None:
         node = self.stage.get_object(self.node_uuid)
         if node is None:
             raise NyxCommandValidationError(
-                "Target node doesn't exist %s:", str(self.node_uuid)
+                f"Target node doesn't exist: {self.node_uuid}"
+            )
+
+        if not self.component_names_to_delete:
+            raise NyxCommandValidationError("No components were given to delete.")
+
+        missing_component_names = [
+            component_name
+            for component_name in self.component_names_to_delete
+            if node[component_name] is None
+        ]
+        if missing_component_names:
+            raise NyxCommandValidationError(
+                f"Components don't exist on node {node.path}: "
+                f"{', '.join(missing_component_names)}"
             )

@@ -32,7 +32,9 @@ def test_delete_node_component():
     assert node is not None
     assert node[test_cpnt_name] is not None
 
-    delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
+    delete_cpnt_command = DeleteNodeComponentCommand(
+        node=node, component_names=[test_cpnt_name]
+    )
     stage.push_command(delete_cpnt_command)
     with pytest.raises(ValueError):
         node[test_cpnt_name]
@@ -56,7 +58,9 @@ def test_delete_node_component_undo():
     assert node is not None
     assert node[test_cpnt_name] is not None
 
-    delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
+    delete_cpnt_command = DeleteNodeComponentCommand(
+        node=node, component_names=[test_cpnt_name]
+    )
     stage.push_command(delete_cpnt_command)
     with pytest.raises(ValueError, match="has no component"):
         assert node[test_cpnt_name] is None
@@ -83,7 +87,9 @@ def test_delete_node_component_undo_redo():
     assert node is not None
     assert node[test_cpnt_name] is not None
 
-    delete_cpnt_command = DeleteNodeComponentCommand(node=node, name=test_cpnt_name)
+    delete_cpnt_command = DeleteNodeComponentCommand(
+        node=node, component_names=[test_cpnt_name]
+    )
     stage.push_command(delete_cpnt_command)
     with pytest.raises(ValueError, match="has no component"):
         node[test_cpnt_name]
@@ -138,7 +144,8 @@ def test_deleting_linked_componet_deletes_link():
 
     # Delete value component one action one
     delete_cpnt_command = DeleteNodeComponentCommand(
-        node=action1_command.result_node, name=add_cpnt1_command.result_component.name
+        node=action1_command.result_node,
+        component_names=[add_cpnt1_command.result_component.name],
     )
     stage.push_command(delete_cpnt_command)
     # Expected: link should be disconnected and not present in stage uuid_map

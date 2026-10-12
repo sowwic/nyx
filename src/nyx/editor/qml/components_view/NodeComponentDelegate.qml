@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import "../common"
+
 DraggableDelegate {
     id: itemRoot
 
@@ -95,7 +97,7 @@ DraggableDelegate {
 
                 Switch {
                     checked: itemRoot.isActive
-                    onToggled: itemRoot.model.isActive = checked
+                    onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
                     visible: !itemRoot.model.isStatic
                 }
 

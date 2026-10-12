@@ -2,7 +2,7 @@ import logging
 
 from PySide6 import QtGui
 from ._base_nyx_command import NyxCommand
-from ..node import NodeLike
+from ..node import Node, NodeLike
 from ..stage import Stage
 from ..exceptions import NyxCommandValidationError, StageObjectQueryError
 
@@ -24,8 +24,8 @@ class SetNodeActiveStateCommand(NyxCommand):
         self.setText(f"{self.text()} ({self.node_path} -> {self.new_state})")
 
     def redo(self) -> None:
-        node = self.stage.get_object(self.node_path)
-        self.old_state = node.is_active
+        node = self.stage.get_object(self.node_path, expected_type=Node)
+        self.old_state = node.is_active()
         node.set_active(self.new_state)
         return super().redo()
 

@@ -2,8 +2,11 @@ import typing
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from nyx.core import commands
-from nyx.editor.graphics.graphics_node_title import GraphicsNodeTitle
+from .graphics_node_title import GraphicsNodeTitle
+from ..utils.common import build_role_tooltip_html
+from ...core.layered_config import NyxConfig
+from ...core import commands
+from ...static.vars import DEBUG
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -20,6 +23,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
+        self.setAcceptHoverEvents(True)
 
         self._node = None
         # TODO: Create graphics components plugs
@@ -151,7 +155,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         painter.drawPath(path_outline.simplified())
 
     @property
-    def node(self):
+    def node(self) -> Node:
         return self._node
 
     @property
@@ -165,6 +169,15 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     @property
     def title_width(self):
         return self.title_item.width
+
+    def _refresh_tooltip(self):
+        config = NyxConfig()
+        node_config = config.values.editor_widgets.graphics_stage.nodes
+        if not self.node.index().isValid():
+            return
+
+        if node_config.hover_diagnostics or DEBUG:
+            self.setToolTip(build_role_tooltip_html(self.node.index()))
 
     # Events
     def mouseMoveEvent(self, event):
@@ -190,3 +203,11 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         return super().mouseDoubleClickEvent(event)
+
+    def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        self._refresh_tooltip()
+        super().hoverEnterEvent(event)
+
+    def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMoveEvent) -> None:
+        self._refresh_tooltip()
+        super().hoverMoveEvent(event)

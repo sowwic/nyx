@@ -34,7 +34,7 @@ def test_active_set_undo_redo() -> None:
     stage.push_command(command)
 
     node = stage.get_object(test_node_path)
-    default_state = node.is_active
+    default_state = node.is_active()
 
     toggle_active_state_command = SetNodeActiveStateCommand(
         stage=stage, node=test_node_path, state=not default_state
