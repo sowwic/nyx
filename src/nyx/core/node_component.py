@@ -39,10 +39,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
         VALUE = enum.auto()
-        DISPLAY_VALUE = enum.auto()
         LINKS = enum.auto()
-        INPUT_LINKS = enum.auto()
-        OUTPUT_LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
         COMPONENT_FLAGS = enum.auto()
@@ -52,6 +49,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         UUID = enum.auto()
         PATH = enum.auto()
         NODE = enum.auto()
+        INPUT_LINKS = enum.auto()
+        OUTPUT_LINKS = enum.auto()
+        PRODUCES_OUTPUT = enum.auto()
+        ACCEPTS_INPUT = enum.auto()
+        DISPLAY_VALUE = enum.auto()
         EDITOR_QML_FILE = enum.auto()
         IS_EDITABLE = enum.auto()
         IS_STATIC = enum.auto()
@@ -67,6 +69,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.OUTPUT_LINKS,
                 cls.DISPLAY_VALUE,
                 cls.EDITOR_QML_FILE,
+                cls.PRODUCES_OUTPUT,
+                cls.ACCEPTS_INPUT,
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,

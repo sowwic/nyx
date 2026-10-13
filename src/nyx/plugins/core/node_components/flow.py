@@ -30,7 +30,11 @@ class FlowComponent(NodeComponent):
 
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
-        return NodeComponentFlag.STATIC
+        return (
+            NodeComponentFlag.STATIC
+            | NodeComponentFlag.ACCEPTS_INPUTS
+            | NodeComponentFlag.PRODUCES_OUTPUT
+        )
 
     def serialize_value(self) -> str:
         if self.value:

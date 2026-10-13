@@ -8,6 +8,7 @@ ColumnLayout {
     spacing: 4
 
     Label {
+        visible: flowItemRoot.component.acceptsInput
         Layout.fillWidth: true
         text: "Inputs:"
     }
@@ -25,10 +26,12 @@ ColumnLayout {
     }
 
     Item {
+        visible: flowItemRoot.component.acceptsInput && flowItemRoot.component.producesOutput
         implicitHeight: 10
     }
 
     Label {
+        visible: flowItemRoot.component.producesOutput
         Layout.fillWidth: true
         text: "Outputs:"
     }
@@ -38,6 +41,7 @@ ColumnLayout {
 
         Layout.fillWidth: true
 
+        visible: flowItemRoot.component.producesOutput
         model: flowItemRoot.component.outputLinks
         delegate: Label {
             required property string modelData
