@@ -75,6 +75,15 @@ Rectangle {
                     }
                 }
 
+                section {
+                    property: "isBuiltIn"
+                    criteria: ViewSection.FullString
+                    labelPositioning: ViewSection.InlineLabels | ViewSection.CurrentLabelAtStart
+                    delegate: NodeComponentsSectionHeader {
+                        width: componentsListView.width
+                    }
+                }
+
                 delegate: NodeComponentDelegate {
                     reorderState: componentsListView.reorderState
                     filtersActive: root.hasActiveFilters
