@@ -7,6 +7,9 @@ import "../common"
 DraggableDelegate {
     id: itemRoot
 
+    // Emitted when the "?" button in the header is clicked.
+    signal helpRequested
+
     // Injected by the ListView into this root object.
     // `index` is NOT redeclared here: DraggableDelegate already requires it.
     required property var model
@@ -28,19 +31,43 @@ DraggableDelegate {
     }
     readonly property bool showExpanded: isExpanded && !isDragging
 
-    // Emitted when the "?" button in the header is clicked.
-    signal helpRequested
-
     // Becomes true on the first user toggle, so creation doesn't animate.
     property bool animateHeight: false
+
+    // True while the inline rename editor is shown over the title.
+    property bool isRenaming: false
 
     function toggleExpanded() {
         animateHeight = true;
         model.isExpanded = !isExpanded;
     }
 
-    onIsDraggingChanged: animateHeight = true
+    function startRename() {
+        if (isBuiltIn)
+            return;
+        isRenaming = true;
+        renameField.text = name;
+        // Deferred so a closing context menu doesn't take focus back right after we set it.
+        Qt.callLater(function () {
+            renameField.forceActiveFocus();
+            renameField.selectAll();
+        });
+    }
 
+    function commitRename() {
+        if (!isRenaming)
+            return;
+        isRenaming = false;
+        const newName = renameField.text.trim();
+        if (newName.length > 0 && newName !== name)
+            root.componentsController.renameComponent(model.index, newName);
+    }
+
+    function cancelRename() {
+        isRenaming = false;
+    }
+
+    onIsDraggingChanged: animateHeight = true
     dragEnabled: !isBuiltIn && !filtersActive
     dropEnabled: !isBuiltIn && !filtersActive
 
@@ -65,7 +92,12 @@ DraggableDelegate {
         TapHandler {
             acceptedModifiers: Qt.NoModifier
             onTapped: root.componentsController.selectRow(itemRoot.index, 0)
-            onDoubleTapped: itemRoot.toggleExpanded()
+            onDoubleTapped: eventPoint => {
+                const tapPosition = componentNameLabel.mapFromItem(card, eventPoint.position);
+                const onTitle = componentNameLabel.contains(tapPosition);
+                if (onTitle && !itemRoot.isBuiltIn)
+                    itemRoot.startRename();
+            }
         }
 
         TapHandler {
@@ -76,6 +108,10 @@ DraggableDelegate {
         TapHandler {
             acceptedModifiers: Qt.ShiftModifier
             onTapped: root.componentsController.selectRow(itemRoot.index, 2)
+        }
+
+        TapHandler {
+            onTapped: itemRoot.ListView.view.forceActiveFocus()
         }
 
         ColumnLayout {
@@ -142,26 +178,39 @@ DraggableDelegate {
                         font.bold: true
                         elide: Text.ElideRight
                         opacity: itemRoot.isActive ? 1.0 : 0.5
+                        // Hide only the label's own text while renaming. (Hiding the label itself
+                        // or lowering its opacity would also affect the TextField child.)
+                        color: itemRoot.isRenaming ? "transparent" : palette.windowText
 
-                        ToolTip.visible: componentNameHoverHandler.hovered
+                        ToolTip.visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming
                         ToolTip.delay: 600
                         ToolTip.text: itemRoot.typeDisplayName
 
                         HoverHandler {
                             id: componentNameHoverHandler
                         }
-                    }
 
-                    ToolButton {
-                        id: helpButton
-                        Layout.alignment: Qt.AlignVCenter
-                        text: "?"
-                        font.bold: true
-                        onClicked: itemRoot.helpRequested()
+                        // Inline rename editor, drawn over the title.
+                        TextField {
+                            id: renameField
+                            visible: itemRoot.isRenaming
+                            anchors {
+                                left: parent.left
+                                right: parent.right
+                                verticalCenter: parent.verticalCenter
+                            }
+                            font.bold: true
+                            selectByMouse: true
 
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 600
-                        ToolTip.text: qsTr("Help")
+                            // Commit only on Enter/Return.
+                            onAccepted: itemRoot.commitRename()
+                            Keys.onEscapePressed: itemRoot.cancelRename()
+                            // Clicking elsewhere discards the edit instead of committing it.
+                            onActiveFocusChanged: {
+                                if (!activeFocus)
+                                    itemRoot.cancelRename();
+                            }
+                        }
                     }
 
                     ToolButton {
@@ -176,6 +225,14 @@ DraggableDelegate {
                             MenuItem {
                                 text: "Rename"
                                 visible: !itemRoot.isBuiltIn
+                                // A hidden MenuItem keeps its slot in the menu; collapse it explicitly.
+                                height: visible ? implicitHeight : 0
+                                onClicked: itemRoot.startRename()
+                            }
+
+                            MenuItem {
+                                text: "Help"
+                                onClicked: itemRoot.helpRequested()
                             }
                         }
                     }

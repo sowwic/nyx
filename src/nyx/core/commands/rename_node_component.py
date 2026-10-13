@@ -33,6 +33,9 @@ class RenameNodeComponentCommand(NyxCommand):
         self.old_name = node_component.name
         self.setText(f"Rename component ({node_component.path} -> {self.new_name})")
 
+        self.new_name = node_component.model().compose_unique_component_name(
+            self.new_name
+        )
         node_component.name = self.new_name
         return super().redo()
 
