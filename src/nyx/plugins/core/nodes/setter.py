@@ -58,4 +58,4 @@ class SetterNode(Node):
         component: NodeComponent = node.components_model.get_component(
             self.component_name_cpnt.pull_value()
         )
-        component.value = self.value_cpnt.value
+        component.value = self.value_cpnt.pull_value()

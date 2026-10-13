@@ -6,6 +6,7 @@ from PySide6 import QtCore
 from ...core.commands import (
     DeleteNodeComponentCommand,
     ReorderNodeComponentCommand,
+    SetNodeComponentValueCommand,
     SetNodeComponentActiveStateCommand,
     RenameNodeComponentCommand,
 )
@@ -181,6 +182,19 @@ class ComponentsController(QtCore.QObject):
         self.stage.push_command(
             RenameNodeComponentCommand(
                 stage=self.stage, node_component=component, new_name=new_name
+            )
+        )
+
+    @QtCore.Slot(int, str, bool)
+    def setComponentValue(self, row: int, new_value: str, raw: bool):
+        proxy_index = self.components_filter_model.index(row, 0)
+        source_model_index = self.components_filter_model.mapToSource(proxy_index)
+        component: NodeComponent = self.components_model.itemFromIndex(
+            source_model_index
+        )
+        self.stage.push_command(
+            SetNodeComponentValueCommand(
+                stage=self.stage, node_component=component, value=new_value, raw=raw
             )
         )
 

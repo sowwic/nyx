@@ -10,6 +10,7 @@ from nyx.api.v1 import (
 
 class FlowComponent(NodeComponent):
     DEFAULT_NAME = "flow"
+    EDITOR_QML = "FlowComponentItem.qml"
 
     @classmethod
     def get_type_id(cls) -> str:

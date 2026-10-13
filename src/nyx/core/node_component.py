@@ -39,7 +39,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
         VALUE = enum.auto()
+        DISPLAY_VALUE = enum.auto()
         LINKS = enum.auto()
+        INPUT_LINKS = enum.auto()
+        OUTPUT_LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
         COMPONENT_FLAGS = enum.auto()
@@ -60,6 +63,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.UUID,
                 cls.PATH,
                 cls.NODE,
+                cls.INPUT_LINKS,
+                cls.OUTPUT_LINKS,
+                cls.DISPLAY_VALUE,
                 cls.EDITOR_QML_FILE,
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
@@ -183,7 +189,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @value.setter
     def value(self, new_value):
-        self.setData(new_value, self.Roles.VALUE)
+        self.setData(new_value, role=self.Roles.VALUE)
+        self.setData(str(new_value), role=self.Roles.DISPLAY_VALUE)
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
@@ -303,10 +310,15 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
-        self.value = None
+        self.value = self.get_type_default_value()
 
     def mark_as_built_in(self):
         self.component_flags |= NodeComponentFlag.BUILT_IN
+
+    def get_display_value(self) -> str:
+        if self.input_links:
+            return self.input_links[0].source_component.get_display_value()
+        return self.data(role=self.Roles.DISPLAY_VALUE)
 
     def pull_value(self) -> typing.Any:
         input_links = self.input_links
