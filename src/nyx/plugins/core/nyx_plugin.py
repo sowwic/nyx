@@ -1,7 +1,7 @@
 import typing
 import logging
 
-from .resources import resources_rc
+from .resources import resources_rc  # noqa: F401
 from nyx.api.v1 import NyxPluginManager, NyxPlugin
 
 from .node_components.comment import CommentComponent
