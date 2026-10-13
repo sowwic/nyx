@@ -22,12 +22,28 @@ def test_stage_export_import_json(
     export_path = output_dir / f"{request.node.name}{stage.FILE_EXTENSION}"
     # Add nodes
     for _ in range(3):
-        base_node = Node(name="node")
-        stage.add_node(base_node)
+        create_node_command = commands.CreateNodeCommand(
+            stage=stage, type_id=CoreNodes.EMPTY
+        )
+        stage.push_command(create_node_command)
+        base_node = create_node_command.result_node
         for _ in range(3):
-            child_node = Node(name="child_node", parent=base_node)
+            create_node_command = commands.CreateNodeCommand(
+                stage=stage,
+                type_id=CoreNodes.EMPTY,
+                name="child_node",
+                parent_node=base_node,
+            )
+            stage.push_command(create_node_command)
+            child_node = create_node_command.result_node
             for _ in range(2):
-                Node(name="leaf_node", parent=child_node)
+                create_node_command = commands.CreateNodeCommand(
+                    stage=stage,
+                    type_id=CoreNodes.EMPTY,
+                    name="leaf_node",
+                    parent_node=child_node,
+                )
+                stage.push_command(create_node_command)
 
     stage.export_json(export_path)
     assert export_path.is_file()
@@ -42,13 +58,30 @@ def test_stage_deserialize(output_dir: pathlib.Path, request: pytest.FixtureRequ
     stage = Stage()
     export_path = output_dir / f"{request.node.name}_export{stage.FILE_EXTENSION}"
     export_path2 = output_dir / f"{request.node.name}_check{stage.FILE_EXTENSION}"
+    # Add nodes
     for _ in range(3):
-        base_node = Node(name="node")
-        stage.add_node(base_node)
+        create_node_command = commands.CreateNodeCommand(
+            stage=stage, type_id=CoreNodes.EMPTY
+        )
+        stage.push_command(create_node_command)
+        base_node = create_node_command.result_node
         for _ in range(3):
-            child_node = Node(name="child_node", parent=base_node)
+            create_node_command = commands.CreateNodeCommand(
+                stage=stage,
+                type_id=CoreNodes.EMPTY,
+                name="child_node",
+                parent_node=base_node,
+            )
+            stage.push_command(create_node_command)
+            child_node = create_node_command.result_node
             for _ in range(2):
-                Node(name="leaf_node", parent=child_node)
+                create_node_command = commands.CreateNodeCommand(
+                    stage=stage,
+                    type_id=CoreNodes.EMPTY,
+                    name="leaf_node",
+                    parent_node=child_node,
+                )
+                stage.push_command(create_node_command)
 
     stage.export_json(export_path)
 

@@ -423,7 +423,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @classmethod
     def get_type_id(cls) -> str:
-        return "base_component"
+        raise NotImplementedError
 
     @classmethod
     def get_type_display_name(cls) -> str:
