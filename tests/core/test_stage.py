@@ -4,7 +4,7 @@ import logging
 import pytest
 
 from nyx.utils import file_fn
-from nyx.api.v1 import Node, Stage, CoreNodes, commands
+from nyx.api.v1 import Stage, CoreNodes, commands
 
 LOGGER = logging.getLogger(__name__)
 

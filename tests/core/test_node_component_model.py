@@ -6,7 +6,7 @@ from collections import OrderedDict
 import pytest
 from PySide6 import QtCore
 
-from nyx.api.v1 import Node, Stage, CoreNodes, CoreNodeComponents, commands
+from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands
 from nyx.utils import file_fn
 
 if typing.TYPE_CHECKING:
