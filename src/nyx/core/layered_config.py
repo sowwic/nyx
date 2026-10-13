@@ -46,6 +46,8 @@ class NyxEditorLogWidgetConfigValues(ConfigValues):
     """
 
     auto_scroll: bool = Field(default=True)
+    expanded_height: int = Field(default=220)
+    is_expanded: bool = Field(default=False)
 
 
 class NyxEditorGraphicsNodeConfigValues(ConfigValues):
