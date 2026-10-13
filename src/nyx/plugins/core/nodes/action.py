@@ -13,6 +13,10 @@ class ActionNode(Node):
         return "Action"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/action_node"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"common"}
 

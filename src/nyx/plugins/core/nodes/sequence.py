@@ -14,6 +14,10 @@ class SequenceNode(Node):
         return "Sequence"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/sequence_node"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"logic"}
 

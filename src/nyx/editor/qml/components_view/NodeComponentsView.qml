@@ -48,18 +48,20 @@ Rectangle {
 
             ListView {
                 id: componentsListView
+
+                property var reorderState: ReorderState {}
+
                 anchors {
                     fill: parent
                     rightMargin: verticalScrollBar.width
                 }
-
-                property var reorderState: ReorderState {}
 
                 model: root.componentsFilterModel
                 spacing: 4
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 reuseItems: false   // delegates hold expanded state, so they should not be recycled
+                activeFocusOnTab: true
 
                 ScrollBar.vertical: ScrollBar {
                     id: verticalScrollBar
@@ -70,6 +72,15 @@ Rectangle {
                         top: componentsListView.top
                         bottom: componentsListView.bottom
                         left: componentsListView.right
+                    }
+                }
+
+                section {
+                    property: "isBuiltIn"
+                    criteria: ViewSection.FullString
+                    labelPositioning: ViewSection.InlineLabels | ViewSection.CurrentLabelAtStart
+                    delegate: NodeComponentsSectionHeader {
+                        width: componentsListView.width
                     }
                 }
 

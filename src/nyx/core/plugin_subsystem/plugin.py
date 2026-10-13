@@ -52,6 +52,18 @@ class NyxPlugin(ABC):
         return cls.root_directory() / "qml"
 
     @classmethod
+    def resources_directory(cls) -> pathlib.Path:
+        return cls.root_directory() / "resources"
+
+    @classmethod
+    def icons_directory(cls) -> pathlib.Path:
+        return cls.resources_directory() / "icons"
+
+    @classmethod
+    def get_icon(cls, icon_name: str) -> pathlib.Path:
+        return cls.icons_directory() / icon_name
+
+    @classmethod
     @abstractmethod
     def initialize(cls) -> typing.Self:
         raise NotImplementedError(f"{cls.__name__} must implement initialize()")

@@ -7,6 +7,9 @@ import "../common"
 DraggableDelegate {
     id: itemRoot
 
+    // Emitted when the "?" button in the header is clicked.
+    signal helpRequested
+
     // Injected by the ListView into this root object.
     // `index` is NOT redeclared here: DraggableDelegate already requires it.
     required property var model
@@ -31,13 +34,40 @@ DraggableDelegate {
     // Becomes true on the first user toggle, so creation doesn't animate.
     property bool animateHeight: false
 
+    // True while the inline rename editor is shown over the title.
+    property bool isRenaming: false
+
     function toggleExpanded() {
         animateHeight = true;
         model.isExpanded = !isExpanded;
     }
 
-    onIsDraggingChanged: animateHeight = true
+    function startRename() {
+        if (isBuiltIn)
+            return;
+        isRenaming = true;
+        renameField.text = name;
+        // Deferred so a closing context menu doesn't take focus back right after we set it.
+        Qt.callLater(function () {
+            renameField.forceActiveFocus();
+            renameField.selectAll();
+        });
+    }
 
+    function commitRename() {
+        if (!isRenaming)
+            return;
+        isRenaming = false;
+        const newName = renameField.text.trim();
+        if (newName.length > 0 && newName !== name)
+            root.componentsController.renameComponent(model.index, newName);
+    }
+
+    function cancelRename() {
+        isRenaming = false;
+    }
+
+    onIsDraggingChanged: animateHeight = true
     dragEnabled: !isBuiltIn && !filtersActive
     dropEnabled: !isBuiltIn && !filtersActive
 
@@ -62,7 +92,12 @@ DraggableDelegate {
         TapHandler {
             acceptedModifiers: Qt.NoModifier
             onTapped: root.componentsController.selectRow(itemRoot.index, 0)
-            onDoubleTapped: itemRoot.toggleExpanded()
+            onDoubleTapped: eventPoint => {
+                const tapPosition = componentNameLabel.mapFromItem(card, eventPoint.position);
+                const onTitle = componentNameLabel.contains(tapPosition);
+                if (onTitle && !itemRoot.isBuiltIn)
+                    itemRoot.startRename();
+            }
         }
 
         TapHandler {
@@ -73,6 +108,10 @@ DraggableDelegate {
         TapHandler {
             acceptedModifiers: Qt.ShiftModifier
             onTapped: root.componentsController.selectRow(itemRoot.index, 2)
+        }
+
+        TapHandler {
+            onTapped: itemRoot.ListView.view.forceActiveFocus()
         }
 
         ColumnLayout {
@@ -86,47 +125,117 @@ DraggableDelegate {
             spacing: 4
 
             // ---- Header (always visible) ----
-            RowLayout {
+            // Grabbing anywhere on the header (except its buttons and switch) drags the whole row.
+            // Left to right: expand/collapse toggle, active switch, icon, spacer,
+            // name, then right-aligned help and options buttons.
+            Item {
+                id: headerDragSurface
                 Layout.fillWidth: true
-                spacing: 6
+                implicitHeight: headerLayout.implicitHeight
 
-                DragHandle {
+                // Declared first so it sits underneath the controls and never steals their clicks.
+                RowDragHandler {
+                    id: headerRowDragHandler
                     row: itemRoot
-                    Layout.alignment: Qt.AlignVCenter
                 }
 
-                Switch {
-                    checked: itemRoot.isActive
-                    onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
-                    visible: !itemRoot.model.isStatic
-                }
+                RowLayout {
+                    id: headerLayout
+                    anchors.fill: parent
+                    spacing: 6
 
-                Item {
-                    Layout.fillWidth: true
-                    implicitHeight: headerRow.implicitHeight
+                    ToolButton {
+                        id: expandCollapseToggleButton
+                        Layout.alignment: Qt.AlignVCenter
+                        text: itemRoot.showExpanded ? "\u25BE" : "\u25B8"
+                        onClicked: itemRoot.toggleExpanded()
+                    }
 
-                    RowLayout {
-                        id: headerRow
-                        anchors.fill: parent
-                        spacing: 8
+                    Image {
+                        id: componentTypeIconImage
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 16
+                        Layout.preferredHeight: 16
+                        source: "qrc" + itemRoot.model.typeIcon
+                        sourceSize: Qt.size(16, 16)
+                        fillMode: Image.PreserveAspectFit
                         opacity: itemRoot.isActive ? 1.0 : 0.5
+                    }
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: itemRoot.name
-                            font.bold: true
-                            elide: Text.ElideRight
+                    CheckBox {
+                        id: componentActiveStateSwitch
+                        Layout.alignment: Qt.AlignVCenter
+                        checked: itemRoot.isActive
+                        visible: !itemRoot.model.isStatic
+                        onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
+                    }
+
+                    Label {
+                        id: componentNameLabel
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        text: itemRoot.name
+                        font.bold: true
+                        elide: Text.ElideRight
+                        opacity: itemRoot.isActive ? 1.0 : 0.5
+                        // Hide only the label's own text while renaming. (Hiding the label itself
+                        // or lowering its opacity would also affect the TextField child.)
+                        color: itemRoot.isRenaming ? "transparent" : palette.windowText
+
+                        ToolTip.visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming
+                        ToolTip.delay: 600
+                        ToolTip.text: itemRoot.typeDisplayName
+
+                        HoverHandler {
+                            id: componentNameHoverHandler
                         }
-                        Label {
-                            text: itemRoot.typeDisplayName
-                            opacity: 0.6
+
+                        // Inline rename editor, drawn over the title.
+                        TextField {
+                            id: renameField
+                            visible: itemRoot.isRenaming
+                            anchors {
+                                left: parent.left
+                                right: parent.right
+                                verticalCenter: parent.verticalCenter
+                            }
+                            font.bold: true
+                            selectByMouse: true
+
+                            // Commit only on Enter/Return.
+                            onAccepted: itemRoot.commitRename()
+                            Keys.onEscapePressed: itemRoot.cancelRename()
+                            // Clicking elsewhere discards the edit instead of committing it.
+                            onActiveFocusChanged: {
+                                if (!activeFocus)
+                                    itemRoot.cancelRename();
+                            }
                         }
                     }
-                }
 
-                ToolButton {
-                    text: itemRoot.showExpanded ? "\u25BE" : "\u25B8"
-                    onClicked: itemRoot.toggleExpanded()
+                    ToolButton {
+                        id: optionsMenuButton
+                        Layout.alignment: Qt.AlignVCenter
+                        text: "\u22EE"   // vertical three dots
+                        onClicked: componentOptionsMenu.popup(optionsMenuButton, 0, optionsMenuButton.height)
+
+                        Menu {
+                            id: componentOptionsMenu
+
+                            MenuItem {
+                                text: "Rename"
+                                visible: !itemRoot.isBuiltIn
+                                // A hidden MenuItem keeps its slot in the menu; collapse it explicitly.
+                                height: visible ? implicitHeight : 0
+                                onClicked: itemRoot.startRename()
+                            }
+
+                            MenuItem {
+                                text: "Help"
+                                onClicked: itemRoot.helpRequested()
+                            }
+                        }
+                    }
                 }
             }
 

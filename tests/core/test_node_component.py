@@ -1,5 +1,4 @@
 from nyx.api.v1 import (
-    Node,
     Stage,
     NodeComponent,
     commands,
@@ -11,33 +10,43 @@ from nyx.core.protocols.registry_entry import IRegistryEntry
 
 
 def test_init_base_component():
-    cpnt = NodeComponent()
-    assert cpnt.name == NodeComponent.DEFAULT_NAME
+    stage = Stage()
+    create_node_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.EMPTY
+    )
+    stage.push_command(create_node_command)
+    node = create_node_command.result_node
+
+    cpnt_command = commands.AddNodeComponentCommand(
+        node=node, type_id=CoreNodeComponents.VALUE
+    )
+    stage.push_command(cpnt_command)
+
+    cpnt = cpnt_command.result_component
+    assert cpnt.name == cpnt.DEFAULT_NAME
     assert cpnt.is_active is True
     assert isinstance(cpnt, IRegistryEntry)
 
 
-def test_add_base_component_to_node():
-    stage = Stage()
-    node = Node("test")
-    component = NodeComponent()
-    stage.add_node(node)
-    node.add_component(component)
-
-    assert component.path == node.path.with_suffix(f".{component.name}")
-
-
 def test_component_name_indexing():
     stage = Stage()
-    node = Node("test")
-    stage.add_node(node)
+    create_node_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.EMPTY
+    )
+    stage.push_command(create_node_command)
+    node = create_node_command.result_node
 
-    test_name = "test"
-    component1 = NodeComponent(name=test_name)
-    component2 = NodeComponent(name=test_name)
+    test_name = "test_cpnt"
+    cpnt1_command = commands.AddNodeComponentCommand(
+        node=node, type_id=CoreNodeComponents.VALUE, name=test_name
+    )
+    cpnt2_command = commands.AddNodeComponentCommand(
+        node=node, type_id=CoreNodeComponents.VALUE, name=test_name
+    )
+    stage.push_command(cpnt1_command, cpnt2_command)
 
-    node.add_component(component1)
-    node.add_component(component2)
+    component1 = cpnt1_command.result_component
+    component2 = cpnt2_command.result_component
 
     assert len(node.components_model.list_components()) == 2
     assert component1.name == test_name

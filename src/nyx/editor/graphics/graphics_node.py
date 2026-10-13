@@ -71,6 +71,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     def _init_title(self):
         self.title_item = GraphicsNodeTitle(self)
+        self.title_item.setPos(28, 0)
 
     def boundingRect(self):
         return QtCore.QRectF(0, 0, self.width, self.height).normalized()
@@ -85,6 +86,16 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         # self.title_item.setVisible(
         #     self.node.scene.view.zoom > self.TEXT_ZOOM_OUT_LIMIT
         # )
+        icon = QtGui.QIcon(self.node.get_type_icon())
+        icon_rect = QtCore.QRect(8, 6, 16, 16)
+
+        icon.paint(
+            painter,
+            icon_rect,
+            QtCore.Qt.AlignmentFlag.AlignCenter,
+            QtGui.QIcon.Mode.Normal,
+        )
+        icon.paint(painter, icon_rect)
 
         # title
         path_title = QtGui.QPainterPath()
@@ -112,6 +123,16 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         painter.setPen(QtCore.Qt.NoPen)
         painter.setBrush(self._brush_title)
         painter.drawPath(path_title.simplified())
+        icon = QtGui.QIcon(self.node.get_type_icon())
+        icon_rect = QtCore.QRect(8, 6, 16, 16)
+
+        icon.paint(
+            painter,
+            icon_rect,
+            QtCore.Qt.AlignmentFlag.AlignCenter,
+            QtGui.QIcon.Mode.Normal,
+        )
+        icon.paint(painter, icon_rect)
 
         # content
         path_content = QtGui.QPainterPath()

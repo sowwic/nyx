@@ -88,6 +88,8 @@ pstats: ## Open profiler stats dir using snakeviz
 qrc: ## Generates Python resources from the Qt resource file
 	$(call banner, Generating QRC resources...)
 	@pyside6-rcc src/nyx/resources/resources.qrc -o src/nyx/resources/resources_rc.py
+	$(call banner, Generating NyxCore QRC resources...)
+	@pyside6-rcc src/nyx/plugins/core/resources/resources.qrc -o src/nyx/plugins/core/resources/resources_rc.py 
 	@printf "$(GREEN)QRC generation complete.$(RESET)\n"
 
 .PHONY: build

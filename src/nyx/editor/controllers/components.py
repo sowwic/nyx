@@ -7,6 +7,7 @@ from ...core.commands import (
     DeleteNodeComponentCommand,
     ReorderNodeComponentCommand,
     SetNodeComponentActiveStateCommand,
+    RenameNodeComponentCommand,
 )
 from ...static.enums import ItemSelectionMode
 
@@ -167,6 +168,19 @@ class ComponentsController(QtCore.QObject):
                 stage=self.stage,
                 node_component=component,
                 to_row=to_source_row,
+            )
+        )
+
+    @QtCore.Slot(int, str)
+    def renameComponent(self, row: int, new_name: str):
+        proxy_index = self.components_filter_model.index(row, 0)
+        source_model_index = self.components_filter_model.mapToSource(proxy_index)
+        component: NodeComponent = self.components_model.itemFromIndex(
+            source_model_index
+        )
+        self.stage.push_command(
+            RenameNodeComponentCommand(
+                stage=self.stage, node_component=component, new_name=new_name
             )
         )
 

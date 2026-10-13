@@ -13,6 +13,10 @@ class GetterNode(Node):
         return "Get"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/icons/function"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"logic", "value"}
 

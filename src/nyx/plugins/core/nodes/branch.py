@@ -13,6 +13,10 @@ class BranchNode(Node):
         return "Branch"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/branch_node"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"logic"}
 

@@ -37,6 +37,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
+        TYPE_ICON = enum.auto()
         VALUE = enum.auto()
         LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
@@ -295,6 +296,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def init_default_data_values(self):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
+        self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
         self.setData(set(), role=self.Roles.LINKS)
         self.component_flags = self.get_type_default_flags()
@@ -421,7 +423,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @classmethod
     def get_type_id(cls) -> str:
-        return "base_component"
+        raise NotImplementedError
 
     @classmethod
     def get_type_display_name(cls) -> str:

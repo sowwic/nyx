@@ -13,6 +13,10 @@ class ValueComponent(NodeComponent):
         return "Value"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/value_cpnt"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"common", "value"}
 

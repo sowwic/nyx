@@ -11,6 +11,8 @@
     <file>icons/lock.png</file>
     <file>icons/drag_indicator.png</file>
     <file>icons/frame_bug.png</file>
+    <file>icons/stage_object.png</file>
+    <file>icons/function.png</file>
     <file alias="fonts/zed-mono">fonts/zed-mono-italic.ttf</file>
     <file alias="fonts/zed-mono-bold">fonts/zed-mono-bold.ttf</file>
     <file alias="fonts/zed-mono">fonts/zed-mono.ttf</file>

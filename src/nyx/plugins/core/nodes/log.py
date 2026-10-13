@@ -14,6 +14,10 @@ class LogNode(Node):
         return "Log"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/log_node"
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         return {"utils"}
 

@@ -26,6 +26,10 @@ class ScriptComponent(NodeComponent):
         return "Script"
 
     @classmethod
+    def get_type_icon(cls) -> str:
+        return ":/core/icons/script_cpnt"
+
+    @classmethod
     def get_type_default_value(cls) -> str:
         return ""
 
