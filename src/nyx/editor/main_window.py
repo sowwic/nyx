@@ -11,7 +11,7 @@ from ..version import __version__
 from .views.stage_tree_view import StageTreeView
 from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
-from .widgets.logger_widget import LoggerWidget
+from .widgets.output_log.output_log_dock import OutputLogDockWidget
 from .widgets.inspector import Inspector
 from .widgets.editor_toolbar import EditorToolBar
 from .widgets import menubar_menus
@@ -102,11 +102,15 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         title: str,
         object_name: str,
         widget: QtWidgets.QWidget,
+        dock_class: type[QtWidgets.QDockWidget] | None = None,
         allowed_areas: QtCore.Qt.DockWidgetArea | None = None,
-    ):
-        dock = QtWidgets.QDockWidget(title, self)
+    ) -> QtWidgets.QDockWidget:
+        if dock_class is None:
+            dock_class = QtWidgets.QDockWidget
+        dock = dock_class(title, self)
+        if widget:
+            dock.setWidget(widget)
         dock.setObjectName(object_name)
-        dock.setWidget(widget)
         if allowed_areas is not None:
             dock.setAllowedAreas(allowed_areas)
         self._dock_widgets.append(dock)
@@ -135,7 +139,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(self.menubar_window_menu)
 
     def create_widgets(self):
-        self.logger_widget = LoggerWidget()
         self.stage_tree_view = StageTreeView()
         self.inspector = Inspector(self)
         self.nodes_palette_view = NodesPaletteView(drag_enabled=True, parent=self)
@@ -172,8 +175,12 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.logger_dock = self._create_dock(
             title="Output Log",
             object_name=EditorUIObject.LOG_OUTPUT_DOCK,
-            widget=self.logger_widget,
+            widget=None,
+            dock_class=OutputLogDockWidget,
+            allowed_areas=QtCore.Qt.DockWidgetArea.BottomDockWidgetArea
+            | QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
         )
+
         self.toolbar_dock = self._create_dock(
             title="Tools",
             object_name=EditorUIObject.TOOLBAR_DOCK,
