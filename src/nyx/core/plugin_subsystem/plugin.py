@@ -34,6 +34,7 @@ class NyxPlugin(ABC):
         contents: NyxPluginContents instance
     """
 
+    QML_MODULE_NAME = ""
     QML_DIRECTORY_NAME = "qml"
 
     def __init__(self):

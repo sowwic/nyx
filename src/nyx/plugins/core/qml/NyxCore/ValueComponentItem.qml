@@ -28,17 +28,4 @@ ColumnLayout {
             }
         }
     }
-    RowLayout {
-        Layout.fillWidth: true
-        visible: valueItemRoot.hasInputConnection
-
-        Label {
-            text: "Source:"
-        }
-
-        Label {
-            Layout.fillWidth: true
-            text: valueItemRoot.hasInputConnection ? valueItemRoot.component.inputLinks[0] : ""
-        }
-    }
 }

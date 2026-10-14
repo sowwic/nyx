@@ -1,9 +1,11 @@
+import pathlib
 import typing
 import dataclasses
 import logging
 from collections import OrderedDict
 from collections.abc import Iterator
 from nyx.core.logger import NyxLogger
+from nyx.static.paths import QML_DIR
 
 if typing.TYPE_CHECKING:
     from .plugin import NyxPlugin
@@ -44,11 +46,18 @@ class NyxRegistry:
     nodes: OrderedDict[str, type[Node]] = dataclasses.field(
         init=False, default_factory=OrderedDict
     )
+    qml_import_root_directories: list[pathlib.Path] = dataclasses.field(
+        init=False, default_factory=list
+    )
+
+    def __post_init__(self):
+        self.register_qml_import_root_directory(QML_DIR)
 
     def clear(self):
         self.nodes.clear()
         self.node_components.clear()
         self.plugins.clear()
+        self.qml_source_directories.clear()
 
     def get_plugin(self, name: str) -> NyxPluginRegistryEntry | None:
         """Get plugin registry entry by name.
@@ -95,6 +104,7 @@ class NyxRegistry:
 
             self.register_node_components(plugin_entry)
             self.register_nodes(plugin_entry)
+            self.register_qml_import_root(plugin_entry)
 
     def register_node_components(self, plugin_entry: NyxPluginRegistryEntry):
         LOGGER.debug("Registering new node components...")
@@ -143,6 +153,49 @@ class NyxRegistry:
                 node_cls.__name__,
                 plugin_entry.plugin_cls.get_type_id(),
             )
+
+    def register_qml_import_root_directory(
+        self, import_root_directory: pathlib.Path
+    ) -> bool:
+        resolved_import_root_directory = import_root_directory.resolve()
+        if not resolved_import_root_directory.is_dir():
+            LOGGER.warning(
+                "QML import root is not a directory: %s",
+                resolved_import_root_directory.as_posix(),
+            )
+            return False
+
+        if resolved_import_root_directory in self.qml_import_root_directories:
+            return False
+
+        LOGGER.debug(
+            "Registering QML import root: %s", resolved_import_root_directory.as_posix()
+        )
+        self.qml_import_root_directories.append(resolved_import_root_directory)
+        return True
+
+    def register_qml_import_root(self, plugin_entry: NyxPluginRegistryEntry):
+        qml_directory = plugin_entry.plugin_cls.qml_directory()
+        if qml_directory is None:
+            return
+        self.register_qml_import_root_directory(qml_directory)
+
+    def resolve_qml_source(
+        self, qml_module_uri: str, qml_type_name: str
+    ) -> pathlib.Path:
+        module_relative_directory = pathlib.Path(*qml_module_uri.split("."))
+        for import_root_directory in self.qml_import_root_directories:
+            candidate_qml_file_path = (
+                import_root_directory
+                / module_relative_directory
+                / f"{qml_type_name}.qml"
+            )
+            if candidate_qml_file_path.is_file():
+                return candidate_qml_file_path
+        raise FileNotFoundError(
+            f"No QML file for {qml_module_uri}.{qml_type_name} in registered roots: "
+            f"{self.qml_import_root_directories}"
+        )
 
     def iter_plugins(self) -> Iterator[tuple[str, NyxPluginRegistryEntry]]:
         """Iterate over plugin register dictionary.

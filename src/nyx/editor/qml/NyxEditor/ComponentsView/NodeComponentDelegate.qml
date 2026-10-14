@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import "../common"
+import "../Common"
 
 DraggableDelegate {
     id: itemRoot
@@ -236,6 +236,41 @@ DraggableDelegate {
                             }
                         }
                     }
+                }
+            }
+            CollapsibleFrame {
+                id: linksFrame
+
+                Layout.fillWidth: true
+
+                titleText: "Links"
+
+                // Let the card's selection highlight show through instead of painting over it.
+                // backgroundColor: "transparent"
+
+                isExpanded: itemRoot.model.linksExpanded
+
+                // A user toggle assigns isExpanded imperatively, which breaks the binding above.
+                // Write the new state back to the model so it survives delegate recreation...
+                onExpandedStateToggledByUser: newExpandedState => {
+                    itemRoot.model.linksExpanded = newExpandedState;
+                }
+
+                // ...and re-establish the model -> frame direction after the binding is broken,
+                // so external changes to the model (undo, load, etc.) still update the frame.
+                Binding {
+                    target: linksFrame
+                    property: "isExpanded"
+                    value: itemRoot.model.linksExpanded
+                }
+
+                LinksView {
+                    id: linksView
+
+                    Layout.fillWidth: true
+
+                    inputLinks: itemRoot.model.inputLinks
+                    outputLinks: itemRoot.model.outputLinks
                 }
             }
 

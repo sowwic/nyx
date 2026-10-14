@@ -4,8 +4,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import "../common"
-import "../components_palette"
+import "../Common"
+import "../ComponentsPalette"
 
 Rectangle {
     id: root

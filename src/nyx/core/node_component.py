@@ -46,6 +46,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         COMPONENT_FLAGS = enum.auto()
         IS_ACTIVE = enum.auto()
         IS_EXPANDED = enum.auto()
+        LINKS_EXPANDED = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
@@ -313,6 +314,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
+        self.setData(False, role=self.Roles.LINKS_EXPANDED)
         self.setData(set(), role=self.Roles.LINKS)
         self.component_flags = self.get_type_default_flags()
 
@@ -470,7 +472,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_qml_editor_url(cls) -> QtCore.QUrl:
         if cls.EDITOR_QML and cls.SOURCE_PLUGIN:
-            return cls.resolve_qml_source(cls.EDITOR_QML)
+            return QtCore.QUrl.fromLocalFile(
+                NYX_REGISTRY.resolve_qml_source(
+                    cls.SOURCE_PLUGIN.plugin_cls.QML_MODULE_NAME, cls.EDITOR_QML
+                )
+            )
         return QtCore.QUrl.fromLocalFile(str(DEFAULT_QML_NODE_COMPONENT_ITEM))
 
     @classmethod

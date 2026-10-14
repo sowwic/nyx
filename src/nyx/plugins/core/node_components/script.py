@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 
 class ScriptComponent(NodeComponent):
     DEFAULT_NAME = "script"
-    EDITOR_QML = "ScriptComponentItem.qml"
+    EDITOR_QML = "ScriptComponentItem"
 
     ENTRY_POINT_SEPARATOR = ":"
     GLOBALS_NODE_REF_NAME = "nyx_node"

@@ -1,0 +1,7 @@
+module NyxEditor.Common
+
+CollapsibleFrame 1.0 CollapsibleFrame.qml
+DragHandle 1.0 DragHandle.qml
+DraggableDelegate 1.0 DraggableDelegate.qml
+ReorderState 1.0 ReorderState.qml
+RowDragHandler 1.0 RowDragHandler.qml

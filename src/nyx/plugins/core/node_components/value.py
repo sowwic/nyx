@@ -3,7 +3,7 @@ from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentFlag
 
 class ValueComponent(NodeComponent):
     DEFAULT_NAME = "value"
-    EDITOR_QML = "ValueComponentItem.qml"
+    EDITOR_QML = "ValueComponentItem"
 
     @classmethod
     def get_type_id(cls) -> str:

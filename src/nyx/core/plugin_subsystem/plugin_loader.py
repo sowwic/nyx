@@ -137,7 +137,7 @@ class NyxPluginLoader:
         for plugin_dir in self.plugin_source_paths:
             plugin_files = self.find_plugins_in_dir(plugin_dir)
             if not plugin_files:
-                LOGGER.warning("No plugins found for path: $s", plugin_dir.as_posix())
+                LOGGER.warning("No plugins found for path: %s", plugin_dir.as_posix())
                 continue
             result.extend(plugin_files)
         LOGGER.debug(f"Collected plugin files: {result}")

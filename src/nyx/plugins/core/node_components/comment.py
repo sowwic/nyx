@@ -3,7 +3,7 @@ from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentFlag
 
 class CommentComponent(NodeComponent):
     DEFAULT_NAME = "comment"
-    EDITOR_QML = "CommentComponentItem.qml"
+    EDITOR_QML = "CommentComponentItem"
 
     @classmethod
     def get_type_id(cls) -> str:
