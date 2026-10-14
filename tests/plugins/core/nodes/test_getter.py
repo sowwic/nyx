@@ -66,4 +66,4 @@ def test_getter_can_be_used_to_pull_values(
     stage.export_json(export_path)
 
     assert setter_node["value"].raw_value != log_node["message"].raw_value
-    assert setter_node["value"].pull_value() == log_node["message"].eval_value
+    assert setter_node["value"].pull_value() == log_node["message"].cached_value

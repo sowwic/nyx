@@ -33,6 +33,7 @@ __all__ = [
     "NodeComponent",
     "NodeComponentLike",
     "NodeComponentFlag",
+    "NodeComponentValueMask",
     "NodeSerializationContext",
     "NodeDeserializationContext",
     "NyxPluginManager",

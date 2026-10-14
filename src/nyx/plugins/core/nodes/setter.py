@@ -66,5 +66,6 @@ class SetterNode(Node):
             self.component_name_cpnt.pull_value()
         )
         component.push_value(
-            self.value_cpnt.pull_value(value_mask=NodeComponentValueMask.EVAL),
+            self.value_cpnt.pull_value(value_mask=NodeComponentValueMask.CACHE),
+            evaluate=False,
         )

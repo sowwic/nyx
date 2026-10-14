@@ -28,7 +28,7 @@ class GetterNode(Node):
         return {"logic", "value"}
 
     def get_pull_value_from_path(
-        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.EVAL
+        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ):
         node = self.stage.get_object(
             self.in_node_path.pull_value(value_mask), expected_type=Node

@@ -39,7 +39,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
         RAW_VALUE = enum.auto()
-        EVAL_VALUE = enum.auto()
+        CACHED_VALUE = enum.auto()
         LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
@@ -193,8 +193,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return self.data(self.Roles.RAW_VALUE)
 
     @property
-    def eval_value(self) -> typing.Any:
-        return self.data(self.Roles.EVAL_VALUE)
+    def cached_value(self) -> typing.Any:
+        return self.data(self.Roles.CACHED_VALUE)
 
     @property
     def display_value(self) -> str:
@@ -328,19 +328,19 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             return self.input_links[0].source_component.get_display_value()
         return self.data(role=self.Roles.DISPLAY_VALUE)
 
-    def clear_eval_value(self):
-        self.setData(None, role=self.Roles.EVAL_VALUE)
+    def clear_cached_value(self):
+        self.setData(None, role=self.Roles.CACHED_VALUE)
         self.setData(str(self.raw_value), self.Roles.DISPLAY_VALUE)
 
     def push_value(self, value: typing.Any, evaluate: bool = True):
         self.setData(value, role=self.Roles.RAW_VALUE)
-        self.setData(value, role=self.Roles.EVAL_VALUE)
+        self.setData(value, role=self.Roles.CACHED_VALUE)
         if evaluate:
             self._evaluate_value()
-        self.setData(str(self.eval_value), role=self.Roles.DISPLAY_VALUE)
+        self.setData(str(self.cached_value), role=self.Roles.DISPLAY_VALUE)
 
     def pull_value(
-        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.EVAL
+        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ) -> typing.Any:
         input_links = self.input_links
         if input_links:
@@ -348,8 +348,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         if value_mask is NodeComponentValueMask.RAW:
             return self.raw_value
-        elif value_mask is NodeComponentValueMask.EVAL:
-            return self.eval_value
+        elif value_mask is NodeComponentValueMask.CACHE:
+            return self.cached_value
         elif value_mask is NodeComponentValueMask.DISPLAY:
             return self.display_value
         else:
@@ -366,7 +366,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def _evaluate_value(self):
         eval_value = self.evaluate_value()
-        self.setData(eval_value, role=self.Roles.EVAL_VALUE)
+        self.setData(eval_value, role=self.Roles.CACHED_VALUE)
 
     def reset_value_to_default(self) -> None:
         self.push_value(self.default_value)
@@ -455,7 +455,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.execute()
 
     def evaluation_hook(self):
-        self.clear_eval_value()
+        self.clear_cached_value()
         if not self.is_active:
             return
         self._evaluate_value()

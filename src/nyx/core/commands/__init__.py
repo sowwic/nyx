@@ -21,6 +21,7 @@ __all__ = [
     "RenameNodeCommand",
     "SetNodeActiveStateCommand",
     "SetNodeComponentActiveStateCommand",
+    "SetNodeComponentValueCommand",
     "PasteNodesCommand",
     "MoveNodeCommand",
     "AddNodeComponentCommand",

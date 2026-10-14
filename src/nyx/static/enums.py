@@ -48,7 +48,7 @@ class NodeComponentFlag(enum.IntFlag):
 
 class NodeComponentValueMask(enum.IntEnum):
     RAW = 0
-    EVAL = enum.auto()
+    CACHE = enum.auto()
     DISPLAY = enum.auto()
 
 

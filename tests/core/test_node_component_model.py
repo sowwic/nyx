@@ -140,5 +140,5 @@ def test_importing_node_with_extra_components_gives_correct_values(
         == test_cpnt_value
     )
     assert pasted_node[test_cpnt_name].pull_value(
-        value_mask=NodeComponentValueMask.EVAL
+        value_mask=NodeComponentValueMask.CACHE
     ) == int(test_cpnt_value)
