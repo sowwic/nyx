@@ -243,11 +243,8 @@ DraggableDelegate {
 
                 Layout.fillWidth: true
 
+                visible: itemRoot.isExpanded
                 titleText: "Links"
-
-                // Let the card's selection highlight show through instead of painting over it.
-                // backgroundColor: "transparent"
-
                 isExpanded: itemRoot.model.linksExpanded
 
                 // A user toggle assigns isExpanded imperatively, which breaks the binding above.

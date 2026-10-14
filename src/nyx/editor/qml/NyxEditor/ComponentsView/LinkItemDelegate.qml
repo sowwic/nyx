@@ -4,43 +4,38 @@ import QtQuick.Controls
 ItemDelegate {
     id: itemRoot
 
-    required property var model
+    property string linkDirection
+    property string linkPath
 
-    property bool dragEnabled: false
-    property string mimeType: ""
+    height: 30
 
-    signal spawnRequested(string typeId)
+    contentItem: Row {
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 0
 
-    icon.source: "qrc" + model.typeIcon
-    text: model.typeDisplayName
-    onClicked: {
-        if (dragEnabled)
-            return;
-        spawnRequested(String(model.typeId));
-    }
+        Rectangle {
+            width: 50
+            height: parent.height
+            color: "#83a5e8"
 
-    // Snapshot of the row, used as the drag pixmap
-    onDownChanged: {
-        if (down && dragEnabled)
-            grabToImage(function (result) {
-                itemRoot.Drag.imageSource = result.url;
-            });
-    }
+            Label {
+                id: directionLabel
+                anchors.centerIn: parent
+                text: itemRoot.linkDirection
+                color: "#172238"
+            }
+        }
 
-    Drag.active: dragHandler.active
-    Drag.dragType: Drag.Automatic            // starts a native QDrag, so widgets can accept it
-    Drag.supportedActions: Qt.CopyAction
-    Drag.proposedAction: Qt.CopyAction
-    Drag.mimeData: {
-        let data = {};
-        data[itemRoot.mimeType] = String(model.typeId);
-        return data;
-    }
+        Rectangle {
+            width: pathLabel.implicitWidth + 16
+            height: parent.height
+            color: "transparent"
 
-    DragHandler {
-        id: dragHandler
-        enabled: itemRoot.dragEnabled
-        target: null                         // the row stays put; only the drag image moves
-        acceptedButtons: Qt.LeftButton
+            Label {
+                id: pathLabel
+                anchors.centerIn: parent
+                text: itemRoot.linkPath
+            }
+        }
     }
 }

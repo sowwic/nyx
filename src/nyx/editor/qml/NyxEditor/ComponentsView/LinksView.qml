@@ -30,12 +30,12 @@ Item {
             id: inputLinksRepeater
 
             model: linksViewRoot.inputLinks
-            delegate: Label {
+            delegate: LinkItemDelegate {
                 required property string modelData
 
                 Layout.fillWidth: true
-                text: modelData
-                elide: Text.ElideRight
+                linkDirection: "Input"
+                linkPath: modelData
             }
         }
 
@@ -43,12 +43,12 @@ Item {
             id: outputLinksRepeater
 
             model: linksViewRoot.outputLinks
-            delegate: Label {
+            delegate: LinkItemDelegate {
                 required property string modelData
 
                 Layout.fillWidth: true
-                text: modelData
-                elide: Text.ElideRight
+                linkDirection: "Output"
+                linkPath: modelData
             }
         }
     }
