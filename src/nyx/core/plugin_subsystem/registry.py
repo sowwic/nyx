@@ -57,7 +57,7 @@ class NyxRegistry:
         self.nodes.clear()
         self.node_components.clear()
         self.plugins.clear()
-        self.qml_source_directories.clear()
+        self.qml_import_root_directories.clear()
 
     def get_plugin(self, name: str) -> NyxPluginRegistryEntry | None:
         """Get plugin registry entry by name.
