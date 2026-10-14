@@ -46,6 +46,12 @@ class NodeComponentFlag(enum.IntFlag):
     STATIC = enum.auto()
 
 
+class NodeComponentValueMask(enum.IntEnum):
+    RAW = 0
+    EVAL = enum.auto()
+    DISPLAY = enum.auto()
+
+
 class ItemSelectionMode(enum.IntEnum):
     REPLACE = 0
     TOGGLE = enum.auto()

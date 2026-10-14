@@ -70,7 +70,7 @@ def test_serialize():
 
     assert data["type_id"] == flow_component.get_type_id()
     assert data["name"] == flow_component.name
-    assert data["value"] == flow_component.value
+    assert data["value"] == flow_component.pull_value()
     assert data["is_active"] == flow_component.is_active
     assert data["flags"] == flow_component.component_flags
 
@@ -88,7 +88,7 @@ def test_serialize_deserialize():
             CoreNodeComponents.FLOW
         )
     )
-    flow_component.value = "/stage/test"
+    flow_component.push_value("/stage/test")
     flow_component.produces_output = False
     flow_component.is_active = False
     data = flow_component.serialize()
@@ -101,7 +101,7 @@ def test_serialize_deserialize():
     )
     create_node_command.result_node.add_component(new_flow_component)
 
-    assert str(new_flow_component.value) == flow_component.value
+    assert str(new_flow_component.pull_value()) == flow_component.pull_value()
     assert new_flow_component.is_active == flow_component.is_active
     assert new_flow_component.produces_output == flow_component.produces_output
     assert new_flow_component.accepts_input == flow_component.accepts_input

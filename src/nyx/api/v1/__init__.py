@@ -18,6 +18,7 @@ from nyx.static.enums import (
     NodeExecutionStatus,
     RestoreUuidOption,
     NodeComponentFlag,
+    NodeComponentValueMask,
 )
 from nyx.static import vars as static_vars
 from nyx.static import paths as static_paths

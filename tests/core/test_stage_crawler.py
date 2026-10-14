@@ -133,10 +133,10 @@ def test_crawler_order_correct_with_nested_hierarchy(
     action2_flow_start["flow"] >> action2_child["flow"]
 
     # Setup messages
-    action1_node["message"].value = "ACTION1"
-    action2_node["message"].value = "ACTION2"
-    action1_child["message"].value = "ACTION1_CHILD"
-    action2_child["message"].value = "ACTION2_CHILD"
+    action1_node["message"].push_value("ACTION1")
+    action2_node["message"].push_value("ACTION2")
+    action1_child["message"].push_value("ACTION1_CHILD")
+    action2_child["message"].push_value("ACTION2_CHILD")
 
     # Perform stage crawl
     stage.crawler.start()

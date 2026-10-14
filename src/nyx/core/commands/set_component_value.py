@@ -32,17 +32,10 @@ class SetNodeComponentValueCommand(NyxCommand):
 
     def redo(self) -> None:
         component = self.component
-        self.old_value = component.value
-        new_value = self.new_value
-        if isinstance(self.new_value, str) and not self.raw:
-            try:
-                new_value = eval(self.new_value)
-            except Exception:
-                LOGGER.warning(f"Failed to eval {self.new_value}, defaulting to str")
-
-        component.value = new_value
+        self.old_value = component.raw_value
+        component.push_value(self.new_value, evaluate=not self.raw)
         return super().redo()
 
     def undo(self) -> None:
-        self.component.value = self.old_value
+        self.component.push_value(self.old_value, evaluate=not self.raw)
         return super().undo()

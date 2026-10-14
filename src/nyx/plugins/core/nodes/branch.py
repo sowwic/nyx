@@ -44,7 +44,7 @@ class BranchNode(Node):
 
         self.value_cpnt.accepts_input = True
         self.value_cpnt.is_editable = True
-        self.value_cpnt.value = True
+        self.value_cpnt.push_value(True)
 
         self.components_model.add_component(self.flow_in)
         self.components_model.add_component(self.flow_out_true)

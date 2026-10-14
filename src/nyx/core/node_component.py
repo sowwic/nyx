@@ -11,7 +11,7 @@ from .stage_object import StageObject
 from .link import Link
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
-from ..static.enums import RestoreUuidOption, NodeComponentFlag
+from ..static.enums import RestoreUuidOption, NodeComponentFlag, NodeComponentValueMask
 from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
 if typing.TYPE_CHECKING:
@@ -38,7 +38,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
-        VALUE = enum.auto()
+        RAW_VALUE = enum.auto()
+        EVAL_VALUE = enum.auto()
         LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
@@ -188,13 +189,16 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(new_name, self.Roles.NAME)
 
     @property
-    def value(self) -> typing.Any:
-        return self.data(self.Roles.VALUE)
+    def raw_value(self) -> typing.Any:
+        return self.data(self.Roles.RAW_VALUE)
 
-    @value.setter
-    def value(self, new_value):
-        self.setData(new_value, role=self.Roles.VALUE)
-        self.setData(str(new_value), role=self.Roles.DISPLAY_VALUE)
+    @property
+    def eval_value(self) -> typing.Any:
+        return self.data(self.Roles.EVAL_VALUE)
+
+    @property
+    def display_value(self) -> str:
+        return self.data(self.Roles.DISPLAY_VALUE)
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
@@ -314,7 +318,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
-        self.value = self.get_type_default_value()
+        self.push_value(self.get_type_default_value())
 
     def mark_as_built_in(self):
         self.component_flags |= NodeComponentFlag.BUILT_IN
@@ -324,17 +328,51 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             return self.input_links[0].source_component.get_display_value()
         return self.data(role=self.Roles.DISPLAY_VALUE)
 
-    def pull_value(self) -> typing.Any:
+    def clear_eval_value(self):
+        self.setData(None, role=self.Roles.EVAL_VALUE)
+        self.setData(str(self.raw_value), self.Roles.DISPLAY_VALUE)
+
+    def push_value(self, value: typing.Any, evaluate: bool = True):
+        self.setData(value, role=self.Roles.RAW_VALUE)
+        self.setData(value, role=self.Roles.EVAL_VALUE)
+        if evaluate:
+            self._evaluate_value()
+        self.setData(str(self.eval_value), role=self.Roles.DISPLAY_VALUE)
+
+    def pull_value(
+        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.EVAL
+    ) -> typing.Any:
         input_links = self.input_links
         if input_links:
-            return input_links[0].source_component.pull_value()
-        return self.value
+            return input_links[0].source_component.pull_value(value_mask=value_mask)
+
+        if value_mask is NodeComponentValueMask.RAW:
+            return self.raw_value
+        elif value_mask is NodeComponentValueMask.EVAL:
+            return self.eval_value
+        elif value_mask is NodeComponentValueMask.DISPLAY:
+            return self.display_value
+        else:
+            raise ValueError(f"Invalid value mask: {value_mask}")
+
+    def evaluate_value(self) -> typing.Any:
+        out_value = self.raw_value
+        if isinstance(self.raw_value, str):
+            try:
+                out_value = eval(self.raw_value)
+            except Exception:
+                LOGGER.warning(f"Failed to eval {self.raw_value}, defaulting to str")
+        return out_value
+
+    def _evaluate_value(self):
+        eval_value = self.evaluate_value()
+        self.setData(eval_value, role=self.Roles.EVAL_VALUE)
 
     def reset_value_to_default(self) -> None:
-        self.value = self.default_value
+        self.push_value(self.default_value)
 
     def reset_value_to_type_default(self) -> None:
-        self.value = self.get_type_default_value()
+        self.push_value(self.get_type_default_value())
 
     def add_link(self, link_uuid: UUID | str):
         self.data(self.Roles.LINKS).add(link_uuid)
@@ -360,7 +398,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return linked_as_source or linked_as_target
 
     def serialize_value(self) -> typing.Any:
-        return self.value
+        return self.raw_value
 
     def deserialize_value(self, value: typing.Any) -> typing.Any:
         return value
@@ -400,7 +438,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.uuid = uuid
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
-        component.value = component.deserialize_value(value=data["value"])
+        component.push_value(component.deserialize_value(value=data["value"]))
         component.default_value = component.deserialize_default_value(
             value=data.get("default_value")
         )
@@ -417,8 +455,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.execute()
 
     def evaluation_hook(self):
+        self.clear_eval_value()
         if not self.is_active:
             return
+        self._evaluate_value()
         self.evaluate()
 
     def evaluate(self):

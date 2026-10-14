@@ -36,11 +36,6 @@ class FlowComponent(NodeComponent):
             | NodeComponentFlag.PRODUCES_OUTPUT
         )
 
-    def serialize_value(self) -> str:
-        if self.value:
-            return str(self.value)
-        return None
-
     def deserialize_value(self, value: str | None) -> pathlib.PurePosixPath | None:
         if value is None:
             return value
