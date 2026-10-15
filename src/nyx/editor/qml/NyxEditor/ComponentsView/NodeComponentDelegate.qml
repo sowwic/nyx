@@ -230,30 +230,34 @@ DraggableDelegate {
                                 onClicked: itemRoot.startRename()
                             }
 
+                            MenuSeparator {}
+
                             MenuItem {
-                                id: acceptsInputMenuItem
-                                text: "Accepts Input"
+                                id: writableMenuItem
+                                text: "Writable"
                                 visible: !itemRoot.isBuiltIn
                                 height: visible ? implicitHeight : 0
-                                checked: itemRoot.model.acceptsInput
+                                checked: itemRoot.model.writable
                                 checkable: true
 
                                 onClicked: {
-                                    root.componentsController.setComponentAcceptsInput(itemRoot.model.index, checked);
+                                    root.componentsController.setComponentWritable(itemRoot.model.index, checked);
                                 }
                             }
                             MenuItem {
-                                id: producesOutputMenuItem
-                                text: "ProducesOutput"
+                                id: readableMenuItem
+                                text: "Readable"
                                 visible: !itemRoot.isBuiltIn
                                 height: visible ? implicitHeight : 0
-                                checked: itemRoot.model.producesOutput
+                                checked: itemRoot.model.readable
                                 checkable: true
 
                                 onClicked: {
-                                    root.componentsController.setComponentProducesOutput(itemRoot.model.index, checked);
+                                    root.componentsController.setComponentReadable(itemRoot.model.index, checked);
                                 }
                             }
+
+                            MenuSeparator {}
 
                             MenuItem {
                                 text: "Help"
@@ -268,7 +272,7 @@ DraggableDelegate {
 
                 Layout.fillWidth: true
 
-                visible: (itemRoot.model.producesOutput || itemRoot.model.acceptsInput) && itemRoot.isExpanded
+                visible: (itemRoot.model.readable || itemRoot.model.writable) && itemRoot.isExpanded
                 titleText: "Links"
                 isExpanded: itemRoot.model.linksExpanded
 

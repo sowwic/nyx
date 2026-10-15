@@ -69,9 +69,9 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:
                 return component.is_static
-            if role == NodeComponent.Roles.ACCEPTS_INPUT:
+            if role == NodeComponent.Roles.WRITABLE:
                 return component.accepts_input
-            if role == NodeComponent.Roles.PRODUCES_OUTPUT:
+            if role == NodeComponent.Roles.READABLE:
                 return component.produces_output
             else:
                 LOGGER.error(f"No value defined for virtual role: {role}")

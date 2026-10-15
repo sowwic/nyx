@@ -40,8 +40,8 @@ class NodeExecutionOrderFlag(enum.IntFlag):
 class NodeComponentFlag(enum.IntFlag):
     NONE = 0
     BUILT_IN = enum.auto()
-    ACCEPTS_INPUTS = enum.auto()
-    PRODUCES_OUTPUT = enum.auto()
+    WRITABLE = enum.auto()
+    READABLE = enum.auto()
     EDITABLE = enum.auto()
     STATIC = enum.auto()
 

@@ -192,25 +192,25 @@ class ComponentsController(QtCore.QObject):
         )
 
     @QtCore.Slot(int, bool)
-    def setComponentProducesOutput(self, row: int, state: bool):
+    def setComponentReadable(self, row: int, state: bool):
         component = self.get_component_from_proxy_row(row)
         set_flag_command = SetNodeComponentFlagCommand(
             stage=self.stage,
             node_component=component,
-            flag=NodeComponentFlag.PRODUCES_OUTPUT,
-            role=NodeComponent.Roles.PRODUCES_OUTPUT,
+            flag=NodeComponentFlag.READABLE,
+            role=NodeComponent.Roles.READABLE,
             state=state,
         )
         self.stage.push_command(set_flag_command)
 
     @QtCore.Slot(int, bool)
-    def setComponentAcceptsInput(self, row: int, state: bool):
+    def setComponentWritable(self, row: int, state: bool):
         component = self.get_component_from_proxy_row(row)
         set_flag_command = SetNodeComponentFlagCommand(
             stage=self.stage,
             node_component=component,
-            flag=NodeComponentFlag.ACCEPTS_INPUTS,
-            role=NodeComponent.Roles.ACCEPTS_INPUT,
+            flag=NodeComponentFlag.WRITABLE,
+            role=NodeComponent.Roles.WRITABLE,
             state=state,
         )
         self.stage.push_command(set_flag_command)

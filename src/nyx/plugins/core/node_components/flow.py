@@ -36,8 +36,8 @@ class FlowComponent(NodeComponent):
     def get_type_default_flags(cls) -> NodeComponentFlag:
         return (
             NodeComponentFlag.STATIC
-            | NodeComponentFlag.ACCEPTS_INPUTS
-            | NodeComponentFlag.PRODUCES_OUTPUT
+            | NodeComponentFlag.WRITABLE
+            | NodeComponentFlag.READABLE
         )
 
     def deserialize_value(self, value: str | None) -> pathlib.PurePosixPath | None:

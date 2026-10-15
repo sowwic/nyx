@@ -53,8 +53,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         NODE = enum.auto()
         INPUT_LINKS = enum.auto()
         OUTPUT_LINKS = enum.auto()
-        PRODUCES_OUTPUT = enum.auto()
-        ACCEPTS_INPUT = enum.auto()
+        READABLE = enum.auto()
+        WRITABLE = enum.auto()
         DISPLAY_VALUE = enum.auto()
         EDITOR_QML_FILE = enum.auto()
         IS_EDITABLE = enum.auto()
@@ -71,8 +71,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.OUTPUT_LINKS,
                 cls.DISPLAY_VALUE,
                 cls.EDITOR_QML_FILE,
-                cls.PRODUCES_OUTPUT,
-                cls.ACCEPTS_INPUT,
+                cls.READABLE,
+                cls.WRITABLE,
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,
@@ -243,22 +243,22 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def produces_output(self) -> bool:
-        return NodeComponentFlag.PRODUCES_OUTPUT in self.component_flags
+        return NodeComponentFlag.READABLE in self.component_flags
 
     @produces_output.setter
     def produces_output(self, state: bool) -> None:
         self.set_component_flag(
-            NodeComponentFlag.PRODUCES_OUTPUT, self.Roles.PRODUCES_OUTPUT, state=state
+            NodeComponentFlag.READABLE, self.Roles.READABLE, state=state
         )
 
     @property
     def accepts_input(self) -> bool:
-        return NodeComponentFlag.ACCEPTS_INPUTS in self.component_flags
+        return NodeComponentFlag.WRITABLE in self.component_flags
 
     @accepts_input.setter
     def accepts_input(self, state: bool) -> None:
         self.set_component_flag(
-            NodeComponentFlag.ACCEPTS_INPUTS, self.Roles.ACCEPTS_INPUT, state=state
+            NodeComponentFlag.WRITABLE, self.Roles.WRITABLE, state=state
         )
 
     @property
