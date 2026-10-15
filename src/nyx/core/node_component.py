@@ -247,10 +247,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @produces_output.setter
     def produces_output(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.PRODUCES_OUTPUT
-        else:
-            self.component_flags &= ~NodeComponentFlag.PRODUCES_OUTPUT
+        self.set_component_flag(
+            NodeComponentFlag.PRODUCES_OUTPUT, self.Roles.PRODUCES_OUTPUT, state=state
+        )
 
     @property
     def accepts_input(self) -> bool:
@@ -258,10 +257,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @accepts_input.setter
     def accepts_input(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.ACCEPTS_INPUTS
-        else:
-            self.component_flags &= ~NodeComponentFlag.ACCEPTS_INPUTS
+        self.set_component_flag(
+            NodeComponentFlag.ACCEPTS_INPUTS, self.Roles.ACCEPTS_INPUT, state=state
+        )
 
     @property
     def is_editable(self) -> bool:
@@ -269,10 +267,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @is_editable.setter
     def is_editable(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.EDITABLE
-        else:
-            self.component_flags &= ~NodeComponentFlag.EDITABLE
+        self.set_component_flag(
+            flag=NodeComponentFlag.EDITABLE, role=self.Roles.IS_EDITABLE, state=state
+        )
 
     @property
     def is_static(self) -> bool:
@@ -280,10 +277,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @is_static.setter
     def is_static(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.STATIC
-        else:
-            self.component_flags &= ~NodeComponentFlag.STATIC
+        self.set_component_flag(
+            flag=NodeComponentFlag.STATIC, role=self.Roles.IS_STATIC, state=state
+        )
 
     @property
     def is_built_in(self) -> bool:
@@ -314,13 +310,23 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
-        self.setData(False, role=self.Roles.LINKS_EXPANDED)
+        self.setData(True, role=self.Roles.LINKS_EXPANDED)
         self.setData(set(), role=self.Roles.LINKS)
         self.component_flags = self.get_type_default_flags()
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
         self.push_value(self.get_type_default_value())
+
+    def set_component_flag(
+        self, flag: NodeComponentFlag, role: NodeComponent.Roles, state: bool
+    ):
+        if state:
+            self.component_flags |= flag
+        else:
+            self.component_flags &= ~flag
+        if self.model() is not None:
+            self.model().dataChanged.emit(self.index(), self.index(), [role])
 
     def mark_as_built_in(self):
         self.component_flags |= NodeComponentFlag.BUILT_IN

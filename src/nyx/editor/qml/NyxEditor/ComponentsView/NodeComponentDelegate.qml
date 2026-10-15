@@ -231,6 +231,31 @@ DraggableDelegate {
                             }
 
                             MenuItem {
+                                id: acceptsInputMenuItem
+                                text: "Accepts Input"
+                                visible: !itemRoot.isBuiltIn
+                                height: visible ? implicitHeight : 0
+                                checked: itemRoot.model.acceptsInput
+                                checkable: true
+
+                                onClicked: {
+                                    root.componentsController.setComponentAcceptsInput(itemRoot.model.index, checked);
+                                }
+                            }
+                            MenuItem {
+                                id: producesOutputMenuItem
+                                text: "ProducesOutput"
+                                visible: !itemRoot.isBuiltIn
+                                height: visible ? implicitHeight : 0
+                                checked: itemRoot.model.producesOutput
+                                checkable: true
+
+                                onClicked: {
+                                    root.componentsController.setComponentProducesOutput(itemRoot.model.index, checked);
+                                }
+                            }
+
+                            MenuItem {
                                 text: "Help"
                                 onClicked: itemRoot.helpRequested()
                             }
@@ -243,7 +268,7 @@ DraggableDelegate {
 
                 Layout.fillWidth: true
 
-                visible: itemRoot.isExpanded
+                visible: (itemRoot.model.producesOutput || itemRoot.model.acceptsInput) && itemRoot.isExpanded
                 titleText: "Links"
                 isExpanded: itemRoot.model.linksExpanded
 

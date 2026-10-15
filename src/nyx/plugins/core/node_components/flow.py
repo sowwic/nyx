@@ -29,6 +29,10 @@ class FlowComponent(NodeComponent):
         return {"logic"}
 
     @classmethod
+    def get_default_expanded_state(cls) -> bool:
+        return True
+
+    @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
         return (
             NodeComponentFlag.STATIC
