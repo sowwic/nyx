@@ -60,6 +60,18 @@ class Stage(QtGui.QStandardItemModel):
 
         self.create_connections()
 
+    def __del__(self) -> None:
+        # Commands keep Python state alive; empty the undo stack while the Python
+        # objects are still intact. Letting the C++ destructor clear it during
+        # garbage collection can crash, since the commands' wrappers may be gone.
+        try:
+            if shiboken6.isValid(self) and shiboken6.isValid(self.undo_stack):
+                # Silent: listeners (e.g. graph editors) may already be deleted.
+                self.undo_stack.blockSignals(True)
+                self.undo_stack.clear()
+        except Exception:  # noqa: BLE001 - never raise from a finalizer
+            pass
+
     @property
     def uuid_map(self) -> dict[UUID, Node]:
         return self._uuid_map

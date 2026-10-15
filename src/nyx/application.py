@@ -8,6 +8,7 @@ from nyx.core.layered_config import NyxConfig
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.api.v1 import NyxPluginManager
 from nyx.editor.main_window import NyxEditorMainWindow
+from nyx.editor.core.actions import register_default_actions
 from nyx.utils import pyside_fn
 from nyx.version import __version__
 
@@ -18,9 +19,8 @@ class NyxApplication(QtWidgets.QApplication):
     def __init__(self, initialize_plugins=True) -> None:
         super().__init__(sys.argv)
         self._config = NyxConfig()
-        self._plugin_manager = NyxPluginManager()
         self._config.resolve()
-        self._load_resources()
+        self._plugin_manager = NyxPluginManager()
         self.setApplicationDisplayName("Nyx")
         self.setWindowIcon(QtGui.QIcon(":/icons/nyx"))
         self.setApplicationVersion(__version__)
@@ -37,10 +37,6 @@ class NyxApplication(QtWidgets.QApplication):
         """Reset application config."""
         self.config.reset()
 
-    def _load_resources(self):
-        """Load additional resources"""
-        QtGui.QFontDatabase.addApplicationFont(":/fonts/zed-mono.ttf")
-
 
 class NyxEditorApplication(NyxApplication):
     def __init__(self) -> None:
@@ -48,10 +44,13 @@ class NyxEditorApplication(NyxApplication):
         if self.config.values.editor_style.dark_mode:
             pyside_fn.set_dark_fusion_palette(self)
 
+        self._load_resources()
+        register_default_actions()
         self._setup_qml_engine()
 
         NyxEditorMainWindow.display()
-        self.main_window().on_stage_new()
+        if self.config.values.editor_behaviour.new_stage_on_launch:
+            self.main_window().on_stage_new()
 
     def main_window(self) -> NyxEditorMainWindow:
         return NyxEditorMainWindow.instance()
@@ -59,6 +58,10 @@ class NyxEditorApplication(NyxApplication):
     @property
     def qml_engine(self):
         return self._qml_engine
+
+    def _load_resources(self):
+        """Load additional resources"""
+        QtGui.QFontDatabase.addApplicationFont(":/fonts/zed-mono.ttf")
 
     def _setup_qml_engine(self):
         self._qml_engine = QtQml.QQmlEngine(self)

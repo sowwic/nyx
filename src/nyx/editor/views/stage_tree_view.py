@@ -1,3 +1,4 @@
+import functools
 import typing
 import logging
 from collections import deque
@@ -7,7 +8,10 @@ from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.core import commands
-from nyx.editor.utils import clipboard
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
+from nyx.editor.utils import clipboard, context_menus
+from nyx.editor.views.node_item_delegate import NodeItemDelegate
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
@@ -35,31 +39,25 @@ class StageTreeView(QtWidgets.QTreeView):
         self.setSelectionMode(self.SelectionMode.ExtendedSelection)
         self.setExpandsOnDoubleClick(False)
         self.setEditTriggers(StageTreeView.NoEditTriggers)
+        self.setIconSize(QtCore.QSize(16, 16))
+        self.setItemDelegate(NodeItemDelegate(self))
 
         self.create_actions()
         self.create_connections()
 
     def create_actions(self):
-        self.create_new_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/plus"), "Create node", self
+        register = functools.partial(ACTION_ROUTER.register_handler, scope=self)
+        register(ActionId.CREATE_NODE, self.create_new_node)
+        register(ActionId.DELETE_NODE, self.delete_selected_node)
+        register(ActionId.COPY, self.copy_selected_nodes)
+        register(ActionId.CUT, self.cut_selected_nodes)
+        register(ActionId.PASTE, self.paste_nodes_from_clipboard)
+        register(ActionId.COPY_NODE_PATH, self.copy_selected_node_path)
+        register(
+            ActionId.FOCUS_SELECTED,
+            self.focus_on_selected_nodes,
+            enabled_fn=lambda: bool(self.selected_nodes()),
         )
-        self.create_new_node_action.triggered.connect(self.create_new_node)
-        self.delete_selected_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/delete"), "Delete node", self
-        )
-        self.delete_selected_node_action.triggered.connect(self.delete_selected_node)
-        self.copy_selected_nodes_action = QtGui.QAction("Copy", self)
-        self.copy_selected_nodes_action.triggered.connect(self.copy_selected_nodes)
-        self.cut_selected_nodes_action = QtGui.QAction("Cut", self)
-        self.cut_selected_nodes_action.triggered.connect(self.cut_selected_nodes)
-        self.copy_selected_node_path_action = QtGui.QAction(
-            "Copy path to selected", self
-        )
-        self.copy_selected_node_path_action.triggered.connect(
-            self.copy_selected_node_path
-        )
-        self.paste_nodes_action = QtGui.QAction("Paste", self)
-        self.paste_nodes_action.triggered.connect(self.paste_nodes_from_clipboard)
 
     def create_connections(self):
         self.doubleClicked.connect(self._emit_doubledclicked_item)
@@ -122,25 +120,10 @@ class StageTreeView(QtWidgets.QTreeView):
 
         return super().mousePressEvent(event)
 
-    # TODO: Replace with palette dialog
     def create_new_node(self):
         if self.current_stage_graph is None:
             return
-        parent_path = None
-        selected_nodes = self.selected_nodes()
-        if selected_nodes:
-            parent_path = selected_nodes[-1].path
-
-        view_center_position: QtCore.QPointF = (
-            self.current_stage_graph.gr_view.get_center_position()
-        )
-        create_cmd = commands.CreateNodeCommand(
-            stage=self.stage,
-            name="node",
-            parent_node=parent_path,
-            position=view_center_position,
-        )
-        self.stage.push_command(create_cmd)
+        self.current_stage_graph.show_nodes_palette_centered()
 
     def delete_selected_node(self):
         if not self.selected_nodes():
@@ -181,6 +164,12 @@ class StageTreeView(QtWidgets.QTreeView):
         )
         self.stage.push_command(paste_cmd)
 
+    def focus_on_selected_nodes(self):
+        """Center the graph view on the nodes selected in the tree."""
+        if self.current_stage_graph is None:
+            return
+        self.current_stage_graph.gr_view.focus_on_selected_nodes()
+
     def copy_selected_node_path(self):
         selected_node = self.current_node()
         if not selected_node:
@@ -189,18 +178,7 @@ class StageTreeView(QtWidgets.QTreeView):
         LOGGER.info(f"Copied node path: {selected_node.path.as_posix()}")
 
     def show_context_menu(self, point: QtCore.QPoint):
-        menu = QtWidgets.QMenu("", self)
-        menu.addAction(self.create_new_node_action)
-        if self.current_node():
-            menu.addSeparator()
-            menu.addAction(self.copy_selected_nodes_action)
-            menu.addAction(self.cut_selected_nodes_action)
-
-        menu.addAction(self.paste_nodes_action)
-
-        if self.current_node():
-            menu.addSeparator()
-            menu.addAction(self.copy_selected_node_path_action)
-            menu.addAction(self.delete_selected_node_action)
-
+        menu = context_menus.build_nodes_context_menu(
+            self, has_selection=bool(self.current_node())
+        )
         menu.exec_(self.mapToGlobal(point))

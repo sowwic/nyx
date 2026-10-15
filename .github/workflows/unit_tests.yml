@@ -2,28 +2,32 @@ name: Tests
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
+  # Cheap platforms first, in parallel. A failure here cancels the sibling job
+  # and skips the (10x more expensive) macOS job.
   unit-tests:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: true
       matrix:
-        os: [macos-latest, windows-latest]
-
+        os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version-file: "pyproject.toml"
-      - name: Install the project
-        run: uv sync --locked --all-extras --dev
-
-      - name: Run tests
-        run: uv run pytest tests
+  # macOS minutes are billed at 10x: only run once Linux and Windows pass, and
+  # skip draft pull requests.
+  unit-tests-macos:
+    needs: unit-tests
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests

@@ -1,14 +1,18 @@
 import enum
 import logging
+import functools
+import math
 import typing
 
 # import pathlib
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
-from nyx.editor.utils import clipboard
+from nyx.editor.utils import clipboard, context_menus
 from nyx.static.vars import NODE_TYPE_MIME
 
 if typing.TYPE_CHECKING:
@@ -28,6 +32,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
     # Constants
     EDGE_DRAG_START_THRESHOLD = 50
     HIGH_QUALITY_ZOOM = 4
+    DEFAULT_ZOOM = 10  # zoom level at 100% scale
+    FOCUS_MARGIN = 40  # scene units kept around nodes when fitting
 
     class InteractionMode(enum.Enum):
         NOOP = enum.auto()
@@ -48,7 +54,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         # Zoom
         self.zoom_in_factor = 1.25
         self.zoom_clamp = True
-        self.zoom = 10
+        self.zoom = self.DEFAULT_ZOOM
         self.zoom_step = 1
         self.zoom_range = (-5.0, 10.0)
         # Positions
@@ -87,41 +93,26 @@ class StageGraphView(QtWidgets.QGraphicsView):
             )
 
     def create_actions(self):
-        self.create_node_action = QtGui.QAction("Create Node", self.gr_stage)
-        self.copy_selected_action = QtGui.QAction("Copy", self.gr_stage)
-        self.cut_selected_action = QtGui.QAction("Cut", self.gr_stage)
-        self.paste_action = QtGui.QAction("Paste", self.gr_stage)
-        self.delete_selected_action = QtGui.QAction("Delete", self.gr_stage)
-        self.focus_on_selected_nodes_action = QtGui.QAction(
-            "Focus on selected nodes", self.gr_stage
+        def has_selection():
+            return not self.gr_stage.is_gr_node_selection_empty()
+
+        register = functools.partial(ACTION_ROUTER.register_handler, scope=self)
+        register(ActionId.CREATE_NODE, self.create_new_node)
+        register(ActionId.PASTE, self.paste_nodes_from_clipboard)
+        register(ActionId.COPY, self.copy_selected_nodes, enabled_fn=has_selection)
+        register(ActionId.CUT, self.cut_selected_nodes, enabled_fn=has_selection)
+        register(ActionId.DELETE, self.delete_selected, enabled_fn=has_selection)
+        register(ActionId.DELETE_NODE, self.delete_selected, enabled_fn=has_selection)
+        register(
+            ActionId.COPY_NODE_PATH,
+            self.copy_selected_node_path,
+            enabled_fn=has_selection,
         )
-
-        self.create_node_action.triggered.connect(self.create_new_node)
-        self.copy_selected_action.triggered.connect(self.copy_selected_nodes)
-        self.cut_selected_action.triggered.connect(self.cut_selected_nodes)
-        self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
-        self.delete_selected_action.triggered.connect(self.delete_selected)
-        self.focus_on_selected_nodes_action.triggered.connect(
-            self.focus_on_selected_nodes
+        register(
+            ActionId.FOCUS_SELECTED,
+            self.focus_on_selected_nodes,
+            enabled_fn=has_selection,
         )
-
-        self.copy_selected_action.setShortcut("Ctrl+C")
-        self.cut_selected_action.setShortcut("Ctrl+X")
-        self.paste_action.setShortcut("Ctrl+V")
-        self.delete_selected_action.setShortcut("Delete")
-        self.focus_on_selected_nodes_action.setShortcut("F")
-
-        for action in (
-            self.copy_selected_action,
-            self.cut_selected_action,
-            self.paste_action,
-            self.delete_selected_action,
-            self.focus_on_selected_nodes_action,
-        ):
-            action.setShortcutContext(
-                QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut
-            )
-            self.addAction(action)
 
     def create_widgets(self):
         pass
@@ -133,11 +124,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     def update_actions(self):
-        is_selection_empty = self.gr_stage.is_gr_node_selection_empty()
-        self.copy_selected_action.setDisabled(is_selection_empty)
-        self.cut_selected_action.setDisabled(is_selection_empty)
-        self.delete_selected_action.setDisabled(is_selection_empty)
-        self.focus_on_selected_nodes_action.setDisabled(is_selection_empty)
+        ACTION_ROUTER.refresh_enabled()
 
     @property
     def stage(self):
@@ -380,18 +367,10 @@ class StageGraphView(QtWidgets.QGraphicsView):
         return event.mimeData().hasFormat(NODE_TYPE_MIME)
 
     def show_context_menu(self, point: QtCore.QPoint):
-        menu = QtWidgets.QMenu("", self)
         self.update_actions()
-        # Add actions
-        menu.addAction(self.create_node_action)
-        menu.addSeparator()
-        menu.addAction(self.copy_selected_action)
-        menu.addAction(self.cut_selected_action)
-        menu.addAction(self.paste_action)
-        menu.addAction(self.delete_selected_action)
-        menu.addSeparator()
-        menu.addAction(self.focus_on_selected_nodes_action)
-
+        menu = context_menus.build_nodes_context_menu(
+            self, has_selection=not self.gr_stage.is_gr_node_selection_empty()
+        )
         menu.exec_(self.mapToGlobal(point))
 
     def cut_intersecting_edges(self):
@@ -410,18 +389,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
 
-    # TODO: Replace with palette dialog
     def create_new_node(self):
-        parent_path = self.graph_editor.get_scope_path()
-
-        position = self.last_scene_mouse_pos
-        create_cmd = commands.CreateNodeCommand(
-            stage=self.stage,
-            name="node",
-            parent_node=parent_path,
-            position=position,
-        )
-        self.stage.push_command(create_cmd)
+        self.graph_editor.show_nodes_palette_centered(self.last_scene_mouse_pos)
 
     def delete_selected(self):
         if not self.stage:
@@ -469,18 +438,51 @@ class StageGraphView(QtWidgets.QGraphicsView):
         )
         self.stage.push_command(paste_cmd)
 
+    def copy_selected_node_path(self):
+        gr_node = self.gr_stage.get_last_selected_gr_node()
+        if gr_node is None:
+            return
+        path = gr_node.node.path.as_posix()
+        QtWidgets.QApplication.clipboard().setText(path)
+        LOGGER.info(f"Copied node path: {path}")
+
     def focus_on_selected_nodes(self):
+        """Center on the selected nodes, zooming so they fit in the view."""
         selected_nodes = self.gr_stage.graph_editor.list_selected_nodes()
         nodes_in_scope = self.gr_stage.graph_editor.filter_nodes_by_scope(selected_nodes)
 
-        if not nodes_in_scope:
+        nodes_rect = QtCore.QRectF()
+        for node in nodes_in_scope:
+            if node.gr_node is not None:
+                nodes_rect = nodes_rect.united(node.gr_node.sceneBoundingRect())
+
+        if nodes_rect.isNull():
+            return
+        self.fit_scene_rect(nodes_rect)
+
+    def fit_scene_rect(self, scene_rect: QtCore.QRectF) -> None:
+        """Center on `scene_rect` and zoom to fit it (plus margin) in the viewport.
+
+        The zoom level stays within `zoom_range` when `zoom_clamp` is enabled, so
+        a small rect is never magnified beyond the maximum zoom.
+        """
+        margin = self.FOCUS_MARGIN
+        padded_rect = scene_rect.adjusted(-margin, -margin, margin, margin)
+        viewport_rect = self.viewport().rect()
+        if viewport_rect.isEmpty():
+            self.centerOn(padded_rect.center())
             return
 
-        mid_point = QtCore.QPointF()
-        for node in nodes_in_scope:
-            mid_point += node.position()
+        fit_scale = min(
+            viewport_rect.width() / padded_rect.width(),
+            viewport_rect.height() / padded_rect.height(),
+        )
+        zoom = self.DEFAULT_ZOOM + math.log(fit_scale, self.zoom_in_factor)
+        if self.zoom_clamp:
+            zoom = max(self.zoom_range[0], min(self.zoom_range[1], zoom))
 
-        n = len(nodes_in_scope)
-        mid_point = QtCore.QPointF(mid_point.x() / n, mid_point.y() / n)
-        self.centerOn(mid_point)
-        self.fit
+        scale = self.zoom_in_factor ** (zoom - self.DEFAULT_ZOOM)
+        self.zoom = zoom
+        self.setTransform(QtGui.QTransform.fromScale(scale, scale))
+        self.centerOn(padded_rect.center())
+        self.update_render_hints()

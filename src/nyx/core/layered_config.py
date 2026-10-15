@@ -75,6 +75,10 @@ class NyxEditorWidgetsConfigValues(ConfigValues):
     )
 
 
+class NyxEditorBehaviourConfigValues(ConfigValues):
+    new_stage_on_launch: bool = Field(default=False)
+
+
 class NyxConfigValues(ConfigValues):
     """Main container for config values.
 
@@ -87,6 +91,9 @@ class NyxConfigValues(ConfigValues):
 
     main_window: NyxMainWindowConfigValues = Field(
         default_factory=NyxMainWindowConfigValues, alias="main_window"
+    )
+    editor_behaviour: NyxEditorBehaviourConfigValues = Field(
+        default_factory=NyxEditorBehaviourConfigValues, alias="editor_behaviour"
     )
     editor_style: NyxEditorStyleConfigValues = Field(
         default_factory=NyxEditorStyleConfigValues, alias="editor_style"

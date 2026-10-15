@@ -4,11 +4,13 @@ import pytest
 import logging
 from pytest import MonkeyPatch
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from nyx.core.logger import NyxLogger
-from nyx.application import NyxApplication
+from nyx.application import NyxApplication, NyxEditorApplication
 from nyx.api.v1 import NyxPluginManager, NYX_REGISTRY
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.main_window import NyxEditorMainWindow
 
 logging.setLoggerClass(NyxLogger)
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -35,28 +37,64 @@ def output_dir(request: pytest.FixtureRequest) -> pathlib.Path:
     return directory
 
 
+def pytest_collection_modifyitems(config, items):
+    """Remember whether editor tests are collected (they need the editor app)."""
+    editor_dir = pathlib.Path(__file__).parent / "editor"
+    config._nyx_needs_editor_app = any(
+        editor_dir in pathlib.Path(str(item.fspath)).parents for item in items
+    )
+
+
+def _release_editor_objects(app: QtWidgets.QApplication) -> None:
+    """Destroy editor widgets and global actions while Python and Qt are alive.
+
+    Otherwise they are torn down at interpreter exit, after the QApplication, which
+    segfaults (exit code 139) on some platforms.
+    """
+    if not isinstance(app, NyxEditorApplication):
+        return
+
+    main_window = NyxEditorMainWindow.instance()
+    if main_window is not None:
+        main_window.deleteLater()
+        NyxEditorMainWindow._INSTANCE = None
+    ACTION_REGISTRY.clear()
+    app.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
+    app.processEvents()
+
+
 # Do NOT call app.quit() or app.exit()
-@pytest.fixture
-def nyx_app():
-    """
-    Ensure a QApplication exists for tests that require Qt features
-    like clipboard, fonts, resources, etc.
-    """
-    app: NyxApplication | None = QtWidgets.QApplication.instance()
+@pytest.fixture(scope="session")
+def qapp(request: pytest.FixtureRequest):
+    """Session-wide application, overriding pytest-qt's `qapp`.
 
+    A single QApplication may exist per process, so when editor tests are part of
+    the run the full `NyxEditorApplication` (with main window) is created for
+    everybody; otherwise a plain `NyxApplication`.
+    """
+    app = QtWidgets.QApplication.instance()
     if app is None:
-        app = NyxApplication(
-            initialize_plugins=False
-        )  # Qt clipboard & global state must remain valid during test session
-
+        if getattr(request.config, "_nyx_needs_editor_app", False):
+            app = NyxEditorApplication()
+        else:
+            app = NyxApplication(initialize_plugins=False)
     yield app
+    _release_editor_objects(app)
+
+
+@pytest.fixture
+def nyx_app(qapp):
+    """Application for tests needing Qt features (clipboard, fonts, resources)."""
+    return qapp
 
 
 @pytest.fixture(autouse=True, scope="session")
-def init_nyx_core():
+def init_nyx_core(qapp):
     try:
         plugin_manager = NyxPluginManager()
-        plugin_manager.initialize_plugins(include=["NyxCore"])
+        if not isinstance(qapp, NyxEditorApplication):
+            # The editor application initializes the plugins itself.
+            plugin_manager.initialize_plugins(include=["NyxCore"])
         yield plugin_manager
     except Exception as err:
         pytest.exit(f"NyxCore initialization failed: {err!r}", returncode=2)

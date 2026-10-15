@@ -1,0 +1,31 @@
+name: Run tests
+description: Install system libraries, the project, and run pytest.
+
+runs:
+  using: composite
+  steps:
+    - name: Install Qt system libraries (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1 libglib2.0-0
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version-file: "pyproject.toml"
+
+    - name: Install the project
+      shell: bash
+      run: uv sync --locked --all-extras --dev
+
+    - name: Run tests
+      shell: bash
+      env:
+        PYTHONFAULTHANDLER: "1"
+      run: uv run pytest tests
