@@ -24,12 +24,12 @@ def test_log_node_creation():
     message_cpnt = result_node.components_model.get_component("message")
     assert message_cpnt is not None
     assert message_cpnt.get_type_id() == CoreNodeComponents.VALUE
-    assert message_cpnt.value == ""
+    assert message_cpnt.pull_value() == ""
 
     level_cpnt = result_node.components_model.get_component("level")
     assert level_cpnt is not None
     assert level_cpnt.get_type_id() == CoreNodeComponents.VALUE
-    assert level_cpnt.value == 10
+    assert level_cpnt.pull_value() == 10
 
 
 def test_execute_components_creates_logger_with_expected_name():
@@ -38,7 +38,7 @@ def test_execute_components_creates_logger_with_expected_name():
     command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
     stage.push_command(command)
     log_node: LogNode = stage.get_object(command.result_node)
-    log_node["message"].value = "test_message"
+    log_node["message"].push_value("test_message")
     log_node.execute_components()
 
     assert log_node.logger is not None

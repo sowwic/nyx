@@ -50,11 +50,11 @@ def test_setter_execution_sets_component_value(request: pytest.FixtureRequest):
     stage.push_command(setter_node_command)
 
     setter_node: SetterNode = setter_node_command.result_node
-    setter_node["node_path"].value = str(log_node.path)
-    setter_node["cpnt_name"].value = "message"
-    setter_node["value"].value = request.node.name
+    setter_node["node_path"].push_value(str(log_node.path))
+    setter_node["cpnt_name"].push_value("message")
+    setter_node["value"].push_value(request.node.name)
 
-    assert log_node["message"].value == ""
+    assert log_node["message"].pull_value() == ""
     stage.crawler.start(start_node=setter_node)
 
-    assert log_node["message"].value == request.node.name
+    assert log_node["message"].pull_value() == request.node.name

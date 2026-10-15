@@ -1,4 +1,11 @@
-from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents, static_vars
+from nyx.api.v1 import (
+    Node,
+    CoreNodes,
+    CoreNodeComponents,
+    NodeComponentValueMask,
+    static_vars,
+    exceptions,
+)
 
 
 class GetterNode(Node):
@@ -20,11 +27,30 @@ class GetterNode(Node):
     def get_tags(cls) -> set[str]:
         return {"logic", "value"}
 
-    def get_pull_value_from_path(self):
-        node = self.stage.get_object(self.in_node_path.value, expected_type=Node)
-        component = node.components_model.get_component(self.in_cpnt_name.value)
+    def get_pull_value_from_path(
+        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
+    ):
+        node = self.stage.get_object(
+            self.in_node_path.pull_value(value_mask), expected_type=Node
+        )
+        component = node.components_model.get_component(
+            self.in_cpnt_name.pull_value(value_mask)
+        )
 
-        return component.value
+        return component.pull_value()
+
+    def get_pulled_display_value(self) -> str:
+        try:
+            node = self.stage.get_object(
+                self.in_node_path.pull_value(), expected_type=Node
+            )
+            component = node.components_model.get_component(
+                self.in_cpnt_name.pull_value()
+            )
+        except exceptions.StageObjectQueryError, ValueError:
+            return ""
+
+        return component.get_display_value()
 
     def setup(self):
         self.in_node_path = self.components_model.create_component(
@@ -45,6 +71,7 @@ class GetterNode(Node):
         )
         self.value_cpnt.name = "value"
         self.value_cpnt.produces_output = True
+        self.value_cpnt.is_editable = False
 
         self.components_model.add_component(self.in_node_path)
         self.components_model.add_component(self.in_cpnt_name)
@@ -52,3 +79,4 @@ class GetterNode(Node):
 
         # Replace pull value to pull path from inputs
         self.value_cpnt.pull_value = self.get_pull_value_from_path
+        self.value_cpnt.get_display_value = self.get_pulled_display_value

@@ -160,7 +160,7 @@ class StageCrawler:
             if next_node.parent() != node.parent():
                 raise RuntimeError(
                     f"{flow_component.path} points to "
-                    f"{flow_component.value}, which is not a sibling node.",
+                    f"{next_node.path}, which is not a sibling node.",
                 )
             next_nodes.append(next_node)
 

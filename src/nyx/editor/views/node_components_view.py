@@ -5,6 +5,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 
 from ..controllers.components import ComponentsController
 from ..controllers.components_spawner import NodeComponentSpawner
+from ..widgets.nyx_qml_widget import NyxQuickWidget
 from ...core.node_component import NodeComponent
 from ...core.models.components_filter_model import NodeComponentsFilterModel
 from ...core.models.registry_model import RegistryListModel
@@ -15,8 +16,9 @@ if typing.TYPE_CHECKING:
     from nyx.core.models.components_model import NodeComponentsModel
 
 
-class NodeComponentsView(QQuickWidget):
-    QML_COMPONENT = "components_view/NodeComponentsView.qml"
+class NodeComponentsView(NyxQuickWidget):
+    QML_MODULE = "NyxEditor.ComponentsView"
+    QML_COMPONENT = "NodeComponentsView"
 
     def __init__(
         self,
@@ -67,10 +69,6 @@ class NodeComponentsView(QQuickWidget):
         )
         self.setModel(model)
         self.setSource(self.source_url)
-
-    @property
-    def source_url(self) -> QtCore.QUrl:
-        return QtCore.QUrl((QML_DIR / self.QML_COMPONENT).as_posix())
 
     def setModel(self, model: NodeComponentsModel):
         if self._model == model:

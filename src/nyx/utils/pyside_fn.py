@@ -76,3 +76,17 @@ def find_nyx_editor_window() -> NyxEditorMainWindow:
             return widget
     else:
         raise RuntimeError("Failed to find nyx editor main window.")
+
+
+def notify_roles_changed(
+    self,
+    item_index: QtCore.QModelIndex,
+    roles_that_changed: typing.Iterable[int],
+) -> None:
+    if not item_index.isValid():
+        return
+    self.dataChanged.emit(
+        item_index,
+        item_index,
+        [int(each_role) for each_role in roles_that_changed],
+    )

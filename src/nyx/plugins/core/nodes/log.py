@@ -36,13 +36,13 @@ class LogNode(Node):
         self.message.name = "message"
         self.message.is_editable = True
         self.message.accepts_input = True
-        self.message.value = ""
+        self.message.push_value("")
 
         self.level = self.components_model.create_component(
             type_id=CoreNodeComponents.VALUE
         )
         self.level.name = "level"
-        self.level.value = 10
+        self.level.push_value(10)
         self.level.is_editable = True
         self.level.accepts_input = True
 
@@ -75,7 +75,7 @@ class LogNode(Node):
 
     def execute(self) -> None:
         """Log message"""
-        if not self.message.value:
+        if not self.message.pull_value():
             return
 
         message = f"({self.name}): {self.message.pull_value()}"

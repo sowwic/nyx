@@ -1,4 +1,11 @@
-from nyx.api.v1 import Node, NodeComponent, CoreNodes, CoreNodeComponents, static_vars
+from nyx.api.v1 import (
+    Node,
+    NodeComponent,
+    CoreNodes,
+    CoreNodeComponents,
+    NodeComponentValueMask,
+    static_vars,
+)
 
 
 class SetterNode(Node):
@@ -58,4 +65,7 @@ class SetterNode(Node):
         component: NodeComponent = node.components_model.get_component(
             self.component_name_cpnt.pull_value()
         )
-        component.value = self.value_cpnt.value
+        component.push_value(
+            self.value_cpnt.pull_value(value_mask=NodeComponentValueMask.CACHE),
+            evaluate=False,
+        )

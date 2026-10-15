@@ -2,12 +2,19 @@ import typing
 import contextlib
 import html
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtQml
 
 
 if typing.TYPE_CHECKING:
     from ..widgets.stage_graph_editor import StageGraphEditor
     from ...application import NyxEditorApplication
+
+
+def get_application_qml_engine() -> QtQml.QQmlEngine:
+    app: NyxEditorApplication | None = QtWidgets.QApplication.instance()
+    if app is None:
+        raise RuntimeError("Failed to get Qml engine: no QApplication exists yet; ")
+    return app.qml_engine
 
 
 def get_current_stage_graph() -> StageGraphEditor:

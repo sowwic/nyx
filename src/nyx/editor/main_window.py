@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pathlib
 import typing
 import logging
@@ -53,6 +55,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
+        self._has_completed_first_show = False
         self._dock_widgets: list[QtWidgets.QDockWidget] = []
         self._is_nyx_editor_window = True
         self.setWindowTitle(self.DEFAULT_TITLE)
@@ -172,7 +175,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             object_name=EditorUIObject.UNDO_HISTORY_DOCK,
             widget=self.undo_view,
         )
-        self.logger_dock = self._create_dock(
+        self.logger_dock: OutputLogDockWidget = self._create_dock(
             title="Output Log",
             object_name=EditorUIObject.LOG_OUTPUT_DOCK,
             widget=None,
@@ -219,9 +222,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Default in tabified group
         self.stage_tree_dock.raise_()
 
-        # Visibility
-        self.logger_dock.hide()
-
     def _apply_default_geometry(self):
         screen_geometry = self.screen().availableGeometry()
         default_width = int(screen_geometry.width() * 0.8)
@@ -239,6 +239,18 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.undo_group.indexChanged.connect(self.inspector.update_data)
 
     # Events
+    def showEvent(self, show_event: QtGui.QShowEvent) -> None:
+        super().showEvent(show_event)
+        if self._has_completed_first_show:
+            return
+        self._has_completed_first_show = True
+        # The first layout pass has not happened yet at this point, so wait one
+        # event-loop turn before asking the dock to restore its height.
+        QtCore.QTimer.singleShot(
+            0,
+            self.logger_dock.restore_expanded_height_into_main_window_if_possible,
+        )
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         for sub_window in self.mdi_area.subWindowList():
             graph_editor: StageGraphEditor = sub_window.widget()
@@ -262,6 +274,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             bytes(self.saveState(self.LAYOUT_VERSION))
         ).decode("ascii")
         # self.config.window_always_on_top = self.pin_window_btn.isChecked()
+        self.logger_dock.save_config_values(self.config)
 
     def apply_config_values(self):
         """Apply values from application config."""
@@ -275,6 +288,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # TODO: add always on top toggle
         # self.toggle_always_on_top(self.config.window_always_on_top)
         LOGGER.setLevel(self.config.values.logging_level)
+
+        # The log dock's expansion state and size constraints must be in place
+        # BEFORE the layout is built or restored. Otherwise Qt clamps the dock
+        # to its collapsed/default size while placing it.
+        self.logger_dock.apply_config_values(self.config)
         self._load_layout_from_config()
 
     def _load_layout_from_config(self):

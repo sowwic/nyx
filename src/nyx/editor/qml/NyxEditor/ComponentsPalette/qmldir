@@ -1,0 +1,5 @@
+module NyxEditor.ComponentsPalette
+
+ComponentsPaletteItemDelegate 1.0 ComponentsPaletteItemDelegate.qml
+NodeComponentsPalettePopup 1.0 NodeComponentsPalettePopup.qml
+NodeComponentsPaletteView 1.0 NodeComponentsPaletteView.qml

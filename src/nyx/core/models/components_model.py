@@ -49,8 +49,18 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return str(component.uuid)
             if role == NodeComponent.Roles.PATH:
                 return component.path.as_posix()
+            if role == NodeComponent.Roles.DISPLAY_VALUE:
+                return component.get_display_value()
             if role == NodeComponent.Roles.NODE:
                 return self.node
+            if role == NodeComponent.Roles.INPUT_LINKS:
+                return [
+                    str(link.source_component.path) for link in component.input_links
+                ]
+            if role == NodeComponent.Roles.OUTPUT_LINKS:
+                return [
+                    str(link.target_component.path) for link in component.output_links
+                ]
             if role == NodeComponent.Roles.EDITOR_QML_FILE:
                 return component.get_qml_editor_url()
             if role == NodeComponent.Roles.IS_EDITABLE:
@@ -59,6 +69,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:
                 return component.is_static
+            if role == NodeComponent.Roles.WRITABLE:
+                return component.accepts_input
+            if role == NodeComponent.Roles.READABLE:
+                return component.produces_output
             else:
                 LOGGER.error(f"No value defined for virtual role: {role}")
                 return None

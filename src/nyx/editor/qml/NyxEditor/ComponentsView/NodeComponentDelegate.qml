@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import "../common"
+import "../Common"
 
 DraggableDelegate {
     id: itemRoot
@@ -230,12 +230,73 @@ DraggableDelegate {
                                 onClicked: itemRoot.startRename()
                             }
 
+                            MenuSeparator {}
+
+                            MenuItem {
+                                id: writableMenuItem
+                                text: "Writable"
+                                visible: !itemRoot.isBuiltIn
+                                height: visible ? implicitHeight : 0
+                                checked: itemRoot.model.writable
+                                checkable: true
+
+                                onClicked: {
+                                    root.componentsController.setComponentWritable(itemRoot.model.index, checked);
+                                }
+                            }
+                            MenuItem {
+                                id: readableMenuItem
+                                text: "Readable"
+                                visible: !itemRoot.isBuiltIn
+                                height: visible ? implicitHeight : 0
+                                checked: itemRoot.model.readable
+                                checkable: true
+
+                                onClicked: {
+                                    root.componentsController.setComponentReadable(itemRoot.model.index, checked);
+                                }
+                            }
+
+                            MenuSeparator {}
+
                             MenuItem {
                                 text: "Help"
                                 onClicked: itemRoot.helpRequested()
                             }
                         }
                     }
+                }
+            }
+            CollapsibleFrame {
+                id: linksFrame
+
+                Layout.fillWidth: true
+
+                visible: (itemRoot.model.readable || itemRoot.model.writable) && itemRoot.isExpanded
+                titleText: "Links"
+                isExpanded: itemRoot.model.linksExpanded
+
+                // A user toggle assigns isExpanded imperatively, which breaks the binding above.
+                // Write the new state back to the model so it survives delegate recreation...
+                onExpandedStateToggledByUser: newExpandedState => {
+                    itemRoot.model.linksExpanded = newExpandedState;
+                }
+
+                // ...and re-establish the model -> frame direction after the binding is broken,
+                // so external changes to the model (undo, load, etc.) still update the frame.
+                Binding {
+                    target: linksFrame
+                    property: "isExpanded"
+                    value: itemRoot.model.linksExpanded
+                }
+
+                LinksView {
+                    id: linksView
+
+                    Layout.fillWidth: true
+
+                    inputLinks: itemRoot.model.inputLinks
+                    outputLinks: itemRoot.model.outputLinks
                 }
             }
 

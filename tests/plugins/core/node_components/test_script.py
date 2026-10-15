@@ -18,7 +18,7 @@ def test_script_uses_node_ref(make_script: typing.Callable):
     test_expected_value = 1
 
     test_script = make_script(
-        f'nyx_node["{test_value_cpnt_name}"].value = {test_expected_value}'
+        f'nyx_node["{test_value_cpnt_name}"].push_value({test_expected_value})'
     )
     stage = Stage()
 
@@ -35,10 +35,10 @@ def test_script_uses_node_ref(make_script: typing.Callable):
     stage.push_command(value_cpnt_command)
     stage.push_command(script_cpnt_command)
 
-    node["test_script"].value = str(test_script)
-    assert node[test_value_cpnt_name].value != test_expected_value
+    node["test_script"].push_value(str(test_script))
+    assert node[test_value_cpnt_name].pull_value() != test_expected_value
     stage.crawler.start(start_node=node)
-    assert node[test_value_cpnt_name].value == test_expected_value
+    assert node[test_value_cpnt_name].pull_value() == test_expected_value
 
 
 def test_script_raises(make_script: typing.Callable, request: pytest.FixtureRequest):
@@ -60,7 +60,7 @@ def test_script_raises(make_script: typing.Callable, request: pytest.FixtureRequ
     )
     stage.push_command(script_cpnt_command)
 
-    node["test_script"].value = str(test_script)
+    node["test_script"].push_value(str(test_script))
 
     with pytest.raises(RuntimeError, match=request.node.name) as err:
         stage.crawler.start(start_node=node)
@@ -83,7 +83,7 @@ def test_module_uses_node_ref(
 
     module_content = (
         f"def {entry_point_name}():\n    "
-        f"nyx_node['{test_value_cpnt_name}'].value = {test_expected_value}\n"
+        f"nyx_node['{test_value_cpnt_name}'].push_value({test_expected_value})\n"
     )
     module_name = importable_module(
         f"fixture_module_{request.node.name}", module_content
@@ -105,7 +105,7 @@ def test_module_uses_node_ref(
     stage.push_command(script_cpnt_command)
 
     # Assign component value and execute
-    node["test_script"].value = str(f"{module_name}:{entry_point_name}")
-    assert node[test_value_cpnt_name].value != test_expected_value
+    node["test_script"].push_value(str(f"{module_name}:{entry_point_name}"))
+    assert node[test_value_cpnt_name].pull_value() != test_expected_value
     stage.crawler.start(start_node=node)
-    assert node[test_value_cpnt_name].value == test_expected_value
+    assert node[test_value_cpnt_name].pull_value() == test_expected_value

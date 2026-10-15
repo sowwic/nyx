@@ -6,15 +6,17 @@ from PySide6 import QtCore
 from ...core.commands import (
     DeleteNodeComponentCommand,
     ReorderNodeComponentCommand,
+    SetNodeComponentValueCommand,
     SetNodeComponentActiveStateCommand,
     RenameNodeComponentCommand,
+    SetNodeComponentFlagCommand,
 )
-from ...static.enums import ItemSelectionMode
+from ...core.node_component import NodeComponent
+from ...static.enums import ItemSelectionMode, NodeComponentFlag
 
 
 if typing.TYPE_CHECKING:
     from ...core.stage import Stage
-    from ...core.node_component import NodeComponent
     from ...core.models.components_model import NodeComponentsModel
 
 LOGGER = logging.getLogger(__name__)
@@ -82,6 +84,11 @@ class ComponentsController(QtCore.QObject):
 
         self.components_model.rowsAboutToBeMoved.disconnect(self._selection_model.clear)
 
+    def get_component_from_proxy_row(self, row: int) -> NodeComponent:
+        proxy_index = self.components_filter_model.index(row, 0)
+        source_model_index = self.components_filter_model.mapToSource(proxy_index)
+        return self.components_model.itemFromIndex(source_model_index)
+
     @QtCore.Slot(int, int)
     def selectRow(self, clicked_row: int, selection_mode: ItemSelectionMode):
         model = self.components_filter_model
@@ -136,12 +143,7 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, bool)
     def setSetComponentActiveState(self, row: int, state: bool):
-        proxy_index = self.components_filter_model.index(row, 0)
-        source_model_index = self.components_filter_model.mapToSource(proxy_index)
-        component: NodeComponent = self.components_model.itemFromIndex(
-            source_model_index
-        )
-
+        component = self.get_component_from_proxy_row(row)
         set_active_command = SetNodeComponentActiveStateCommand(
             stage=component.stage, node_component=component, state=state
         )
@@ -173,16 +175,45 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, str)
     def renameComponent(self, row: int, new_name: str):
-        proxy_index = self.components_filter_model.index(row, 0)
-        source_model_index = self.components_filter_model.mapToSource(proxy_index)
-        component: NodeComponent = self.components_model.itemFromIndex(
-            source_model_index
-        )
+        component = self.get_component_from_proxy_row(row)
         self.stage.push_command(
             RenameNodeComponentCommand(
                 stage=self.stage, node_component=component, new_name=new_name
             )
         )
+
+    @QtCore.Slot(int, str, bool)
+    def setComponentValue(self, row: int, new_value: str, raw: bool):
+        component = self.get_component_from_proxy_row(row)
+        self.stage.push_command(
+            SetNodeComponentValueCommand(
+                stage=self.stage, node_component=component, value=new_value, raw=raw
+            )
+        )
+
+    @QtCore.Slot(int, bool)
+    def setComponentReadable(self, row: int, state: bool):
+        component = self.get_component_from_proxy_row(row)
+        set_flag_command = SetNodeComponentFlagCommand(
+            stage=self.stage,
+            node_component=component,
+            flag=NodeComponentFlag.READABLE,
+            role=NodeComponent.Roles.READABLE,
+            state=state,
+        )
+        self.stage.push_command(set_flag_command)
+
+    @QtCore.Slot(int, bool)
+    def setComponentWritable(self, row: int, state: bool):
+        component = self.get_component_from_proxy_row(row)
+        set_flag_command = SetNodeComponentFlagCommand(
+            stage=self.stage,
+            node_component=component,
+            flag=NodeComponentFlag.WRITABLE,
+            role=NodeComponent.Roles.WRITABLE,
+            state=state,
+        )
+        self.stage.push_command(set_flag_command)
 
     selectionModel = QtCore.Property(
         QtCore.QObject,

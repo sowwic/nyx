@@ -11,7 +11,7 @@ from .stage_object import StageObject
 from .link import Link
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
-from ..static.enums import RestoreUuidOption, NodeComponentFlag
+from ..static.enums import RestoreUuidOption, NodeComponentFlag, NodeComponentValueMask
 from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
 if typing.TYPE_CHECKING:
@@ -38,17 +38,24 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
-        VALUE = enum.auto()
+        RAW_VALUE = enum.auto()
+        CACHED_VALUE = enum.auto()
         LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
         COMPONENT_FLAGS = enum.auto()
         IS_ACTIVE = enum.auto()
         IS_EXPANDED = enum.auto()
+        LINKS_EXPANDED = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
         NODE = enum.auto()
+        INPUT_LINKS = enum.auto()
+        OUTPUT_LINKS = enum.auto()
+        READABLE = enum.auto()
+        WRITABLE = enum.auto()
+        DISPLAY_VALUE = enum.auto()
         EDITOR_QML_FILE = enum.auto()
         IS_EDITABLE = enum.auto()
         IS_STATIC = enum.auto()
@@ -60,7 +67,12 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.UUID,
                 cls.PATH,
                 cls.NODE,
+                cls.INPUT_LINKS,
+                cls.OUTPUT_LINKS,
+                cls.DISPLAY_VALUE,
                 cls.EDITOR_QML_FILE,
+                cls.READABLE,
+                cls.WRITABLE,
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,
@@ -178,12 +190,16 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(new_name, self.Roles.NAME)
 
     @property
-    def value(self) -> typing.Any:
-        return self.data(self.Roles.VALUE)
+    def raw_value(self) -> typing.Any:
+        return self.data(self.Roles.RAW_VALUE)
 
-    @value.setter
-    def value(self, new_value):
-        self.setData(new_value, self.Roles.VALUE)
+    @property
+    def cached_value(self) -> typing.Any:
+        return self.data(self.Roles.CACHED_VALUE)
+
+    @property
+    def display_value(self) -> str:
+        return self.data(self.Roles.DISPLAY_VALUE)
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
@@ -227,25 +243,23 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def produces_output(self) -> bool:
-        return NodeComponentFlag.PRODUCES_OUTPUT in self.component_flags
+        return NodeComponentFlag.READABLE in self.component_flags
 
     @produces_output.setter
     def produces_output(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.PRODUCES_OUTPUT
-        else:
-            self.component_flags &= ~NodeComponentFlag.PRODUCES_OUTPUT
+        self.set_component_flag(
+            NodeComponentFlag.READABLE, self.Roles.READABLE, state=state
+        )
 
     @property
     def accepts_input(self) -> bool:
-        return NodeComponentFlag.ACCEPTS_INPUTS in self.component_flags
+        return NodeComponentFlag.WRITABLE in self.component_flags
 
     @accepts_input.setter
     def accepts_input(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.ACCEPTS_INPUTS
-        else:
-            self.component_flags &= ~NodeComponentFlag.ACCEPTS_INPUTS
+        self.set_component_flag(
+            NodeComponentFlag.WRITABLE, self.Roles.WRITABLE, state=state
+        )
 
     @property
     def is_editable(self) -> bool:
@@ -253,10 +267,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @is_editable.setter
     def is_editable(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.EDITABLE
-        else:
-            self.component_flags &= ~NodeComponentFlag.EDITABLE
+        self.set_component_flag(
+            flag=NodeComponentFlag.EDITABLE, role=self.Roles.IS_EDITABLE, state=state
+        )
 
     @property
     def is_static(self) -> bool:
@@ -264,10 +277,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @is_static.setter
     def is_static(self, state: bool) -> None:
-        if state:
-            self.component_flags |= NodeComponentFlag.STATIC
-        else:
-            self.component_flags &= ~NodeComponentFlag.STATIC
+        self.set_component_flag(
+            flag=NodeComponentFlag.STATIC, role=self.Roles.IS_STATIC, state=state
+        )
 
     @property
     def is_built_in(self) -> bool:
@@ -298,27 +310,77 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
+        self.setData(True, role=self.Roles.LINKS_EXPANDED)
         self.setData(set(), role=self.Roles.LINKS)
         self.component_flags = self.get_type_default_flags()
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
-        self.value = None
+        self.push_value(self.get_type_default_value())
+
+    def set_component_flag(
+        self, flag: NodeComponentFlag, role: NodeComponent.Roles, state: bool
+    ):
+        if state:
+            self.component_flags |= flag
+        else:
+            self.component_flags &= ~flag
+        if self.model() is not None:
+            self.model().dataChanged.emit(self.index(), self.index(), [role])
 
     def mark_as_built_in(self):
         self.component_flags |= NodeComponentFlag.BUILT_IN
 
-    def pull_value(self) -> typing.Any:
+    def get_display_value(self) -> str:
+        if self.input_links:
+            return self.input_links[0].source_component.get_display_value()
+        return self.data(role=self.Roles.DISPLAY_VALUE)
+
+    def clear_cached_value(self):
+        self.setData(None, role=self.Roles.CACHED_VALUE)
+        self.setData(str(self.raw_value), self.Roles.DISPLAY_VALUE)
+
+    def push_value(self, value: typing.Any, evaluate: bool = True):
+        self.setData(value, role=self.Roles.RAW_VALUE)
+        self.setData(value, role=self.Roles.CACHED_VALUE)
+        if evaluate:
+            self._evaluate_value()
+        self.setData(str(self.cached_value), role=self.Roles.DISPLAY_VALUE)
+
+    def pull_value(
+        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
+    ) -> typing.Any:
         input_links = self.input_links
         if input_links:
-            return input_links[0].source_component.pull_value()
-        return self.value
+            return input_links[0].source_component.pull_value(value_mask=value_mask)
+
+        if value_mask is NodeComponentValueMask.RAW:
+            return self.raw_value
+        elif value_mask is NodeComponentValueMask.CACHE:
+            return self.cached_value
+        elif value_mask is NodeComponentValueMask.DISPLAY:
+            return self.display_value
+        else:
+            raise ValueError(f"Invalid value mask: {value_mask}")
+
+    def evaluate_value(self) -> typing.Any:
+        out_value = self.raw_value
+        if isinstance(self.raw_value, str):
+            try:
+                out_value = eval(self.raw_value)
+            except Exception:
+                LOGGER.warning(f"Failed to eval {self.raw_value}, defaulting to str")
+        return out_value
+
+    def _evaluate_value(self):
+        eval_value = self.evaluate_value()
+        self.setData(eval_value, role=self.Roles.CACHED_VALUE)
 
     def reset_value_to_default(self) -> None:
-        self.value = self.default_value
+        self.push_value(self.default_value)
 
     def reset_value_to_type_default(self) -> None:
-        self.value = self.get_type_default_value()
+        self.push_value(self.get_type_default_value())
 
     def add_link(self, link_uuid: UUID | str):
         self.data(self.Roles.LINKS).add(link_uuid)
@@ -344,7 +406,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return linked_as_source or linked_as_target
 
     def serialize_value(self) -> typing.Any:
-        return self.value
+        return self.raw_value
 
     def deserialize_value(self, value: typing.Any) -> typing.Any:
         return value
@@ -384,7 +446,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.uuid = uuid
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
-        component.value = component.deserialize_value(value=data["value"])
+        component.push_value(component.deserialize_value(value=data["value"]))
         component.default_value = component.deserialize_default_value(
             value=data.get("default_value")
         )
@@ -401,8 +463,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.execute()
 
     def evaluation_hook(self):
+        self.clear_cached_value()
         if not self.is_active:
             return
+        self._evaluate_value()
         self.evaluate()
 
     def evaluate(self):
@@ -414,7 +478,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_qml_editor_url(cls) -> QtCore.QUrl:
         if cls.EDITOR_QML and cls.SOURCE_PLUGIN:
-            return cls.resolve_qml_source(cls.EDITOR_QML)
+            return QtCore.QUrl.fromLocalFile(
+                NYX_REGISTRY.resolve_qml_source(
+                    cls.SOURCE_PLUGIN.plugin_cls.QML_MODULE_NAME, cls.EDITOR_QML
+                )
+            )
         return QtCore.QUrl.fromLocalFile(str(DEFAULT_QML_NODE_COMPONENT_ITEM))
 
     @classmethod

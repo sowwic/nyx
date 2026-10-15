@@ -1,10 +1,11 @@
 import logging
 import sys
 
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets, QtQml
 
 import nyx.resources.resources_rc  # noqa: F401
 from nyx.core.layered_config import NyxConfig
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.api.v1 import NyxPluginManager
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.utils import pyside_fn
@@ -47,8 +48,26 @@ class NyxEditorApplication(NyxApplication):
         if self.config.values.editor_style.dark_mode:
             pyside_fn.set_dark_fusion_palette(self)
 
+        self._setup_qml_engine()
+
         NyxEditorMainWindow.display()
         self.main_window().on_stage_new()
 
     def main_window(self) -> NyxEditorMainWindow:
         return NyxEditorMainWindow.instance()
+
+    @property
+    def qml_engine(self):
+        return self._qml_engine
+
+    def _setup_qml_engine(self):
+        self._qml_engine = QtQml.QQmlEngine(self)
+        self.sync_qml_import_paths()
+
+    def sync_qml_import_paths(self):
+        """Add any registry import roots the engine doesn't know about yet."""
+        already_known_import_paths = set(self._qml_engine.importPathList())
+        for import_root_directory in NYX_REGISTRY.qml_import_root_directories:
+            import_root_path_text = str(import_root_directory)
+            if import_root_path_text not in already_known_import_paths:
+                self._qml_engine.addImportPath(import_root_path_text)

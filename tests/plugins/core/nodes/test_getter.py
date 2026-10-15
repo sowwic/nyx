@@ -1,3 +1,4 @@
+import pathlib
 import pytest
 import typing
 from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands, static_vars
@@ -35,30 +36,34 @@ def test_getter_creation():
     assert in_value.produces_output is True
 
 
-def test_getter_can_be_used_to_pull_values(request: pytest.FixtureRequest):
+def test_getter_can_be_used_to_pull_values(
+    output_dir: pathlib.Path, request: pytest.FixtureRequest
+):
     """Check logger post components execution"""
     stage = Stage()
+    export_path = output_dir / f"{request.node.name}_export{stage.FILE_EXTENSION}"
     log_node_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
     stage.push_command(log_node_command)
     log_node = log_node_command.result_node
-    log_node["message"] = request.node.name
+    log_node["message"].push_value(request.node.name)
 
     setter_node_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
     stage.push_command(setter_node_command)
     setter_node: SetterNode = setter_node_command.result_node
-    setter_node["value"] = "test"
+    setter_node["value"].push_value("test")
 
     getter_node_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
     stage.push_command(getter_node_command)
     getter_node: GetterNode = getter_node_command.result_node
 
-    getter_node["node_path"] = log_node.path.as_posix()
-    getter_node["cpnt_name"] = "message"
+    getter_node["node_path"].push_value(log_node.path.as_posix())
+    getter_node["cpnt_name"].push_value("message")
 
     link_getter_command = commands.LinkNodeComponentsCommand(
         stage=stage, source=getter_node["value"], target=setter_node["value"]
     )
     stage.push_command(link_getter_command)
+    stage.export_json(export_path)
 
-    assert setter_node["value"].value != log_node["message"].value
-    assert setter_node["value"].pull_value() == log_node["message"].value
+    assert setter_node["value"].raw_value != log_node["message"].raw_value
+    assert setter_node["value"].pull_value() == log_node["message"].cached_value

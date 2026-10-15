@@ -166,8 +166,10 @@ def test_stage_export_import_with_connections(
     node2 = node2_create_command.result_node
 
     # Connections
-    node1["flow"].value = node2.path
-
+    link_command = commands.LinkNodeComponentsCommand(
+        stage=stage1, source=node1["flow"], target=node2["flow"]
+    )
+    stage1.push_command(link_command)
     stage1.export_json(export_path)
 
     stage2 = Stage()

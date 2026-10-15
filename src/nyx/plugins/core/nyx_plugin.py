@@ -24,6 +24,8 @@ LOGGER = logging.getLogger(__name__)
 
 @NyxPluginManager.register_plugin()
 class NyxCore(NyxPlugin):
+    QML_MODULE_NAME = "NyxCore"
+
     @classmethod
     def get_type_id(cls) -> str:
         return "NyxCore"

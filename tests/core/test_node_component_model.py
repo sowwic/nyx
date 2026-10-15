@@ -6,7 +6,13 @@ from collections import OrderedDict
 import pytest
 from PySide6 import QtCore
 
-from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands
+from nyx.api.v1 import (
+    Stage,
+    CoreNodes,
+    CoreNodeComponents,
+    NodeComponentValueMask,
+    commands,
+)
 from nyx.utils import file_fn
 
 if typing.TYPE_CHECKING:
@@ -116,7 +122,7 @@ def test_importing_node_with_extra_components_gives_correct_values(
         node=node, type_id=CoreNodeComponents.VALUE, name=test_cpnt_name
     )
     stage.push_command(add_cpnt_command)
-    node[test_cpnt_name].value = test_cpnt_value
+    node[test_cpnt_name].push_value(test_cpnt_value)
 
     serialized_node = node.serialize()
     file_fn.write_json(export_path, serialized_node)
@@ -129,4 +135,10 @@ def test_importing_node_with_extra_components_gives_correct_values(
     pasted_node = paste_command.pasted_nodes[0]
 
     assert pasted_node[test_cpnt_name] is not None
-    assert pasted_node[test_cpnt_name].value == test_cpnt_value
+    assert (
+        pasted_node[test_cpnt_name].pull_value(value_mask=NodeComponentValueMask.RAW)
+        == test_cpnt_value
+    )
+    assert pasted_node[test_cpnt_name].pull_value(
+        value_mask=NodeComponentValueMask.CACHE
+    ) == int(test_cpnt_value)

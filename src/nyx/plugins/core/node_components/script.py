@@ -12,8 +12,9 @@ LOGGER = logging.getLogger(__name__)
 
 class ScriptComponent(NodeComponent):
     DEFAULT_NAME = "script"
-    ENTRY_POINT_SEPARATOR = ":"
+    EDITOR_QML = "ScriptComponentItem"
 
+    ENTRY_POINT_SEPARATOR = ":"
     GLOBALS_NODE_REF_NAME = "nyx_node"
     GLOBALS_COMPONENT_REF_NAME = "nyx_cpnt"
 
@@ -40,6 +41,10 @@ class ScriptComponent(NodeComponent):
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
         return NodeComponentFlag.EDITABLE
+
+    @classmethod
+    def get_default_expanded_state(cls) -> bool:
+        return True
 
     def execute(self):
         script_value = self.pull_value()

@@ -10,6 +10,7 @@ from nyx.api.v1 import (
 
 class FlowComponent(NodeComponent):
     DEFAULT_NAME = "flow"
+    EDITOR_QML = "FlowComponentItem"
 
     @classmethod
     def get_type_id(cls) -> str:
@@ -28,13 +29,16 @@ class FlowComponent(NodeComponent):
         return {"logic"}
 
     @classmethod
-    def get_type_default_flags(cls) -> NodeComponentFlag:
-        return NodeComponentFlag.STATIC
+    def get_default_expanded_state(cls) -> bool:
+        return True
 
-    def serialize_value(self) -> str:
-        if self.value:
-            return str(self.value)
-        return None
+    @classmethod
+    def get_type_default_flags(cls) -> NodeComponentFlag:
+        return (
+            NodeComponentFlag.STATIC
+            | NodeComponentFlag.WRITABLE
+            | NodeComponentFlag.READABLE
+        )
 
     def deserialize_value(self, value: str | None) -> pathlib.PurePosixPath | None:
         if value is None:
