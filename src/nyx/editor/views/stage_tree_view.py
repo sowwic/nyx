@@ -8,10 +8,10 @@ from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.core import commands
-from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
-from nyx.editor.utils import clipboard
+from nyx.editor.utils import clipboard, context_menus
+from nyx.editor.views.node_item_delegate import NodeItemDelegate
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
@@ -39,6 +39,8 @@ class StageTreeView(QtWidgets.QTreeView):
         self.setSelectionMode(self.SelectionMode.ExtendedSelection)
         self.setExpandsOnDoubleClick(False)
         self.setEditTriggers(StageTreeView.NoEditTriggers)
+        self.setIconSize(QtCore.QSize(16, 16))
+        self.setItemDelegate(NodeItemDelegate(self))
 
         self.create_actions()
         self.create_connections()
@@ -51,6 +53,11 @@ class StageTreeView(QtWidgets.QTreeView):
         register(ActionId.CUT, self.cut_selected_nodes)
         register(ActionId.PASTE, self.paste_nodes_from_clipboard)
         register(ActionId.COPY_NODE_PATH, self.copy_selected_node_path)
+        register(
+            ActionId.FOCUS_SELECTED,
+            self.focus_on_selected_nodes,
+            enabled_fn=lambda: bool(self.selected_nodes()),
+        )
 
     def create_connections(self):
         self.doubleClicked.connect(self._emit_doubledclicked_item)
@@ -157,6 +164,12 @@ class StageTreeView(QtWidgets.QTreeView):
         )
         self.stage.push_command(paste_cmd)
 
+    def focus_on_selected_nodes(self):
+        """Center the graph view on the nodes selected in the tree."""
+        if self.current_stage_graph is None:
+            return
+        self.current_stage_graph.gr_view.focus_on_selected_nodes()
+
     def copy_selected_node_path(self):
         selected_node = self.current_node()
         if not selected_node:
@@ -165,19 +178,7 @@ class StageTreeView(QtWidgets.QTreeView):
         LOGGER.info(f"Copied node path: {selected_node.path.as_posix()}")
 
     def show_context_menu(self, point: QtCore.QPoint):
-        menu = QtWidgets.QMenu("", self)
-        action = ACTION_REGISTRY.action
-        menu.addAction(action(ActionId.CREATE_NODE))
-        if self.current_node():
-            menu.addSeparator()
-            menu.addAction(action(ActionId.COPY))
-            menu.addAction(action(ActionId.CUT))
-
-        menu.addAction(action(ActionId.PASTE))
-
-        if self.current_node():
-            menu.addSeparator()
-            menu.addAction(action(ActionId.COPY_NODE_PATH))
-            menu.addAction(action(ActionId.DELETE_NODE))
-
+        menu = context_menus.build_nodes_context_menu(
+            self, has_selection=bool(self.current_node())
+        )
         menu.exec_(self.mapToGlobal(point))

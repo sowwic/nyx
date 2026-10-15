@@ -110,6 +110,8 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.selection_model.selectionChanged.connect(
             self.gr_stage.on_selection_model_selection_changed
         )
+        # After the scene selection is synced: selection decides action availability.
+        self.selection_model.selectionChanged.connect(self._refresh_actions)
 
     def create_connections(self):
         """Create signal to slot connections."""
@@ -284,6 +286,9 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
+
+    def _refresh_actions(self, *_) -> None:
+        ACTION_ROUTER.refresh_enabled()
 
     def show_nodes_palette_centered(self, spawn_position: QtCore.QPointF | None = None):
         """Show the modal nodes palette centered over the editor window."""
