@@ -39,7 +39,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
     LAYOUT_VERSION = 1
-    MINIMUM_SIZE = (500, 400)
+    MINIMUM_SIZE = (1000, 600)
 
     @classmethod
     def instance(cls):

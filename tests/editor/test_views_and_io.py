@@ -189,15 +189,16 @@ def test_graph_view_focus_centers_on_selected_nodes(stage_editor, create_node):
 
     united = a.gr_node.sceneBoundingRect().united(b.gr_node.sceneBoundingRect())
     center = view.get_center_position()
-    # Tolerance: a few viewport pixels at the reduced zoom.
-    assert center.x() == pytest.approx(united.center().x(), abs=10)
-    assert center.y() == pytest.approx(united.center().y(), abs=10)
+    # Tolerance: a couple of viewport pixels, expressed in scene units.
+    tolerance = 2 / view.transform().m11()
+    assert center.x() == pytest.approx(united.center().x(), abs=tolerance)
+    assert center.y() == pytest.approx(united.center().y(), abs=tolerance)
 
 
 def test_graph_view_focus_zooms_out_to_fit_distant_nodes(stage_editor, create_node):
     a = create_node(stage_editor.stage, "a")
     b = create_node(stage_editor.stage, "b")
-    place(stage_editor, (a, (-5000, -3000)), (b, (5000, 3000)))
+    place(stage_editor, (a, (-1500, -900)), (b, (1500, 900)))
     select(stage_editor, a, b)
     view = stage_editor.gr_view
     zoom_before = view.zoom

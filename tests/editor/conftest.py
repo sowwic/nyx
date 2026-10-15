@@ -15,6 +15,9 @@ def close_all_stage_windows(main_window) -> None:
 def main_window(qapp, qtbot):
     """The application's editor main window, with no stage windows open."""
     window = qapp.main_window()
+    # Fixed size: the default depends on the saved config / screen, which makes
+    # geometry-dependent tests behave differently locally and on CI.
+    window.resize(1200, 900)
     close_all_stage_windows(window)
     yield window
     close_all_stage_windows(window)
