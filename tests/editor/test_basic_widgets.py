@@ -1,3 +1,4 @@
+import pytest
 from PySide6 import QtCore, QtWidgets
 
 from nyx.editor.widgets.common_widgets import ClickableHeaderWidget, ElidedTextLabel
@@ -66,7 +67,8 @@ def test_clickable_header_emits_only_on_left_click(qtbot):
 
 
 # ---- NyxTextEdit ----
-def _text_edit_with_neighbor(qtbot):
+@pytest.fixture
+def text_edit_pair(qtbot):
     window = QtWidgets.QWidget()
     layout = QtWidgets.QVBoxLayout(window)
     edit = NyxTextEdit()
@@ -74,28 +76,29 @@ def _text_edit_with_neighbor(qtbot):
     layout.addWidget(edit)
     layout.addWidget(other)
     qtbot.addWidget(window)
-    edit._window_ref = window  # keep the Python wrapper (and C++ window) alive
-    return edit, other
+    yield edit, other  # `window` stays alive in this frame
 
 
-def test_text_edit_emits_editing_finished_when_changed_and_focus_lost(qtbot, give_focus):
-    edit, other = _text_edit_with_neighbor(qtbot)
+def test_text_edit_emits_editing_finished_when_changed_and_focus_lost(
+    qtbot, give_focus, text_edit_pair
+):
+    edit, other = text_edit_pair
     give_focus(edit)
     edit.setPlainText("changed")
     with qtbot.waitSignal(edit.editingFinished, timeout=1000):
         give_focus(other)
 
 
-def test_text_edit_silent_when_unchanged(qtbot, give_focus):
-    edit, other = _text_edit_with_neighbor(qtbot)
+def test_text_edit_silent_when_unchanged(qtbot, give_focus, text_edit_pair):
+    edit, other = text_edit_pair
     give_focus(edit)
     edit.set_text_changed(False)
     with qtbot.assertNotEmitted(edit.editingFinished):
         give_focus(other)
 
 
-def test_text_edit_emits_received_focus(qtbot, give_focus):
-    edit, _other = _text_edit_with_neighbor(qtbot)
+def test_text_edit_emits_received_focus(qtbot, give_focus, text_edit_pair):
+    edit, _other = text_edit_pair
     with qtbot.waitSignal(edit.receivedFocus, timeout=1000):
         give_focus(edit)
 

@@ -96,8 +96,7 @@ def dock(qtbot):
     window.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, dock)
     window.resize(600, 400)
     window.show()
-    dock._window_ref = window  # keep the Python wrapper (and C++ window) alive
-    return dock
+    yield dock  # `window` stays alive in this frame
 
 
 def _fake_config(is_expanded=False, expanded_height=250):

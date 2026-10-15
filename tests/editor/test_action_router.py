@@ -1,5 +1,3 @@
-import gc
-
 import pytest
 from PySide6 import QtCore, QtWidgets
 from unittest import mock
@@ -124,8 +122,7 @@ def test_bound_method_handler_is_weak(registry, router):
     target = Target()
     router.register_handler(ActionId.COPY, target.run)
     assert router.resolve_handler(ActionId.COPY) is not None
-    del target
-    gc.collect()
+    del target  # no cycle: refcounting frees it immediately
     assert router.resolve_handler(ActionId.COPY) is None
 
 
