@@ -4,11 +4,13 @@ import pytest
 import logging
 from pytest import MonkeyPatch
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from nyx.core.logger import NyxLogger
 from nyx.application import NyxApplication, NyxEditorApplication
 from nyx.api.v1 import NyxPluginManager, NYX_REGISTRY
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.main_window import NyxEditorMainWindow
 
 logging.setLoggerClass(NyxLogger)
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -43,6 +45,24 @@ def pytest_collection_modifyitems(config, items):
     )
 
 
+def _release_editor_objects(app: QtWidgets.QApplication) -> None:
+    """Destroy editor widgets and global actions while Python and Qt are alive.
+
+    Otherwise they are torn down at interpreter exit, after the QApplication, which
+    segfaults (exit code 139) on some platforms.
+    """
+    if not isinstance(app, NyxEditorApplication):
+        return
+
+    main_window = NyxEditorMainWindow.instance()
+    if main_window is not None:
+        main_window.deleteLater()
+        NyxEditorMainWindow._INSTANCE = None
+    ACTION_REGISTRY.clear()
+    app.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
+    app.processEvents()
+
+
 # Do NOT call app.quit() or app.exit()
 @pytest.fixture(scope="session")
 def qapp(request: pytest.FixtureRequest):
@@ -58,7 +78,8 @@ def qapp(request: pytest.FixtureRequest):
             app = NyxEditorApplication()
         else:
             app = NyxApplication(initialize_plugins=False)
-    return app
+    yield app
+    _release_editor_objects(app)
 
 
 @pytest.fixture
