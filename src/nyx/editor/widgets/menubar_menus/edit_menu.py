@@ -1,10 +1,11 @@
 import typing
 
-from PySide6 import QtGui
-
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
 from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
@@ -15,32 +16,25 @@ class EditMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
-        self.reset_editor_config_action = QtGui.QAction("Reset Config", self)
-        self.undo_action: QtGui.QAction = self.main_window.undo_group.createUndoAction(
-            self
+        undo_group = self.main_window.undo_group
+        self.undo_action = ACTION_REGISTRY.adopt_action(
+            ActionId.UNDO, undo_group.createUndoAction(self)
         )
-        self.redo_action: QtGui.QAction = self.main_window.undo_group.createRedoAction(
-            self
+        self.redo_action = ACTION_REGISTRY.adopt_action(
+            ActionId.REDO, undo_group.createRedoAction(self)
         )
-        self.rename_selected_node_action = QtGui.QAction("Rename Selected Node", self)
-
-        self.undo_action.setShortcut("Ctrl+Z")
-        self.redo_action.setShortcut("Ctrl+Y")
-        self.rename_selected_node_action.setShortcut("F2")
-
-    def create_connections(self):
-        self.rename_selected_node_action.triggered.connect(self.on_rename_selected_node)
-        self.reset_editor_config_action.triggered.connect(
-            self.main_window.reset_application_config
+        ACTION_ROUTER.register_handler(
+            ActionId.RENAME_NODE, self.on_rename_selected_node
         )
 
     def populate(self):
+        action = ACTION_REGISTRY.action
         self.addAction(self.undo_action)
         self.addAction(self.redo_action)
         self.addSeparator()
-        self.addAction(self.rename_selected_node_action)
+        self.addAction(action(ActionId.RENAME_NODE))
         self.addSection("Editor")
-        self.addAction(self.reset_editor_config_action)
+        self.addAction(action(ActionId.RESET_CONFIG))
 
     def on_rename_selected_node(self):
         if not self.main_window.current_stage_graph:

@@ -2,6 +2,9 @@ import typing
 
 from PySide6 import QtCore, QtWidgets
 
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.core.actions import ActionId
+
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
@@ -13,7 +16,10 @@ class EditorToolBar(QtWidgets.QToolBar):
         super().__init__("Tools", parent)
         self.main_window: NyxEditorMainWindow = main_window
         self.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.addAction(self.main_window.stage_tree_view.create_new_node_action)
-        self.addAction(self.main_window.stage_tree_view.delete_selected_node_action)
-        self.addAction(self.main_window.execute_stage_action)
-        self.addAction(self.main_window.execute_from_selected_node_action)
+        for action_id in (
+            ActionId.CREATE_NODE,
+            ActionId.DELETE_NODE,
+            ActionId.EXECUTE_STAGE,
+            ActionId.EXECUTE_FROM_SELECTED,
+        ):
+            self.addAction(ACTION_REGISTRY.action(action_id))

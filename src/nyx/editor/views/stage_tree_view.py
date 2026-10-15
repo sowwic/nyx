@@ -1,3 +1,4 @@
+import functools
 import typing
 import logging
 from collections import deque
@@ -7,6 +8,9 @@ from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.core import commands
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import clipboard
 from nyx.utils import pyside_fn
 
@@ -40,26 +44,13 @@ class StageTreeView(QtWidgets.QTreeView):
         self.create_connections()
 
     def create_actions(self):
-        self.create_new_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/plus"), "Create node", self
-        )
-        self.create_new_node_action.triggered.connect(self.create_new_node)
-        self.delete_selected_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/delete"), "Delete node", self
-        )
-        self.delete_selected_node_action.triggered.connect(self.delete_selected_node)
-        self.copy_selected_nodes_action = QtGui.QAction("Copy", self)
-        self.copy_selected_nodes_action.triggered.connect(self.copy_selected_nodes)
-        self.cut_selected_nodes_action = QtGui.QAction("Cut", self)
-        self.cut_selected_nodes_action.triggered.connect(self.cut_selected_nodes)
-        self.copy_selected_node_path_action = QtGui.QAction(
-            "Copy path to selected", self
-        )
-        self.copy_selected_node_path_action.triggered.connect(
-            self.copy_selected_node_path
-        )
-        self.paste_nodes_action = QtGui.QAction("Paste", self)
-        self.paste_nodes_action.triggered.connect(self.paste_nodes_from_clipboard)
+        register = functools.partial(ACTION_ROUTER.register_handler, scope=self)
+        register(ActionId.CREATE_NODE, self.create_new_node)
+        register(ActionId.DELETE_NODE, self.delete_selected_node)
+        register(ActionId.COPY, self.copy_selected_nodes)
+        register(ActionId.CUT, self.cut_selected_nodes)
+        register(ActionId.PASTE, self.paste_nodes_from_clipboard)
+        register(ActionId.COPY_NODE_PATH, self.copy_selected_node_path)
 
     def create_connections(self):
         self.doubleClicked.connect(self._emit_doubledclicked_item)
@@ -122,25 +113,10 @@ class StageTreeView(QtWidgets.QTreeView):
 
         return super().mousePressEvent(event)
 
-    # TODO: Replace with palette dialog
     def create_new_node(self):
         if self.current_stage_graph is None:
             return
-        parent_path = None
-        selected_nodes = self.selected_nodes()
-        if selected_nodes:
-            parent_path = selected_nodes[-1].path
-
-        view_center_position: QtCore.QPointF = (
-            self.current_stage_graph.gr_view.get_center_position()
-        )
-        create_cmd = commands.CreateNodeCommand(
-            stage=self.stage,
-            name="node",
-            parent_node=parent_path,
-            position=view_center_position,
-        )
-        self.stage.push_command(create_cmd)
+        self.current_stage_graph.show_nodes_palette_centered()
 
     def delete_selected_node(self):
         if not self.selected_nodes():
@@ -190,17 +166,18 @@ class StageTreeView(QtWidgets.QTreeView):
 
     def show_context_menu(self, point: QtCore.QPoint):
         menu = QtWidgets.QMenu("", self)
-        menu.addAction(self.create_new_node_action)
+        action = ACTION_REGISTRY.action
+        menu.addAction(action(ActionId.CREATE_NODE))
         if self.current_node():
             menu.addSeparator()
-            menu.addAction(self.copy_selected_nodes_action)
-            menu.addAction(self.cut_selected_nodes_action)
+            menu.addAction(action(ActionId.COPY))
+            menu.addAction(action(ActionId.CUT))
 
-        menu.addAction(self.paste_nodes_action)
+        menu.addAction(action(ActionId.PASTE))
 
         if self.current_node():
             menu.addSeparator()
-            menu.addAction(self.copy_selected_node_path_action)
-            menu.addAction(self.delete_selected_node_action)
+            menu.addAction(action(ActionId.COPY_NODE_PATH))
+            menu.addAction(action(ActionId.DELETE_NODE))
 
         menu.exec_(self.mapToGlobal(point))

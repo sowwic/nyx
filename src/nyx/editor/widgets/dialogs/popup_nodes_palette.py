@@ -48,6 +48,21 @@ class PopupNodesPalette(QtWidgets.QDialog):
         return application.main_window().current_stage_graph
 
     @classmethod
+    def popup_centered(cls, spawn_position: QtCore.QPointF | None = None):
+        """Show the palette modally, centered over the main window."""
+        current_editor = cls.get_current_editor()
+        if current_editor is None:
+            return
+
+        window = current_editor.window()
+        palette = cls(spawn_position, parent=window)
+        if spawn_position is not None:
+            palette.set_spawner_position(QtCore.QPointF(spawn_position))
+        palette.move(window.geometry().center() - palette.rect().center())
+        palette.exec()
+        return palette
+
+    @classmethod
     def popup(cls):
         current_editor = cls.get_current_editor()
         if current_editor is None:

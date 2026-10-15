@@ -10,6 +10,9 @@ from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from ..version import __version__
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
 from .views.stage_tree_view import StageTreeView
 from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
@@ -120,16 +123,26 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return dock
 
     def create_actions(self):
-        self.execute_stage_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/exec_stage"), "Execute stage", self
+        register = ACTION_ROUTER.register_handler
+        register(ActionId.EXECUTE_STAGE, self.execute_stage_graph)
+        register(ActionId.EXECUTE_FROM_SELECTED, self.execute_from_selected_node)
+        register(ActionId.NEW_STAGE, self.on_stage_new)
+        register(ActionId.OPEN_STAGE, self.on_stage_open)
+        register(ActionId.OPEN_STAGE_TAB, self.on_stage_open_tabbed)
+        register(ActionId.SAVE_STAGE, self.on_stage_save)
+        register(ActionId.SAVE_STAGE_AS, self.on_stage_save_as)
+        register(ActionId.RESET_CONFIG, self.reset_application_config)
+        # Fallbacks so toolbar buttons work before the tree view has focus
+        register(ActionId.CREATE_NODE, self.show_nodes_palette)
+        register(
+            ActionId.DELETE_NODE, lambda: self.stage_tree_view.delete_selected_node()
         )
-        self.execute_from_selected_node_action = QtGui.QAction(
-            QtGui.QIcon(":/icons/exec_from"), "Execute from selected node", self
-        )
-        self.execute_stage_action.triggered.connect(self.execute_stage_graph)
-        self.execute_from_selected_node_action.triggered.connect(
-            self.execute_from_selected_node
-        )
+        ACTION_REGISTRY.attach_shortcuts(self)
+
+    def show_nodes_palette(self):
+        """Show the modal nodes palette for the current stage graph."""
+        if self.current_stage_graph is not None:
+            self.current_stage_graph.show_nodes_palette_centered()
 
     def create_menubar(self):
         self.menubar_file_menu = menubar_menus.FileMenu(self)

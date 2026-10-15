@@ -1,10 +1,11 @@
 import typing
 
-from PySide6 import QtGui
-
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
 from nyx.editor.utils.io import export_selected_nodes, import_nodes_from_explorer
 from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
@@ -16,46 +17,24 @@ class FileMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
-        self.new_stage_action = QtGui.QAction("New Stage", self)
-        self.open_stage_action = QtGui.QAction("Open Stage...", self)
-        self.open_stage_as_new_tab_action = QtGui.QAction(
-            "Open Stage As New Tab...", self
+        register = ACTION_ROUTER.register_handler
+        register(ActionId.EXPORT_NODES, export_selected_nodes)
+        register(ActionId.IMPORT_NODES, import_nodes_from_explorer)
+        register(
+            ActionId.REFERENCE_NODES,
+            lambda: import_nodes_from_explorer(as_reference=True),
         )
-        self.save_stage_action = QtGui.QAction("Save Stage", self)
-        self.save_stage_as_action = QtGui.QAction("Save Stage As...", self)
-        self.export_selected_nodes_action = QtGui.QAction(
-            "Export Selected Nodes As...", self
-        )
-        self.import_nodes_from_file_action = QtGui.QAction("Import Nodes", self)
-        self.reference_nodes_from_file_action = QtGui.QAction("Reference Nodes", self)
-
-        self.new_stage_action.setShortcut("Ctrl+Shift+N")
-        self.open_stage_action.setShortcut("Ctrl+Shift+O")
-        self.save_stage_action.setShortcut("Ctrl+Shift+S")
 
     def populate(self):
+        action = ACTION_REGISTRY.action
         self.addSection("Open")
-        self.addAction(self.new_stage_action)
-        self.addAction(self.open_stage_action)
-        self.addAction(self.open_stage_as_new_tab_action)
+        self.addAction(action(ActionId.NEW_STAGE))
+        self.addAction(action(ActionId.OPEN_STAGE))
+        self.addAction(action(ActionId.OPEN_STAGE_TAB))
         self.addSection("Save")
-        self.addAction(self.save_stage_action)
-        self.addAction(self.save_stage_as_action)
+        self.addAction(action(ActionId.SAVE_STAGE))
+        self.addAction(action(ActionId.SAVE_STAGE_AS))
         self.addSection("Nodes")
-        self.addAction(self.import_nodes_from_file_action)
-        self.addAction(self.reference_nodes_from_file_action)
-        self.addAction(self.export_selected_nodes_action)
-
-    def create_connections(self):
-        self.new_stage_action.triggered.connect(self.main_window.on_stage_new)
-        self.open_stage_action.triggered.connect(self.main_window.on_stage_open)
-        self.open_stage_as_new_tab_action.triggered.connect(
-            self.main_window.on_stage_open_tabbed
-        )
-        self.save_stage_action.triggered.connect(self.main_window.on_stage_save)
-        self.save_stage_as_action.triggered.connect(self.main_window.on_stage_save_as)
-        self.export_selected_nodes_action.triggered.connect(export_selected_nodes)
-        self.import_nodes_from_file_action.triggered.connect(import_nodes_from_explorer)
-        self.reference_nodes_from_file_action.triggered.connect(
-            lambda: import_nodes_from_explorer(as_reference=True)
-        )
+        self.addAction(action(ActionId.IMPORT_NODES))
+        self.addAction(action(ActionId.REFERENCE_NODES))
+        self.addAction(action(ActionId.EXPORT_NODES))

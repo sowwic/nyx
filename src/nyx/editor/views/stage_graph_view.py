@@ -1,11 +1,15 @@
 import enum
 import logging
+import functools
 import typing
 
 # import pathlib
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.utils import clipboard
@@ -87,41 +91,20 @@ class StageGraphView(QtWidgets.QGraphicsView):
             )
 
     def create_actions(self):
-        self.create_node_action = QtGui.QAction("Create Node", self.gr_stage)
-        self.copy_selected_action = QtGui.QAction("Copy", self.gr_stage)
-        self.cut_selected_action = QtGui.QAction("Cut", self.gr_stage)
-        self.paste_action = QtGui.QAction("Paste", self.gr_stage)
-        self.delete_selected_action = QtGui.QAction("Delete", self.gr_stage)
-        self.focus_on_selected_nodes_action = QtGui.QAction(
-            "Focus on selected nodes", self.gr_stage
+        def has_selection():
+            return not self.gr_stage.is_gr_node_selection_empty()
+
+        register = functools.partial(ACTION_ROUTER.register_handler, scope=self)
+        register(ActionId.CREATE_NODE, self.create_new_node)
+        register(ActionId.PASTE, self.paste_nodes_from_clipboard)
+        register(ActionId.COPY, self.copy_selected_nodes, enabled_fn=has_selection)
+        register(ActionId.CUT, self.cut_selected_nodes, enabled_fn=has_selection)
+        register(ActionId.DELETE, self.delete_selected, enabled_fn=has_selection)
+        register(
+            ActionId.FOCUS_SELECTED,
+            self.focus_on_selected_nodes,
+            enabled_fn=has_selection,
         )
-
-        self.create_node_action.triggered.connect(self.create_new_node)
-        self.copy_selected_action.triggered.connect(self.copy_selected_nodes)
-        self.cut_selected_action.triggered.connect(self.cut_selected_nodes)
-        self.paste_action.triggered.connect(self.paste_nodes_from_clipboard)
-        self.delete_selected_action.triggered.connect(self.delete_selected)
-        self.focus_on_selected_nodes_action.triggered.connect(
-            self.focus_on_selected_nodes
-        )
-
-        self.copy_selected_action.setShortcut("Ctrl+C")
-        self.cut_selected_action.setShortcut("Ctrl+X")
-        self.paste_action.setShortcut("Ctrl+V")
-        self.delete_selected_action.setShortcut("Delete")
-        self.focus_on_selected_nodes_action.setShortcut("F")
-
-        for action in (
-            self.copy_selected_action,
-            self.cut_selected_action,
-            self.paste_action,
-            self.delete_selected_action,
-            self.focus_on_selected_nodes_action,
-        ):
-            action.setShortcutContext(
-                QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut
-            )
-            self.addAction(action)
 
     def create_widgets(self):
         pass
@@ -133,11 +116,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     def update_actions(self):
-        is_selection_empty = self.gr_stage.is_gr_node_selection_empty()
-        self.copy_selected_action.setDisabled(is_selection_empty)
-        self.cut_selected_action.setDisabled(is_selection_empty)
-        self.delete_selected_action.setDisabled(is_selection_empty)
-        self.focus_on_selected_nodes_action.setDisabled(is_selection_empty)
+        ACTION_ROUTER.refresh_enabled()
 
     @property
     def stage(self):
@@ -383,14 +362,15 @@ class StageGraphView(QtWidgets.QGraphicsView):
         menu = QtWidgets.QMenu("", self)
         self.update_actions()
         # Add actions
-        menu.addAction(self.create_node_action)
+        action = ACTION_REGISTRY.action
+        menu.addAction(action(ActionId.CREATE_NODE))
         menu.addSeparator()
-        menu.addAction(self.copy_selected_action)
-        menu.addAction(self.cut_selected_action)
-        menu.addAction(self.paste_action)
-        menu.addAction(self.delete_selected_action)
+        menu.addAction(action(ActionId.COPY))
+        menu.addAction(action(ActionId.CUT))
+        menu.addAction(action(ActionId.PASTE))
+        menu.addAction(action(ActionId.DELETE))
         menu.addSeparator()
-        menu.addAction(self.focus_on_selected_nodes_action)
+        menu.addAction(action(ActionId.FOCUS_SELECTED))
 
         menu.exec_(self.mapToGlobal(point))
 
@@ -410,18 +390,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
             pass
             # self.scene.history.store_history('Edges cut', set_modified=True)
 
-    # TODO: Replace with palette dialog
     def create_new_node(self):
-        parent_path = self.graph_editor.get_scope_path()
-
-        position = self.last_scene_mouse_pos
-        create_cmd = commands.CreateNodeCommand(
-            stage=self.stage,
-            name="node",
-            parent_node=parent_path,
-            position=position,
-        )
-        self.stage.push_command(create_cmd)
+        self.graph_editor.show_nodes_palette_centered(self.last_scene_mouse_pos)
 
     def delete_selected(self):
         if not self.stage:

@@ -8,6 +8,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from nyx.core import Stage
 from nyx.core.exceptions import StageObjectQueryError
 from nyx.static.vars import ROOT_NODE_PATH
+from nyx.editor.core.action_router import ACTION_ROUTER
+from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
@@ -79,17 +81,9 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def create_actions(self):
         """Create and setup actions."""
-        self._show_nodes_palette_action = QtGui.QAction("Add Node...", self)
-        self._show_nodes_palette_action.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key.Key_Tab)
+        ACTION_ROUTER.register_handler(
+            ActionId.SHOW_PALETTE, self._shows_popup_nodes_palette, scope=self
         )
-        self._show_nodes_palette_action.setShortcutContext(
-            QtCore.Qt.ShortcutContext.WidgetWithChildrenShortcut
-        )
-        self._show_nodes_palette_action.triggered.connect(
-            self._shows_popup_nodes_palette
-        )
-        self.addAction(self._show_nodes_palette_action)
 
     def create_widgets(self):
         """Create and setup widgets."""
@@ -290,6 +284,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
+
+    def show_nodes_palette_centered(self, spawn_position: QtCore.QPointF | None = None):
+        """Show the modal nodes palette centered over the editor window."""
+        with dimmed_ovelay(self.window()):
+            PopupNodesPalette.popup_centered(spawn_position)
 
     def _shows_popup_nodes_palette(self):
         point_under_cursor_in_gr_view = self.gr_view.viewport().mapFromGlobal(
