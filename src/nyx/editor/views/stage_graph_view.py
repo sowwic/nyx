@@ -79,6 +79,21 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.setAcceptDrops(True)
 
+    def get_view_state(self) -> dict:
+        """Zoom level and the scene point at the viewport center."""
+        center = self.mapToScene(self.viewport().rect().center())
+        return {"zoom": self.zoom, "center": [center.x(), center.y()]}
+
+    def apply_view_state(self, state: dict) -> None:
+        zoom = float(state.get("zoom", self.DEFAULT_ZOOM))
+        zoom = max(self.zoom_range[0], min(self.zoom_range[1], zoom))
+        scale = self.zoom_in_factor ** (zoom - self.DEFAULT_ZOOM)
+        self.zoom = zoom
+        self.setTransform(QtGui.QTransform.fromScale(scale, scale))
+        x, y = state.get("center", [0.0, 0.0])
+        self.centerOn(float(x), float(y))
+        self.update_render_hints()
+
     def update_render_hints(self):
         if self.zoom > self.HIGH_QUALITY_ZOOM:
             self.setRenderHints(

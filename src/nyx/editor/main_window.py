@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import functools
 import pathlib
 import typing
 import logging
 import base64
 
+import shiboken6
 from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
@@ -23,6 +25,8 @@ from .widgets import menubar_menus
 from .widgets.stage_mdi_area import StageMdiArea
 from ..utils import pyside_fn
 from ..static.enums import EditorUIObject
+from ..core.session import SESSION_FILE_SUFFIX
+from ..static.paths import LAST_SESSION_FILE_PATH
 
 
 if typing.TYPE_CHECKING:
@@ -82,7 +86,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @property
     def config(self) -> NyxConfig:
-        return self.application.config
+        return self.application.session.config
 
     @property
     def current_stage_graph(self) -> StageGraphEditor | None:
@@ -131,6 +135,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         register(ActionId.OPEN_STAGE_TAB, self.on_stage_open_tabbed)
         register(ActionId.SAVE_STAGE, self.on_stage_save)
         register(ActionId.SAVE_STAGE_AS, self.on_stage_save_as)
+        register(ActionId.SAVE_SESSION, self.on_session_save)
+        register(ActionId.LOAD_SESSION, self.on_session_load)
+        register(ActionId.RESTORE_LAST_SESSION, self.on_session_restore_last)
         register(ActionId.RESET_CONFIG, self.reset_application_config)
         # Fallbacks so toolbar buttons work before the tree view has focus
         register(ActionId.CREATE_NODE, self.show_nodes_palette)
@@ -147,11 +154,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_menubar(self):
         self.menubar_file_menu = menubar_menus.FileMenu(self)
         self.menubar_edit_menu = menubar_menus.EditMenu(self)
+        self.menubar_session_menu = menubar_menus.SessionMenu(self)
         self.menubar_window_menu = menubar_menus.WindowMenu(self)
 
         self.menuBar().setNativeMenuBar(False)
         self.menuBar().addMenu(self.menubar_file_menu)
         self.menuBar().addMenu(self.menubar_edit_menu)
+        self.menuBar().addMenu(self.menubar_session_menu)
         self.menuBar().addMenu(self.menubar_window_menu)
 
     def create_widgets(self):
@@ -272,6 +281,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
                 event.ignore()
                 return
 
+        # Editors are still open here, so their scope/view state can be captured
+        try:
+            self.save_session(LAST_SESSION_FILE_PATH)
+        except Exception:
+            LOGGER.exception("Failed to save last session")
         try:
             self.save_config_value()
         except Exception:
@@ -352,7 +366,62 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         stage_graph_editor_widget.node_type_dropped.connect(
             self.nodes_palette_view.on_node_dropped
         )
+        stage_graph_editor_widget.stage_file_used.connect(self.add_recent_file)
+        if file_path:
+            self.add_recent_file(str(file_path))
         return mdi_sub_window
+
+    def add_recent_file(self, file_path: str):
+        self.application.session.add_recent_file(file_path)
+
+    def remove_recent_file(self, file_path: str):
+        self.application.session.remove_recent_file(file_path)
+
+    def find_window_for_file(
+        self, file_path: pathlib.Path | str
+    ) -> QtWidgets.QMdiSubWindow | None:
+        stage = self.application.session.find_stage_for_file(file_path)
+        if stage is None:
+            return None
+        for sub_wnd in self.mdi_area.subWindowList():
+            if sub_wnd.widget().stage is stage:
+                return sub_wnd
+        return None
+
+    def activate_editor_window(self, sub_wnd: QtWidgets.QMdiSubWindow) -> None:
+        if sub_wnd.isMinimized():
+            sub_wnd.showNormal()
+        self.mdi_area.setActiveSubWindow(sub_wnd)
+        self.on_node_graph_window_activated(sub_wnd)
+
+    def activate_window_for_file(self, file_path: pathlib.Path | str) -> bool:
+        """Activate the editor already showing given file, if any."""
+        sub_wnd = self.find_window_for_file(file_path)
+        if sub_wnd is None:
+            return False
+        self.mdi_area.setActiveSubWindow(sub_wnd)
+        self.on_node_graph_window_activated(sub_wnd)
+        return True
+
+    def on_stage_open_recent(self, file_path: str):
+        if not pathlib.Path(file_path).is_file():
+            LOGGER.warning("Recent file no longer exists: %s", file_path)
+            self.remove_recent_file(file_path)
+            return
+
+        if self.activate_window_for_file(file_path):
+            return
+
+        sub_wnd = self.create_stage_node_graph()
+        stage_graph: StageGraphEditor = sub_wnd.widget()
+
+        if not stage_graph.open_stage_file(file_path):
+            self.mdi_area.removeSubWindow(sub_wnd)
+            return
+
+        self.mdi_area.setActiveSubWindow(sub_wnd)
+        sub_wnd.show()
+        self.on_node_graph_window_activated(sub_wnd)
 
     # Slots
     def update_title(self):
@@ -376,23 +445,93 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.stage_tree_view.setSelectionModel(stage_graph.selection_model)
 
     def on_stage_open(self, tabbed: bool = False):
+        file_path = StageGraphEditor.pick_stage_file(self)
+        if not file_path:
+            return
+        if self.activate_window_for_file(file_path):
+            return
+
         created_new = tabbed or self.current_mdi_window is None
         sub_wnd = (
             self.create_stage_node_graph() if created_new else self.current_mdi_window
         )
 
         stage_graph: StageGraphEditor = sub_wnd.widget()
-        file_opened = stage_graph.on_stage_open()
+        file_opened = stage_graph.open_stage_file(file_path)
 
         if not file_opened:
             if created_new:
                 self.mdi_area.removeSubWindow(sub_wnd)
-            # else: cancelled opening into an existing window — leave it alone
+            # else: cancelled saving into an existing window — leave it alone
             return
 
         self.mdi_area.setActiveSubWindow(sub_wnd)
         sub_wnd.show()
         self.on_node_graph_window_activated(sub_wnd)
+
+    def on_session_save(self):
+        file_filter = f"Nyx Session (*{SESSION_FILE_SUFFIX})"
+        file_path = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save session to file", None, file_filter
+        )[0]
+        if not file_path:
+            return
+        if not file_path.endswith(SESSION_FILE_SUFFIX):
+            file_path += SESSION_FILE_SUFFIX
+        self.save_session(file_path)
+
+    def save_session(self, file_path: pathlib.Path | str):
+        current = self.current_stage_graph
+        editors = {w.widget().stage: w.widget() for w in self.mdi_area.subWindowList()}
+        self.application.session.save_to_file(
+            file_path,
+            stage_state=lambda stage: (
+                editors[stage].get_session_state() if stage in editors else {}
+            ),
+            active_stage=current.stage if current else None,
+        )
+
+    def on_session_load(self):
+        file_filter = f"Nyx Session (*{SESSION_FILE_SUFFIX})"
+        file_path = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Load session", None, file_filter
+        )[0]
+        if not file_path:
+            return
+        self.load_session(file_path)
+
+    def on_session_restore_last(self):
+        if not LAST_SESSION_FILE_PATH.is_file():
+            LOGGER.warning("No last session to restore")
+            return
+        self.load_session(LAST_SESSION_FILE_PATH)
+
+    def load_session(self, file_path: pathlib.Path | str):
+        try:
+            data = self.application.session.read_file(file_path)
+        except (OSError, ValueError):
+            LOGGER.exception("Failed to read session file: %s", file_path)
+            return
+        for entry in data["stages"]:
+            stage_path = entry["path"]
+            already_open = self.find_window_for_file(stage_path) is not None
+            self.on_stage_open_recent(stage_path)
+            sub_wnd = self.find_window_for_file(stage_path)
+            if sub_wnd is None or already_open:
+                continue
+            editor: StageGraphEditor = sub_wnd.widget()
+            editor.apply_session_state(entry)
+            # The view needs its final size before it can be centered
+            QtCore.QTimer.singleShot(
+                0, functools.partial(self._apply_view_state, editor, entry)
+            )
+        if data["active"]:
+            self.activate_window_for_file(data["active"])
+
+    @staticmethod
+    def _apply_view_state(editor: StageGraphEditor, entry: dict):
+        if shiboken6.isValid(editor) and "view" in entry:
+            editor.gr_view.apply_view_state(entry["view"])
 
     def on_stage_open_tabbed(self):
         self.on_stage_open(tabbed=True)

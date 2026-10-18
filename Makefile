@@ -105,7 +105,7 @@ update-version: ## Updates the version in pyproject.toml based on the VERSION fi
 
 .PHONY: config-file-path
 config-file: ## Print out config file path
-	@(python -c 'from nyx.static.paths import CONFIG_FILE_PATH; print(CONFIG_FILE_PATH)')
+	@(python -c 'from nyx.static.paths import USER_CONFIG_FILE_PATH; print(USER_CONFIG_FILE_PATH)')
 
 .PHONY: launch
 launch-editor:  ## Launch the editor
