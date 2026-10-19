@@ -10,6 +10,13 @@ MAX_RECENT_FILES = 10
 
 
 class NyxMainWindowLayoutConfigValues(ConfigValues):
+    """Main window dock layout config values.
+
+    Attributes:
+        version: layout version the state was saved with
+        state: base64 encoded Qt window state
+    """
+
     version: int = Field(default=0)
     state: str | None = Field(default=None)
 
@@ -54,10 +61,22 @@ class NyxEditorLogWidgetConfigValues(ConfigValues):
 
 
 class NyxEditorGraphicsNodeConfigValues(ConfigValues):
+    """Graphics node config values.
+
+    Attributes:
+        hover_diagnostics: show diagnostics when hovering nodes
+    """
+
     hover_diagnostics: bool = Field(default=False)
 
 
 class NyxEditorGraphicsStageConfigValues(ConfigValues):
+    """Graphics stage config values.
+
+    Attributes:
+        nodes: graphics node config values
+    """
+
     nodes: NyxEditorGraphicsNodeConfigValues = Field(
         default_factory=NyxEditorGraphicsNodeConfigValues, alias="nodes"
     )
@@ -79,16 +98,37 @@ class NyxEditorWidgetsConfigValues(ConfigValues):
 
 
 class NyxEditorBehaviourConfigValues(ConfigValues):
+    """Editor behaviour config values.
+
+    Attributes:
+        new_stage_on_launch: create an empty stage at startup
+    """
+
     new_stage_on_launch: bool = Field(default=False)
 
 
 class NyxEditorSessionConfigValues(ConfigValues):
+    """Editor session config values.
+
+    Attributes:
+        recent_files: recently used stage files, most recent first
+    """
+
     recent_files: list[str] = Field(default_factory=list)
 
     def pre_serialize(self) -> None:
+        """Drop recent files that no longer exist before saving."""
         self.recent_files = [f for f in self.recent_files if pathlib.Path(f).is_file()]
 
     def pre_deserialize(self, data: dict) -> dict:
+        """Drop recent files that no longer exist while loading.
+
+        Args:
+            data (dict): raw config data.
+
+        Returns:
+            dict: filtered copy of the data.
+        """
         data = dict(data)
         data["recent_files"] = [
             f for f in data.get("recent_files", []) if pathlib.Path(f).is_file()
@@ -136,9 +176,11 @@ class NyxConfig(LayeredConfig[NyxConfigValues]):
     ROOT_CONFIG_LAYER = ConfigLayer(name="user", file_path=USER_CONFIG_FILE_PATH)
 
     def __init__(self):
+        """Initialize NyxConfig, registering the root config layer."""
         super().__init__(layer_filter=self.ROOT_CONFIG_LAYER.name)
         self._register_root_layer()
 
     def _register_root_layer(self):
+        """Register the root config layer unless already registered."""
         if self.ROOT_CONFIG_LAYER.name not in self.layer_manager.root_layers:
             self.layer_manager.register(self.ROOT_CONFIG_LAYER)

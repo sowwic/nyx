@@ -8,6 +8,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class StagePathResolver:
+    """Helpers for classifying and converting stage object paths."""
+
     @staticmethod
     def is_absolute_path(path: pathlib.PurePosixPath | str) -> bool:
         """Is given path absolute.
@@ -36,6 +38,14 @@ class StagePathResolver:
 
     @staticmethod
     def is_node_path(path: pathlib.PurePosixPath | str) -> bool:
+        """Is given path a node path.
+
+        Args:
+            path (pathlib.PurePosixPath | str): path to test.
+
+        Returns:
+            bool: path is inside the stage and has no component suffix.
+        """
         path = pathlib.PurePosixPath(path)
         no_suffix = path.suffix == ""
         part_of_stage = path == ROOT_NODE_PATH or ROOT_NODE_PATH in path.parents
@@ -43,6 +53,14 @@ class StagePathResolver:
 
     @staticmethod
     def is_node_component_path(path: pathlib.PurePosixPath | str) -> bool:
+        """Is given path a node component path.
+
+        Args:
+            path (pathlib.PurePosixPath | str): path to test.
+
+        Returns:
+            bool: path has a component suffix and its node part is a node path.
+        """
         path = pathlib.PurePosixPath(path)
         node_component_name = path.suffix
         if not node_component_name:
@@ -53,6 +71,14 @@ class StagePathResolver:
 
     @staticmethod
     def as_node_path(path: pathlib.PurePosixPath | str) -> pathlib.PurePosixPath:
+        """Strip the component suffix from a path.
+
+        Args:
+            path (pathlib.PurePosixPath | str): node or component path.
+
+        Returns:
+            pathlib.PurePosixPath: path of the owning node.
+        """
         return pathlib.PurePosixPath(path).with_suffix("")
 
     @staticmethod

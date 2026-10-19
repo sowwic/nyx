@@ -16,6 +16,12 @@ class NyxSession:
     """Backend state shared by the editor: config, recent files and open stages."""
 
     def __init__(self, config: NyxConfig | None = None) -> None:
+        """Initialize NyxSession.
+
+        Args:
+            config (NyxConfig | None): config to use. A new one is created and
+                resolved if omitted.
+        """
         self._config = config or NyxConfig()
         if config is None:
             self._config.resolve()
@@ -23,19 +29,31 @@ class NyxSession:
 
     @property
     def config(self) -> NyxConfig:
+        """NyxConfig: layered config used by the session."""
         return self._config
 
     # Open stages
     @property
     def stages(self) -> list[Stage]:
+        """list[Stage]: currently registered stages that are still alive."""
         self._stages = [s for s in self._stages if shiboken6.isValid(s)]
         return list(self._stages)
 
     def register_stage(self, stage: Stage) -> None:
+        """Track a stage as open in this session.
+
+        Args:
+            stage (Stage): stage to register.
+        """
         if stage not in self._stages:
             self._stages.append(stage)
 
     def unregister_stage(self, stage: Stage) -> None:
+        """Stop tracking a stage.
+
+        Args:
+            stage (Stage): stage to unregister.
+        """
         if stage in self._stages:
             self._stages.remove(stage)
 
@@ -53,9 +71,15 @@ class NyxSession:
     # Recent files
     @property
     def recent_files(self) -> list[str]:
+        """list[str]: recently used stage file paths, most recent first."""
         return self._config.values.editor_session.recent_files
 
     def add_recent_file(self, file_path: str) -> None:
+        """Add a file to the top of the recent files and persist config.
+
+        Args:
+            file_path (str): stage file path. Ignored if already listed.
+        """
         recent_files = self.recent_files
         if file_path in recent_files:
             return
@@ -64,6 +88,11 @@ class NyxSession:
         self._config.save()
 
     def remove_recent_file(self, file_path: str) -> None:
+        """Remove a file from the recent files and persist config.
+
+        Args:
+            file_path (str): stage file path.
+        """
         recent_files = self.recent_files
         if file_path in recent_files:
             recent_files.remove(file_path)
@@ -100,6 +129,13 @@ class NyxSession:
         stage_state: typing.Callable[[Stage], dict] | None = None,
         active_stage: Stage | None = None,
     ) -> None:
+        """Write the session to a file.
+
+        Args:
+            file_path (pathlib.Path | str): destination file.
+            stage_state (Callable[[Stage], dict] | None): returns extra per-stage state.
+            active_stage (Stage | None): stage to restore as the active one.
+        """
         data = self.to_dict(stage_state, active_stage)
         pathlib.Path(file_path).write_text(json.dumps(data, indent=4))
 

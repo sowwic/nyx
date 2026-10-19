@@ -12,12 +12,22 @@ from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
 class SessionMenu(BaseMenu):
+    """Session menu: save and restore sessions and switch between open editors."""
+
     def __init__(
         self, main_window: NyxEditorMainWindow, title: str = "&Session", parent=None
     ):
+        """Initialize SessionMenu.
+
+        Args:
+            main_window (NyxEditorMainWindow): editor main window.
+            title (str): menu title.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(main_window, title, parent)
 
     def populate(self):
+        """Add the session actions and the list of open editors."""
         action = ACTION_REGISTRY.action
         self.addAction(action(ActionId.SAVE_SESSION))
         self.addAction(action(ActionId.LOAD_SESSION))
@@ -28,6 +38,7 @@ class SessionMenu(BaseMenu):
         self.rebuild_editors()
 
     def create_connections(self):
+        """Rebuild the editors list each time the menu opens."""
         self.aboutToShow.connect(self.rebuild_editors)
 
     def rebuild_editors(self):
@@ -59,4 +70,10 @@ class SessionMenu(BaseMenu):
             self._editor_actions.append(placeholder)
 
     def _activate_editor(self, sub_window, _checked: bool = False):
+        """Activate an editor window.
+
+        Args:
+            sub_window (QtWidgets.QMdiSubWindow): window to activate.
+            _checked (bool): unused triggered state.
+        """
         self.main_window.activate_editor_window(sub_window)

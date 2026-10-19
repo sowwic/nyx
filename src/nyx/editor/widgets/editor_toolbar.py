@@ -10,9 +10,17 @@ if typing.TYPE_CHECKING:
 
 
 class EditorToolBar(QtWidgets.QToolBar):
+    """Toolbar with the node and execution actions."""
+
     def __init__(
         self, main_window: NyxEditorMainWindow, parent: QtWidgets.QWidget = None
     ) -> None:
+        """Initialize EditorToolBar.
+
+        Args:
+            main_window (NyxEditorMainWindow): editor main window.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__("Tools", parent)
         self.main_window: NyxEditorMainWindow = main_window
         self.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)

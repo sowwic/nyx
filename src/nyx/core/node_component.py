@@ -25,6 +25,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NodeComponent(QtGui.QStandardItem, StageObject):
+    """Base class for components attached to a node (values, scripts, flow, ...).
+
+    Subclasses define the component type by overriding the `get_type_*` classmethods
+    and can customize evaluation and execution through the hook methods.
+    """
+
     DEFAULT_NAME: str = "component"
     EDITOR_QML: str | None = None
     PATH_SEPARATOR: str = "."
@@ -34,6 +40,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     ACTIVE_KEY = "active"
 
     class Roles(enum.IntEnum):
+        """Item data roles used to store component state in the components model."""
+
         NAME = QtCore.Qt.ItemDataRole.DisplayRole
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
@@ -63,6 +71,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         @classmethod
         def virtual_roles(cls):
+            """Get roles computed on request instead of stored in item data.
+
+            Returns:
+                tuple: virtual roles.
+            """
             return (
                 cls.UUID,
                 cls.PATH,
@@ -79,6 +92,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             )
 
     def __repr__(self) -> str:
+        """str: component class and path."""
         return f"{self.__class__.__name__} ({self.path})"
 
     def __init__(
@@ -86,6 +100,12 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         name: str | None = None,
         uuid: UUID | None = None,
     ):
+        """Initialize NodeComponent.
+
+        Args:
+            name (str | None): component name. Defaults to the type's default name.
+            uuid (UUID | None): component uuid. Generated if omitted.
+        """
         QtGui.QStandardItem.__init__(self)
         StageObject.__init__(self, uuid=uuid)
 
@@ -167,22 +187,27 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         )
 
     def model(self) -> NodeComponentsModel:
+        """NodeComponentsModel: model holding the component."""
         return super().model()
 
     @property
     def node(self) -> Node:
+        """Node: node owning the component."""
         return self.model().node
 
     @property
     def stage(self) -> Stage:
+        """Stage: stage of the owning node."""
         return self.node.stage
 
     @property
     def path(self) -> pathlib.PurePosixPath:
+        """pathlib.PurePosixPath: node path plus the component name."""
         return self.node.path.with_suffix(self.PATH_SEPARATOR + self.name)
 
     @property
     def name(self) -> str:
+        """str: component name, unique within its node."""
         return self.data(self.Roles.NAME)
 
     @name.setter
@@ -191,42 +216,52 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def raw_value(self) -> typing.Any:
+        """typing.Any: value as set, before evaluation."""
         return self.data(self.Roles.RAW_VALUE)
 
     @property
     def cached_value(self) -> typing.Any:
+        """typing.Any: evaluated value."""
         return self.data(self.Roles.CACHED_VALUE)
 
     @property
     def display_value(self) -> str:
+        """str: value text shown in the UI."""
         return self.data(self.Roles.DISPLAY_VALUE)
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
+        """frozenset[UUID]: uuids of links connected to the component."""
         return self.data(self.Roles.LINKS)
 
     @property
     def output_links_uuids(self) -> list[UUID]:
+        """list[UUID]: uuids of links this component is the source of."""
         return [link.uuid for link in self.output_links]
 
     @property
     def input_links_uuids(self) -> list[UUID]:
+        """list[UUID]: uuids of links this component is the target of."""
         return [link.uuid for link in self.input_links]
 
     @property
     def links(self) -> list[Link]:
+        """list[Link]: links connected to the component."""
         return [self.stage.get_object(uuid) for uuid in list(self.links_uuids)]
 
     @property
     def output_links(self) -> list[Link]:
+        """list[Link]: links this component is the source of."""
         return [link for link in self.links if link.source_component is self]
 
     @property
     def input_links(self) -> list[Link]:
+        """list[Link]: links this component is the target of."""
         return [link for link in self.links if link.target_component is self]
 
     @property
     def default_value(self) -> typing.Any:
+        """typing.Any: value the component resets to."""
         return self.data(self.Roles.DEFAULT_VALUE)
 
     @default_value.setter
@@ -235,6 +270,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def is_active(self) -> bool:
+        """bool: component takes part in evaluation and execution."""
         return self.data(self.Roles.IS_ACTIVE)
 
     @is_active.setter
@@ -243,6 +279,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def produces_output(self) -> bool:
+        """bool: component can be the source of a link."""
         return NodeComponentFlag.READABLE in self.component_flags
 
     @produces_output.setter
@@ -253,6 +290,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def accepts_input(self) -> bool:
+        """bool: component can be the target of a link."""
         return NodeComponentFlag.WRITABLE in self.component_flags
 
     @accepts_input.setter
@@ -263,6 +301,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def is_editable(self) -> bool:
+        """bool: value can be edited in the UI."""
         return NodeComponentFlag.EDITABLE in self.component_flags
 
     @is_editable.setter
@@ -273,6 +312,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def is_static(self) -> bool:
+        """bool: component is skipped during execution."""
         return NodeComponentFlag.STATIC in self.component_flags
 
     @is_static.setter
@@ -283,14 +323,17 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def is_built_in(self) -> bool:
+        """bool: component was created by the node type and can't be removed."""
         return NodeComponentFlag.BUILT_IN in self.component_flags
 
     @property
     def tags(self) -> set[str]:
+        """set[str]: component tags."""
         return self.data(self.Roles.TAGS)
 
     @property
     def component_flags(self) -> NodeComponentFlag:
+        """NodeComponentFlag: flags describing component behaviour."""
         return self.data(self.Roles.COMPONENT_FLAGS) or NodeComponentFlag.NONE
 
     @component_flags.setter
@@ -299,6 +342,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @property
     def is_expanded(self) -> bool:
+        """bool: component is expanded in the UI."""
         return bool(self.data(self.Roles.IS_EXPANDED))
 
     @is_expanded.setter
@@ -306,6 +350,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(state, role=self.Roles.IS_EXPANDED)
 
     def init_default_data_values(self):
+        """Initialize item data roles with the defaults of the component type."""
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
@@ -321,6 +366,13 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def set_component_flag(
         self, flag: NodeComponentFlag, role: NodeComponent.Roles, state: bool
     ):
+        """Set or clear a component flag and notify the model.
+
+        Args:
+            flag (NodeComponentFlag): flag to change.
+            role (NodeComponent.Roles): role reported as changed.
+            state (bool): whether the flag is set.
+        """
         if state:
             self.component_flags |= flag
         else:
@@ -329,18 +381,31 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             self.model().dataChanged.emit(self.index(), self.index(), [role])
 
     def mark_as_built_in(self):
+        """Flag the component as built-in."""
         self.component_flags |= NodeComponentFlag.BUILT_IN
 
     def get_display_value(self) -> str:
+        """Get the display value, following the input link if there is one.
+
+        Returns:
+            str: display value.
+        """
         if self.input_links:
             return self.input_links[0].source_component.get_display_value()
         return self.data(role=self.Roles.DISPLAY_VALUE)
 
     def clear_cached_value(self):
+        """Clear the cached value and reset the display value to the raw value."""
         self.setData(None, role=self.Roles.CACHED_VALUE)
         self.setData(str(self.raw_value), self.Roles.DISPLAY_VALUE)
 
     def push_value(self, value: typing.Any, evaluate: bool = True):
+        """Set the value of the component.
+
+        Args:
+            value (typing.Any): new raw value.
+            evaluate (bool): evaluate the value after setting it.
+        """
         self.setData(value, role=self.Roles.RAW_VALUE)
         self.setData(value, role=self.Roles.CACHED_VALUE)
         if evaluate:
@@ -350,6 +415,14 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def pull_value(
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ) -> typing.Any:
+        """Get the value, following the input link if there is one.
+
+        Args:
+            value_mask (NodeComponentValueMask): which value to get.
+
+        Returns:
+            typing.Any: requested value.
+        """
         input_links = self.input_links
         if input_links:
             return input_links[0].source_component.pull_value(value_mask=value_mask)
@@ -364,6 +437,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             raise ValueError(f"Invalid value mask: {value_mask}")
 
     def evaluate_value(self) -> typing.Any:
+        """Evaluate the raw value. Strings are evaluated as python expressions.
+
+        Returns:
+            typing.Any: evaluated value, the raw value if evaluation fails.
+        """
         out_value = self.raw_value
         if isinstance(self.raw_value, str):
             try:
@@ -373,24 +451,47 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return out_value
 
     def _evaluate_value(self):
+        """Evaluate the raw value and store the result as the cached value."""
         eval_value = self.evaluate_value()
         self.setData(eval_value, role=self.Roles.CACHED_VALUE)
 
     def reset_value_to_default(self) -> None:
+        """Set the value to the component's default value."""
         self.push_value(self.default_value)
 
     def reset_value_to_type_default(self) -> None:
+        """Set the value to the default value of the component type."""
         self.push_value(self.get_type_default_value())
 
     def add_link(self, link_uuid: UUID | str):
+        """Register a link as connected to this component.
+
+        Args:
+            link_uuid (UUID | str): link uuid.
+        """
         self.data(self.Roles.LINKS).add(link_uuid)
 
     def remove_link(self, link_uuid: UUID | str):
+        """Unregister a link from this component.
+
+        Args:
+            link_uuid (UUID | str): link uuid.
+        """
         self.data(self.Roles.LINKS).discard(link_uuid)
 
     def is_linked_to(
         self, other_component: NodeComponent, as_source=False, as_target=False
     ) -> bool:
+        """Check whether this component is linked to another one.
+
+        Args:
+            other_component (NodeComponent): component to check.
+            as_source (bool): only count links where this component is the source.
+            as_target (bool): only count links where this component is the target.
+
+        Returns:
+            bool: components are linked.
+        """
         linked_as_source = False
         linked_as_target = False
 
@@ -406,18 +507,41 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return linked_as_source or linked_as_target
 
     def serialize_value(self) -> typing.Any:
+        """typing.Any: value to store when serializing."""
         return self.raw_value
 
     def deserialize_value(self, value: typing.Any) -> typing.Any:
+        """Convert a serialized value back to a value.
+
+        Args:
+            value (typing.Any): serialized value.
+
+        Returns:
+            typing.Any: restored value.
+        """
         return value
 
     def serialize_default_value(self) -> typing.Any:
+        """typing.Any: default value to store when serializing."""
         return self.default_value
 
     def deserialize_default_value(self, value: typing.Any) -> typing.Any:
+        """Convert a serialized default value back to a value.
+
+        Args:
+            value (typing.Any): serialized default value.
+
+        Returns:
+            typing.Any: restored default value.
+        """
         return value
 
     def serialize(self) -> OrderedDict[str, typing.Any]:
+        """Serialize the component.
+
+        Returns:
+            OrderedDict[str, typing.Any]: serialized data.
+        """
         data = super().serialize()
         data["type_id"] = self.get_type_id()
         data["flags"] = self.component_flags
@@ -436,6 +560,18 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component: NodeComponent | None = None,
         restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
     ) -> NodeComponent:
+        """Create or update a component from serialized data.
+
+        Args:
+            data (OrderedDict): serialized component.
+            node (Node): node owning the component.
+            context (NodeDeserializationContext): deserialization context.
+            component (NodeComponent | None): existing component to update.
+            restore_uuid: how the serialized uuid is restored.
+
+        Returns:
+            NodeComponent: deserialized component.
+        """
         uuid = cls.choose_new_uuid(
             node.stage, serialized_data=data, restore_option=restore_uuid
         )
@@ -456,6 +592,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return component
 
     def execution_hook(self):
+        """Execute the component unless it is static or inactive."""
         if self.is_static:
             return
         if not self.is_active:
@@ -463,6 +600,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.execute()
 
     def evaluation_hook(self):
+        """Re-evaluate the component unless it is inactive."""
         self.clear_cached_value()
         if not self.is_active:
             return
@@ -470,13 +608,20 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.evaluate()
 
     def evaluate(self):
+        """Called while evaluating. Override in subclasses."""
         pass
 
     def execute(self):
+        """Called while executing. Override in subclasses."""
         pass
 
     @classmethod
     def get_qml_editor_url(cls) -> QtCore.QUrl:
+        """Get the QML file used to edit the component.
+
+        Returns:
+            QtCore.QUrl: editor file url, the default item if the type has none.
+        """
         if cls.EDITOR_QML and cls.SOURCE_PLUGIN:
             return QtCore.QUrl.fromLocalFile(
                 NYX_REGISTRY.resolve_qml_source(
@@ -487,24 +632,30 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     @classmethod
     def get_type_default_value(self) -> typing.Any:
+        """typing.Any: initial value of the component type."""
         return None
 
     @classmethod
     def get_type_id(cls) -> str:
+        """str: unique type id. Subclasses must implement."""
         raise NotImplementedError
 
     @classmethod
     def get_type_display_name(cls) -> str:
+        """str: name shown in the UI."""
         return cls.__name__
 
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
+        """NodeComponentFlag: flags set on new components of the type."""
         return NodeComponentFlag.NONE
 
     @classmethod
     def get_tags(cls) -> set[str]:
+        """set[str]: tags of the component type."""
         return set()
 
     @classmethod
     def get_default_expanded_state(cls) -> bool:
+        """bool: whether new components start expanded."""
         return False

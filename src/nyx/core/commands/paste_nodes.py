@@ -21,6 +21,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class PasteNodesCommand(NyxCommand):
+    """Paste serialized nodes into the stage."""
+
     def __init__(
         self,
         stage: Stage,
@@ -30,6 +32,17 @@ class PasteNodesCommand(NyxCommand):
         parent: QtGui.QUndoCommand | None = None,
         restore_uuid=RestoreUuidOption.ATTEMPT_RESTORE,
     ) -> None:
+        """Initialize PasteNodesCommand.
+
+        Args:
+            stage (Stage): target stage.
+            serialize_nodes (list[OrderedDict]): serialized nodes to paste.
+            position (QtCore.QPointF): position of the pasted nodes.
+            parent_node (NodeLike | None): parent of the pasted nodes. Defaults to
+                the stage root.
+            parent (QtGui.QUndoCommand | None): parent command.
+            restore_uuid (RestoreUuidOption): how node uuids are restored on first paste.
+        """
         super().__init__(stage, "Paste nodes", parent)
 
         self.serialized_nodes = serialize_nodes
@@ -54,12 +67,14 @@ class PasteNodesCommand(NyxCommand):
 
     @property
     def pasted_nodes(self) -> list[Node]:
+        """list[Node]: nodes created by the command."""
         return [
             self.stage.get_object(uuid, expected_type=Node)
             for uuid in self.created_uuids
         ]
 
     def redo(self) -> None:
+        """Create the pasted nodes and restore links between them."""
         self.created_uuids.clear()
         parent_node = self.stage.get_object(self.parent_node_uuid)
         first_run: bool = not self._first_run_uuids
@@ -107,6 +122,7 @@ class PasteNodesCommand(NyxCommand):
         return result
 
     def undo(self) -> None:
+        """Remove the links and the pasted nodes."""
         for command in reversed(self._active_link_commands):
             command.undo()
         self._active_link_commands.clear()
@@ -156,6 +172,7 @@ class PasteNodesCommand(NyxCommand):
             PasteNodesCommand._apply_uuids(child_data, child_record)
 
     def validate(self):
+        """Check the parent node exists."""
         if self.parent_node_uuid is not None:
             parent_node = self.stage.get_object(self.parent_node_uuid)
             if parent_node is None:

@@ -21,6 +21,8 @@ if typing.TYPE_CHECKING:
 
 
 class CreateNodeCommand(NyxCommand):
+    """Create a node, or recreate one from serialized data."""
+
     def __init__(
         self,
         stage: Stage,
@@ -30,6 +32,16 @@ class CreateNodeCommand(NyxCommand):
         position: QtCore.QPointF | Iterable = QtCore.QPointF(),
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize CreateNodeCommand.
+
+        Args:
+            stage (Stage): target stage.
+            name (str | None): node name.
+            type_id (str): registered node type id.
+            parent_node (NodeLike | None): parent node. Defaults to the stage root.
+            position (QtCore.QPointF | Iterable): node position.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage=stage, text="Create Node", parent=parent)
         if not isinstance(position, (QtCore.QPointF, QtCore.QPoint)):
             position = QtCore.QPointF(*position)
@@ -50,13 +62,16 @@ class CreateNodeCommand(NyxCommand):
 
     @property
     def result_node(self) -> Node:
+        """Node: node created by the command."""
         return self.stage.get_object(self.node_data[Node.UUID_KEY], expected_type=Node)
 
     @property
     def parent_node(self) -> Node:
+        """Node: parent of the created node."""
         return self.stage.get_object(self.parent_uuid, expected_type=Node)
 
     def redo(self) -> None:
+        """Create the node, restoring serialized data on repeated calls."""
         self.node_name = NameValidator.get_valid_stage_object_name(self.node_name)
         if self.node_data:
             node = Node.deserialize(
@@ -79,10 +94,12 @@ class CreateNodeCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Delete the created node."""
         self.stage.delete_node(self.result_node)
         return super().undo()
 
     def validate(self):
+        """Check the node type is registered and the parent exists."""
         if self.node_type_id not in NYX_REGISTRY.nodes.keys():
             raise NyxCommandValidationError(f"Invalid node type_id: {self.node_type_id}")
 

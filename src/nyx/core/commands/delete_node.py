@@ -20,6 +20,8 @@ if typing.TYPE_CHECKING:
 
 
 class DeleteNodeCommand(NyxCommand):
+    """Delete one or more nodes, unlinking their components first."""
+
     def __init__(
         self,
         stage: Stage,
@@ -27,6 +29,14 @@ class DeleteNodeCommand(NyxCommand):
         command_text: str = "Delete node",
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize DeleteNodeCommand.
+
+        Args:
+            stage (Stage): target stage.
+            nodes (Sequence[NodeLike] | NodeLike): nodes to delete.
+            command_text (str): undo stack text.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage=stage, text=command_text, parent=parent)
         if not isinstance(nodes, Sequence):
             nodes = [nodes]
@@ -40,6 +50,7 @@ class DeleteNodeCommand(NyxCommand):
         self._build_child_unlink_commands()
 
     def redo(self) -> None:
+        """Unlink and delete the nodes, serializing them for undo."""
         self._redo_unlink()
         nodes_to_delete = [self.stage.get_object(node) for node in self.requested_nodes]
         for each_node in nodes_to_delete:
@@ -61,6 +72,7 @@ class DeleteNodeCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Restore the deleted nodes and their links."""
         for node_data in self.serialized_nodes:
             node_uuid = UUID(node_data[Node.UUID_KEY])
             if node_uuid not in self.deleted_uuids:
@@ -88,6 +100,7 @@ class DeleteNodeCommand(NyxCommand):
         return result
 
     def _build_child_unlink_commands(self):
+        """Create unlink commands for every link touching the deleted nodes."""
         links_to_unlink = set()
         for node_path in self.requested_nodes:
             node = self.stage.get_object(node_path, expected_type=Node)
@@ -104,9 +117,11 @@ class DeleteNodeCommand(NyxCommand):
             self._component_unlink_commands.append(unlink_command)
 
     def _redo_unlink(self):
+        """Redo the unlink commands."""
         for unlink_commad in self._component_unlink_commands:
             unlink_commad.redo()
 
     def _undo_unlink(self):
+        """Undo the unlink commands."""
         for unlink_command in self._component_unlink_commands:
             unlink_command.undo()

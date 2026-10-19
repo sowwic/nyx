@@ -15,18 +15,28 @@ LOGGER = logging.getLogger(__name__)
 
 
 class UnlinkNodeComponentsCommand(NyxCommand):
+    """Remove a link between two components."""
+
     def __init__(
         self,
         stage: Stage,
         link_uuid: UUID,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize UnlinkNodeComponentsCommand.
+
+        Args:
+            stage (Stage): target stage.
+            link_uuid (UUID): uuid of the link to remove.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage=stage, text="Unlink components", parent=parent)
         self.link_uuid = link_uuid
         self.source_uuid = None
         self.target_uuid = None
 
     def redo(self) -> None:
+        """Remove the link."""
         link: Link = self.stage.get_object(self.link_uuid)
 
         self.source_uuid = link.source
@@ -38,6 +48,7 @@ class UnlinkNodeComponentsCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Recreate the link with its original uuid."""
         self.stage.link_components(
             source_component=self.source_uuid,
             target_component=self.target_uuid,
@@ -46,6 +57,7 @@ class UnlinkNodeComponentsCommand(NyxCommand):
         return super().undo()
 
     def validate(self):
+        """Check the link exists."""
         try:
             self.stage.get_object(self.link_uuid)
         except StageObjectQueryError:

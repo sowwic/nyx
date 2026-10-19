@@ -21,6 +21,8 @@ type LinkLike = Link | UUID | str
 
 
 class Link(StageObject):
+    """Connection between a source and a target node component."""
+
     SOURCE_UUID_KEY = "source_uuid"
     TARGET_UUID_KEY = "target_uuid"
 
@@ -31,50 +33,68 @@ class Link(StageObject):
         target: UUID | str,
         uuid: UUID | str | None = None,
     ):
+        """Initialize Link.
+
+        Args:
+            stage (Stage): owning stage.
+            source (UUID | str): source component uuid.
+            target (UUID | str): target component uuid.
+            uuid (UUID | str | None): link uuid. Generated if omitted.
+        """
         self._stage = stage
         self.source = self.as_uuid(source)
         self.target = self.as_uuid(target)
         super().__init__(uuid)
 
     def __repr__(self) -> str:
+        """str: link class name and the connected paths."""
         return f"({self.__class__.__name__}): {self.path_connection_str}"
 
     @property
     def stage(self) -> Stage:
+        """Stage: owning stage."""
         return self._stage
 
     @property
     def source_component(self) -> NodeComponent:
+        """NodeComponent: source component."""
         return self.stage.get_object(self.source)
 
     @property
     def source_path(self) -> pathlib.PurePosixPath:
+        """pathlib.PurePosixPath: path of the source component."""
         return self.source_component.path
 
     @property
     def source_node(self) -> Node:
+        """Node: node owning the source component."""
         return self.source_component.node
 
     @property
     def target_component(self) -> NodeComponent:
+        """NodeComponent: target component."""
         return self.stage.get_object(self.target)
 
     @property
     def target_path(self) -> pathlib.PurePosixPath:
+        """pathlib.PurePosixPath: path of the target component."""
         return self.target_component.path
 
     @property
     def target_node(self) -> Node:
+        """Node: node owning the target component."""
         return self.target_component.node
 
     @property
     def path_connection_str(self) -> str:
+        """str: "source -> target" paths, or "INVALID" if an end is missing."""
         if not self.is_valid:
             return "INVALID"
         return f"{self.source_path} -> {self.target_path}"
 
     @property
     def is_valid(self) -> bool:
+        """bool: both ends of the link exist in the stage."""
         try:
             self.source_component
         except StageObjectQueryError:
@@ -87,6 +107,15 @@ class Link(StageObject):
 
     @classmethod
     def is_registered(cls, stage: Stage, link: LinkLike) -> bool:
+        """Is the link valid and known by both of its components.
+
+        Args:
+            stage (Stage): stage to search.
+            link (LinkLike): link, uuid or path.
+
+        Returns:
+            bool: link is registered on both components.
+        """
         try:
             link: Link = stage.get_object(link)
         except StageObjectQueryError:
@@ -101,6 +130,11 @@ class Link(StageObject):
         return all([present_in_source, present_in_target])
 
     def serialize(self) -> OrderedDict[str, typing.Any]:
+        """Serialize the link, including the relative path between its ends.
+
+        Returns:
+            OrderedDict[str, typing.Any]: serialized data.
+        """
         serialized_data = super().serialize()
         serialized_data[self.META_DATA_KEY].update(
             {
@@ -121,6 +155,17 @@ class Link(StageObject):
         link: Link | None = None,
         restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
     ):
+        """Create or update a link from serialized data.
+
+        Args:
+            stage (Stage): target stage.
+            serialized_link (OrderedDict[str, typing.Any]): serialized link.
+            link (Link | None): existing link to update. A new one is created if omitted.
+            restore_uuid (RestoreUuidOption): how the serialized uuid is restored.
+
+        Returns:
+            Link: deserialized link.
+        """
         new_uuid = cls.choose_new_uuid(
             stage=stage,
             serialized_data=serialized_link,

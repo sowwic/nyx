@@ -11,6 +11,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ScriptComponent(NodeComponent):
+    """Component running a python file or a module entry point when executed.
+
+    The script gets the node and the component as globals.
+    """
+
     DEFAULT_NAME = "script"
     EDITOR_QML = "ScriptComponentItem"
 
@@ -20,33 +25,45 @@ class ScriptComponent(NodeComponent):
 
     @classmethod
     def get_type_id(cls) -> str:
+        """str: component type id."""
         return CoreNodeComponents.SCRIPT
 
     @classmethod
     def get_type_display_name(cls) -> str:
+        """str: name shown in the UI."""
         return "Script"
 
     @classmethod
     def get_type_icon(cls) -> str:
+        """str: resource path of the type icon."""
         return ":/core/icons/script_cpnt"
 
     @classmethod
     def get_type_default_value(cls) -> str:
+        """str: empty script path."""
         return ""
 
     @classmethod
     def get_tags(self) -> set[str]:
+        """set[str]: component tags."""
         return {"common", "script", "logic"}
 
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
+        """NodeComponentFlag: editable."""
         return NodeComponentFlag.EDITABLE
 
     @classmethod
     def get_default_expanded_state(cls) -> bool:
+        """bool: script components start expanded."""
         return True
 
     def execute(self):
+        """Run the value as a script path or a module entry point.
+
+        Raises:
+            ValueError: if the value is neither.
+        """
         script_value = self.pull_value()
         if not script_value:
             return
@@ -63,12 +80,25 @@ class ScriptComponent(NodeComponent):
             )
 
     def build_globals(self):
+        """Build the globals passed to the script.
+
+        Returns:
+            dict: the node and the component under their reference names.
+        """
         return {
             self.GLOBALS_NODE_REF_NAME: self.node,
             self.GLOBALS_COMPONENT_REF_NAME: self,
         }
 
     def run_as_script_path(self, script_path: str | pathlib.Path) -> bool:
+        """Run a python file.
+
+        Args:
+            script_path (str | pathlib.Path): file to run.
+
+        Returns:
+            bool: file exists and was run.
+        """
         file_path = pathlib.Path(script_path)
         if file_path.is_file():
             runpy.run_path(script_path, init_globals=self.build_globals())
@@ -76,6 +106,17 @@ class ScriptComponent(NodeComponent):
         return False
 
     def run_as_module_entry_point(self, entry_point_path: str) -> bool:
+        """Run a function of an importable module.
+
+        Args:
+            entry_point_path (str): "module:function" path.
+
+        Returns:
+            bool: module was found and the function was called.
+
+        Raises:
+            ValueError: if the module has no such function.
+        """
         module_name, entry_point = entry_point_path.split(self.ENTRY_POINT_SEPARATOR)
         found_module = importlib.util.find_spec(name=module_name) is not None
         if not found_module:

@@ -11,10 +11,21 @@ class NodeItemDelegate(QtWidgets.QStyledItemDelegate):
     """
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        """Initialize NodeItemDelegate.
+
+        Args:
+            parent (QtCore.QObject | None): parent object.
+        """
         super().__init__(parent)
         self._icon_cache: dict[str, QtGui.QIcon] = {}
 
     def initStyleOption(self, option: QtWidgets.QStyleOptionViewItem, index) -> None:
+        """Show the node type icon as the item decoration.
+
+        Args:
+            option (QtWidgets.QStyleOptionViewItem): option to initialize.
+            index (QtCore.QModelIndex): item index.
+        """
         super().initStyleOption(option, index)
         icon_path = index.data(Node.Roles.TYPE_ICON)
         if not icon_path or not isinstance(icon_path, str):
@@ -27,6 +38,14 @@ class NodeItemDelegate(QtWidgets.QStyledItemDelegate):
         option.features |= QtWidgets.QStyleOptionViewItem.ViewItemFeature.HasDecoration
 
     def _icon_for(self, icon_path: str) -> QtGui.QIcon:
+        """Get an icon, caching it by path.
+
+        Args:
+            icon_path (str): icon resource path.
+
+        Returns:
+            QtGui.QIcon: icon.
+        """
         icon = self._icon_cache.get(icon_path)
         if icon is None:
             icon = QtGui.QIcon(icon_path)

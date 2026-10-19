@@ -18,6 +18,15 @@ class NodeComponentSpawner(QtCore.QObject):
 
     @QtCore.Slot(str, "QVariant", result="QVariant")
     def spawnComponent(self, type_id: str, target_node: Node):
+        """Add a component to a node through an undoable command.
+
+        Args:
+            type_id (str): registered component type id.
+            target_node (Node): node receiving the component.
+
+        Returns:
+            NodeComponent: created component.
+        """
         command = AddNodeComponentCommand(node=target_node, type_id=type_id)
         target_node.stage.push_command(command)
         result_component = command.result_component

@@ -13,6 +13,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class MoveNodeCommand(NyxCommand):
+    """Move nodes to new positions."""
+
     def __init__(
         self,
         stage: Stage,
@@ -20,6 +22,14 @@ class MoveNodeCommand(NyxCommand):
         new_positions: list[QtCore.QPointF],
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize MoveNodeCommand.
+
+        Args:
+            stage (Stage): target stage.
+            nodes (list[Node] | list[pathlib.PurePosixPath] | list[str]): nodes to move.
+            new_positions (list[QtCore.QPointF]): target position per node.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage, "Moved nodes", parent)
         if not isinstance(nodes, (list, tuple, deque)):
             nodes = [nodes]
@@ -33,6 +43,7 @@ class MoveNodeCommand(NyxCommand):
         self.setText(f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
 
     def redo(self) -> None:
+        """Move the nodes to their new positions."""
         for node, new_pos in zip(
             [self.stage.get_object(path) for path in self.node_paths], self.new_positions
         ):
@@ -43,6 +54,7 @@ class MoveNodeCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Move the nodes back to their old positions."""
         for node, old_pos in zip(
             [self.stage.get_object(path) for path in self.node_paths], self.old_positions
         ):

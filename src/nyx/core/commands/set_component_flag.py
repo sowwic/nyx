@@ -10,6 +10,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class SetNodeComponentFlagCommand(NyxCommand):
+    """Set or clear a flag of a component."""
+
     def __init__(
         self,
         stage: Stage,
@@ -19,6 +21,16 @@ class SetNodeComponentFlagCommand(NyxCommand):
         state: bool,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize SetNodeComponentFlagCommand.
+
+        Args:
+            stage (Stage): target stage.
+            node_component (NodeComponentLike): component to change.
+            flag (NodeComponentFlag): flag to change.
+            role (NodeComponent.Roles): role the flag is set for.
+            state (bool): whether the flag is set.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage, "", parent)
         component = self.stage.get_object(node_component, expected_type=NodeComponent)
         self.component_uuid = component.uuid
@@ -30,9 +42,11 @@ class SetNodeComponentFlagCommand(NyxCommand):
 
     @property
     def component(self) -> NodeComponent:
+        """NodeComponent: component the command operates on."""
         return self.stage.get_object(self.component_uuid, expected_type=NodeComponent)
 
     def redo(self) -> None:
+        """Apply the new flag state."""
         component = self.component
 
         self.old_state = self.flag in component.component_flags
@@ -40,5 +54,6 @@ class SetNodeComponentFlagCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Restore the previous flag state."""
         self.component.set_component_flag(self.flag, self.role, self.old_state)
         return super().undo()

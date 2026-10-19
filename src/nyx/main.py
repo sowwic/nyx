@@ -10,6 +10,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def main():
+    """Run the editor application and save config on a clean exit."""
     from nyx.application import NyxEditorApplication
 
     app = NyxEditorApplication()

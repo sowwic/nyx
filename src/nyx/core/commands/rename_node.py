@@ -14,6 +14,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class RenameNodeCommand(NyxCommand):
+    """Rename a node."""
+
     def __init__(
         self,
         stage: Stage,
@@ -21,6 +23,14 @@ class RenameNodeCommand(NyxCommand):
         new_name: str,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize RenameNodeCommand.
+
+        Args:
+            stage (Stage): target stage.
+            node (NodeLike): node to rename.
+            new_name (str): new name, sanitized to a valid object name.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage=stage, text="Rename node", parent=parent)
 
         self.path_to_rename = self.stage.pathify(node)
@@ -31,6 +41,7 @@ class RenameNodeCommand(NyxCommand):
         self.renamed_node_data: pathlib.PurePosixPath = None
 
     def redo(self) -> None:
+        """Rename the node."""
         node = self.stage.get_object(self.path_to_rename)
         self.old_name = node.name
         self.node_data = node.serialize()
@@ -42,11 +53,13 @@ class RenameNodeCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Restore the previous node name."""
         node = self.stage.get_object(self.renamed_node_data.get("uuid"))
         node.rename(self.old_name)
         return super().undo()
 
     def validate(self):
+        """Check the node exists."""
         try:
             self.stage.get_object(self.path_to_rename)
         except StageObjectQueryError:

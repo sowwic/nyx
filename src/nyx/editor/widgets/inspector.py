@@ -14,9 +14,17 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Inspector(QtWidgets.QWidget):
+    """Dock content showing the header and components of the selected node."""
+
     def __init__(
         self, main_window: NyxEditorMainWindow, parent: QtWidgets.QWidget | None = None
     ) -> None:
+        """Initialize Inspector.
+
+        Args:
+            main_window (NyxEditorMainWindow): editor main window.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(parent)
         self.main_window: NyxEditorMainWindow = main_window
 
@@ -25,13 +33,16 @@ class Inspector(QtWidgets.QWidget):
         self.create_layouts()
 
     def create_actions(self):
+        """Create actions. The inspector has none."""
         pass
 
     def create_widgets(self):
+        """Create the node header and components view."""
         self._node_header = InspectorNodeHeader()
         self._node_components_view = NodeComponentsView()
 
     def create_layouts(self):
+        """Lay out the header above the components."""
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.addWidget(self._node_header, stretch=0)
@@ -39,13 +50,16 @@ class Inspector(QtWidgets.QWidget):
 
     @property
     def current_stage_graph(self) -> StageGraphEditor | None:
+        """StageGraphEditor | None: editor of the active window."""
         return self.main_window.current_stage_graph
 
     def clear(self):
+        """Show no node."""
         self._node_header.set_node(None)
         self._node_components_view.setModel(None)
 
     def update_data(self):
+        """Show the selected node of the active editor, or the root node."""
         if self.current_stage_graph is None:
             self.clear()
             self.setEnabled(False)

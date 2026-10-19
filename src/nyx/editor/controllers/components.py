@@ -33,6 +33,13 @@ class ComponentsController(QtCore.QObject):
         components_filter_model: QtCore.QSortFilterProxyModel | None = None,
         parent=None,
     ):
+        """Initialize ComponentsController.
+
+        Args:
+            components_filter_model (QtCore.QSortFilterProxyModel): proxy model
+                exposed to the view.
+            parent (QtCore.QObject | None): parent object.
+        """
         super().__init__(parent)
         self._components_filter_model = components_filter_model
         self._selection_model = QtCore.QItemSelectionModel(
@@ -45,20 +52,24 @@ class ComponentsController(QtCore.QObject):
 
     @property
     def stage(self) -> Stage:
+        """Stage: stage of the node whose components are shown."""
         return self.components_model.node.stage
 
     @property
     def selection_model(self) -> QtCore.QItemSelectionModel:
+        """QtCore.QItemSelectionModel: selection of the component rows."""
         return self._selection_model
 
     @property
     def components_model(self) -> NodeComponentsModel:
+        """NodeComponentsModel | None: source model behind the filter model."""
         if self._components_filter_model is None:
             return None
         return self.components_filter_model.sourceModel()
 
     @property
     def components_filter_model(self) -> QtCore.QSortFilterProxyModel:
+        """QtCore.QSortFilterProxyModel: proxy model exposed to the view."""
         return self._components_filter_model
 
     @components_model.setter
@@ -73,24 +84,40 @@ class ComponentsController(QtCore.QObject):
             self._connect_models()
 
     def _connect_models(self):
+        """Clear the selection before rows are moved."""
         if self.components_model is None:
             return
 
         self.components_model.rowsAboutToBeMoved.connect(self._selection_model.clear)
 
     def _disconnect_models(self):
+        """Undo the connections made by _connect_models."""
         if self.components_model is None:
             return
 
         self.components_model.rowsAboutToBeMoved.disconnect(self._selection_model.clear)
 
     def get_component_from_proxy_row(self, row: int) -> NodeComponent:
+        """Get the component at a row of the proxy model.
+
+        Args:
+            row (int): proxy row.
+
+        Returns:
+            NodeComponent: component at that row.
+        """
         proxy_index = self.components_filter_model.index(row, 0)
         source_model_index = self.components_filter_model.mapToSource(proxy_index)
         return self.components_model.itemFromIndex(source_model_index)
 
     @QtCore.Slot(int, int)
     def selectRow(self, clicked_row: int, selection_mode: ItemSelectionMode):
+        """Select a row following the clicked selection mode.
+
+        Args:
+            clicked_row (int): proxy row that was clicked.
+            selection_mode (ItemSelectionMode): single, toggle or range selection.
+        """
         model = self.components_filter_model
         if not 0 <= clicked_row < model.rowCount():
             return
@@ -120,6 +147,7 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot()
     def deleteSelectedNodeComponents(self):
+        """Delete the selected components. Nothing is deleted if one is built-in."""
         selection = self.selection_model.selection()
         if selection.isEmpty():
             return
@@ -143,6 +171,12 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, bool)
     def setSetComponentActiveState(self, row: int, state: bool):
+        """Set the active state of a component through an undoable command.
+
+        Args:
+            row (int): proxy row.
+            state (bool): new active state.
+        """
         component = self.get_component_from_proxy_row(row)
         set_active_command = SetNodeComponentActiveStateCommand(
             stage=component.stage, node_component=component, state=state
@@ -151,6 +185,13 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, int)
     def reorderComponent(self, from_row: int, to_row: int):
+        """Move a component to another row through an undoable command.
+
+        Args:
+            from_row (int): proxy row of the component.
+            to_row (int): proxy row to move to. May equal the row count to move to the
+                end.
+        """
         self._selection_model.clear()
         proxy = self.components_filter_model
 
@@ -175,6 +216,12 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, str)
     def renameComponent(self, row: int, new_name: str):
+        """Rename a component through an undoable command.
+
+        Args:
+            row (int): proxy row.
+            new_name (str): new component name.
+        """
         component = self.get_component_from_proxy_row(row)
         self.stage.push_command(
             RenameNodeComponentCommand(
@@ -184,6 +231,13 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, str, bool)
     def setComponentValue(self, row: int, new_value: str, raw: bool):
+        """Set a component value through an undoable command.
+
+        Args:
+            row (int): proxy row.
+            new_value (str): new value.
+            raw (bool): set the value without evaluating it.
+        """
         component = self.get_component_from_proxy_row(row)
         self.stage.push_command(
             SetNodeComponentValueCommand(
@@ -193,6 +247,12 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, bool)
     def setComponentReadable(self, row: int, state: bool):
+        """Set the readable flag of a component through an undoable command.
+
+        Args:
+            row (int): proxy row.
+            state (bool): whether the component produces output.
+        """
         component = self.get_component_from_proxy_row(row)
         set_flag_command = SetNodeComponentFlagCommand(
             stage=self.stage,
@@ -205,6 +265,12 @@ class ComponentsController(QtCore.QObject):
 
     @QtCore.Slot(int, bool)
     def setComponentWritable(self, row: int, state: bool):
+        """Set the writable flag of a component through an undoable command.
+
+        Args:
+            row (int): proxy row.
+            state (bool): whether the component accepts input.
+        """
         component = self.get_component_from_proxy_row(row)
         set_flag_command = SetNodeComponentFlagCommand(
             stage=self.stage,

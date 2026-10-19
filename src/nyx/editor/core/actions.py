@@ -10,6 +10,8 @@ from nyx.editor.core.action_registry import (
 
 
 class ActionId(StrEnum):
+    """Ids of the default editor actions, grouped by menu."""
+
     # File
     NEW_STAGE = "file.new_stage"
     OPEN_STAGE = "file.open_stage"
@@ -43,6 +45,11 @@ class ActionId(StrEnum):
 
 
 def default_definitions() -> list[ActionDefinition]:
+    """Get the definitions of the default editor actions.
+
+    Returns:
+        list[ActionDefinition]: default action definitions.
+    """
     D = ActionDefinition
     return [
         D(ActionId.NEW_STAGE, "New Stage", "File", default_shortcut="Ctrl+Shift+N"),

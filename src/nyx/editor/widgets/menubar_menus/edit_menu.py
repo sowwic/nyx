@@ -10,12 +10,22 @@ from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
 class EditMenu(BaseMenu):
+    """Edit menu: undo, redo, rename and editor reset."""
+
     def __init__(
         self, main_window: NyxEditorMainWindow, title: str = "&Edit", parent=None
     ):
+        """Initialize EditMenu.
+
+        Args:
+            main_window (NyxEditorMainWindow): editor main window.
+            title (str): menu title.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
+        """Create the undo and redo actions and register the rename handler."""
         undo_group = self.main_window.undo_group
         self.undo_action = ACTION_REGISTRY.adopt_action(
             ActionId.UNDO, undo_group.createUndoAction(self)
@@ -28,6 +38,7 @@ class EditMenu(BaseMenu):
         )
 
     def populate(self):
+        """Add the edit actions."""
         action = ACTION_REGISTRY.action
         self.addAction(self.undo_action)
         self.addAction(self.redo_action)
@@ -37,6 +48,7 @@ class EditMenu(BaseMenu):
         self.addAction(action(ActionId.RESET_CONFIG))
 
     def on_rename_selected_node(self):
+        """Start renaming the selected node in the active graph."""
         if not self.main_window.current_stage_graph:
             return
         self.main_window.current_stage_graph.gr_stage.start_selected_node_rename()

@@ -21,16 +21,25 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NodeComponentsModel(QtGui.QStandardItemModel):
+    """Item model holding the components of a node."""
+
     def __init__(self, node: Node):
+        """Initialize NodeComponentsModel.
+
+        Args:
+            node (Node): node owning the components.
+        """
         self._node = node
         super().__init__()
         self._register_qml_role_names()
 
     @property
     def node(self) -> Node:
+        """Node: node owning the components."""
         return self._node
 
     def _register_qml_role_names(self) -> None:
+        """Expose NodeComponent roles to QML by name."""
         names = dict(self.roleNames())
         names.update(names_fn.enum_to_dict(NodeComponent.Roles))  # ty: ignore
         self.setItemRoleNames(names)
@@ -40,6 +49,15 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         index: QtCore.QModelIndex,
         role: QtCore.Qt.ItemDataRole = QtCore.Qt.ItemDataRole.DisplayRole,
     ) -> typing.Any:
+        """Get item data, resolving virtual roles from the component.
+
+        Args:
+            index (QtCore.QModelIndex): item index.
+            role (QtCore.Qt.ItemDataRole): data role.
+
+        Returns:
+            typing.Any: role data.
+        """
         if not index.isValid():
             return
 
@@ -89,6 +107,16 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
 
     @QtCore.Slot(int, int, int, result=bool)
     def move(self, from_row: int, to_row: int, count: int = 1) -> bool:
+        """Move a component to another row. Built-in components can't be moved.
+
+        Args:
+            from_row (int): current row.
+            to_row (int): destination row.
+            count (int): unused, a single row is moved.
+
+        Returns:
+            bool: component was moved.
+        """
         n = self.rowCount()
         if from_row == to_row or not (0 <= from_row < n) or not (0 <= to_row < n):
             return False
@@ -102,6 +130,14 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         return True
 
     def list_components(self, type_id_filter: str | None = None) -> list[NodeComponent]:
+        """List the components of the node.
+
+        Args:
+            type_id_filter (str | None): only list components of this type id.
+
+        Returns:
+            list[NodeComponent]: components in row order.
+        """
         all_components: list[NodeComponent] = [
             self.invisibleRootItem().child(row)
             for row in range(self.invisibleRootItem().rowCount())
@@ -115,6 +151,11 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         ]
 
     def serialize(self):
+        """Serialize all components.
+
+        Returns:
+            OrderedDict: data with a "components" list.
+        """
         data = OrderedDict()
         components = self.list_components()
         serialized_components = [
@@ -129,6 +170,13 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         context: NodeDeserializationContext,
         restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
     ):
+        """Create or update components from serialized data.
+
+        Args:
+            data (list[dict]): serialized components.
+            context (NodeDeserializationContext): deserialization context.
+            restore_uuid (RestoreUuidOption): how serialized uuids are restored.
+        """
         for component_data in data:
             try:
                 component = self.get_component(component_data["name"])
@@ -149,10 +197,25 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
     def create_component(
         self, type_id: str, uuid: UUID | str | None = None
     ) -> NodeComponent:
+        """Instantiate a registered component type without adding it.
+
+        Args:
+            type_id (str): registered component type id.
+            uuid (UUID | str | None): uuid for the component.
+
+        Returns:
+            NodeComponent: new component.
+        """
         component_cls = NYX_REGISTRY.get_node_component_cls(type_id=type_id)
         return component_cls(uuid=uuid)
 
     def add_component(self, component: NodeComponent, at_row: int | None = None):
+        """Add a component, making its name unique.
+
+        Args:
+            component (NodeComponent): component to add.
+            at_row (int | None): row to insert at. Appended if omitted.
+        """
         component.name = self.compose_unique_component_name(component.name)
         if at_row is not None:
             self.insertRow(at_row, component)
@@ -164,6 +227,14 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         LOGGER.debug(f"Added new component: {component}")
 
     def remove_component(self, uuid: UUID) -> None:
+        """Remove a component from the node.
+
+        Args:
+            uuid (UUID): uuid of the component.
+
+        Raises:
+            ValueError: if the component doesn't exist or is built-in.
+        """
         component = self.node.stage.get_object(uuid)
         if component is None:
             raise ValueError(f"Component UUID doesn't exist in stage: {uuid}")
@@ -176,6 +247,11 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         self.removeRow(component.row())
 
     def remove_component_by_name(self, name: str) -> None:
+        """Remove components with the given name.
+
+        Args:
+            name (str): component name.
+        """
         for component in self.list_components():
             if component.name != name:
                 continue
@@ -216,16 +292,37 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         return component
 
     def find_writable_flow_components(self) -> Iterator[FlowComponent]:
+        """Find active flow components that accept input.
+
+        Yields:
+            FlowComponent: matching flow components.
+        """
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
             if flow_component.is_active and flow_component.accepts_input:
                 yield flow_component  # ty: ignore
 
     def find_readable_flow_components(self) -> Iterator[FlowComponent]:
+        """Find active flow components that produce output.
+
+        Yields:
+            FlowComponent: matching flow components.
+        """
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
             if flow_component.is_active and flow_component.produces_output:
                 yield flow_component  # ty: ignore
 
     def find_components_of_type(self, type_id: str) -> Iterator[NodeComponent]:
+        """Find components of a registered type.
+
+        Args:
+            type_id (str): registered component type id.
+
+        Yields:
+            NodeComponent: components of that type.
+
+        Raises:
+            TypeError: if the type isn't registered.
+        """
         component_cls: NodeComponent = NYX_REGISTRY.get_node_component_cls(type_id)
         if not component_cls:
             raise TypeError(

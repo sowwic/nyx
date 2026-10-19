@@ -26,6 +26,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 class StageGraphEditor(QtWidgets.QWidget):
+    """Widget editing one stage: the graphics view, scope bar and file handling.
+
+    Attributes:
+        stage_changed: emitted with the new stage when the stage is replaced
+        scope_changed: emitted with the new scope path
+        node_type_dropped: emitted with a node type id and scene position on drop
+        stage_file_used: emitted with the stage file path after it was opened or saved
+    """
+
     DEFAULT_TITLE = "Untitled"
 
     stage_changed = QtCore.Signal(Stage)
@@ -36,6 +45,12 @@ class StageGraphEditor(QtWidgets.QWidget):
     def __init__(
         self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
     ) -> None:
+        """Initialize StageGraphEditor.
+
+        Args:
+            stage (Stage | None): stage to edit. A new one is created if omitted.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(parent=parent)
         self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
@@ -55,6 +70,14 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     @classmethod
     def from_json_file(cls, file_path: pathlib.Path | str):
+        """Create an editor for a stage loaded from a file.
+
+        Args:
+            file_path (pathlib.Path | str): stage file.
+
+        Returns:
+            StageGraphEditor: new editor.
+        """
         stage = Stage()
         stage.import_json(file_path)
         widget = cls(stage)
@@ -62,13 +85,21 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     @property
     def stage(self) -> Stage:
+        """Stage: stage being edited."""
         return self._stage
 
     @property
     def selection_model(self) -> QtCore.QItemSelectionModel:
+        """QtCore.QItemSelectionModel: selected nodes."""
         return self._selection_model
 
     def set_stage(self, stage: Stage | None, create_connections=True):
+        """Replace the edited stage and register it with the session.
+
+        Args:
+            stage (Stage | None): new stage. A new one is created if None.
+            create_connections (bool): connect the stage signals.
+        """
         old_stage = self.stage
         if stage is None:
             stage = Stage()
@@ -147,6 +178,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         return super().closeEvent(event)
 
     def update_title(self) -> None:
+        """Set the window title to the stage file name, marked when modified."""
         if not self.stage.file_path:
             title = self.DEFAULT_TITLE
         else:
@@ -184,6 +216,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         return True
 
     def on_stage_new(self):
+        """Replace the stage with a new one after offering to save."""
         if not self.maybe_save():
             self.set_stage(Stage)
 
@@ -196,6 +229,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         )[0]
 
     def on_stage_open(self):
+        """Offer to save, ask for a stage file and load it.
+
+        Returns:
+            bool | None: file was loaded, False if cancelled.
+        """
         if not self.maybe_save():
             return
 
@@ -217,6 +255,14 @@ class StageGraphEditor(QtWidgets.QWidget):
         return self.load_stage_file(file_path)
 
     def load_stage_file(self, file_path: pathlib.Path | str) -> bool:
+        """Load a stage file into the editor.
+
+        Args:
+            file_path (pathlib.Path | str): stage file.
+
+        Returns:
+            bool: True once loaded.
+        """
         self.scope_root()
         new_stage = Stage()
         new_stage.import_json(file_path)
@@ -226,6 +272,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         return True
 
     def on_stage_save(self) -> bool:
+        """Save the stage, asking for a file if it has none.
+
+        Returns:
+            bool: stage was saved.
+        """
         if self.stage.file_path is not None:
             self.stage.export_json(self.stage.file_path)
             saved = True
@@ -236,6 +287,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         return saved
 
     def on_stage_save_as(self):
+        """Ask for a file and save the stage to it.
+
+        Returns:
+            bool: stage was saved, False if cancelled.
+        """
         file_filter = "Nyx Stage (*.nyx)"
         file_path = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save stage to file", None, file_filter
@@ -248,14 +304,24 @@ class StageGraphEditor(QtWidgets.QWidget):
         return True
 
     def _notify_stage_file_used(self):
+        """Emit `stage_file_used` if the stage file exists."""
         file_path = self.stage.file_path
         if file_path is not None and pathlib.Path(file_path).is_file():
             self.stage_file_used.emit(str(file_path))
 
     def get_scope_path(self) -> pathlib.PurePosixPath:
+        """pathlib.PurePosixPath: path of the node whose children are shown."""
         return self._scope_path
 
     def get_next_valid_scope(self, scope: NodeLike):
+        """Find the closest existing scope, walking up the parents.
+
+        Args:
+            scope (NodeLike): wanted scope.
+
+        Returns:
+            pathlib.PurePosixPath | None: closest existing path.
+        """
         scope_path = self.stage.pathify(scope)
         paths_to_check = [scope_path]
         paths_to_check.extend(scope_path.parents)
@@ -267,6 +333,7 @@ class StageGraphEditor(QtWidgets.QWidget):
                 continue
 
     def make_scope_valid(self):
+        """Move the scope to the closest existing path if its node was removed."""
         if not shiboken6.isValid(self.stage):
             return
         self.set_scope_path(self.get_next_valid_scope(self._scope_path))
@@ -274,6 +341,13 @@ class StageGraphEditor(QtWidgets.QWidget):
     def set_scope_path(
         self, scope: Node | pathlib.PurePosixPath | str, silent=False
     ) -> None:
+        """Set the scope shown by the graph.
+
+        Args:
+            scope (Node | pathlib.PurePosixPath | str): wanted scope. The closest
+                existing one is used.
+            silent (bool): don't emit `scope_changed`.
+        """
         new_scope = self.get_next_valid_scope(scope)
 
         self._scope_path = new_scope
@@ -289,17 +363,24 @@ class StageGraphEditor(QtWidgets.QWidget):
         }
 
     def apply_session_state(self, state: dict) -> None:
+        """Restore scope and view from saved session state.
+
+        Args:
+            state (dict): state from `get_session_state`.
+        """
         if "scope" in state:
             self.set_scope_path(pathlib.PurePosixPath(state["scope"]))
         if "view" in state:
             self.gr_view.apply_view_state(state["view"])
 
     def scope_back(self) -> None:
+        """Move the scope to the parent."""
         if self.get_scope_path() == ROOT_NODE_PATH:
             return
         self.set_scope_path(self.get_scope_path().parent)
 
     def scope_root(self) -> None:
+        """Move the scope to the root node."""
         self.set_scope_path(self.stage.root_node.path)
 
     def filter_nodes_by_scope(self, nodes: list[Node]) -> list[Node]:
@@ -318,6 +399,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         return filtered_nodes
 
     def _handle_scope_path_at_node_deletion(self, deleted_node_path):
+        """Move the scope if the deleted node contained it.
+
+        Args:
+            deleted_node_path (pathlib.PurePosixPath): path of the deleted node.
+        """
         current_scope = self.get_scope_path()
         if (
             current_scope == deleted_node_path
@@ -336,6 +422,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
 
     def _refresh_actions(self, *_) -> None:
+        """Refresh the enabled state of the actions."""
         ACTION_ROUTER.refresh_enabled()
 
     def show_nodes_palette_centered(self, spawn_position: QtCore.QPointF | None = None):
@@ -344,6 +431,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             PopupNodesPalette.popup_centered(spawn_position)
 
     def _shows_popup_nodes_palette(self):
+        """Show the nodes palette popup if the cursor is over the graph."""
         point_under_cursor_in_gr_view = self.gr_view.viewport().mapFromGlobal(
             QtGui.QCursor.pos()
         )

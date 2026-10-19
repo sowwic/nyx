@@ -24,14 +24,22 @@ LOGGER = logging.getLogger(__name__)
 
 @NyxPluginManager.register_plugin()
 class NyxCore(NyxPlugin):
+    """Built-in plugin providing the core nodes and node components."""
+
     QML_MODULE_NAME = "NyxCore"
 
     @classmethod
     def get_type_id(cls) -> str:
+        """str: plugin id."""
         return "NyxCore"
 
     @classmethod
     def initialize(cls) -> typing.Self:
+        """Create the plugin and list its nodes and components.
+
+        Returns:
+            typing.Self: initialized plugin.
+        """
         plugin = cls()
         plugin.contents.node_components = [
             CommentComponent,

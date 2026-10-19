@@ -7,6 +7,11 @@ if typing.TYPE_CHECKING:
 
 
 def move_window_to_screen_center(window: QtWidgets.QWidget):
+    """Move a window to the center of the primary screen.
+
+    Args:
+        window (QtWidgets.QWidget): window to move.
+    """
     center_position = (
         window.pos()
         + QtWidgets.QApplication.primaryScreen().geometry().center()
@@ -16,6 +21,11 @@ def move_window_to_screen_center(window: QtWidgets.QWidget):
 
 
 def dark_fusion_palette() -> QtGui.QPalette:
+    """Build the dark palette.
+
+    Returns:
+        QtGui.QPalette: dark palette.
+    """
     palette = QtGui.QPalette()
     palette.setColor(QtGui.QPalette.Window, QtGui.QColor(45, 45, 45))
     palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(208, 208, 208))
@@ -35,11 +45,24 @@ def dark_fusion_palette() -> QtGui.QPalette:
 
 
 def set_dark_fusion_palette(application: QtWidgets.QApplication):
+    """Apply the fusion style with the dark palette.
+
+    Args:
+        application (QtWidgets.QApplication): application to style.
+    """
     application.setStyle(QtWidgets.QStyleFactory.create("fusion"))
     application.setPalette(dark_fusion_palette())
 
 
 def min_bounding_rect(rects: list[QtCore.QRect]):
+    """Get the rectangle containing all given rectangles.
+
+    Args:
+        rects (list[QtCore.QRect]): rectangles, at least one.
+
+    Returns:
+        QtCore.QRectF: bounding rectangle.
+    """
     min_x = rects[0].left()
     min_y = rects[0].top()
     max_x = rects[0].right()
@@ -55,6 +78,15 @@ def min_bounding_rect(rects: list[QtCore.QRect]):
 
 
 def get_standard_icon(widget, icon_name: str):
+    """Get a style standard icon by name.
+
+    Args:
+        widget: widget providing the style.
+        icon_name (str): QStyle.StandardPixmap member name.
+
+    Returns:
+        QtGui.QIcon: standard icon.
+    """
     pixmap = getattr(QtWidgets.QStyle, icon_name)
     icon = widget.style().standardIcon(pixmap)
     return icon
@@ -83,6 +115,12 @@ def notify_roles_changed(
     item_index: QtCore.QModelIndex,
     roles_that_changed: typing.Iterable[int],
 ) -> None:
+    """Emit dataChanged for given roles of an item.
+
+    Args:
+        item_index (QtCore.QModelIndex): changed item. Invalid indexes are ignored.
+        roles_that_changed (typing.Iterable[int]): changed roles.
+    """
     if not item_index.isValid():
         return
     self.dataChanged.emit(

@@ -15,6 +15,8 @@ if typing.TYPE_CHECKING:
 
 
 class NodesPaletteView(NyxQuickWidget):
+    """QML palette listing registered node types, which can be dragged into the graph."""
+
     QML_MODULE = "NyxEditor.NodesPalette"
     QML_COMPONENT = "NodesPaletteView"
 
@@ -23,6 +25,12 @@ class NodesPaletteView(NyxQuickWidget):
         drag_enabled: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
+        """Initialize NodesPaletteView.
+
+        Args:
+            drag_enabled (bool): allow dragging node types out of the palette.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(parent=parent)
         self.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
@@ -56,11 +64,18 @@ class NodesPaletteView(NyxQuickWidget):
         self.setSource(self.source_url)
 
     def on_node_dropped(self, type_id: str, position: QtCore.QPointF):
+        """Create a node of the dropped type at the drop position.
+
+        Args:
+            type_id (str): registered node type id.
+            position (QtCore.QPointF): scene position.
+        """
         self.nodes_spawner.spawn_position = position
         self.nodes_spawner.spawnNode(type_id)
 
     @property
     def drag_enabled(self) -> bool:
+        """bool: node types can be dragged out of the palette."""
         return self._drag_enabled
 
     @drag_enabled.setter
@@ -71,4 +86,5 @@ class NodesPaletteView(NyxQuickWidget):
 
     @property
     def nodes_spawner(self) -> NodeSpawner:
+        """NodeSpawner: spawner used to create nodes."""
         return self._node_spawner

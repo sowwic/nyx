@@ -10,6 +10,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class SetNodeComponentValueCommand(NyxCommand):
+    """Set the value of a component."""
+
     def __init__(
         self,
         stage: Stage,
@@ -18,6 +20,15 @@ class SetNodeComponentValueCommand(NyxCommand):
         raw: bool = False,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize SetNodeComponentValueCommand.
+
+        Args:
+            stage (Stage): target stage.
+            node_component (NodeComponentLike): component to change.
+            value (typing.Any): new value.
+            raw (bool): push the value without evaluating it.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage, "Set value", parent)
         component = self.stage.get_object(node_component, expected_type=NodeComponent)
         self.component_uuid = component.uuid
@@ -28,14 +39,17 @@ class SetNodeComponentValueCommand(NyxCommand):
 
     @property
     def component(self) -> NodeComponent:
+        """NodeComponent: component the command operates on."""
         return self.stage.get_object(self.component_uuid, expected_type=NodeComponent)
 
     def redo(self) -> None:
+        """Push the new value."""
         component = self.component
         self.old_value = component.raw_value
         component.push_value(self.new_value, evaluate=not self.raw)
         return super().redo()
 
     def undo(self) -> None:
+        """Push the previous value back."""
         self.component.push_value(self.old_value, evaluate=not self.raw)
         return super().undo()

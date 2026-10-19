@@ -57,9 +57,15 @@ class StageCrawler:
     """
 
     def __repr__(self) -> str:
+        """str: crawler with its stage."""
         return f"StageCrawler({self.stage!r})"
 
     def __init__(self, stage: Stage) -> None:
+        """Initialize StageCrawler.
+
+        Args:
+            stage (Stage): stage to crawl.
+        """
         self._stage = stage
         self._visited_node_paths: list[str] = []
         self._execution_paths_stack: list[str] = []
@@ -67,21 +73,26 @@ class StageCrawler:
 
     @property
     def stage(self) -> Stage:
+        """Stage: stage being crawled."""
         return self._stage
 
     @property
     def current_node(self) -> Node | None:
+        """Node | None: node currently being executed."""
         return self._current_node
 
     @property
     def visited_node_paths(self) -> list[str]:
+        """list[str]: paths of nodes visited in the current run."""
         return self._visited_node_paths
 
     @property
     def execution_paths_stack(self) -> list[str]:
+        """list[str]: paths of executed nodes, in execution order."""
         return self._execution_paths_stack
 
     def clear_cached_data(self):
+        """Forget visited and executed nodes."""
         self.visited_node_paths.clear()
         self.execution_paths_stack.clear()
 
@@ -95,6 +106,13 @@ class StageCrawler:
     # -- NodeVisitor -----------------------------------------------------
 
     def visit_node(self, node: Node) -> None:
+        """Visit a node, executing it and its children in the type's order.
+
+        Nodes already visited in this run are skipped.
+
+        Args:
+            node (Node): node to visit.
+        """
         node_path_as_string = str(node.path)
 
         if self._has_node_already_been_visited(node_path_as_string):
@@ -114,21 +132,44 @@ class StageCrawler:
             self._execute_node_and_record_its_path(node)
 
     def _has_node_already_been_visited(self, node_path_as_string: str) -> bool:
+        """Check whether a node path was already visited.
+
+        Args:
+            node_path_as_string (str): node path.
+
+        Returns:
+            bool: node was visited.
+        """
         return node_path_as_string in self._visited_node_paths
 
     def _execute_node_and_record_its_path(self, node: Node) -> None:
+        """Run the node's execution hook and record its path.
+
+        Args:
+            node (Node): node to execute.
+        """
         self._current_node = node
         LOGGER.debug("Executing node %s", node.path)
         node.execution_hook()
         self._execution_paths_stack.append(node.path.as_posix())
 
     def _resolve_children_of_node(self, node: Node) -> None:
+        """Traverse the node's children starting from its flow start node.
+
+        Args:
+            node (Node): parent node.
+        """
         # Fully resolve this node's own children before anything else.
         flow_start_child_node = node.find_flow_start_node()
         if flow_start_child_node is not None:
             self._traverse_children(flow_start_child_node)
 
     def _traverse_children(self, child_node: Node) -> None:
+        """Visit a child node, then the flow siblings that follow it.
+
+        Args:
+            child_node (Node): node to start from.
+        """
         # child_node.accept_visitor(self) -> visit_node(child_node): this resolves
         # the child's own children first, then executes the child. Only after the
         # child has executed do we look at its core:flow components to find the

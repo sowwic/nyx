@@ -36,19 +36,40 @@ TStageObject = typing.TypeVar("TStageObject", bound=Node | NodeComponent | Link)
 
 
 class Stage(QtGui.QStandardItemModel):
+    """Item model holding a tree of nodes, their undo stack and the uuid registry.
+
+    Attributes:
+        file_path: file the stage was loaded from or saved to
+        undo_stack: undo stack for commands operating on the stage
+        node_deleted: emitted with the uuid of a deleted node
+    """
+
     FILE_EXTENSION = ".nyx"
 
     node_deleted = QtCore.Signal(UUID)
 
     def __repr__(self) -> str:
+        """str: node count and file path."""
         return f"Stage <Nodes: {self.total_node_count()} | File: {self.file_path}>"
 
     def __truediv__(self, other: typing.Any) -> pathlib.PurePosixPath:
+        """Build a path under the root node.
+
+        Args:
+            other (str): path segment to append.
+
+        Returns:
+            pathlib.PurePosixPath: root node path joined with the segment.
+
+        Raises:
+            NotImplementedError: if other isn't a string.
+        """
         if isinstance(other, str):
             return self.root_node.path / other
         raise NotImplementedError
 
     def __init__(self) -> None:
+        """Initialize Stage with a root node and an empty undo stack."""
         super().__init__()
         self.last_saved_undo_index = 0
         self.file_path: pathlib.Path | None = None
@@ -61,6 +82,7 @@ class Stage(QtGui.QStandardItemModel):
         self.create_connections()
 
     def __del__(self) -> None:
+        """Clear the undo stack while the python objects are still valid."""
         # Commands keep Python state alive; empty the undo stack while the Python
         # objects are still intact. Letting the C++ destructor clear it during
         # garbage collection can crash, since the commands' wrappers may be gone.
@@ -74,13 +96,16 @@ class Stage(QtGui.QStandardItemModel):
 
     @property
     def uuid_map(self) -> dict[UUID, Node]:
+        """dict[UUID, Node]: registered stage objects by uuid."""
         return self._uuid_map
 
     @property
     def crawler(self) -> StageCrawler:
+        """StageCrawler: crawler used to execute the stage."""
         return self._crawler
 
     def _register_qml_role_names(self) -> None:
+        """Expose Node roles to QML by name."""
         names = dict(self.roleNames())
         names.update(names_fn.enum_to_dict(Node.Roles))  # ty: ignore
         self.setItemRoleNames(names)
@@ -88,23 +113,37 @@ class Stage(QtGui.QStandardItemModel):
     def create_node(
         self, type_id: str, name: str | None = None, uuid: UUID | str | None = None
     ) -> Node:
+        """Instantiate a registered node type without adding it to the stage.
+
+        Args:
+            type_id (str): registered node type id.
+            name (str | None): node name.
+            uuid (UUID | str | None): node uuid.
+
+        Returns:
+            Node: new node.
+        """
         node_cls = NYX_REGISTRY.get_node_cls(type_id=type_id)
         node = node_cls(name=name, uuid=uuid, parent=None)
         return node
 
     def _create_root_node(self):
+        """Create and register the locked root node."""
         root_node = self.create_node(type_id=CoreNodes.EMPTY, name=ROOT_NODE_PATH.name)
         root_node.is_locked = True
         self.appendRow(root_node)
         self.register_node(root_node)
 
     def create_connections(self):
+        """Connect model signals."""
         self.itemChanged.connect(self.on_node_changed)
 
     def is_new(self):
+        """bool: stage is untouched and was never saved."""
         return not self.undo_stack.count() and self.file_path is None
 
     def is_modified(self):
+        """bool: stage has unsaved changes."""
         if not shiboken6.isValid(self.undo_stack):
             return False
         return (
@@ -152,6 +191,7 @@ class Stage(QtGui.QStandardItemModel):
 
     @property
     def root_node(self) -> Node:
+        """Node: root node of the stage."""
         return self.get_object(ROOT_NODE_PATH)
 
     def generate_unique_node_name(
@@ -159,6 +199,15 @@ class Stage(QtGui.QStandardItemModel):
         base_name: str,
         parent_node: NodeLike | None = None,
     ):
+        """Generate a node name not used by the siblings under a parent.
+
+        Args:
+            base_name (str): preferred name.
+            parent_node (NodeLike | None): parent node. Defaults to the root node.
+
+        Returns:
+            str: unique valid node name.
+        """
         base_name = NameValidator.get_valid_stage_object_name(base_name)
         parent_node: Node = (
             self.get_object(parent_node) if parent_node else self.root_node
@@ -175,6 +224,14 @@ class Stage(QtGui.QStandardItemModel):
         return result_name
 
     def filter_top_level_nodes(self, nodes: list[NodeLike]) -> list[Node]:
+        """Drop nodes that have an ancestor in the given nodes.
+
+        Args:
+            nodes (list[NodeLike]): nodes to filter.
+
+        Returns:
+            list[Node]: nodes without ancestors in the input.
+        """
         nodes: list[Node] = [self.get_object(node) for node in nodes]
         paths_set = {node.path for node in nodes}
         return [
@@ -230,6 +287,14 @@ class Stage(QtGui.QStandardItemModel):
         return result
 
     def node_from_path(self, path: pathlib.PurePosixPath | str) -> Node | None:
+        """Find a node by path.
+
+        Args:
+            path (pathlib.PurePosixPath | str): node path.
+
+        Returns:
+            Node | None: node, None if the path doesn't exist.
+        """
         path = pathlib.PurePosixPath(path)
         if path == ROOT_NODE_PATH:
             return self.item(0)
@@ -248,6 +313,17 @@ class Stage(QtGui.QStandardItemModel):
     def node_component_from_path(
         self, path: pathlib.PurePosixPath | str
     ) -> NodeComponent | None:
+        """Find a node component by path.
+
+        Args:
+            path (pathlib.PurePosixPath | str): component path.
+
+        Returns:
+            NodeComponent | None: component, None if the node has no such component.
+
+        Raises:
+            ValueError: if the path isn't a component path or its node doesn't exist.
+        """
         path = pathlib.PurePosixPath(path)
         component_name = path.suffix
         if not component_name:
@@ -266,6 +342,19 @@ class Stage(QtGui.QStandardItemModel):
         target_component: NodeComponentLike,
         use_uuid: UUID | str | None = None,
     ) -> Link:
+        """Link two components and register the link.
+
+        Args:
+            source_component (NodeComponentLike): component providing output.
+            target_component (NodeComponentLike): component accepting input.
+            use_uuid (UUID | str | None): uuid for the link. Generated if omitted.
+
+        Returns:
+            Link: created link.
+
+        Raises:
+            NodeComponentLinkError: if the components can't be linked.
+        """
         source_component: NodeComponent = self.get_object(source_component)
         target_component: NodeComponent = self.get_object(target_component)
 
@@ -285,6 +374,14 @@ class Stage(QtGui.QStandardItemModel):
         return new_link
 
     def register_link(self, link: Link):
+        """Register a link and attach it to both of its components.
+
+        Args:
+            link (Link): link to register. Invalid links are skipped.
+
+        Raises:
+            StageObjectRegistrationError: if the uuid is used by another object.
+        """
         if not link.is_valid:
             LOGGER.warning(f"Skipping registration of invalid link: {link}")
             return
@@ -303,6 +400,11 @@ class Stage(QtGui.QStandardItemModel):
         LOGGER.debug("Registered link: %s (%s)", str(link), str(link.uuid))
 
     def unregister_link(self, link: LinkLike):
+        """Unregister a link and detach it from both of its components.
+
+        Args:
+            link (LinkLike): link, uuid or path.
+        """
         link = self.get_object(link)
         self._uuid_map.pop(link.uuid, None)
         source_cpnt: NodeComponent = self.get_object(link.source)
@@ -311,6 +413,14 @@ class Stage(QtGui.QStandardItemModel):
         target_cpnt.remove_link(link_uuid=link.uuid)
 
     def collect_links(self, from_node: NodeLike | None = None) -> list[Link]:
+        """Collect links touching a node and its descendants.
+
+        Args:
+            from_node (NodeLike | None): node to start from. Defaults to the root node.
+
+        Returns:
+            list[Link]: collected links.
+        """
         result = []
         from_node = self.get_object(from_node) if from_node else self.root_node
         serialized_node = from_node.serialize()
@@ -319,6 +429,14 @@ class Stage(QtGui.QStandardItemModel):
         return result
 
     def register_node(self, node: Node):
+        """Register a node and its components in the uuid map.
+
+        Args:
+            node (Node): node to register.
+
+        Raises:
+            StageObjectRegistrationError: if a uuid is used by another object.
+        """
         if node.uuid in self.uuid_map and self.uuid_map[node.uuid] is not node:
             raise StageObjectRegistrationError(
                 f"Node with UUID {node.uuid} already exists: "
@@ -339,6 +457,14 @@ class Stage(QtGui.QStandardItemModel):
             self._uuid_map[node_component.uuid] = node_component
 
     def unregister_node(self, node: NodeLike):
+        """Unregister a node, its components and its descendants.
+
+        Args:
+            node (NodeLike): node to unregister.
+
+        Raises:
+            StageObjectUnregistrationError: if the node is the root node.
+        """
         if node is self.root_node:
             raise StageObjectUnregistrationError("Can't unregister root node")
 
@@ -350,7 +476,6 @@ class Stage(QtGui.QStandardItemModel):
 
         for child_node in descendant_nodes:
             self.unregister_node(child_node)
-            # self.uuid_map.pop(child_node.uuid, None)
 
     def add_node(
         self,
@@ -396,6 +521,11 @@ class Stage(QtGui.QStandardItemModel):
             self.node_deleted.emit(node.uuid)
 
     def on_node_changed(self, node: Node):
+        """Forward item changes to the node.
+
+        Args:
+            node (Node): changed node.
+        """
         node.on_changed()
 
     def describe(self) -> str:
@@ -465,6 +595,15 @@ class Stage(QtGui.QStandardItemModel):
     def pathify(
         self, stage_object: StageObject | UUID | pathlib.PurePosixPath | str
     ) -> pathlib.PurePosixPath:
+        """Convert a stage object, uuid or path-like value to a path.
+
+        Args:
+            stage_object (StageObject | UUID | pathlib.PurePosixPath | str): value to
+                convert.
+
+        Returns:
+            pathlib.PurePosixPath: path of the object.
+        """
         if isinstance(stage_object, pathlib.PurePosixPath):
             return stage_object
         elif isinstance(stage_object, str):

@@ -37,6 +37,15 @@ class NyxPluginRegistryEntry:
 
 @dataclasses.dataclass()
 class NyxRegistry:
+    """Registry of loaded plugins and the nodes, components and QML roots they provide.
+
+    Attributes:
+        plugins: plugin entries by type id
+        node_components: component classes by type id
+        nodes: node classes by type id
+        qml_import_root_directories: QML import roots of registered plugins
+    """
+
     plugins: OrderedDict[str, NyxPluginRegistryEntry] = dataclasses.field(
         init=False, default_factory=OrderedDict
     )
@@ -51,9 +60,11 @@ class NyxRegistry:
     )
 
     def __post_init__(self):
+        """Register the built-in QML import root."""
         self.register_qml_import_root_directory(QML_DIR)
 
     def clear(self):
+        """Remove everything from the registry."""
         self.nodes.clear()
         self.node_components.clear()
         self.plugins.clear()
@@ -71,9 +82,25 @@ class NyxRegistry:
         return self.plugins.get(name)
 
     def get_node_component_cls(self, type_id: str) -> type[NodeComponent]:
+        """Get a component class.
+
+        Args:
+            type_id (str): component type id.
+
+        Returns:
+            type[NodeComponent] | None: class, None if not registered.
+        """
         return self.node_components.get(type_id)
 
     def get_node_cls(self, type_id: str) -> type[Node]:
+        """Get a node class.
+
+        Args:
+            type_id (str): node type id.
+
+        Returns:
+            type[Node] | None: class, None (and an error is logged) if not registered.
+        """
         try:
             return self.nodes[type_id]
         except KeyError:
@@ -82,10 +109,16 @@ class NyxRegistry:
             )
 
     def add_plugin(self, plugin_cls: NyxPlugin):
+        """Add a plugin class to the registry.
+
+        Args:
+            plugin_cls (NyxPlugin): plugin class.
+        """
         registry_entry = NyxPluginRegistryEntry(plugin_cls=plugin_cls)
         self.plugins[plugin_cls.get_type_id()] = registry_entry
 
     def register_plugin_content(self):
+        """Rebuild the node and component registries from enabled plugins."""
         self.nodes.clear()
         self.node_components.clear()
 
@@ -107,6 +140,11 @@ class NyxRegistry:
             self.register_qml_import_root(plugin_entry)
 
     def register_node_components(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the components provided by a plugin. Duplicate type ids are skipped.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): initialized plugin entry.
+        """
         LOGGER.debug("Registering new node components...")
         for node_component_cls in plugin_entry.plugin_instance.contents.node_components:
             if node_component_cls.get_type_id() in self.node_components:
@@ -131,6 +169,11 @@ class NyxRegistry:
             )
 
     def register_nodes(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the nodes provided by a plugin. Duplicate type ids are skipped.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): initialized plugin entry.
+        """
         LOGGER.debug("Registering new nodes...")
         for node_cls in plugin_entry.plugin_instance.contents.nodes:
             if node_cls.get_type_id() in self.nodes:
@@ -157,6 +200,14 @@ class NyxRegistry:
     def register_qml_import_root_directory(
         self, import_root_directory: pathlib.Path
     ) -> bool:
+        """Register a QML import root.
+
+        Args:
+            import_root_directory (pathlib.Path): directory to register.
+
+        Returns:
+            bool: directory was newly registered.
+        """
         resolved_import_root_directory = import_root_directory.resolve()
         if not resolved_import_root_directory.is_dir():
             LOGGER.warning(
@@ -175,6 +226,11 @@ class NyxRegistry:
         return True
 
     def register_qml_import_root(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the QML directory of a plugin.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): plugin entry.
+        """
         qml_directory = plugin_entry.plugin_cls.qml_directory()
         if qml_directory is None:
             return
@@ -183,6 +239,18 @@ class NyxRegistry:
     def resolve_qml_source(
         self, qml_module_uri: str, qml_type_name: str
     ) -> pathlib.Path:
+        """Find a QML file in the registered import roots.
+
+        Args:
+            qml_module_uri (str): dotted QML module uri.
+            qml_type_name (str): QML type name, without extension.
+
+        Returns:
+            pathlib.Path: QML file path.
+
+        Raises:
+            FileNotFoundError: if no root contains the file.
+        """
         module_relative_directory = pathlib.Path(*qml_module_uri.split("."))
         for import_root_directory in self.qml_import_root_directories:
             candidate_qml_file_path = (
@@ -214,9 +282,19 @@ class NyxRegistry:
         yield from self.plugins.values()
 
     def iter_node_components(self) -> Iterator[tuple[str, type[NodeComponent]]]:
+        """Iterate registered components.
+
+        Yields:
+            tuple[str, type[NodeComponent]]: type id and class.
+        """
         yield from self.node_components.items()
 
     def get_plugins_types_dict(self) -> OrderedDict:
+        """Get plugin classes by type id.
+
+        Returns:
+            OrderedDict: plugin classes.
+        """
         flat_dict = OrderedDict()
         for type_id, registry_entry in self.iter_plugins():
             flat_dict[type_id] = registry_entry.plugin_cls
