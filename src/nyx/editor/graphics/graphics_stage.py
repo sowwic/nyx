@@ -9,11 +9,13 @@ import math
 import pathlib
 import typing
 from collections import deque
+from uuid import UUID
 
 import shiboken6
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core.exceptions import StageObjectQueryError
+from nyx.core.stage_object import StageObject
 from nyx.editor.graphics.graphics_node import GraphicsNode
 
 if typing.TYPE_CHECKING:
@@ -40,7 +42,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         super().__init__(parent=parent)
 
         self._graph_editor = graph_editor
-        self._previous_selected_paths: list[pathlib.PurePosixPath] = []
+        self._gr_nodes: dict[UUID, GraphicsNode] = {}
+        self._scope_path: pathlib.PurePosixPath | None = None
 
         # Settings
         self.grid_size = 20
@@ -63,6 +66,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def create_connections(self):
         """Creates signal-slot connections for the graphics stage."""
         self.selectionChanged.connect(self.on_selection_changed)
+        self.stage.itemChanged.connect(self.on_node_changed)
 
     @property
     def graph_editor(self) -> StageGraphEditor:
@@ -132,18 +136,34 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         painter.setPen(self._pen_dark)
         painter.drawLines(lines_dark)
 
-    def gr_nodes(self):
-        """Returns a generator of all GraphicsNode items in the scene."""
-        return (item for item in self.items() if isinstance(item, GraphicsNode))
+    # ======== Nodes ========= #
 
-    def get_gr_node(self, node: Node | pathlib.PurePosixPath | str):
-        """Returns the GraphicsNode associated with the given node."""
-        input_node = node
-        node = self.stage.get_object(node)
-        if not node:
-            LOGGER.exception(f"Failed to find gr node for {input_node}")
-            return
-        return node.gr_node
+    def gr_nodes(self) -> list[GraphicsNode]:
+        """Returns all GraphicsNode items in the scene."""
+        return list(self._gr_nodes.values())
+
+    def get_gr_node(
+        self, node: Node | UUID | pathlib.PurePosixPath | str
+    ) -> GraphicsNode | None:
+        """Returns the GraphicsNode drawn for the given node, if it is in scope.
+
+        Args:
+            node: node, its uuid or its path.
+        """
+        if isinstance(node, StageObject):
+            uuid = node.uuid
+        elif isinstance(node, UUID):
+            uuid = node
+        else:
+            try:
+                found = self.stage.get_object(node)
+            except StageObjectQueryError:
+                found = None
+            if found is None:
+                LOGGER.warning(f"Failed to find gr node for {node}")
+                return None
+            uuid = found.uuid
+        return self._gr_nodes.get(uuid)
 
     def selected_gr_nodes(self):
         """Returns a generator of all selected GraphicsNode items in the scene."""
@@ -163,40 +183,104 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             return None
         return deque(self.selected_gr_nodes(), maxlen=1).pop()
 
+    def is_in_scope(self, node: Node) -> bool:
+        """Check if the node is a direct child of the scope being drawn.
+
+        Args:
+            node (Node): node to check.
+        """
+        if self._scope_path is None:
+            return False
+        parent = node.parent()
+        return parent is not None and parent.path == self._scope_path
+
+    def add_node(self, node: Node | pathlib.PurePosixPath | str) -> GraphicsNode | None:
+        """Adds a GraphicsNode item to the scene for the given node.
+
+        Only direct children of the scope being drawn get an item.
+
+        Args:
+            node: The node to create a GraphicsNode for.
+
+        Returns:
+            GraphicsNode | None: item for the node, None if the node is out of scope.
+        """
+        node = self.stage.get_object(node)
+        if not self.is_in_scope(node):
+            LOGGER.debug(f"Skipping {node.path}: not a child of {self._scope_path}")
+            return None
+
+        gr_node = self._gr_nodes.get(node.uuid)
+        if gr_node is not None:
+            if gr_node.node is node:
+                return gr_node
+            self.remove_node(node.uuid)
+
+        gr_node = GraphicsNode(node)
+        self._gr_nodes[node.uuid] = gr_node
+        self.addItem(gr_node)
+        return gr_node
+
+    def remove_node(self, node: Node | UUID) -> None:
+        """Removes the GraphicsNode item of the given node, if there is one.
+
+        Args:
+            node (Node | UUID): node or its uuid.
+        """
+        gr_node = self._gr_nodes.pop(getattr(node, "uuid", node), None)
+        if gr_node is not None:
+            self.removeItem(gr_node)
+
     def clear_nodes(self):
         """Removes all GraphicsNode items from the scene."""
-        for gr_node in self.gr_nodes():
-            gr_node._set_node(None)
-            self.removeItem(gr_node)
+        for uuid in list(self._gr_nodes):
+            self.remove_node(uuid)
+
+    def build_nodes(self, scope_node: Node):
+        """Make the GraphicsNode items match the child nodes of the scope node.
+
+        Items of nodes that are gone (or were replaced by another instance) are
+        removed, missing ones are created and existing ones are refreshed.
+
+        Args:
+            scope_node (Node): node being drawn.
+        """
+        children = {node.uuid: node for node in self.stage.list_children(scope_node)}
+        for uuid, gr_node in list(self._gr_nodes.items()):
+            if children.get(uuid) is not gr_node.node:
+                self.remove_node(uuid)
+
+        for uuid, node in children.items():
+            gr_node = self._gr_nodes.get(uuid)
+            if gr_node is None:
+                self.add_node(node)
+            else:
+                gr_node.refresh()
+
+    # ======== Links ========= #
 
     def clear_links(self):
         """Removes all GraphicsEdge items from the scene."""
         LOGGER.debug("TODO: cleaning edges")
 
-    def add_node(self, node: Node | pathlib.PurePosixPath | str):
-        """Adds a GraphicsNode item to the scene for the given node.
-        Args:
-            node: The node to create a GraphicsNode for.
-        """
-        node = self.stage.get_object(node)
-        gr_node = GraphicsNode(node)
-        self.addItem(gr_node)
-
-    def build_nodes(self, scope_node: Node):
-        """Builds GraphicsNode items for all child nodes of the given scope node."""
-        child_nodes = self.stage.list_children(scope_node)
-        for node in child_nodes:
-            self.add_node(node)
-
     def build_links(self, scope_node: Node):
         """
         Builds GraphicsEdge items for all connections between child nodes for given node.
+
+        Must run after `build_nodes`: links attach to the plugs of the node items.
         """
         # TODO: Build graphics edges
         pass
 
+    # ======== Scope ========= #
+
     def rebuild_scope(self, scope_path: pathlib.PurePosixPath):
-        """Rebuilds the scene for the given scope path, preserving the selection.
+        """Update the scene to show the children of the scope node.
+
+        Switching to another scope drops all items. Rebuilding the same scope
+        only adds, removes and refreshes what changed. Nodes are always built
+        before links, and links are removed before nodes.
+
         Args:
             scope_path (pathlib.PurePosixPath): The path of the scope to rebuild.
         """
@@ -209,20 +293,34 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
         self.clear_links()
-        self.clear_nodes()
+        if scope_path != self._scope_path:
+            self.clear_nodes()
+            self._scope_path = scope_path
         scope_node = self.stage.get_object(scope_path)
         self.build_nodes(scope_node)
         self.build_links(scope_node)
-        for path in previous_selection:
+        self._restore_selection(previous_selection)
+
+    def _restore_selection(self, paths: list[pathlib.PurePosixPath]):
+        """Select the items of nodes that are still drawn.
+
+        Args:
+            paths (list[pathlib.PurePosixPath]): node paths to select.
+        """
+        index_selection = QtCore.QItemSelection()
+        for path in paths:
             if not path:
                 continue
             try:
                 node = self.stage.get_object(path)
             except StageObjectQueryError:
                 node = None
-            if not node or not node.gr_node:
+            if node is None or node.uuid not in self._gr_nodes:
                 continue
-            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
+            index_selection.select(node.index(), node.index())
+        if index_selection.isEmpty():
+            return
+        self.selection_model.select(index_selection, QtCore.QItemSelectionModel.Select)
 
     def rebuild_current_scope(self):
         """Rebuilds the scene for the current scope, preserving the selection."""
@@ -245,13 +343,24 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                 return
 
             for node in scope_selected_nodes:
-                if node.gr_node is None:
-                    LOGGER.exception(f"Missing graphics node for selection: {node}")
+                gr_node = self._gr_nodes.get(node.uuid)
+                if gr_node is None:
+                    LOGGER.warning(f"Missing graphics node for selection: {node}")
                     continue
-                node.gr_node.setSelected(True)
+                gr_node.setSelected(True)
         # Ensure signals are always unblocked even on early return
         finally:
             self.blockSignals(False)
+
+    def on_node_changed(self, node: Node):
+        """Refresh the item of a node whose data changed (position, name, ...).
+
+        Args:
+            node (Node): changed node.
+        """
+        gr_node = self._gr_nodes.get(getattr(node, "uuid", None))
+        if gr_node is not None and gr_node.node is node:
+            gr_node.refresh()
 
     def on_selection_changed(self):
         """Updates the selection model to match the scene selection."""

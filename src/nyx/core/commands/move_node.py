@@ -48,8 +48,6 @@ class MoveNodeCommand(NyxCommand):
             [self.stage.get_object(path) for path in self.node_paths], self.new_positions
         ):
             node.set_position(new_pos)
-            if node.gr_node and node.gr_node.pos() != new_pos:
-                node.gr_node.setPos(new_pos)
 
         return super().redo()
 
@@ -59,6 +57,4 @@ class MoveNodeCommand(NyxCommand):
             [self.stage.get_object(path) for path in self.node_paths], self.old_positions
         ):
             node.set_position(old_pos)
-            if node.gr_node and node.gr_node.pos() != old_pos:
-                node.gr_node.setPos(old_pos)
         return super().undo()

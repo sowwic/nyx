@@ -42,11 +42,7 @@ class FlowComponent(NodeComponent):
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
         """NodeComponentFlag: static, readable and writable."""
-        return (
-            NodeComponentFlag.STATIC
-            | NodeComponentFlag.WRITABLE
-            | NodeComponentFlag.READABLE
-        )
+        return NodeComponentFlag.STATIC
 
     def deserialize_value(self, value: str | None) -> pathlib.PurePosixPath | None:
         """Convert a serialized path back to a path.

@@ -27,7 +27,6 @@ if typing.TYPE_CHECKING:
     from .stage import Stage
     from .node_component import NodeComponent
     from .stage_crawler import NodeVisitor
-    from nyx.editor.graphics.graphics_node import GraphicsNode
     from nyx.plugins.core.nodes.flow_start import FlowStartNode
 
 
@@ -88,7 +87,6 @@ class Node(QtGui.QStandardItem, StageObject):
         StageObject.__init__(self, uuid=uuid)
         self._set_default_role_values()
         self._components_model = NodeComponentsModel(node=self)
-        self.gr_node: GraphicsNode = None
 
         if parent:
             parent.appendRow(self)
