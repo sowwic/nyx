@@ -19,15 +19,8 @@ ItemDelegate {
         spawnRequested(String(model.typeId));
     }
 
-    // Snapshot of the row, used as the drag pixmap
-    onDownChanged: {
-        if (down && dragEnabled)
-            grabToImage(function (result) {
-                itemRoot.Drag.imageSource = result.url;
-            });
-    }
-
     Drag.active: dragHandler.active
+    Drag.imageSource: icon.source            // drag pixmap is just the type icon
     Drag.dragType: Drag.Automatic            // starts a native QDrag, so widgets can accept it
     Drag.supportedActions: Qt.CopyAction
     Drag.proposedAction: Qt.CopyAction
