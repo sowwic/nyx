@@ -1,3 +1,5 @@
+import functools
+import pathlib
 import typing
 
 if typing.TYPE_CHECKING:
@@ -31,6 +33,10 @@ class FileMenu(BaseMenu):
         self.addAction(action(ActionId.NEW_STAGE))
         self.addAction(action(ActionId.OPEN_STAGE))
         self.addAction(action(ActionId.OPEN_STAGE_TAB))
+        self.recent_menu = self.addMenu("Recent Files...")
+        self.recent_menu.setToolTipsVisible(True)
+        self.recent_menu.aboutToShow.connect(self.rebuild_recent_menu)
+        self.rebuild_recent_menu()
         self.addSection("Save")
         self.addAction(action(ActionId.SAVE_STAGE))
         self.addAction(action(ActionId.SAVE_STAGE_AS))
@@ -38,3 +44,22 @@ class FileMenu(BaseMenu):
         self.addAction(action(ActionId.IMPORT_NODES))
         self.addAction(action(ActionId.REFERENCE_NODES))
         self.addAction(action(ActionId.EXPORT_NODES))
+
+    def rebuild_recent_menu(self):
+        self.recent_menu.clear()
+        recent_files = self.main_window.config.values.editor_session.recent_files
+        if not recent_files:
+            placeholder = self.recent_menu.addAction("(No recent files)")
+            placeholder.setEnabled(False)
+            return
+
+        for file_path in list(recent_files):
+            recent_action = self.recent_menu.addAction(pathlib.Path(file_path).name)
+            recent_action.setToolTip(file_path)
+            recent_action.setStatusTip(file_path)
+            recent_action.triggered.connect(
+                functools.partial(self._open_recent, file_path)
+            )
+
+    def _open_recent(self, file_path: str, _checked: bool = False):
+        self.main_window.on_stage_open_recent(file_path)

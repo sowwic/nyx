@@ -31,6 +31,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     stage_changed = QtCore.Signal(Stage)
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
     node_type_dropped = QtCore.Signal(str, QtCore.QPointF)
+    stage_file_used = QtCore.Signal(str)
 
     def __init__(
         self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
@@ -71,6 +72,10 @@ class StageGraphEditor(QtWidgets.QWidget):
         old_stage = self.stage
         if stage is None:
             stage = Stage()
+        session = self.main_window.application.session
+        if old_stage:
+            session.unregister_stage(old_stage)
+        session.register_stage(stage)
         self._stage = stage
         self._selection_model.setModel(stage)
         self.stage_changed.emit(stage)
@@ -133,6 +138,7 @@ class StageGraphEditor(QtWidgets.QWidget):
 
         """
         if self.maybe_save():
+            self.main_window.application.session.unregister_stage(self.stage)
             event.accept()
         else:
             event.ignore()
@@ -181,30 +187,53 @@ class StageGraphEditor(QtWidgets.QWidget):
         if not self.maybe_save():
             self.set_stage(Stage)
 
+    @staticmethod
+    def pick_stage_file(parent=None) -> str:
+        """Prompt for a stage file. Returns empty string if cancelled."""
+        file_filter = "Nyx Stage (*.nyx)"
+        return QtWidgets.QFileDialog.getOpenFileName(
+            parent, "Open Stage", None, file_filter
+        )[0]
+
     def on_stage_open(self):
         if not self.maybe_save():
             return
 
-        file_filter = "Nyx Stage (*.nyx)"
-        file_path = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open Stage", None, file_filter
-        )[0]
+        file_path = self.pick_stage_file(self)
         if not file_path:
             return False
 
+        return self.load_stage_file(file_path)
+
+    def open_stage_file(self, file_path: pathlib.Path | str) -> bool:
+        """Open given file in this editor, prompting to save current changes first.
+
+        Returns:
+            bool: True if the file was loaded.
+
+        """
+        if not self.maybe_save():
+            return False
+        return self.load_stage_file(file_path)
+
+    def load_stage_file(self, file_path: pathlib.Path | str) -> bool:
         self.scope_root()
         new_stage = Stage()
         new_stage.import_json(file_path)
         self.set_stage(new_stage)
         self.gr_stage.rebuild_current_scope()
+        self._notify_stage_file_used()
         return True
 
-    def on_stage_save(self):
+    def on_stage_save(self) -> bool:
         if self.stage.file_path is not None:
             self.stage.export_json(self.stage.file_path)
+            saved = True
+            self._notify_stage_file_used()
         else:
-            self.on_stage_save_as()
+            saved = self.on_stage_save_as()
         self.update_title()
+        return saved
 
     def on_stage_save_as(self):
         file_filter = "Nyx Stage (*.nyx)"
@@ -215,7 +244,13 @@ class StageGraphEditor(QtWidgets.QWidget):
             return False
         self.stage.export_json(file_path)
         self.update_title()
+        self._notify_stage_file_used()
         return True
+
+    def _notify_stage_file_used(self):
+        file_path = self.stage.file_path
+        if file_path is not None and pathlib.Path(file_path).is_file():
+            self.stage_file_used.emit(str(file_path))
 
     def get_scope_path(self) -> pathlib.PurePosixPath:
         return self._scope_path
@@ -245,6 +280,19 @@ class StageGraphEditor(QtWidgets.QWidget):
         LOGGER.debug(f"Set scope to: {self._scope_path}")
         if not silent:
             self.scope_changed.emit(self._scope_path)
+
+    def get_session_state(self) -> dict:
+        """State stored per stage in a session file."""
+        return {
+            "scope": str(self.get_scope_path()),
+            "view": self.gr_view.get_view_state(),
+        }
+
+    def apply_session_state(self, state: dict) -> None:
+        if "scope" in state:
+            self.set_scope_path(pathlib.PurePosixPath(state["scope"]))
+        if "view" in state:
+            self.gr_view.apply_view_state(state["view"])
 
     def scope_back(self) -> None:
         if self.get_scope_path() == ROOT_NODE_PATH:

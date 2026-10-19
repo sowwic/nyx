@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.14.3"
 
 [[package]]
@@ -203,8 +203,8 @@ wheels = [
 
 [[package]]
 name = "json-config"
-version = "1.0.3"
-source = { git = "https://github.com/sowwic/json-config?tag=v1.0.3#72add62495e35b28805b1ebab33dc39e7c4ca971" }
+version = "1.0.4"
+source = { git = "https://github.com/sowwic/json-config?tag=v1.0.4#53ed1d2340d41ee92685411546fb8dacb66b2951" }
 dependencies = [
     { name = "pydantic" },
 ]
@@ -418,7 +418,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "codetiming", specifier = ">=1.4.0" },
-    { name = "json-config", git = "https://github.com/sowwic/json-config?tag=v1.0.3" },
+    { name = "json-config", git = "https://github.com/sowwic/json-config?tag=v1.0.4" },
     { name = "platformdirs", specifier = ">=4.5.0" },
     { name = "pyside6", specifier = ">=6.10.0" },
 ]

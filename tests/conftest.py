@@ -82,6 +82,14 @@ def qapp(request: pytest.FixtureRequest):
     _release_editor_objects(app)
 
 
+@pytest.fixture(autouse=True)
+def isolate_user_config(qapp, monkeypatch):
+    """Keep tests from persisting anything (e.g. recent files) to the user config."""
+    monkeypatch.setattr(qapp.config, "save", lambda *args, **kwargs: None)
+    session = qapp.config.values.editor_session
+    monkeypatch.setattr(session, "recent_files", [])
+
+
 @pytest.fixture
 def nyx_app(qapp):
     """Application for tests needing Qt features (clipboard, fonts, resources)."""

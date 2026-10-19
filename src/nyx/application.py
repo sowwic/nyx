@@ -5,6 +5,7 @@ from PySide6 import QtGui, QtWidgets, QtQml
 
 import nyx.resources.resources_rc  # noqa: F401
 from nyx.core.layered_config import NyxConfig
+from nyx.core.session import NyxSession
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.api.v1 import NyxPluginManager
 from nyx.editor.main_window import NyxEditorMainWindow
@@ -18,8 +19,7 @@ LOGGER = logging.getLogger(__name__)
 class NyxApplication(QtWidgets.QApplication):
     def __init__(self, initialize_plugins=True) -> None:
         super().__init__(sys.argv)
-        self._config = NyxConfig()
-        self._config.resolve()
+        self._session = NyxSession()
         self._plugin_manager = NyxPluginManager()
         self.setApplicationDisplayName("Nyx")
         self.setWindowIcon(QtGui.QIcon(":/icons/nyx"))
@@ -30,8 +30,12 @@ class NyxApplication(QtWidgets.QApplication):
             self._plugin_manager.initialize_plugins()
 
     @property
+    def session(self) -> NyxSession:
+        return self._session
+
+    @property
     def config(self) -> NyxConfig:
-        return self._config
+        return self._session.config
 
     def reset_config(self):
         """Reset application config."""

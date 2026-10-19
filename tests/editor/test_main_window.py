@@ -1,9 +1,11 @@
+import pytest
 from unittest import mock
 
-from PySide6 import QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
+from nyx.core.layered_config import MAX_RECENT_FILES
 from nyx.static.enums import EditorUIObject
 
 
@@ -202,3 +204,231 @@ def test_reset_config_action_resets_application_config(main_window, monkeypatch)
     monkeypatch.setattr(main_window, "apply_config_values", mock.Mock())
     ACTION_REGISTRY.action(ActionId.RESET_CONFIG).trigger()
     reset.assert_called_once_with()
+
+
+@pytest.fixture
+def recent_files(main_window, monkeypatch):
+    session = main_window.config.values.editor_session
+    monkeypatch.setattr(session, "recent_files", [])
+    monkeypatch.setattr(main_window.config, "save", mock.Mock())
+    return session.recent_files
+
+
+def _make_stage_file(path, create_node):
+    from nyx.api.v1 import Stage
+
+    stage = Stage()
+    create_node(stage, "n")
+    stage.export_json(path)
+    return str(path)
+
+
+def test_save_as_adds_recent_file_once(
+    main_window, stage_editor, recent_files, tmp_path, monkeypatch
+):
+    target = tmp_path / "saved.nyx"
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getSaveFileName", lambda *a, **k: (str(target), "")
+    )
+    stage_editor.on_stage_save_as()
+    stage_editor.on_stage_save()
+    assert recent_files == [str(target)]
+
+
+def test_recent_files_capped(main_window, recent_files, tmp_path):
+    for i in range(MAX_RECENT_FILES + 3):
+        main_window.add_recent_file(str(tmp_path / f"{i}.nyx"))
+    assert len(recent_files) == MAX_RECENT_FILES
+    assert recent_files[0] == str(tmp_path / f"{MAX_RECENT_FILES + 2}.nyx")
+
+
+def test_recent_menu_placeholder_when_empty(main_window, recent_files):
+    menu = main_window.menubar_file_menu
+    menu.rebuild_recent_menu()
+    actions = menu.recent_menu.actions()
+    assert [a.text() for a in actions] == ["(No recent files)"]
+    assert not actions[0].isEnabled()
+
+
+def test_recent_action_opens_in_new_editor(
+    main_window, stage_editor, recent_files, tmp_path, create_node
+):
+    target = _make_stage_file(tmp_path / "recent.nyx", create_node)
+    main_window.add_recent_file(target)
+    menu = main_window.menubar_file_menu
+    menu.rebuild_recent_menu()
+    menu.recent_menu.actions()[0].trigger()
+
+    assert len(main_window.mdi_area.subWindowList()) == 2
+    assert main_window.current_stage_graph is not stage_editor
+    assert main_window.current_stage_graph.stage.file_path.name == "recent.nyx"
+
+
+def test_recent_action_creates_window_when_none(
+    main_window, recent_files, tmp_path, create_node
+):
+    target = _make_stage_file(tmp_path / "recent.nyx", create_node)
+    main_window.on_stage_open_recent(target)
+    assert len(main_window.mdi_area.subWindowList()) == 1
+    assert main_window.current_stage_graph.stage.file_path.name == "recent.nyx"
+
+
+def test_missing_recent_file_is_removed(main_window, recent_files, tmp_path):
+    missing = str(tmp_path / "gone.nyx")
+    main_window.add_recent_file(missing)
+    main_window.on_stage_open_recent(missing)
+    assert recent_files == []
+    assert main_window.mdi_area.subWindowList() == []
+
+
+def test_open_recent_activates_existing_window(
+    main_window, recent_files, tmp_path, create_node
+):
+    target = _make_stage_file(tmp_path / "recent.nyx", create_node)
+    main_window.on_stage_open_recent(target)
+    first = main_window.current_mdi_window
+    main_window.on_stage_new()
+    assert main_window.current_mdi_window is not first
+
+    main_window.on_stage_open_recent(target)
+
+    assert len(main_window.mdi_area.subWindowList()) == 2
+    assert main_window.current_mdi_window is first
+
+
+def test_open_dialog_activates_existing_window(
+    main_window, recent_files, tmp_path, create_node, monkeypatch
+):
+    target = _make_stage_file(tmp_path / "recent.nyx", create_node)
+    main_window.on_stage_open_recent(target)
+    first = main_window.current_mdi_window
+    main_window.on_stage_new()
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getOpenFileName", lambda *a, **k: (str(target), "")
+    )
+
+    main_window.on_stage_open(tabbed=True)
+
+    assert len(main_window.mdi_area.subWindowList()) == 2
+    assert main_window.current_mdi_window is first
+
+
+def test_session_save_and_load(
+    main_window, recent_files, tmp_path, create_node, monkeypatch
+):
+    first = _make_stage_file(tmp_path / "one.nyx", create_node)
+    second = _make_stage_file(tmp_path / "two.nyx", create_node)
+    main_window.on_stage_open_recent(first)
+    main_window.on_stage_open_recent(second)
+    session_file = tmp_path / "work.nyxsession"
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getSaveFileName", lambda *a, **k: (str(session_file), "")
+    )
+    main_window.on_session_save()
+    for sub_wnd in main_window.mdi_area.subWindowList():
+        sub_wnd.close()
+    assert main_window.mdi_area.subWindowList() == []
+
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getOpenFileName", lambda *a, **k: (str(session_file), "")
+    )
+    main_window.on_session_load()
+
+    opened = {
+        w.widget().stage.file_path.name for w in main_window.mdi_area.subWindowList()
+    }
+    assert opened == {"one.nyx", "two.nyx"}
+
+
+def test_session_restores_active_stage_and_view(
+    main_window, recent_files, tmp_path, create_node, monkeypatch, qtbot
+):
+    first = _make_stage_file(tmp_path / "one.nyx", create_node)
+    second = _make_stage_file(tmp_path / "two.nyx", create_node)
+    main_window.on_stage_open_recent(first)
+    main_window.current_stage_graph.gr_view.apply_view_state(
+        {"zoom": 7.0, "center": [120.0, -40.0]}
+    )
+    main_window.on_stage_open_recent(second)
+    main_window.activate_window_for_file(first)
+
+    session_file = tmp_path / "work.nyxsession"
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getSaveFileName", lambda *a, **k: (str(session_file), "")
+    )
+    main_window.on_session_save()
+    for sub_wnd in main_window.mdi_area.subWindowList():
+        sub_wnd.close()
+
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, "getOpenFileName", lambda *a, **k: (str(session_file), "")
+    )
+    main_window.on_session_load()
+    qtbot.wait(20)
+
+    restored = main_window.current_stage_graph
+    assert restored.stage.file_path.name == "one.nyx"
+    assert restored.gr_view.zoom == pytest.approx(7.0)
+    center = restored.gr_view.get_view_state()["center"]
+    assert center == pytest.approx([120.0, -40.0], abs=5.0)
+
+
+def test_close_saves_last_session_and_restore_reopens(
+    main_window, recent_files, tmp_path, create_node, monkeypatch
+):
+    from nyx.editor import main_window as main_window_module
+
+    last_session = tmp_path / "last.nyxsession"
+    monkeypatch.setattr(main_window_module, "LAST_SESSION_FILE_PATH", last_session)
+    target = _make_stage_file(tmp_path / "one.nyx", create_node)
+    main_window.on_stage_open_recent(target)
+    monkeypatch.setattr(main_window, "save_config_value", lambda: None)
+
+    main_window.closeEvent(QtGui.QCloseEvent())
+    assert last_session.is_file()
+
+    for sub_wnd in main_window.mdi_area.subWindowList():
+        sub_wnd.close()
+    main_window.on_session_restore_last()
+    assert main_window.current_stage_graph.stage.file_path.name == "one.nyx"
+
+
+def test_session_load_with_open_stages_creates_no_duplicates(
+    main_window, recent_files, tmp_path, create_node, monkeypatch
+):
+    first = _make_stage_file(tmp_path / "one.nyx", create_node)
+    second = _make_stage_file(tmp_path / "two.nyx", create_node)
+    main_window.on_stage_open_recent(first)
+    main_window.on_stage_open_recent(second)
+    session_file = tmp_path / "work.nyxsession"
+    main_window.save_session(session_file)
+
+    main_window.load_session(session_file)
+    main_window.load_session(session_file)
+
+    paths = [
+        w.widget().stage.file_path.name for w in main_window.mdi_area.subWindowList()
+    ]
+    assert sorted(paths) == ["one.nyx", "two.nyx"]
+
+
+def test_session_menu_lists_open_editors_and_activates(
+    main_window, recent_files, tmp_path, create_node
+):
+    menu = main_window.menubar_session_menu
+    menu.rebuild_editors()
+    assert [a.text() for a in menu._editor_actions] == ["(No open editors)"]
+
+    first = _make_stage_file(tmp_path / "one.nyx", create_node)
+    second = _make_stage_file(tmp_path / "two.nyx", create_node)
+    main_window.on_stage_open_recent(first)
+    first_wnd = main_window.current_mdi_window
+    main_window.on_stage_open_recent(second)
+    menu.rebuild_editors()
+
+    actions = menu._editor_actions
+    assert len(actions) == 2
+    assert [a.isChecked() for a in actions] == [False, True]
+
+    actions[0].trigger()
+    assert main_window.current_mdi_window is first_wnd

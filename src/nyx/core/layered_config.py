@@ -1,9 +1,12 @@
+import pathlib
 import logging
 
 from pydantic.dataclasses import Field
 from json_config.api import ConfigLayer, ConfigValues, LayeredConfig
 
 from ..static.paths import USER_CONFIG_FILE_PATH
+
+MAX_RECENT_FILES = 10
 
 
 class NyxMainWindowLayoutConfigValues(ConfigValues):
@@ -79,6 +82,20 @@ class NyxEditorBehaviourConfigValues(ConfigValues):
     new_stage_on_launch: bool = Field(default=False)
 
 
+class NyxEditorSessionConfigValues(ConfigValues):
+    recent_files: list[str] = Field(default_factory=list)
+
+    def pre_serialize(self) -> None:
+        self.recent_files = [f for f in self.recent_files if pathlib.Path(f).is_file()]
+
+    def pre_deserialize(self, data: dict) -> dict:
+        data = dict(data)
+        data["recent_files"] = [
+            f for f in data.get("recent_files", []) if pathlib.Path(f).is_file()
+        ]
+        return data
+
+
 class NyxConfigValues(ConfigValues):
     """Main container for config values.
 
@@ -94,6 +111,9 @@ class NyxConfigValues(ConfigValues):
     )
     editor_behaviour: NyxEditorBehaviourConfigValues = Field(
         default_factory=NyxEditorBehaviourConfigValues, alias="editor_behaviour"
+    )
+    editor_session: NyxEditorSessionConfigValues = Field(
+        default_factory=NyxEditorSessionConfigValues, alias="editor_session"
     )
     editor_style: NyxEditorStyleConfigValues = Field(
         default_factory=NyxEditorStyleConfigValues, alias="editor_style"

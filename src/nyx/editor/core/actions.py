@@ -19,6 +19,9 @@ class ActionId(StrEnum):
     EXPORT_NODES = "file.export_nodes"
     IMPORT_NODES = "file.import_nodes"
     REFERENCE_NODES = "file.reference_nodes"
+    SAVE_SESSION = "file.save_session"
+    LOAD_SESSION = "file.load_session"
+    RESTORE_LAST_SESSION = "file.restore_last_session"
     # Edit
     UNDO = "edit.undo"
     REDO = "edit.redo"
@@ -60,6 +63,9 @@ def default_definitions() -> list[ActionDefinition]:
         D(ActionId.EXPORT_NODES, "Export Selected Nodes As...", "File"),
         D(ActionId.IMPORT_NODES, "Import Nodes", "File"),
         D(ActionId.REFERENCE_NODES, "Reference Nodes", "File"),
+        D(ActionId.SAVE_SESSION, "Save Session As...", "File"),
+        D(ActionId.LOAD_SESSION, "Load Session...", "File"),
+        D(ActionId.RESTORE_LAST_SESSION, "Restore Last Session", "File"),
         D(ActionId.UNDO, "Undo", "Edit", default_shortcut="Ctrl+Z"),
         D(ActionId.REDO, "Redo", "Edit", default_shortcut="Ctrl+Y"),
         D(
