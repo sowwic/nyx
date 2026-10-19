@@ -18,7 +18,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     ROW_HEIGHT = 20.0
     SOCKET_RADIUS = 5.0
     SOCKET_COLOR = QtGui.QColor("#FFA637")
-    SOCKET_LINKED_COLOR = QtGui.QColor("#FFD08A")
+    SOCKET_HOLE_COLOR = QtGui.QColor("black")
+    SOCKET_HOLE_RADIUS = 3.5
     SOCKET_OUTLINE = QtGui.QColor("#7F000000")
     LABEL_COLOR = QtGui.QColor("#CCCCCC")
     LABEL_FONT = QtGui.QFont("Zed Mono", 10)
@@ -37,7 +38,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._label = component.name
         self._accepts_input = False
         self._produces_output = False
-        self._is_linked = False
+        self._input_linked = False
+        self._output_linked = False
         self.refresh()
 
     @property
@@ -73,16 +75,24 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             self._component.name,
             self._component.accepts_input,
             self._component.produces_output,
-            bool(self._component.links_uuids),
+            bool(self._component.input_links_uuids),
+            bool(self._component.output_links_uuids),
         )
         if state == (
             self._label,
             self._accepts_input,
             self._produces_output,
-            self._is_linked,
+            self._input_linked,
+            self._output_linked,
         ):
             return
-        self._label, self._accepts_input, self._produces_output, self._is_linked = state
+        (
+            self._label,
+            self._accepts_input,
+            self._produces_output,
+            self._input_linked,
+            self._output_linked,
+        ) = state
         self.update()
 
     def set_width(self, width: float):
@@ -125,13 +135,22 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         center_y = self.ROW_HEIGHT / 2
         r = self.SOCKET_RADIUS
-        color = self.SOCKET_LINKED_COLOR if self._is_linked else self.SOCKET_COLOR
-        painter.setPen(QtGui.QPen(self.SOCKET_OUTLINE, 1.0))
-        painter.setBrush(color)
+        # (center, is linked) per visible socket
+        sockets = []
         if self._accepts_input:
-            painter.drawEllipse(QtCore.QPointF(0.0, center_y), r, r)
+            sockets.append((QtCore.QPointF(0.0, center_y), self._input_linked))
         if self._produces_output:
-            painter.drawEllipse(QtCore.QPointF(self._width, center_y), r, r)
+            sockets.append((QtCore.QPointF(self._width, center_y), self._output_linked))
+
+        hole = self.SOCKET_HOLE_RADIUS
+        for center, linked in sockets:
+            painter.setPen(QtGui.QPen(self.SOCKET_OUTLINE, 1.0))
+            painter.setBrush(self.SOCKET_COLOR)
+            painter.drawEllipse(center, r, r)
+            if not linked:
+                painter.setPen(QtCore.Qt.PenStyle.NoPen)
+                painter.setBrush(self.SOCKET_HOLE_COLOR)
+                painter.drawEllipse(center, hole, hole)
 
         painter.setFont(self.LABEL_FONT)
         painter.setPen(self.LABEL_COLOR)
