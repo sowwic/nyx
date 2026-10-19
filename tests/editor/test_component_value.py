@@ -329,7 +329,7 @@ def test_stage_reference_item_sets_path_without_evaluating(make_editor):
         displayValue="/stage/target.message",
         isValid=True,
     )
-    assert editor.prop("label") == "Path:"
+    assert editor.prop("label") == "Object:"
     assert editor.text == "/stage/target.message"  # the live path
     editor.run("requestEdit()")
     assert editor.text == "./target.message"  # what was typed
@@ -368,7 +368,7 @@ def test_getter_component_path_shows_in_inspector(
 
     qtbot.waitUntil(lambda: bool(reference_editors()), timeout=3000)
     editor = reference_editors()[0]
-    assert editor.property("label") == "Path:"
+    assert editor.property("label") == "Object:"
     assert editor.property("field").property("color").name() != "#b22222"
 
     getter["component"].push_value("/stage/missing.message")
@@ -404,7 +404,7 @@ def test_reference_in_inspector_updates_without_reselecting(
             (
                 item
                 for item in _walk(view.rootObject())
-                if item.property("label") == "Path:" and item.property("field")
+                if item.property("label") == "Object:" and item.property("field")
             ),
             None,
         )
@@ -439,3 +439,50 @@ def test_reference_in_inspector_updates_without_reselecting(
 
     commit("/stage/renamed.nothing")
     assert is_red(editor)
+
+
+def test_getter_value_in_inspector_updates_when_the_path_changes(
+    main_window, stage_editor, create_node, qtbot
+):
+    stage = stage_editor.stage
+    first = create_node(stage, "first", type_id=CoreNodes.LOG)
+    second = create_node(stage, "second", type_id=CoreNodes.LOG)
+    first["message"].push_value("one")
+    second["message"].push_value("two")
+    getter = create_node(stage, "getter", type_id=CoreNodes.GET)
+    main_window.inspector.show()
+    stage_editor.selection_model.select(
+        getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
+    )
+    view = main_window.inspector.findChild(NodeComponentsView)
+
+    def editor_labelled(label):
+        return next(
+            (
+                item
+                for item in _walk(view.rootObject())
+                if item.property("label") == label and item.property("field")
+            ),
+            None,
+        )
+
+    qtbot.waitUntil(
+        lambda: editor_labelled("Object:") is not None
+        and editor_labelled("Value:") is not None,
+        timeout=3000,
+    )
+    reference, value = editor_labelled("Object:"), editor_labelled("Value:")
+    assert value.property("field").property("text") == ""  # nothing to read yet
+
+    def commit(path):
+        QtCore.QMetaObject.invokeMethod(reference, "requestEdit")
+        QtCore.QMetaObject.invokeMethod(
+            reference, "finishEdit", QtCore.Q_ARG("QVariant", path)
+        )
+
+    commit("/stage/first.message")
+    assert value.property("field").property("text") == "one"  # no reselecting
+    commit("/stage/second.message")
+    assert value.property("field").property("text") == "two"
+    commit("/stage/missing.message")
+    assert value.property("field").property("text") == ""
