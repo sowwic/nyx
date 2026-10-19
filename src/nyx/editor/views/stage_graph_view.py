@@ -232,6 +232,20 @@ class StageGraphView(QtWidgets.QGraphicsView):
             # self.update_edge_width()
             self.update_render_hints()
 
+    @staticmethod
+    def _owning_gr_node(gr_item: QtWidgets.QGraphicsItem) -> GraphicsNode | None:
+        """Find the node item that `gr_item` is, or is a child of (title, plug, ...).
+
+        Args:
+            gr_item (QtWidgets.QGraphicsItem): item under the cursor.
+
+        Returns:
+            GraphicsNode | None: owning node item, if any.
+        """
+        while gr_item is not None and not isinstance(gr_item, GraphicsNode):
+            gr_item = gr_item.parentItem()
+        return gr_item
+
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> None:
         """Enter the scope of a double clicked node.
 
@@ -242,8 +256,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
         if not gr_item:
             event.ignore()
             return
-        elif isinstance(gr_item, GraphicsNode):
-            self.graph_editor.set_scope_path(gr_item.node.path)
+        gr_node = self._owning_gr_node(gr_item)
+        if gr_node is not None:
+            self.graph_editor.set_scope_path(gr_node.node.path)
             event.accept()
             return
         else:

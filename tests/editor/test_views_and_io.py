@@ -596,3 +596,30 @@ def test_cutline_bounds_follow_points(qtbot):
     assert cutline.boundingRect().contains(QtCore.QPointF(100, 50))
     cutline.clear()
     assert cutline.boundingRect().isNull()
+
+
+@pytest.mark.parametrize("target", ["title", "plug", "body"])
+def test_double_click_anywhere_on_node_steps_in(
+    stage_editor, create_node, qtbot, target
+):
+    node = create_node(stage_editor.stage, "a", type_id=CoreNodes.ACTION)
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+    view = stage_editor.gr_view
+    stage_editor.show()
+    qtbot.waitExposed(stage_editor)
+
+    if target == "title":
+        scene_pos = gr_node.title_item.sceneBoundingRect().center()
+    elif target == "plug":
+        scene_pos = gr_node.plugs[0].sceneBoundingRect().center()
+    else:
+        scene_pos = gr_node.mapToScene(gr_node.width / 2, gr_node.height - 4)
+    view.centerOn(gr_node)
+    assert view.itemAt(view.mapFromScene(scene_pos)) is not None
+
+    qtbot.mouseDClick(
+        view.viewport(),
+        QtCore.Qt.MouseButton.LeftButton,
+        pos=view.mapFromScene(scene_pos),
+    )
+    assert stage_editor.get_scope_path() == node.path
