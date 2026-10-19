@@ -320,3 +320,121 @@ def test_controller_select_file_uses_widget_file_dialog(tmp_path, monkeypatch):
 def test_controller_select_file_cancelled_returns_empty(monkeypatch):
     monkeypatch.setattr(QtWidgets.QFileDialog, "getOpenFileName", lambda *args: ("", ""))
     assert ComponentsController().selectFile("Pick", "All (*)", "") == ""
+
+
+def test_stage_reference_item_sets_path_without_evaluating(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "StageReferenceComponentItem.qml",
+        rawValue="./target.message",
+        displayValue="/stage/target.message",
+        isValid=True,
+    )
+    assert editor.prop("label") == "Path:"
+    assert editor.text == "/stage/target.message"  # the live path
+    editor.run("requestEdit()")
+    assert editor.text == "./target.message"  # what was typed
+    editor.run("finishEdit('../other.value')")
+    assert editor.controller.calls == [(3, "../other.value", True)]
+
+
+@pytest.mark.parametrize("is_valid", [True, False])
+def test_stage_reference_item_marks_unresolved_reference(make_editor, is_valid):
+    editor = make_editor(
+        CORE_QML_DIR / "StageReferenceComponentItem.qml", isValid=is_valid
+    )
+    assert (editor.field.property("color").name() == "#b22222") is (not is_valid)
+
+
+def test_getter_component_path_shows_in_inspector(
+    main_window, stage_editor, create_node, qtbot
+):
+    stage = stage_editor.stage
+    target = create_node(stage, "target", type_id=CoreNodes.LOG)
+    getter = create_node(stage, "getter", type_id=CoreNodes.GET)
+    getter["component"].push_value("./target.message")
+    expected = target["message"].path.as_posix()
+    main_window.inspector.show()
+    stage_editor.selection_model.select(
+        getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
+    )
+    view = main_window.inspector.findChild(NodeComponentsView)
+
+    def reference_editors():
+        return [
+            item
+            for item in _walk(view.rootObject())
+            if item.property("maskedText") == expected
+        ]
+
+    qtbot.waitUntil(lambda: bool(reference_editors()), timeout=3000)
+    editor = reference_editors()[0]
+    assert editor.property("label") == "Path:"
+    assert editor.property("field").property("color").name() != "#b22222"
+
+    getter["component"].push_value("/stage/missing.message")
+    stage_editor.selection_model.clearSelection()
+    stage_editor.selection_model.select(
+        getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
+    )
+    qtbot.waitUntil(
+        lambda: any(
+            item.property("maskedText") == "/stage/missing.message"
+            and item.property("field").property("color").name() == "#b22222"
+            for item in _walk(view.rootObject())
+            if item.property("maskedText") is not None and item.property("field")
+        ),
+        timeout=3000,
+    )
+
+
+def test_reference_in_inspector_updates_without_reselecting(
+    main_window, stage_editor, create_node, qtbot
+):
+    stage = stage_editor.stage
+    node = create_node(stage, "node", type_id=CoreNodes.LOG)
+    getter = create_node(stage, "getter", type_id=CoreNodes.GET)
+    main_window.inspector.show()
+    stage_editor.selection_model.select(
+        getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
+    )
+    view = main_window.inspector.findChild(NodeComponentsView)
+
+    def reference_editor():
+        return next(
+            (
+                item
+                for item in _walk(view.rootObject())
+                if item.property("label") == "Path:" and item.property("field")
+            ),
+            None,
+        )
+
+    def is_red(editor):
+        return editor.property("field").property("color").name() == "#b22222"
+
+    qtbot.waitUntil(lambda: reference_editor() is not None, timeout=3000)
+    editor = reference_editor()
+    assert is_red(editor)  # nothing set yet
+
+    def commit(path):
+        QtCore.QMetaObject.invokeMethod(editor, "requestEdit")
+        QtCore.QMetaObject.invokeMethod(
+            editor, "finishEdit", QtCore.Q_ARG("QVariant", path)
+        )
+
+    commit("/stage/node")  # a node, not a component
+    assert is_red(editor)
+
+    commit("/stage/node.message")
+    assert getter["component"].resolve_component() is node["message"]
+    assert not is_red(editor)
+    assert editor.property("field").property("text") == "/stage/node.message"
+
+    node.rename("renamed")
+    commit("./renamed.message")  # a path through the new name
+    assert getter["component"].resolve_component() is node["message"]
+    assert editor.property("field").property("text") == "/stage/renamed.message"
+    assert not is_red(editor)
+
+    commit("/stage/renamed.nothing")
+    assert is_red(editor)

@@ -83,6 +83,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.get_qml_editor_url()
             if role == NodeComponent.Roles.IS_EDITABLE:
                 return component.is_editable
+            if role == NodeComponent.Roles.IS_VALID:
+                return component.is_valid
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:

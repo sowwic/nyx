@@ -21,6 +21,7 @@ class CoreNodeComponents(enum.StrEnum):
     FLOW = "core:flow"
     COMMENT = "core:comment"
     SCRIPT = "core:script"
+    STAGE_REFERENCE = "core:stage_reference"
 
 
 class RestoreUuidOption(enum.IntEnum):

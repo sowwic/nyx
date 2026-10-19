@@ -63,6 +63,9 @@ class PasteNodesCommand(NyxCommand):
         # the exact same UUID back whenever history is replayed.
         self._first_run_uuids: list[dict] = []
         self._link_pairs: list[tuple[UUID, UUID]] = []
+        # Serialized uuid -> uuid of its copy, from the first run. Replays reuse it so
+        # references to the originals still end up at the copies.
+        self._uuid_remap: dict[UUID, UUID] = {}
         self._active_link_commands: list[LinkNodeComponentsCommand] = []
 
     @property
@@ -86,6 +89,8 @@ class PasteNodesCommand(NyxCommand):
             self.restore_uuid if first_run else RestoreUuidOption.ATTEMPT_RESTORE
         )
         context = NodeDeserializationContext(stage=self.stage, defer_links=True)
+        for serialized_uuid, new_uuid in self._uuid_remap.items():
+            context.register(serialized_uuid, new_uuid)
 
         new_nodes = []
         for index, node_data in enumerate(self.serialized_nodes):
@@ -107,6 +112,10 @@ class PasteNodesCommand(NyxCommand):
             self.created_uuids.append(new_node.uuid)
             new_nodes.append(new_node)
 
+        # All top-level nodes exist: references can find the copies they point to.
+        context.run_deferred()
+        if first_run:
+            self._uuid_remap = context.uuid_map
         self._apply_paste_positions(new_nodes)
 
         if first_run:

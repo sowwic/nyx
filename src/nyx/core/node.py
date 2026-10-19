@@ -562,6 +562,11 @@ class Node(QtGui.QStandardItem, StageObject):
                 links_data=links_data, restore_uuid=restore_uuid, context=context
             )
 
+        # Everything this run creates exists now: let references find their targets.
+        # With deferred links the caller owns the run and does it once all is created.
+        if context.entry_node is node and not context.defer_links:
+            context.run_deferred()
+
         return node
 
     def deserialize_links(
