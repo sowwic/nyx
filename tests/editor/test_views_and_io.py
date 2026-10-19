@@ -725,7 +725,7 @@ def test_dropping_on_wrong_socket_or_node_does_not_link(
     plug_a, plug_b = _flow_plug(stage_editor, a), _flow_plug(stage_editor, b)
     opened = []
     monkeypatch.setattr(
-        gr_stage, "_open_palette_for_link", lambda *args: opened.append(args)
+        gr_stage.link_drag_handler, "_open_palette", lambda *args: opened.append(args)
     )
 
     # output dropped on an output socket
@@ -832,7 +832,7 @@ def test_dragging_linked_input_socket_picks_up_the_link(stage_editor, create_nod
 
     gr_stage.begin_link_drag(plug_b, plug_b.Socket.INPUT)
     assert not old_link.isVisible()
-    assert gr_stage._drag_link.source_plug is plug_a
+    assert gr_stage.link_drag_handler.preview.source_plug is plug_a
 
     # Dropped on empty node body: cancelled, old link is back
     gr_stage.finish_link_drag(gr_stage.get_gr_node(c).mapToScene(50, 90))
