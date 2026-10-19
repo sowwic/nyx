@@ -60,9 +60,9 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.set_stage(stage, create_connections=False)
         self._scope_path = ROOT_NODE_PATH
 
-        self.create_actions()
         self.create_widgets()
         self.create_layouts()
+        self.create_actions()
         self.create_connections()
 
         self.gr_stage.rebuild_current_scope()
@@ -118,7 +118,10 @@ class StageGraphEditor(QtWidgets.QWidget):
     def create_actions(self):
         """Create and setup actions."""
         ACTION_ROUTER.register_handler(
-            ActionId.SHOW_PALETTE, self._shows_popup_nodes_palette, scope=self
+            ActionId.SHOW_PALETTE,
+            self._shows_popup_nodes_palette,
+            scope=self,
+            condition=self.gr_view.idle_condition,
         )
 
     def create_widgets(self):
@@ -423,6 +426,8 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def _refresh_actions(self, *_) -> None:
         """Refresh the enabled state of the actions."""
+        self.gr_view.state_changed.emit()
+        # Actions of other widgets (tree view) depend on the selection as well.
         ACTION_ROUTER.refresh_enabled()
 
     def show_nodes_palette_centered(self, spawn_position: QtCore.QPointF | None = None):
@@ -432,6 +437,9 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def _shows_popup_nodes_palette(self):
         """Show the nodes palette popup if the cursor is over the graph."""
+        if not self.gr_view.is_idle:
+            return
+
         point_under_cursor_in_gr_view = self.gr_view.viewport().mapFromGlobal(
             QtGui.QCursor.pos()
         )

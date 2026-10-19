@@ -406,11 +406,12 @@ class Stage(QtGui.QStandardItemModel):
             link (LinkLike): link, uuid or path.
         """
         link = self.get_object(link)
-        self._uuid_map.pop(link.uuid, None)
         source_cpnt: NodeComponent = self.get_object(link.source)
         target_cpnt: NodeComponent = self.get_object(link.target)
         source_cpnt.remove_link(link_uuid=link.uuid)
         target_cpnt.remove_link(link_uuid=link.uuid)
+        # Last: views notified by remove_link may still look the link up.
+        self._uuid_map.pop(link.uuid, None)
 
     def collect_links(self, from_node: NodeLike | None = None) -> list[Link]:
         """Collect links touching a node and its descendants.

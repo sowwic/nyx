@@ -1,3 +1,5 @@
+import enum
+import math
 import typing
 from uuid import UUID
 
@@ -5,6 +7,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 if typing.TYPE_CHECKING:
     from nyx.core.node_component import NodeComponent
+    from nyx.editor.graphics.graphics_link import GraphicsLink
     from nyx.editor.graphics.graphics_node import GraphicsNode
 
 
@@ -15,8 +18,15 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     anchors in scene coordinates so links can attach to it.
     """
 
+    class Socket(enum.Enum):
+        """Side of the plug a socket is on."""
+
+        INPUT = enum.auto()
+        OUTPUT = enum.auto()
+
     ROW_HEIGHT = 20.0
     SOCKET_RADIUS = 5.0
+    SOCKET_HIT_RADIUS = 9.0
     SOCKET_COLOR = QtGui.QColor("#FFA637")
     SOCKET_HOLE_COLOR = QtGui.QColor("black")
     SOCKET_HOLE_RADIUS = 3.5
@@ -40,6 +50,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._produces_output = False
         self._input_linked = False
         self._output_linked = False
+        self._links: set[GraphicsLink] = set()
         self.refresh()
 
     @property
@@ -56,6 +67,11 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     def gr_node(self) -> GraphicsNode:
         """GraphicsNode: node owning the plug."""
         return self.parentItem()
+
+    @property
+    def links(self) -> list[GraphicsLink]:
+        """list[GraphicsLink]: links attached to the plug."""
+        return list(self._links)
 
     @staticmethod
     def is_plug_component(component: NodeComponent) -> bool:
@@ -114,10 +130,101 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         """QtCore.QPointF: scene position output links should attach to."""
         return self.mapToScene(self._width, self.ROW_HEIGHT / 2)
 
+    def add_link(self, link: GraphicsLink):
+        """Track a link so it can follow the plug.
+
+        Args:
+            link (GraphicsLink): link attached to the plug.
+        """
+        self._links.add(link)
+
+    def discard_link(self, link: GraphicsLink):
+        """Stop tracking a link.
+
+        Args:
+            link (GraphicsLink): link to forget.
+        """
+        self._links.discard(link)
+
+    def update_links(self):
+        """Redraw the attached links after the plug (or its node) moved."""
+        for link in self._links:
+            link.update_path()
+
+    def socket_at(self, scene_pos: QtCore.QPointF) -> Socket | None:
+        """Find the visible socket under a scene position.
+
+        Args:
+            scene_pos (QtCore.QPointF): scene position.
+
+        Returns:
+            GraphicsPlug.Socket | None: socket hit, None if there is none.
+        """
+        local = self.mapFromScene(scene_pos)
+        center_y = self.ROW_HEIGHT / 2
+        if self._accepts_input and (
+            math.hypot(local.x(), local.y() - center_y) <= self.SOCKET_HIT_RADIUS
+        ):
+            return self.Socket.INPUT
+        if self._produces_output and (
+            math.hypot(local.x() - self._width, local.y() - center_y)
+            <= self.SOCKET_HIT_RADIUS
+        ):
+            return self.Socket.OUTPUT
+        return None
+
     def boundingRect(self) -> QtCore.QRectF:
         """QtCore.QRectF: bounds of the row, including sockets sticking out."""
-        r = self.SOCKET_RADIUS
+        r = self.SOCKET_HIT_RADIUS
         return QtCore.QRectF(-r, 0.0, self._width + 2 * r, self.ROW_HEIGHT)
+
+    # ======== Events ========= #
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        """Start dragging a link from the socket under the cursor.
+
+        Presses outside of the sockets are passed on to the node.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMouseEvent): event.
+        """
+        gr_stage = self.scene()
+        socket = self.socket_at(event.scenePos())
+        if (
+            event.button() == QtCore.Qt.MouseButton.LeftButton
+            and socket is not None
+            and gr_stage is not None
+        ):
+            gr_stage.begin_link_drag(self, socket)
+            event.accept()
+            return
+        event.ignore()
+
+    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        """Move the open end of the dragged link.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMouseEvent): event.
+        """
+        gr_stage = self.scene()
+        if gr_stage is not None and gr_stage.is_dragging_link:
+            gr_stage.update_link_drag(event.scenePos())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        """Drop the dragged link.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMouseEvent): event.
+        """
+        gr_stage = self.scene()
+        if gr_stage is not None and gr_stage.is_dragging_link:
+            gr_stage.finish_link_drag(event.scenePos())
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def paint(
         self,

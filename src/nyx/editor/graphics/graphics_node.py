@@ -40,6 +40,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, enabled=True)
         self.setAcceptHoverEvents(True)
 
         self._node = node
@@ -157,8 +158,11 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         Args:
             plug (GraphicsPlug): plug to remove.
         """
-        if plug.scene() is not None:
-            plug.scene().removeItem(plug)
+        gr_stage = plug.scene()
+        if gr_stage is not None:
+            for link in plug.links:
+                gr_stage.remove_link(link)
+            gr_stage.removeItem(plug)
         plug.setParentItem(None)
 
     def update_layout(self):
@@ -172,6 +176,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         for row, plug in enumerate(self._plugs.values()):
             plug.set_width(self.width)
             plug.setPos(0.0, plugs_top + row * GraphicsPlug.ROW_HEIGHT)
+            plug.update_links()
         plugs_bottom = (
             plugs_top + len(self._plugs) * GraphicsPlug.ROW_HEIGHT + self.lower_padding
         )
@@ -272,6 +277,21 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
                 stage=self._node.stage, nodes=moved_nodes, new_positions=new_positions
             )
             self._node.stage.push_command(move_cmd)
+
+    def itemChange(self, change, value):
+        """Keep the links of the plugs attached to the node while it moves.
+
+        Args:
+            change (QtWidgets.QGraphicsItem.GraphicsItemChange): kind of change.
+            value (typing.Any): new value.
+
+        Returns:
+            typing.Any: value to apply.
+        """
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
+            for plug in self._plugs.values():
+                plug.update_links()
+        return super().itemChange(change, value)
 
     def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
         """Refresh the tooltip when the cursor enters.

@@ -102,7 +102,7 @@ class LinkNodeComponentsCommand(NyxCommand):
         # Instead manually call undo redo in appropriate time.
         self._unlink_command = UnlinkNodeComponentsCommand(
             stage=self.stage,
-            link_uuid=existing_link.uuid,
+            link_uuids=[existing_link.uuid],
         )
 
     def validate(self):
