@@ -222,6 +222,18 @@ class StageReferenceComponent(NodeComponent):
             return target.path.as_posix()
         return "" if self.raw_value is None else str(self.raw_value)
 
+    def current_display_text(self) -> str:
+        """Get the text shown for the reference right now.
+
+        Returns:
+            str: the target as a string, like `LogNode (/stage/log)`. The given text
+                if there is no target.
+        """
+        target = self.target
+        if target is not None:
+            return str(target)
+        return "" if self.raw_value is None else str(self.raw_value)
+
     # ======== Values ========= #
 
     def push_value(self, value: typing.Any, evaluate: bool = True):
@@ -240,9 +252,8 @@ class StageReferenceComponent(NodeComponent):
 
     def _refresh_cached_values(self) -> None:
         """Make the cached and display values match the target, and tell the views."""
-        text = self.current_path_text()
-        self.setData(text, role=self.Roles.CACHED_VALUE)
-        self.setData(text, role=self.Roles.DISPLAY_VALUE)
+        self.setData(self.current_path_text(), role=self.Roles.CACHED_VALUE)
+        self.setData(self.current_display_text(), role=self.Roles.DISPLAY_VALUE)
         # Display value and validity are worked out on request, not stored: no
         # `setData` reports them, and the target may have changed without the text.
         model = self.model()
@@ -273,10 +284,10 @@ class StageReferenceComponent(NodeComponent):
         return self.current_path_text()
 
     def get_display_value(self) -> str:
-        """str: path of the target, the given text if it can't be found."""
+        """str: the target as a string, the given text if it can't be found."""
         if self.input_links:
             return super().get_display_value()
-        return self.current_path_text()
+        return self.current_display_text()
 
     # ======== Serialization ========= #
 

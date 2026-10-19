@@ -408,8 +408,10 @@ def test_views_get_the_new_display_and_validity(getter_and_target):
 
     reference.push_value("/stage/other.message")
     display_changes = [c for c in changes if reference.Roles.DISPLAY_VALUE in c[0]]
-    assert display_changes[-1][1] == "/stage/other.message"
-    assert all(c[1] != "/stage/target.message" for c in display_changes)
+    other_message = stage.get_object("/stage/other.message")
+    old_message = stage.get_object("/stage/target.message")
+    assert display_changes[-1][1] == str(other_message)
+    assert all(c[1] != str(old_message) for c in display_changes)
 
     changes.clear()
     reference.push_value("/stage/other.nothing")
@@ -449,3 +451,36 @@ def test_getter_saved_with_node_path_and_cpnt_name_still_loads():
     # The old split values are kept as they were, but nothing reads them anymore.
     assert loaded["node_path"].raw_value == "/stage/target"
     assert not loaded["component"].is_valid
+
+
+# ======== Display ========= #
+
+
+def test_display_shows_the_target_and_cached_value_is_the_path(getter_and_target):
+    _stage, getter, target = getter_and_target
+    reference = getter["component"]
+
+    assert reference.get_display_value() == str(target["message"])
+    assert reference.get_display_value() == "ValueComponent (/stage/target.message)"
+    index = reference.index()
+    assert index.data(reference.Roles.DISPLAY_VALUE) == str(target["message"])
+    # Consumers still get something they can use as a path.
+    assert reference.pull_value() == "/stage/target.message"
+    assert reference.cached_value == "/stage/target.message"
+
+
+def test_display_follows_renames(getter_and_target):
+    _stage, getter, target = getter_and_target
+    target.rename("renamed")
+    assert getter["component"].get_display_value() == str(target["message"])
+    assert "renamed.message" in getter["component"].get_display_value()
+
+
+@pytest.mark.parametrize(
+    "text, shown", [("/stage/nothing.message", "/stage/nothing.message"), (None, "")]
+)
+def test_display_shows_the_text_when_there_is_no_target(getter_and_target, text, shown):
+    _stage, getter, _target = getter_and_target
+    getter["component"].push_value(text)
+    assert getter["component"].get_display_value() == shown
+    assert not getter["component"].is_valid

@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import NyxEditor.Common
@@ -7,7 +9,7 @@ ComponentValue {
 
     // The path of a node (/stage/node) or of a component (/stage/node.component), taken
     // as typed: absolute, or relative to the scope of the node.
-    label: "Path:"
+    label: "Object:"
     evaluateOnFinish: false
 
     displayDelegate: TextField {

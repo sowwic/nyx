@@ -75,8 +75,9 @@ def test_absolute_path_resolves_to_node_and_uuid(getter_and_target):
     assert reference.target_node is target
     assert reference.target_uuid == target.uuid
     assert reference.resolve_node() is target
-    assert reference.pull_value() == target.path.as_posix()
-    assert reference.get_display_value() == target.path.as_posix()
+    assert reference.pull_value() == target.path.as_posix()  # consumers get the path
+    assert reference.get_display_value() == str(target)  # views get the node
+    assert reference.get_display_value() == "LogNode (/stage/target)"
     assert reference.is_valid
 
 
@@ -411,10 +412,11 @@ def test_views_never_end_up_with_the_previous_display_value():
     changes = _record_changes(reference)
 
     reference.push_value("/stage/node")
+    new_target = stage.root_node.find_child_by_name("node")
 
     reported_display = [
         c for c in changes if reference.Roles.DISPLAY_VALUE in c["roles"]
     ]
     assert reported_display, "nothing told the views that the display changed"
-    assert reported_display[-1]["display"] == "/stage/node"
-    assert all(c["display"] != "/stage" for c in reported_display)
+    assert reported_display[-1]["display"] == str(new_target)
+    assert all(c["display"] != str(stage.root_node) for c in reported_display)

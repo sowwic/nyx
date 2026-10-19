@@ -352,7 +352,7 @@ def test_getter_component_path_shows_in_inspector(
     target = create_node(stage, "target", type_id=CoreNodes.LOG)
     getter = create_node(stage, "getter", type_id=CoreNodes.GET)
     getter["component"].push_value("./target.message")
-    expected = target["message"].path.as_posix()
+    expected = str(target["message"])
     main_window.inspector.show()
     stage_editor.selection_model.select(
         getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
@@ -428,12 +428,13 @@ def test_reference_in_inspector_updates_without_reselecting(
     commit("/stage/node.message")
     assert getter["component"].resolve_component() is node["message"]
     assert not is_red(editor)
-    assert editor.property("field").property("text") == "/stage/node.message"
+    assert editor.property("field").property("text") == str(node["message"])
 
     node.rename("renamed")
     commit("./renamed.message")  # a path through the new name
     assert getter["component"].resolve_component() is node["message"]
-    assert editor.property("field").property("text") == "/stage/renamed.message"
+    assert editor.property("field").property("text") == str(node["message"])
+    assert "renamed.message" in str(node["message"])
     assert not is_red(editor)
 
     commit("/stage/renamed.nothing")
