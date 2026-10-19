@@ -51,6 +51,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self._gr_links: dict[UUID, GraphicsLink] = {}
         self._drag_link: GraphicsLink | None = None
         self._drag_origin: tuple[GraphicsPlug, GraphicsPlug.Socket] | None = None
+        # Existing link picked up from an input socket, hidden while it is dragged.
+        self._drag_picked_link: GraphicsLink | None = None
         self._scope_path: pathlib.PurePosixPath | None = None
 
         # Settings
@@ -422,11 +424,23 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def begin_link_drag(self, plug: GraphicsPlug, socket: GraphicsPlug.Socket):
         """Start dragging a link from a socket of a plug.
 
+        Dragging from a linked input socket picks up that link instead of making
+        a new one: the drag continues from the source of the link, and dropping
+        it elsewhere moves the link there.
+
         Args:
             plug (GraphicsPlug): plug the drag starts at.
             socket (GraphicsPlug.Socket): socket the drag starts at.
         """
         self.cancel_link_drag()
+        if socket is GraphicsPlug.Socket.INPUT:
+            picked = next(
+                (link for link in plug.links if link.target_plug is plug), None
+            )
+            if picked is not None:
+                self._drag_picked_link = picked
+                picked.setVisible(False)
+                plug, socket = picked.source_plug, GraphicsPlug.Socket.OUTPUT
         from_output = socket is GraphicsPlug.Socket.OUTPUT
         self._drag_origin = (plug, socket)
         self._drag_link = GraphicsLink(
@@ -449,6 +463,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def cancel_link_drag(self):
         """Drop the dragged link without linking anything."""
         drag_link, self._drag_link, self._drag_origin = self._drag_link, None, None
+        picked, self._drag_picked_link = self._drag_picked_link, None
+        if picked is not None:
+            picked.setVisible(True)
         if drag_link is not None and drag_link.scene() is self:
             self.removeItem(drag_link)
 
@@ -463,6 +480,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             scene_pos (QtCore.QPointF): scene position of the release.
         """
         origin = self._drag_origin
+        picked = self._drag_picked_link
+        replaced_uuid = picked.uuid if picked is not None else None
         self.cancel_link_drag()
         if origin is None:
             return
@@ -477,7 +496,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         for item in self.items(scene_pos):
             if isinstance(item, GraphicsPlug):
                 if item.socket_at(scene_pos) is wanted_socket:
-                    self._link_plugs(origin_plug, origin_socket, item)
+                    self._link_plugs(origin_plug, origin_socket, item, replaced_uuid)
                     return
             elif isinstance(item, GraphicsNode):
                 over_node = True
@@ -486,7 +505,10 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             # Not inside the mouse event: the palette runs a modal event loop.
             component_uuid = origin_plug.uuid
             QtCore.QTimer.singleShot(
-                0, lambda: self._open_palette_for_link(component_uuid, origin_socket)
+                0,
+                lambda: self._open_palette_for_link(
+                    component_uuid, origin_socket, replaced_uuid
+                ),
             )
 
     def _link_plugs(
@@ -494,6 +516,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         origin_plug: GraphicsPlug,
         origin_socket: GraphicsPlug.Socket,
         other_plug: GraphicsPlug,
+        replaced_uuid: UUID | None = None,
     ):
         """Link the dragged plug to the plug it was dropped on, if that is allowed.
 
@@ -501,19 +524,27 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             origin_plug (GraphicsPlug): plug the drag started at.
             origin_socket (GraphicsPlug.Socket): socket the drag started at.
             other_plug (GraphicsPlug): plug the link was dropped on.
+            replaced_uuid (UUID | None): link being moved by the drag, if any.
         """
         if origin_socket is GraphicsPlug.Socket.OUTPUT:
             source, target = origin_plug.component, other_plug.component
         else:
             source, target = other_plug.component, origin_plug.component
-        self._push_link_command(source, target)
+        self._push_link_command(source, target, replaced_uuid)
 
-    def _push_link_command(self, source: NodeComponent, target: NodeComponent) -> bool:
+    def _push_link_command(
+        self,
+        source: NodeComponent,
+        target: NodeComponent,
+        replaced_uuid: UUID | None = None,
+    ) -> bool:
         """Push a command linking two components if the link is allowed.
 
         Args:
             source (NodeComponent): component providing output.
             target (NodeComponent): component accepting input.
+            replaced_uuid (UUID | None): link removed together with the new one, as
+                a single undo step.
 
         Returns:
             bool: link was created.
@@ -522,34 +553,57 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             LOGGER.debug(f"Components can't be linked: {source} -> {target}")
             return False
         try:
-            self.stage.push_command(
-                commands.LinkNodeComponentsCommand(
-                    stage=self.stage, source=source, target=target
-                )
+            link_command = commands.LinkNodeComponentsCommand(
+                stage=self.stage, source=source, target=target
             )
+            if replaced_uuid is None:
+                self.stage.push_command(link_command)
+            else:
+                unlink_command = commands.UnlinkNodeComponentsCommand(
+                    stage=self.stage, link_uuids=[replaced_uuid]
+                )
+                # Validate up front so a failure doesn't leave an empty macro.
+                unlink_command.validate()
+                link_command.validate()
+                undo_stack = self.stage.undo_stack
+                undo_stack.beginMacro("Move link")
+                try:
+                    self.stage.push_command(unlink_command, link_command)
+                finally:
+                    undo_stack.endMacro()
         except NyxCommandValidationError as error:
             LOGGER.warning(f"Failed to link {source} -> {target}: {error}")
             return False
         return True
 
-    def _open_palette_for_link(self, component_uuid: UUID, socket: GraphicsPlug.Socket):
+    def _open_palette_for_link(
+        self,
+        component_uuid: UUID,
+        socket: GraphicsPlug.Socket,
+        replaced_uuid: UUID | None = None,
+    ):
         """Show the nodes palette and link the created node to the dragged socket.
 
         Args:
             component_uuid (UUID): component the drag started at.
             socket (GraphicsPlug.Socket): socket the drag started at.
+            replaced_uuid (UUID | None): link being moved by the drag, if any.
         """
         # Imported here: the dialog imports views that import this module.
         from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 
         PopupNodesPalette.popup(
             on_node_spawned=lambda node: self._link_spawned_node(
-                node, component_uuid, socket
+                node, component_uuid, socket, replaced_uuid
             )
         )
 
     def _link_spawned_node(
-        self, node: Node, component_uuid: UUID, socket: GraphicsPlug.Socket
+        self,
+        node: Node,
+        component_uuid: UUID,
+        socket: GraphicsPlug.Socket,
+        replaced_uuid: UUID | None = None,
     ):
         """Link the first compatible component of a new node to the dragged socket.
 
@@ -557,6 +611,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             node (Node): node created by the palette.
             component_uuid (UUID): component the drag started at.
             socket (GraphicsPlug.Socket): socket the drag started at.
+            replaced_uuid (UUID | None): link being moved by the drag, if any.
         """
         try:
             origin = self.stage.get_object(component_uuid)
@@ -566,7 +621,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         for component in node.components_model.list_components():
             source, target = (origin, component) if from_output else (component, origin)
             if self.can_link(source, target):
-                self._push_link_command(source, target)
+                self._push_link_command(source, target, replaced_uuid)
                 return
         LOGGER.debug(f"{node.path} has no component to link to {origin}")
 

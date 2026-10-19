@@ -808,3 +808,77 @@ def test_cutline_missing_links_does_nothing(stage_editor, create_node):
     view = stage_editor.gr_view
     view.cutline.line_points = [QtCore.QPointF(0, 0), QtCore.QPointF(50, 50)]
     assert not view.cut_intersecting_edges()
+
+
+def _three_nodes(stage_editor, create_node):
+    stage = stage_editor.stage
+    nodes = [create_node(stage, n, type_id=CoreNodes.ACTION) for n in "abc"]
+    stage.push_command(
+        commands.MoveNodeCommand(
+            stage=stage,
+            nodes=nodes[1:],
+            new_positions=[QtCore.QPointF(400, 0), QtCore.QPointF(400, 300)],
+        )
+    )
+    return nodes
+
+
+def test_dragging_linked_input_socket_picks_up_the_link(stage_editor, create_node):
+    a, b, c = _three_nodes(stage_editor, create_node)
+    stage, gr_stage = stage_editor.stage, stage_editor.gr_stage
+    _link_flows(stage, a, b)
+    plug_a, plug_b, plug_c = (_flow_plug(stage_editor, n) for n in (a, b, c))
+    (old_link,) = gr_stage.gr_links()
+
+    gr_stage.begin_link_drag(plug_b, plug_b.Socket.INPUT)
+    assert not old_link.isVisible()
+    assert gr_stage._drag_link.source_plug is plug_a
+
+    # Dropped on empty node body: cancelled, old link is back
+    gr_stage.finish_link_drag(gr_stage.get_gr_node(c).mapToScene(50, 90))
+    assert old_link.isVisible()
+    assert [g.target_plug for g in gr_stage.gr_links()] == [plug_b]
+
+    # Dropped on the same input: no change, nothing pushed
+    count = stage.undo_stack.count()
+    gr_stage.begin_link_drag(plug_b, plug_b.Socket.INPUT)
+    gr_stage.finish_link_drag(plug_b.input_anchor())
+    assert stage.undo_stack.count() == count
+
+    # Dropped on another input: link moves, in one undo step
+    gr_stage.begin_link_drag(plug_b, plug_b.Socket.INPUT)
+    gr_stage.finish_link_drag(plug_c.input_anchor())
+    (moved,) = gr_stage.gr_links()
+    assert (moved.source_plug, moved.target_plug) == (plug_a, plug_c)
+    assert stage.undo_stack.count() == count + 1
+
+    stage.undo_stack.undo()
+    (restored,) = gr_stage.gr_links()
+    assert (restored.source_plug, restored.target_plug) == (plug_a, plug_b)
+
+
+def test_moved_link_dropped_on_empty_space_replaced_by_spawned_node_link(
+    stage_editor, create_node, monkeypatch, qtbot
+):
+    from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
+
+    a, b, _ = _three_nodes(stage_editor, create_node)
+    stage, gr_stage = stage_editor.stage, stage_editor.gr_stage
+    _link_flows(stage, a, b)
+    plug_b = _flow_plug(stage_editor, b)
+
+    def fake_popup(on_node_spawned=None):
+        command = commands.CreateNodeCommand(
+            stage=stage, type_id=CoreNodes.ACTION, name="spawned"
+        )
+        stage.push_command(command)
+        on_node_spawned(command.result_node)
+
+    monkeypatch.setattr(PopupNodesPalette, "popup", fake_popup)
+    gr_stage.begin_link_drag(plug_b, plug_b.Socket.INPUT)
+    gr_stage.finish_link_drag(QtCore.QPointF(2000, 2000))
+    qtbot.waitUntil(
+        lambda: [g.target_plug.component.node.name for g in gr_stage.gr_links()]
+        == ["spawned"],
+        timeout=2000,
+    )
