@@ -3,6 +3,7 @@
   <qresource prefix="/">
     <file>icons/arrow_back.png</file>
     <file>icons/delete.png</file>
+    <file>icons/edit.png</file>
     <file>icons/plus.png</file>
     <file>icons/exec_from.png</file>
     <file>icons/exec_stage.png</file>
