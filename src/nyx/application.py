@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from PySide6 import QtGui, QtWidgets, QtQml
+from PySide6 import QtGui, QtWidgets, QtQml, QtQuickControls2
 
 import nyx.resources.resources_rc  # noqa: F401
 from nyx.core.layered_config import NyxConfig
@@ -87,6 +87,8 @@ class NyxEditorApplication(NyxApplication):
 
     def _setup_qml_engine(self):
         """Create the shared QML engine and register plugin import paths."""
+        # Native styles reject control customization; Fusion matches the widget style.
+        QtQuickControls2.QQuickStyle.setStyle("Fusion")
         self._qml_engine = QtQml.QQmlEngine(self)
         self.sync_qml_import_paths()
 
