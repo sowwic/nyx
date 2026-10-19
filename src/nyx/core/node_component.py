@@ -68,6 +68,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_EDITABLE = enum.auto()
         IS_STATIC = enum.auto()
         IS_BUILT_IN = enum.auto()
+        IS_VALID = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -89,6 +90,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,
+                cls.IS_VALID,
             )
 
     def __repr__(self) -> str:
@@ -322,6 +324,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         )
 
     @property
+    def is_valid(self) -> bool:
+        """bool: the value is usable. Components with something to resolve override."""
+        return True
+
+    @property
     def is_built_in(self) -> bool:
         """bool: component was created by the node type and can't be removed."""
         return NodeComponentFlag.BUILT_IN in self.component_flags
@@ -524,6 +531,20 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             return linked_as_target
         return linked_as_source or linked_as_target
 
+    def restore_value(
+        self, serialized_value: typing.Any, context: NodeDeserializationContext | None
+    ) -> None:
+        """Set the value from serialized data while deserializing.
+
+        Components whose value refers to other stage objects override this to remap
+        the references through the context.
+
+        Args:
+            serialized_value (typing.Any): value as written by `serialize_value`.
+            context (NodeDeserializationContext | None): deserialization context.
+        """
+        self.push_value(self.deserialize_value(value=serialized_value))
+
     def serialize_value(self) -> typing.Any:
         """typing.Any: value to store when serializing."""
         return self.raw_value
@@ -600,7 +621,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.uuid = uuid
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
-        component.push_value(component.deserialize_value(value=data["value"]))
+        component.restore_value(data["value"], context)
         component.default_value = component.deserialize_default_value(
             value=data.get("default_value")
         )

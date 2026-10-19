@@ -268,6 +268,34 @@ DraggableDelegate {
                     }
                 }
             }
+
+            // ---- Per-type editor (created only while expanded) ----
+            Loader {
+                id: editorLoader
+
+                Layout.fillWidth: true
+                Layout.leftMargin: 8
+                Layout.rightMargin: 8
+                Layout.bottomMargin: 4
+
+                active: itemRoot.isExpanded
+                visible: active && itemRoot.showExpanded
+                source: itemRoot.editorQmlFile
+
+                Binding {
+                    target: editorLoader.item
+                    property: "component"
+                    value: itemRoot.model
+                    when: editorLoader.item !== null && itemRoot.model !== null
+                    restoreMode: Binding.RestoreNone
+                }
+
+                onStatusChanged: {
+                    if (status === Loader.Error)
+                        console.warn("Editor failed to load:", itemRoot.editorQmlFile);
+                }
+            }
+
             CollapsibleFrame {
                 id: linksFrame
 
@@ -300,34 +328,6 @@ DraggableDelegate {
                     outputLinks: itemRoot.model.outputLinks
                 }
             }
-
-            // ---- Per-type editor (created only while expanded) ----
-            Loader {
-                id: editorLoader
-
-                Layout.fillWidth: true
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
-                Layout.bottomMargin: 4
-
-                active: itemRoot.isExpanded
-                visible: active && itemRoot.showExpanded
-                source: itemRoot.editorQmlFile
-
-                Binding {
-                    target: editorLoader.item
-                    property: "component"
-                    value: itemRoot.model
-                    when: editorLoader.item !== null && itemRoot.model !== null
-                    restoreMode: Binding.RestoreNone
-                }
-
-                onStatusChanged: {
-                    if (status === Loader.Error)
-                        console.warn("Editor failed to load:", itemRoot.editorQmlFile);
-                }
-            }
-
             Label {
                 visible: editorLoader.status === Loader.Error && itemRoot.showExpanded
                 text: qsTr("Editor could not be loaded")

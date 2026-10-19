@@ -1,5 +1,6 @@
 module NyxEditor.Common
 
+ComponentValue 1.0 ComponentValue.qml
 CollapsibleFrame 1.0 CollapsibleFrame.qml
 DragHandle 1.0 DragHandle.qml
 DraggableDelegate 1.0 DraggableDelegate.qml

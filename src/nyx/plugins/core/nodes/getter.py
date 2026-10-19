@@ -1,9 +1,9 @@
 from nyx.api.v1 import (
     Node,
+    NodeComponent,
     CoreNodes,
     CoreNodeComponents,
     NodeComponentValueMask,
-    static_vars,
     exceptions,
 )
 
@@ -39,53 +39,38 @@ class GetterNode(Node):
         """Pull the value of the component the node points at.
 
         Args:
-            value_mask (NodeComponentValueMask): which value to read from the path
-                components.
+            value_mask (NodeComponentValueMask): which value to read from the component.
 
         Returns:
             typing.Any: pulled value.
-        """
-        node = self.stage.get_object(
-            self.in_node_path.pull_value(value_mask), expected_type=Node
-        )
-        component = node.components_model.get_component(
-            self.in_cpnt_name.pull_value(value_mask)
-        )
 
-        return component.pull_value()
+        Raises:
+            StageObjectQueryError: if the component doesn't exist.
+        """
+        return self.in_component_path.resolve_component().pull_value(value_mask)
 
     def get_pulled_display_value(self) -> str:
         """Get the display value of the component the node points at.
 
         Returns:
-            str: display value, empty if the node or component doesn't exist.
+            str: display value, empty if the component doesn't exist.
         """
         try:
-            node = self.stage.get_object(
-                self.in_node_path.pull_value(), expected_type=Node
-            )
-            component = node.components_model.get_component(
-                self.in_cpnt_name.pull_value()
-            )
-        except exceptions.StageObjectQueryError, ValueError:
+            component = self.in_component_path.resolve_component()
+        except exceptions.StageObjectQueryError:
             return ""
 
         return component.get_display_value()
 
     def setup(self):
-        """Add the node path and component name components."""
-        self.in_node_path = self.components_model.create_component(
-            CoreNodeComponents.VALUE
+        """Add the component path and value components."""
+        self.in_component_path = self.components_model.create_component(
+            CoreNodeComponents.STAGE_REFERENCE
         )
-        self.in_node_path.name = "node_path"
-        self.in_node_path.is_editable = True
-        self.in_node_path.default_value = static_vars.ROOT_NODE_PATH.as_posix()
-
-        self.in_cpnt_name = self.components_model.create_component(
-            CoreNodeComponents.VALUE
-        )
-        self.in_cpnt_name.name = "cpnt_name"
-        self.in_cpnt_name.is_editable = True
+        self.in_component_path.name = "component"
+        # A node is no use here: the value of a component is needed.
+        self.in_component_path.target_types = (NodeComponent,)
+        self.in_component_path.is_editable = True
 
         self.value_cpnt = self.components_model.create_component(
             CoreNodeComponents.VALUE
@@ -94,10 +79,15 @@ class GetterNode(Node):
         self.value_cpnt.produces_output = True
         self.value_cpnt.is_editable = False
 
-        self.components_model.add_component(self.in_node_path)
-        self.components_model.add_component(self.in_cpnt_name)
+        self.components_model.add_component(self.in_component_path)
         self.components_model.add_component(self.value_cpnt)
 
         # Replace pull value to pull path from inputs
         self.value_cpnt.pull_value = self.get_pull_value_from_path
         self.value_cpnt.get_display_value = self.get_pulled_display_value
+
+        # The value is the one of the component the path points at: when the path
+        # changes, views have to ask for it again.
+        self.components_model.add_dependency(
+            dependent=self.value_cpnt, on=self.in_component_path
+        )

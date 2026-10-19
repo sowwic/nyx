@@ -1,7 +1,7 @@
 import pathlib
 import pytest
 import typing
-from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands, static_vars
+from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands, exceptions
 
 if typing.TYPE_CHECKING:
     from nyx.plugins.core.nodes.getter import GetterNode
@@ -15,20 +15,13 @@ def test_getter_creation():
     stage.push_command(command)
     result_node: GetterNode = stage.get_object(command.result_node.uuid)
 
-    assert result_node.components_model.rowCount() == 3
+    assert result_node.components_model.rowCount() == 2
 
-    in_node_path = result_node["node_path"]
-    assert in_node_path.get_type_id() == CoreNodeComponents.VALUE
-    assert in_node_path.default_value == static_vars.ROOT_NODE_PATH.as_posix()
-    assert in_node_path.is_editable is True
-    assert in_node_path.accepts_input is False
-    assert in_node_path.produces_output is False
-
-    in_cpnt_name = result_node["cpnt_name"]
-    assert in_cpnt_name.get_type_id() == CoreNodeComponents.VALUE
-    assert in_cpnt_name.is_editable is True
-    assert in_cpnt_name.accepts_input is False
-    assert in_cpnt_name.produces_output is False
+    in_component_path = result_node["component"]
+    assert in_component_path.get_type_id() == CoreNodeComponents.STAGE_REFERENCE
+    assert in_component_path.is_editable is True
+    assert in_component_path.accepts_input is False
+    assert in_component_path.produces_output is False
 
     in_value = result_node["value"]
     assert in_value.get_type_id() == CoreNodeComponents.VALUE
@@ -56,8 +49,7 @@ def test_getter_can_be_used_to_pull_values(
     stage.push_command(getter_node_command)
     getter_node: GetterNode = getter_node_command.result_node
 
-    getter_node["node_path"].push_value(log_node.path.as_posix())
-    getter_node["cpnt_name"].push_value("message")
+    getter_node["component"].push_value(f"{log_node.path.as_posix()}.message")
 
     link_getter_command = commands.LinkNodeComponentsCommand(
         stage=stage, source=getter_node["value"], target=setter_node["value"]
@@ -67,3 +59,47 @@ def test_getter_can_be_used_to_pull_values(
 
     assert setter_node["value"].raw_value != log_node["message"].raw_value
     assert setter_node["value"].pull_value() == log_node["message"].cached_value
+
+
+def test_getter_display_value_is_empty_until_component_is_found():
+    stage = Stage()
+    target_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(target_command)
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    getter = getter_command.result_node
+    target = target_command.result_node
+
+    assert getter["value"].get_display_value() == ""  # no path yet
+    getter["component"].push_value(target.path.as_posix())  # a node, not a component
+    assert getter["value"].get_display_value() == ""
+    getter["component"].push_value(f"{target.path.as_posix()}.message")
+    assert getter["value"].get_display_value() == target["message"].get_display_value()
+
+
+def test_getter_follows_renamed_node_and_component():
+    stage = Stage()
+    target_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(target_command)
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    target, getter = target_command.result_node, getter_command.result_node
+    target["message"].push_value("hello")
+    getter["component"].push_value(f"{target.path.as_posix()}.message")
+    assert getter["value"].pull_value() == "hello"
+
+    target.rename("renamed")
+    target["message"].name = "text"
+    assert getter["value"].pull_value() == "hello"
+    assert getter["component"].pull_value() == f"{target.path.as_posix()}.text"
+
+
+def test_getter_value_raises_for_missing_component():
+    stage = Stage()
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    getter = getter_command.result_node
+
+    getter["component"].push_value("/stage/missing.value")
+    with pytest.raises(exceptions.StageObjectQueryError):
+        getter["value"].pull_value()

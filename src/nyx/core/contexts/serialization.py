@@ -63,6 +63,9 @@ class NodeDeserializationContext:
 
     _uuid_map: dict[UUID, UUID] = dataclasses.field(default_factory=dict, init=False)
     _raw_links: list[dict] = dataclasses.field(default_factory=list, init=False)
+    _deferred: list[typing.Callable[[], None]] = dataclasses.field(
+        default_factory=list, init=False
+    )
 
     def register(self, serialized_uuid: UUID | str | None, new_uuid: UUID) -> None:
         """Map a serialized uuid to the uuid of the object created for it.
@@ -74,6 +77,11 @@ class NodeDeserializationContext:
         if serialized_uuid is not None:
             self._uuid_map[StageObject.as_uuid(serialized_uuid)] = new_uuid
 
+    @property
+    def uuid_map(self) -> dict[UUID, UUID]:
+        """dict[UUID, UUID]: new uuids of the created objects, by serialized uuid."""
+        return dict(self._uuid_map)
+
     def resolve(self, serialized_uuid: UUID | str) -> UUID | None:
         """Look up the new uuid for a serialized uuid.
 
@@ -84,6 +92,23 @@ class NodeDeserializationContext:
             UUID | None: new uuid, None if not registered.
         """
         return self._uuid_map.get(StageObject.as_uuid(serialized_uuid))
+
+    def defer(self, callback: typing.Callable[[], None]) -> None:
+        """Run a callback once everything in this run is deserialized.
+
+        Used by objects that refer to others by uuid, since the objects they refer to
+        may not exist yet when they are created.
+
+        Args:
+            callback (Callable[[], None]): called by `run_deferred`.
+        """
+        self._deferred.append(callback)
+
+    def run_deferred(self) -> None:
+        """Run and forget the deferred callbacks, in the order they were added."""
+        callbacks, self._deferred = self._deferred, []
+        for callback in callbacks:
+            callback()
 
     def collect_links(self, links_data: list[dict]) -> None:
         """Store serialized links to be created later.

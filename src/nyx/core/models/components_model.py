@@ -1,3 +1,4 @@
+import dataclasses
 import typing
 import logging
 from PySide6 import QtGui, QtCore
@@ -20,8 +21,33 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass(eq=False)
+class _Dependency:
+    """A component that has to be refreshed when another one changes.
+
+    Attributes:
+        dependent: component to refresh
+        source: component it depends on
+        when: roles of the source that trigger the refresh
+        refresh: roles of the dependent to report as changed
+    """
+
+    dependent: NodeComponent
+    source: NodeComponent
+    when: frozenset[int]
+    refresh: tuple[int, ...]
+
+
 class NodeComponentsModel(QtGui.QStandardItemModel):
     """Item model holding the components of a node."""
+
+    # Roles that describe the value of a component, and what views show of it.
+    VALUE_ROLES = (
+        NodeComponent.Roles.RAW_VALUE,
+        NodeComponent.Roles.CACHED_VALUE,
+        NodeComponent.Roles.DISPLAY_VALUE,
+        NodeComponent.Roles.IS_VALID,
+    )
 
     def __init__(self, node: Node):
         """Initialize NodeComponentsModel.
@@ -30,8 +56,11 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             node (Node): node owning the components.
         """
         self._node = node
+        self._dependencies: list[_Dependency] = []
+        self._propagating: set[int] = set()
         super().__init__()
         self._register_qml_role_names()
+        self.dataChanged.connect(self._refresh_dependents)
 
     @property
     def node(self) -> Node:
@@ -43,6 +72,93 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         names = dict(self.roleNames())
         names.update(names_fn.enum_to_dict(NodeComponent.Roles))  # ty: ignore
         self.setItemRoleNames(names)
+
+    def add_dependency(
+        self,
+        dependent: NodeComponent,
+        on: NodeComponent,
+        when: typing.Iterable[int] = VALUE_ROLES,
+        refresh: typing.Iterable[int] = (
+            NodeComponent.Roles.CACHED_VALUE,
+            NodeComponent.Roles.DISPLAY_VALUE,
+            NodeComponent.Roles.IS_VALID,
+        ),
+    ) -> None:
+        """Refresh a component whenever another component of the node changes.
+
+        Meant for `Node.setup`, for components whose value is worked out from other
+        components. The views are told that the dependent changed, so they ask it for
+        its value again. The dependent can have dependents of its own, and cycles are
+        cut instead of followed.
+
+        Args:
+            dependent (NodeComponent): component to refresh.
+            on (NodeComponent): component it depends on.
+            when (Iterable[int]): roles of `on` that trigger the refresh. An empty
+                value means any change.
+            refresh (Iterable[int]): roles of the dependent to report as changed.
+        """
+        self._dependencies.append(
+            _Dependency(
+                dependent=dependent,
+                source=on,
+                when=frozenset(when),
+                refresh=tuple(refresh),
+            )
+        )
+
+    def remove_dependencies(self, component: NodeComponent) -> None:
+        """Forget every dependency that involves a component.
+
+        Args:
+            component (NodeComponent): component that is the source or the dependent.
+        """
+        self._dependencies = [
+            dependency
+            for dependency in self._dependencies
+            if component not in (dependency.dependent, dependency.source)
+        ]
+
+    def _refresh_dependents(
+        self,
+        top_left: QtCore.QModelIndex,
+        bottom_right: QtCore.QModelIndex,
+        roles: typing.Sequence[int] = (),
+    ) -> None:
+        """Report a change to the components that depend on the changed ones.
+
+        Args:
+            top_left (QtCore.QModelIndex): first changed index.
+            bottom_right (QtCore.QModelIndex): last changed index.
+            roles (Sequence[int]): changed roles, empty if everything changed.
+        """
+        if not self._dependencies:
+            return
+
+        changed_roles = set(roles)
+        for row in range(top_left.row(), bottom_right.row() + 1):
+            source = self.item(row)
+            if source is None or id(source) in self._propagating:
+                continue
+
+            triggered = [
+                dependency
+                for dependency in self._dependencies
+                if dependency.source is source
+                and (
+                    not dependency.when
+                    or not changed_roles
+                    or changed_roles & dependency.when
+                )
+            ]
+            self._propagating.add(id(source))
+            try:
+                for dependency in triggered:
+                    index = dependency.dependent.index()
+                    if dependency.dependent.model() is self and index.isValid():
+                        self.dataChanged.emit(index, index, list(dependency.refresh))
+            finally:
+                self._propagating.discard(id(source))
 
     def data(
         self,
@@ -83,6 +199,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.get_qml_editor_url()
             if role == NodeComponent.Roles.IS_EDITABLE:
                 return component.is_editable
+            if role == NodeComponent.Roles.IS_VALID:
+                return component.is_valid
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:
@@ -244,6 +362,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
 
         if self.node.stage:
             self.node.stage.uuid_map.pop(component.uuid)
+        self.remove_dependencies(component)
         self.removeRow(component.row())
 
     def remove_component_by_name(self, name: str) -> None:

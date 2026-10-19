@@ -1,7 +1,8 @@
 import logging
+import pathlib
 import typing
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 
 from ...core.commands import (
     DeleteNodeComponentCommand,
@@ -244,6 +245,48 @@ class ComponentsController(QtCore.QObject):
                 stage=self.stage, node_component=component, value=new_value, raw=raw
             )
         )
+
+    @QtCore.Slot(str, str, str, result=str)
+    def selectFile(self, title: str, name_filters: str, start_path: str) -> str:
+        """Ask for an existing file with a file dialog of the editor window.
+
+        A widget dialog is used on purpose: the QML `FileDialog` falls back to a
+        window of its own when it is shown from a `QQuickWidget`.
+
+        Args:
+            title (str): dialog title.
+            name_filters (str): filters separated by ";;", like "Python (*.py);;All (*)".
+            start_path (str): file or folder to start at. Anything else, like an
+                entry point, starts at the default folder.
+
+        Returns:
+            str: chosen file, empty if the dialog was cancelled.
+        """
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            QtWidgets.QApplication.activeWindow(),
+            title,
+            self._dialog_start_path(start_path),
+            name_filters,
+        )
+        return file_path
+
+    @staticmethod
+    def _dialog_start_path(path: str) -> str:
+        """Get where a file dialog should start for some text.
+
+        Args:
+            path (str): text that may be the path of a file or folder.
+
+        Returns:
+            str: the path if it is a file or folder, otherwise an empty string.
+        """
+        if not path:
+            return ""
+        try:
+            candidate = pathlib.Path(path)
+            return path if candidate.is_file() or candidate.is_dir() else ""
+        except (OSError, ValueError):
+            return ""
 
     @QtCore.Slot(int, bool)
     def setComponentReadable(self, row: int, state: bool):

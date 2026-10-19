@@ -1,31 +1,40 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
+import NyxEditor.Common
 
-ColumnLayout {
+ComponentValue {
     id: valueItemRoot
-    property var component
-    spacing: 4
 
-    readonly property bool hasInputConnection: component.inputLinks.length > 0
+    readonly property bool hasInputConnection: component ? component.inputLinks.length > 0 : false
 
-    RowLayout {
-        Layout.fillWidth: true
+    label: "Value:"
+    // The raw text is evaluated when set.
+    evaluateOnFinish: true
+    // A linked value comes from its source.
+    editable: component ? component.isEditable && !hasInputConnection : false
 
-        Label {
-            text: "Value:"
+    displayDelegate: TextField {
+        readOnly: true
+        opacity: valueItemRoot.editable ? 1.0 : 0.6
+        text: valueItemRoot.maskedText
+
+        TapHandler {
+            onDoubleTapped: valueItemRoot.requestEdit()
         }
+    }
 
-        TextField {
-            Layout.fillWidth: true
-            text: valueItemRoot.component.displayValue
-
-            enabled: valueItemRoot.component.isEditable && !valueItemRoot.hasInputConnection
-            onAccepted: {
-                if (text === valueItemRoot.component.displayValue)
-                    return;
-                root.componentsController.setComponentValue(valueItemRoot.component.index, text, false);
-            }
+    editDelegate: TextField {
+        // Set once: what is typed must not be replaced by a binding. The raw value is
+        // read directly, `maskedText` has not followed `editing` yet.
+        Component.onCompleted: {
+            text = valueItemRoot.textOf(ComponentValue.Raw);
+            forceActiveFocus();
+            selectAll();
         }
+        onAccepted: if (valueItemRoot.editing)
+            valueItemRoot.finishEdit(text)
+        onActiveFocusChanged: if (!activeFocus && valueItemRoot.editing)
+            valueItemRoot.finishEdit(text)
+        Keys.onEscapePressed: valueItemRoot.cancelEdit()
     }
 }
