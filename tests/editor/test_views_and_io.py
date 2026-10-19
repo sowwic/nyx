@@ -623,3 +623,188 @@ def test_double_click_anywhere_on_node_steps_in(
         pos=view.mapFromScene(scene_pos),
     )
     assert stage_editor.get_scope_path() == node.path
+
+
+def _flow_plug(stage_editor, node):
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+    return gr_node.get_plug(node.components_model.get_component("flow"))
+
+
+def _link_flows(stage, source, target):
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage,
+            source=source.components_model.get_component("flow"),
+            target=target.components_model.get_component("flow"),
+        )
+    )
+
+
+def test_graphics_stage_draws_links_between_drawn_nodes(stage_editor, create_node):
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    b = create_node(stage, "b", type_id=CoreNodes.ACTION)
+    assert stage_editor.gr_stage.gr_links() == []
+
+    _link_flows(stage, a, b)
+    gr_stage = stage_editor.gr_stage
+    (gr_link,) = gr_stage.gr_links()
+    assert gr_link.source_plug is _flow_plug(stage_editor, a)
+    assert gr_link.target_plug is _flow_plug(stage_editor, b)
+    assert gr_link in gr_link.source_plug.links
+
+    stage.undo_stack.undo()
+    assert gr_stage.gr_links() == []
+    assert _flow_plug(stage_editor, a).links == []
+
+
+def test_graphics_stage_skips_links_leaving_the_scope(stage_editor, create_node):
+    stage = stage_editor.stage
+    parent = create_node(stage, "parent", type_id=CoreNodes.ACTION)
+    inner = create_node(stage, "inner", parent=parent, type_id=CoreNodes.ACTION)
+    outer = create_node(stage, "outer", type_id=CoreNodes.ACTION)
+    _link_flows(stage, outer, inner)
+    assert stage_editor.gr_stage.gr_links() == []
+
+
+def test_graphics_link_follows_moved_node(stage_editor, create_node):
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    b = create_node(stage, "b", type_id=CoreNodes.ACTION)
+    _link_flows(stage, a, b)
+    gr_stage = stage_editor.gr_stage
+    (gr_link,) = gr_stage.gr_links()
+    before = gr_link.path().elementAt(0)
+    gr_stage.get_gr_node(a).setPos(300, 200)
+    after = gr_link.path().elementAt(0)
+    assert (after.x, after.y) != (before.x, before.y)
+    anchor = gr_link.source_plug.output_anchor()
+    assert (after.x, after.y) == (anchor.x(), anchor.y())
+
+
+def test_dragging_from_socket_to_socket_creates_link(stage_editor, create_node):
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    b = create_node(stage, "b", type_id=CoreNodes.ACTION)
+    gr_stage = stage_editor.gr_stage
+    gr_stage.get_gr_node(b).setPos(400, 0)
+    plug_a, plug_b = _flow_plug(stage_editor, a), _flow_plug(stage_editor, b)
+
+    gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
+    assert gr_stage.is_dragging_link
+    gr_stage.update_link_drag(plug_b.input_anchor())
+    gr_stage.finish_link_drag(plug_b.input_anchor())
+
+    assert not gr_stage.is_dragging_link
+    (gr_link,) = gr_stage.gr_links()
+    assert (gr_link.source_plug, gr_link.target_plug) == (plug_a, plug_b)
+
+
+def test_dragging_from_input_socket_links_in_reverse(stage_editor, create_node):
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    b = create_node(stage, "b", type_id=CoreNodes.ACTION)
+    gr_stage = stage_editor.gr_stage
+    gr_stage.get_gr_node(b).setPos(400, 0)
+    plug_a, plug_b = _flow_plug(stage_editor, a), _flow_plug(stage_editor, b)
+
+    gr_stage.begin_link_drag(plug_b, plug_b.Socket.INPUT)
+    gr_stage.finish_link_drag(plug_a.output_anchor())
+    (gr_link,) = gr_stage.gr_links()
+    assert (gr_link.source_plug, gr_link.target_plug) == (plug_a, plug_b)
+
+
+def test_dropping_on_wrong_socket_or_node_does_not_link(
+    stage_editor, create_node, monkeypatch
+):
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    b = create_node(stage, "b", type_id=CoreNodes.ACTION)
+    gr_stage = stage_editor.gr_stage
+    gr_stage.get_gr_node(b).setPos(400, 0)
+    plug_a, plug_b = _flow_plug(stage_editor, a), _flow_plug(stage_editor, b)
+    opened = []
+    monkeypatch.setattr(
+        gr_stage, "_open_palette_for_link", lambda *args: opened.append(args)
+    )
+
+    # output dropped on an output socket
+    gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
+    gr_stage.finish_link_drag(plug_b.output_anchor())
+    # dropped on the body of a node
+    gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
+    gr_stage.finish_link_drag(gr_stage.get_gr_node(b).mapToScene(50, 90))
+
+    QtWidgets.QApplication.processEvents()
+    assert gr_stage.gr_links() == []
+    assert opened == []
+    assert not gr_stage.is_dragging_link
+
+
+def test_dropping_on_empty_space_opens_palette_and_links_new_node(
+    stage_editor, create_node, monkeypatch, qtbot
+):
+    from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
+
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    gr_stage = stage_editor.gr_stage
+    plug_a = _flow_plug(stage_editor, a)
+
+    def fake_popup(on_node_spawned=None):
+        command = commands.CreateNodeCommand(
+            stage=stage, type_id=CoreNodes.ACTION, name="spawned"
+        )
+        stage.push_command(command)
+        on_node_spawned(command.result_node)
+
+    monkeypatch.setattr(PopupNodesPalette, "popup", fake_popup)
+
+    gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
+    gr_stage.finish_link_drag(QtCore.QPointF(2000, 2000))
+    qtbot.waitUntil(lambda: len(gr_stage.gr_links()) == 1, timeout=2000)
+    (gr_link,) = gr_stage.gr_links()
+    assert gr_link.source_plug is plug_a
+    assert gr_link.target_plug.component.node.name == "spawned"
+
+
+def test_cutline_unlinks_crossed_links_in_one_undo_step(stage_editor, create_node):
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    b = create_node(stage, "b", type_id=CoreNodes.ACTION)
+    c = create_node(stage, "c", type_id=CoreNodes.ACTION)
+    gr_stage = stage_editor.gr_stage
+    stage.push_command(
+        commands.MoveNodeCommand(
+            stage=stage,
+            nodes=[b, c],
+            new_positions=[QtCore.QPointF(400, 0), QtCore.QPointF(400, 300)],
+        )
+    )
+    stage.undo_stack.clear()
+    _link_flows(stage, a, b)
+    _link_flows(stage, a, c)
+    assert len(gr_stage.gr_links()) == 2
+
+    # Line crossing only the curve between a and b
+    plug_a, plug_b = _flow_plug(stage_editor, a), _flow_plug(stage_editor, b)
+    start, end = plug_a.output_anchor(), plug_b.input_anchor()
+    middle = (start + end) / 2
+    view = stage_editor.gr_view
+    view.cutline.line_points = [
+        middle + QtCore.QPointF(0, -30),
+        middle + QtCore.QPointF(0, 30),
+    ]
+    assert view.cut_intersecting_edges()
+    assert [g.target_plug for g in gr_stage.gr_links()] == [_flow_plug(stage_editor, c)]
+    assert stage.undo_stack.count() == 3
+
+    stage.undo_stack.undo()
+    assert len(gr_stage.gr_links()) == 2
+
+
+def test_cutline_missing_links_does_nothing(stage_editor, create_node):
+    create_node(stage_editor.stage, "a", type_id=CoreNodes.ACTION)
+    view = stage_editor.gr_view
+    view.cutline.line_points = [QtCore.QPointF(0, 0), QtCore.QPointF(50, 50)]
+    assert not view.cut_intersecting_edges()

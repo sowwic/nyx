@@ -524,22 +524,13 @@ class StageGraphView(QtWidgets.QGraphicsView):
         )
         menu.exec_(self.mapToGlobal(point))
 
-    def cut_intersecting_edges(self):
-        """Cut links crossed by the cutline. Not implemented yet."""
-        cut_result = False
-        # for ix in range(len(self.cutline.line_points) - 1):
-        #     pt1 = self.cutline.line_points[ix]
-        #     pt2 = self.cutline.line_points[ix + 1]
+    def cut_intersecting_edges(self) -> bool:
+        """Unlink the links crossed by the cutline.
 
-        # TODO: Should be optimized as gets slow with large scenes
-        # for edge in self.scene.edges[:]:
-        #     if edge.gr_edge.intersects_with(pt1, pt2):
-        #         edge.remove()
-        #         cut_result = True
-        if cut_result:
-            # TODO: Disconnect plugs here
-            pass
-            # self.scene.history.store_history('Edges cut', set_modified=True)
+        Returns:
+            bool: at least one link was cut.
+        """
+        return self.gr_stage.cut_links_along(self.cutline.line_points)
 
     def create_new_node(self):
         """Show the nodes palette at the last mouse position."""

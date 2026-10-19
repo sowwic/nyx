@@ -112,7 +112,7 @@ class DeleteNodeCommand(NyxCommand):
 
         for link_uuid in list(links_to_unlink):
             unlink_command = UnlinkNodeComponentsCommand(
-                stage=self.stage, link_uuid=link_uuid
+                stage=self.stage, link_uuids=[link_uuid]
             )
             self._component_unlink_commands.append(unlink_command)
 

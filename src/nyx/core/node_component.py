@@ -470,6 +470,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             link_uuid (UUID | str): link uuid.
         """
         self.data(self.Roles.LINKS).add(link_uuid)
+        self._notify_links_changed()
 
     def remove_link(self, link_uuid: UUID | str):
         """Unregister a link from this component.
@@ -478,6 +479,23 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             link_uuid (UUID | str): link uuid.
         """
         self.data(self.Roles.LINKS).discard(link_uuid)
+        self._notify_links_changed()
+
+    def _notify_links_changed(self):
+        """Tell the model the links changed, so views showing them refresh."""
+        model = self.model()
+        if model is None:
+            return
+        model.dataChanged.emit(
+            self.index(),
+            self.index(),
+            [
+                self.Roles.LINKS,
+                self.Roles.INPUT_LINKS,
+                self.Roles.OUTPUT_LINKS,
+                self.Roles.DISPLAY_VALUE,
+            ],
+        )
 
     def is_linked_to(
         self, other_component: NodeComponent, as_source=False, as_target=False

@@ -14,12 +14,17 @@ from uuid import UUID
 import shiboken6
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from nyx.core.exceptions import StageObjectQueryError
+from nyx.core import commands
+from nyx.core.exceptions import NyxCommandValidationError, StageObjectQueryError
+from nyx.core.link import Link
 from nyx.core.stage_object import StageObject
+from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_node import GraphicsNode
+from nyx.editor.graphics.graphics_plug import GraphicsPlug
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import Node
+    from nyx.core.node_component import NodeComponent
     from nyx.core.stage import Stage
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
@@ -43,6 +48,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
         self._graph_editor = graph_editor
         self._gr_nodes: dict[UUID, GraphicsNode] = {}
+        self._gr_links: dict[UUID, GraphicsLink] = {}
+        self._drag_link: GraphicsLink | None = None
+        self._drag_origin: tuple[GraphicsPlug, GraphicsPlug.Socket] | None = None
         self._scope_path: pathlib.PurePosixPath | None = None
 
         # Settings
@@ -259,18 +267,308 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     # ======== Links ========= #
 
+    def gr_links(self) -> list[GraphicsLink]:
+        """Returns all GraphicsLink items of links in the scene."""
+        return list(self._gr_links.values())
+
+    def get_gr_link(self, link: Link | UUID) -> GraphicsLink | None:
+        """Returns the GraphicsLink drawn for the given link, if there is one.
+
+        Args:
+            link (Link | UUID): link or its uuid.
+        """
+        return self._gr_links.get(getattr(link, "uuid", link))
+
+    def add_link(
+        self, link: Link, source_plug: GraphicsPlug, target_plug: GraphicsPlug
+    ) -> GraphicsLink:
+        """Adds a GraphicsLink item between two plugs.
+
+        Args:
+            link (Link): link to draw.
+            source_plug (GraphicsPlug): plug the link starts at.
+            target_plug (GraphicsPlug): plug the link ends at.
+
+        Returns:
+            GraphicsLink: new item.
+        """
+        self.remove_link(link.uuid)
+        gr_link = GraphicsLink(source_plug, target_plug, link_uuid=link.uuid)
+        gr_link.attach()
+        self._gr_links[link.uuid] = gr_link
+        self.addItem(gr_link)
+        return gr_link
+
+    def remove_link(self, link: GraphicsLink | Link | UUID) -> None:
+        """Removes the GraphicsLink item of the given link, if there is one.
+
+        Args:
+            link (GraphicsLink | Link | UUID): item, link or link uuid.
+        """
+        gr_link = link if isinstance(link, GraphicsLink) else self.get_gr_link(link)
+        if gr_link is None:
+            return
+        self._gr_links.pop(gr_link.uuid, None)
+        gr_link.detach()
+        if gr_link.scene() is self:
+            self.removeItem(gr_link)
+
     def clear_links(self):
-        """Removes all GraphicsEdge items from the scene."""
-        LOGGER.debug("TODO: cleaning edges")
+        """Removes all GraphicsLink items from the scene."""
+        for gr_link in self.gr_links():
+            self.remove_link(gr_link)
 
     def build_links(self, scope_node: Node):
-        """
-        Builds GraphicsEdge items for all connections between child nodes for given node.
+        """Builds GraphicsLink items for the links between the drawn nodes.
 
         Must run after `build_nodes`: links attach to the plugs of the node items.
+
+        Links are read from the components of the drawn plugs, so the cost depends
+        only on the links touching the scope, not on the size of the stage. Every
+        link is picked up once, from its source plug. Links with an end outside of
+        the scope (other levels of the hierarchy) are not drawn.
+
+        Args:
+            scope_node (Node): node being drawn.
         """
-        # TODO: Build graphics edges
-        pass
+        plugs = {
+            plug.uuid: plug
+            for gr_node in self._gr_nodes.values()
+            for plug in gr_node.plugs
+        }
+        uuid_map = self.stage.uuid_map
+        for source_uuid, source_plug in plugs.items():
+            component = source_plug.component
+            if not component.produces_output:
+                continue
+            for link_uuid in component.links_uuids:
+                link = uuid_map.get(link_uuid)
+                if not isinstance(link, Link) or link.source != source_uuid:
+                    continue
+                target_plug = plugs.get(link.target)
+                if target_plug is not None:
+                    self.add_link(link, source_plug, target_plug)
+
+    def find_links_along(self, scene_points: list[QtCore.QPointF]) -> list[GraphicsLink]:
+        """Find the links crossed by a polyline.
+
+        Args:
+            scene_points (list[QtCore.QPointF]): scene points of the polyline.
+
+        Returns:
+            list[GraphicsLink]: links crossed by the line.
+        """
+        if len(scene_points) < 2:
+            return []
+        line = QtGui.QPainterPath(scene_points[0])
+        for point in scene_points[1:]:
+            line.lineTo(point)
+        # An open path has no area to intersect with, so give it some.
+        stroker = QtGui.QPainterPathStroker()
+        stroker.setWidth(1.0)
+        area = stroker.createStroke(line)
+        return [
+            item
+            for item in self.items(area, QtCore.Qt.ItemSelectionMode.IntersectsItemShape)
+            if isinstance(item, GraphicsLink) and item.uuid in self._gr_links
+        ]
+
+    def cut_links_along(self, scene_points: list[QtCore.QPointF]) -> bool:
+        """Unlink all the links crossed by a polyline in one undoable command.
+
+        Args:
+            scene_points (list[QtCore.QPointF]): scene points of the polyline.
+
+        Returns:
+            bool: at least one link was cut.
+        """
+        gr_links = self.find_links_along(scene_points)
+        if not gr_links:
+            return False
+        self.stage.push_command(
+            commands.UnlinkNodeComponentsCommand(
+                stage=self.stage, link_uuids=[gr_link.uuid for gr_link in gr_links]
+            )
+        )
+        return True
+
+    @staticmethod
+    def can_link(source: NodeComponent, target: NodeComponent) -> bool:
+        """Check whether linking two components would be accepted.
+
+        Args:
+            source (NodeComponent): component providing output.
+            target (NodeComponent): component accepting input.
+
+        Returns:
+            bool: components differ, are of the same type, can be linked in this
+                direction and are not linked already.
+        """
+        if source is target:
+            return False
+        if not source.produces_output or not target.accepts_input:
+            return False
+        if not isinstance(target, type(source)):
+            return False
+        return all(link.source != source.uuid for link in target.input_links)
+
+    # ======== Link dragging ========= #
+
+    @property
+    def is_dragging_link(self) -> bool:
+        """bool: a link is being dragged from a socket."""
+        return self._drag_link is not None
+
+    def begin_link_drag(self, plug: GraphicsPlug, socket: GraphicsPlug.Socket):
+        """Start dragging a link from a socket of a plug.
+
+        Args:
+            plug (GraphicsPlug): plug the drag starts at.
+            socket (GraphicsPlug.Socket): socket the drag starts at.
+        """
+        self.cancel_link_drag()
+        from_output = socket is GraphicsPlug.Socket.OUTPUT
+        self._drag_origin = (plug, socket)
+        self._drag_link = GraphicsLink(
+            source_plug=plug if from_output else None,
+            target_plug=None if from_output else plug,
+        )
+        anchor = plug.output_anchor() if from_output else plug.input_anchor()
+        self._drag_link.set_floating_pos(anchor)
+        self.addItem(self._drag_link)
+
+    def update_link_drag(self, scene_pos: QtCore.QPointF):
+        """Move the open end of the dragged link.
+
+        Args:
+            scene_pos (QtCore.QPointF): scene position of the cursor.
+        """
+        if self._drag_link is not None:
+            self._drag_link.set_floating_pos(scene_pos)
+
+    def cancel_link_drag(self):
+        """Drop the dragged link without linking anything."""
+        drag_link, self._drag_link, self._drag_origin = self._drag_link, None, None
+        if drag_link is not None and drag_link.scene() is self:
+            self.removeItem(drag_link)
+
+    def finish_link_drag(self, scene_pos: QtCore.QPointF):
+        """Finish dragging: link to the socket under the cursor or open the palette.
+
+        Releasing on a socket that doesn't accept the link, or on a node, cancels
+        the drag. Releasing on empty space opens the nodes palette, and the node
+        created there gets linked to the socket the drag started at.
+
+        Args:
+            scene_pos (QtCore.QPointF): scene position of the release.
+        """
+        origin = self._drag_origin
+        self.cancel_link_drag()
+        if origin is None:
+            return
+        origin_plug, origin_socket = origin
+        wanted_socket = (
+            GraphicsPlug.Socket.INPUT
+            if origin_socket is GraphicsPlug.Socket.OUTPUT
+            else GraphicsPlug.Socket.OUTPUT
+        )
+
+        over_node = False
+        for item in self.items(scene_pos):
+            if isinstance(item, GraphicsPlug):
+                if item.socket_at(scene_pos) is wanted_socket:
+                    self._link_plugs(origin_plug, origin_socket, item)
+                    return
+            elif isinstance(item, GraphicsNode):
+                over_node = True
+
+        if not over_node:
+            # Not inside the mouse event: the palette runs a modal event loop.
+            component_uuid = origin_plug.uuid
+            QtCore.QTimer.singleShot(
+                0, lambda: self._open_palette_for_link(component_uuid, origin_socket)
+            )
+
+    def _link_plugs(
+        self,
+        origin_plug: GraphicsPlug,
+        origin_socket: GraphicsPlug.Socket,
+        other_plug: GraphicsPlug,
+    ):
+        """Link the dragged plug to the plug it was dropped on, if that is allowed.
+
+        Args:
+            origin_plug (GraphicsPlug): plug the drag started at.
+            origin_socket (GraphicsPlug.Socket): socket the drag started at.
+            other_plug (GraphicsPlug): plug the link was dropped on.
+        """
+        if origin_socket is GraphicsPlug.Socket.OUTPUT:
+            source, target = origin_plug.component, other_plug.component
+        else:
+            source, target = other_plug.component, origin_plug.component
+        self._push_link_command(source, target)
+
+    def _push_link_command(self, source: NodeComponent, target: NodeComponent) -> bool:
+        """Push a command linking two components if the link is allowed.
+
+        Args:
+            source (NodeComponent): component providing output.
+            target (NodeComponent): component accepting input.
+
+        Returns:
+            bool: link was created.
+        """
+        if not self.can_link(source, target):
+            LOGGER.debug(f"Components can't be linked: {source} -> {target}")
+            return False
+        try:
+            self.stage.push_command(
+                commands.LinkNodeComponentsCommand(
+                    stage=self.stage, source=source, target=target
+                )
+            )
+        except NyxCommandValidationError as error:
+            LOGGER.warning(f"Failed to link {source} -> {target}: {error}")
+            return False
+        return True
+
+    def _open_palette_for_link(self, component_uuid: UUID, socket: GraphicsPlug.Socket):
+        """Show the nodes palette and link the created node to the dragged socket.
+
+        Args:
+            component_uuid (UUID): component the drag started at.
+            socket (GraphicsPlug.Socket): socket the drag started at.
+        """
+        # Imported here: the dialog imports views that import this module.
+        from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
+
+        PopupNodesPalette.popup(
+            on_node_spawned=lambda node: self._link_spawned_node(
+                node, component_uuid, socket
+            )
+        )
+
+    def _link_spawned_node(
+        self, node: Node, component_uuid: UUID, socket: GraphicsPlug.Socket
+    ):
+        """Link the first compatible component of a new node to the dragged socket.
+
+        Args:
+            node (Node): node created by the palette.
+            component_uuid (UUID): component the drag started at.
+            socket (GraphicsPlug.Socket): socket the drag started at.
+        """
+        try:
+            origin = self.stage.get_object(component_uuid)
+        except StageObjectQueryError:
+            return
+        from_output = socket is GraphicsPlug.Socket.OUTPUT
+        for component in node.components_model.list_components():
+            source, target = (origin, component) if from_output else (component, origin)
+            if self.can_link(source, target):
+                self._push_link_command(source, target)
+                return
+        LOGGER.debug(f"{node.path} has no component to link to {origin}")
 
     # ======== Scope ========= #
 
@@ -292,6 +590,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
+        self.cancel_link_drag()
         self.clear_links()
         if scope_path != self._scope_path:
             self.clear_nodes()

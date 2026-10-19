@@ -186,3 +186,27 @@ def test_rlshift_operator():
     assert link.target_component is node2["flow"]
     assert link.uuid in node1["flow"].links_uuids
     assert link.uuid in node2["flow"].links_uuids
+
+
+def test_linking_notifies_model_of_link_changes():
+    from nyx.api.v1 import Stage, CoreNodes, commands
+
+    stage = Stage()
+    cmds = [
+        commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.ACTION)
+        for _ in range(2)
+    ]
+    for cmd in cmds:
+        stage.push_command(cmd)
+    a, b = (cmd.result_node for cmd in cmds)
+    source, target = a["flow"], b["flow"]
+
+    changes = []
+    target.model().dataChanged.connect(lambda *args: changes.append(args[2]))
+    link = source >> target
+    assert any(target.Roles.INPUT_LINKS in roles for roles in changes)
+
+    changes.clear()
+    stage.unregister_link(link)
+    assert any(target.Roles.INPUT_LINKS in roles for roles in changes)
+    assert target.input_links == []

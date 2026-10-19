@@ -168,7 +168,7 @@ class DeleteNodeComponentCommand(NyxCommand):
 
         for link_uuid in unique_link_uuids:
             self._unlink_commands.append(
-                UnlinkNodeComponentsCommand(stage=self.stage, link_uuid=link_uuid)
+                UnlinkNodeComponentsCommand(stage=self.stage, link_uuids=[link_uuid])
             )
 
     def validate(self) -> None:

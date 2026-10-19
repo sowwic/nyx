@@ -1,5 +1,6 @@
 import typing
 import logging
+from collections.abc import Iterable
 from uuid import UUID
 
 from PySide6 import QtGui
@@ -15,52 +16,60 @@ LOGGER = logging.getLogger(__name__)
 
 
 class UnlinkNodeComponentsCommand(NyxCommand):
-    """Remove a link between two components."""
+    """Remove one or more links between components."""
 
     def __init__(
         self,
         stage: Stage,
-        link_uuid: UUID,
+        link_uuids: Iterable[UUID],
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
         """Initialize UnlinkNodeComponentsCommand.
 
         Args:
             stage (Stage): target stage.
-            link_uuid (UUID): uuid of the link to remove.
+            link_uuids (Iterable[UUID]): uuids of the links to remove.
             parent (QtGui.QUndoCommand | None): parent command.
         """
         super().__init__(stage=stage, text="Unlink components", parent=parent)
-        self.link_uuid = link_uuid
-        self.source_uuid = None
-        self.target_uuid = None
+        # Ordered and de-duplicated, so a link is never removed twice.
+        self.link_uuids: list[UUID] = list(dict.fromkeys(link_uuids))
+        # link uuid -> (source uuid, target uuid), filled when the links are removed
+        self._ends: dict[UUID, tuple[UUID, UUID]] = {}
 
     def redo(self) -> None:
-        """Remove the link."""
-        link: Link = self.stage.get_object(self.link_uuid)
+        """Remove the links."""
+        links: list[Link] = [self.stage.get_object(uuid) for uuid in self.link_uuids]
+        self._ends = {link.uuid: (link.source, link.target) for link in links}
 
-        self.source_uuid = link.source
-        self.target_uuid = link.target
-
-        self.setText(f"Unlink components: {link.path_connection_str}")
-        self.stage.unregister_link(link)
+        if len(links) == 1:
+            self.setText(f"Unlink components: {links[0].path_connection_str}")
+        else:
+            self.setText(f"Unlink {len(links)} components")
+        for link in links:
+            self.stage.unregister_link(link)
 
         return super().redo()
 
     def undo(self) -> None:
-        """Recreate the link with its original uuid."""
-        self.stage.link_components(
-            source_component=self.source_uuid,
-            target_component=self.target_uuid,
-            use_uuid=self.link_uuid,
-        )
+        """Recreate the links with their original uuids."""
+        for link_uuid in reversed(self.link_uuids):
+            source_uuid, target_uuid = self._ends[link_uuid]
+            self.stage.link_components(
+                source_component=source_uuid,
+                target_component=target_uuid,
+                use_uuid=link_uuid,
+            )
         return super().undo()
 
     def validate(self):
-        """Check the link exists."""
-        try:
-            self.stage.get_object(self.link_uuid)
-        except StageObjectQueryError:
-            raise NyxCommandValidationError(
-                f"Invalid link provided for unlink: {self.link_uuid}"
-            )
+        """Check there is something to remove and all the links exist."""
+        if not self.link_uuids:
+            raise NyxCommandValidationError("No links provided for unlink")
+        for link_uuid in self.link_uuids:
+            try:
+                self.stage.get_object(link_uuid)
+            except StageObjectQueryError:
+                raise NyxCommandValidationError(
+                    f"Invalid link provided for unlink: {link_uuid}"
+                )

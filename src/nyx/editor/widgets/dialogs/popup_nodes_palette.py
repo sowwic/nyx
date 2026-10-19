@@ -7,6 +7,7 @@ from ...views.nodes_palette_view import NodesPaletteView
 
 
 if typing.TYPE_CHECKING:
+    from ....core.node import Node
     from ...widgets.stage_graph_editor import StageGraphEditor
     from ....application import NyxEditorApplication
 
@@ -80,8 +81,13 @@ class PopupNodesPalette(QtWidgets.QDialog):
         return palette
 
     @classmethod
-    def popup(cls):
-        """Show the palette at the cursor, creating nodes at that scene position."""
+    def popup(cls, on_node_spawned: typing.Callable[[Node], None] | None = None):
+        """Show the palette at the cursor, creating nodes at that scene position.
+
+        Args:
+            on_node_spawned (Callable[[Node], None] | None): called with the node
+                created by the palette.
+        """
         current_editor = cls.get_current_editor()
         if current_editor is None:
             return
@@ -95,6 +101,10 @@ class PopupNodesPalette(QtWidgets.QDialog):
 
         palette = cls(scene_pos, parent=stage_graph_view.window())
         palette.set_spawner_position(QtCore.QPointF(scene_pos.x(), scene_pos.y()))
+        if on_node_spawned is not None:
+            palette._nodes_palette_view.nodes_spawner.nodeSpawned.connect(
+                on_node_spawned
+            )
         palette.move(global_pos)
         palette.exec()
         return palette
