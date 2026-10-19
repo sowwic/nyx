@@ -1,7 +1,7 @@
 from unittest import mock
 
 import pytest
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 
@@ -28,9 +28,63 @@ def test_popup_centered_is_centered_over_window(stage_editor, main_window, no_ex
     palette = PopupNodesPalette.popup_centered()
     assert no_exec == [palette]
     assert palette.parent() is main_window
-    assert palette.geometry().center() - main_window.geometry().center() in (
-        QtCore.QPoint(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+    center = main_window.geometry().center()
+    screen = (
+        QtGui.QGuiApplication.screenAt(center) or QtGui.QGuiApplication.primaryScreen()
     )
+    # Centered, unless that would put it out of the screen
+    expected = PopupNodesPalette.clamp_to_bounds(
+        center - palette.rect().center(), palette.size(), screen.availableGeometry()
+    )
+    assert palette.pos() == expected
+
+
+def test_popup_centered_stays_inside_screen(stage_editor, main_window, no_exec):
+    palette = PopupNodesPalette.popup_centered()
+    screen = QtGui.QGuiApplication.screenAt(main_window.geometry().center())
+    available = (screen or QtGui.QGuiApplication.primaryScreen()).availableGeometry()
+    assert available.contains(palette.pos())
+
+
+def test_popup_at_cursor_is_moved_inside_screen(stage_editor, no_exec, monkeypatch):
+    screen = QtGui.QGuiApplication.primaryScreen()
+    available = screen.availableGeometry()
+    corner = available.bottomRight()
+    monkeypatch.setattr(QtGui.QCursor, "pos", staticmethod(lambda: corner))
+
+    palette = PopupNodesPalette.popup()
+    assert available.contains(palette.geometry().bottomRight()) or (
+        palette.width() > available.width() or palette.height() > available.height()
+    )
+    assert palette.geometry().topLeft() == PopupNodesPalette.clamp_to_bounds(
+        corner, palette.size(), available
+    )
+
+
+@pytest.mark.parametrize(
+    "top_left, expected",
+    [
+        ((50, 60), (50, 60)),  # fits
+        ((900, 60), (600, 60)),  # past the right edge
+        ((50, 700), (50, 400)),  # past the bottom edge
+        ((-30, -40), (0, 0)),  # past the top left
+        ((900, 700), (600, 400)),  # past the bottom right
+    ],
+)
+def test_clamp_to_bounds_keeps_rect_inside(top_left, expected):
+    bounds = QtCore.QRect(0, 0, 1000, 900)
+    result = PopupNodesPalette.clamp_to_bounds(
+        QtCore.QPoint(*top_left), QtCore.QSize(400, 500), bounds
+    )
+    assert (result.x(), result.y()) == expected
+
+
+def test_clamp_to_bounds_keeps_top_left_when_rect_is_bigger_than_bounds():
+    bounds = QtCore.QRect(100, 50, 300, 300)
+    result = PopupNodesPalette.clamp_to_bounds(
+        QtCore.QPoint(500, 500), QtCore.QSize(400, 500), bounds
+    )
+    assert (result.x(), result.y()) == (100, 50)
 
 
 def test_popup_centered_passes_spawn_position_to_spawner(stage_editor, no_exec):

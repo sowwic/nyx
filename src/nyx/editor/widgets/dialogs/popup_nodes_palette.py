@@ -51,6 +51,46 @@ class PopupNodesPalette(QtWidgets.QDialog):
         """Close the popup when a node is spawned."""
         self._nodes_palette_view.nodes_spawner.nodeSpawned.connect(self.deleteLater)
 
+    @staticmethod
+    def clamp_to_bounds(
+        top_left: QtCore.QPoint, size: QtCore.QSize, bounds: QtCore.QRect
+    ) -> QtCore.QPoint:
+        """Move a rectangle inside bounds, keeping its top left corner visible.
+
+        Args:
+            top_left (QtCore.QPoint): wanted top left corner.
+            size (QtCore.QSize): size of the rectangle.
+            bounds (QtCore.QRect): area the rectangle has to stay in.
+
+        Returns:
+            QtCore.QPoint: top left corner that keeps the rectangle in bounds. A
+                rectangle bigger than the bounds is aligned to their top left.
+        """
+        x = min(top_left.x(), bounds.right() - size.width() + 1)
+        y = min(top_left.y(), bounds.bottom() - size.height() + 1)
+        return QtCore.QPoint(max(x, bounds.left()), max(y, bounds.top()))
+
+    def move_within_screen(
+        self, top_left: QtCore.QPoint, anchor: QtCore.QPoint | None = None
+    ):
+        """Move the palette so it is fully inside the usable area of a screen.
+
+        Args:
+            top_left (QtCore.QPoint): wanted global top left corner.
+            anchor (QtCore.QPoint | None): global point choosing the screen, such as
+                the cursor. Defaults to the top left corner.
+        """
+        screen = (
+            QtGui.QGuiApplication.screenAt(anchor or top_left)
+            or QtGui.QGuiApplication.primaryScreen()
+        )
+        if screen is None:
+            self.move(top_left)
+            return
+        self.move(
+            self.clamp_to_bounds(top_left, self.size(), screen.availableGeometry())
+        )
+
     def set_spawner_position(self, position: QtCore.QPointF):
         """Set the position nodes are created at.
 
@@ -76,7 +116,8 @@ class PopupNodesPalette(QtWidgets.QDialog):
         palette = cls(spawn_position, parent=window)
         if spawn_position is not None:
             palette.set_spawner_position(QtCore.QPointF(spawn_position))
-        palette.move(window.geometry().center() - palette.rect().center())
+        center = window.geometry().center()
+        palette.move_within_screen(center - palette.rect().center(), anchor=center)
         palette.exec()
         return palette
 
@@ -105,6 +146,6 @@ class PopupNodesPalette(QtWidgets.QDialog):
             palette._nodes_palette_view.nodes_spawner.nodeSpawned.connect(
                 on_node_spawned
             )
-        palette.move(global_pos)
+        palette.move_within_screen(global_pos)
         palette.exec()
         return palette
