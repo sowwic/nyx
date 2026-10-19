@@ -1,23 +1,42 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
+import NyxEditor.Common
 
-ColumnLayout {
+ComponentValue {
     id: commentItemRoot
-    property var component
-    spacing: 4
 
-    RowLayout {
-        Layout.fillWidth: true
+    // Pure text: displayed and edited as typed.
+    evaluateOnFinish: false
 
-        TextArea {
-            Layout.fillWidth: true
-            text: commentItemRoot.component.displayValue
-            onEditingFinished: {
-                if (text === commentItemRoot.component.displayValue)
-                    return;
-                root.componentsController.setComponentValue(commentItemRoot.component.index, text, true);
+    displayDelegate: TextArea {
+        readOnly: true
+        wrapMode: TextEdit.Wrap
+        opacity: commentItemRoot.editable ? 1.0 : 0.6
+        text: commentItemRoot.maskedText
+
+        TapHandler {
+            onDoubleTapped: commentItemRoot.requestEdit()
+        }
+    }
+
+    editDelegate: TextArea {
+        wrapMode: TextEdit.Wrap
+
+        // Set once, see the Value component.
+        Component.onCompleted: {
+            text = commentItemRoot.textOf(ComponentValue.Raw);
+            forceActiveFocus();
+            selectAll();
+        }
+        onActiveFocusChanged: if (!activeFocus && commentItemRoot.editing)
+            commentItemRoot.finishEdit(text)
+        // Enter inserts a new line, so Ctrl+Enter finishes the edit.
+        Keys.onPressed: event => {
+            if (commentItemRoot.editing && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && (event.modifiers & Qt.ControlModifier)) {
+                commentItemRoot.finishEdit(text);
+                event.accepted = true;
             }
         }
+        Keys.onEscapePressed: commentItemRoot.cancelEdit()
     }
 }
