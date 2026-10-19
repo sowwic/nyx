@@ -63,12 +63,18 @@ class LinkDragContext:
         )
 
 
-class GraphicsLinkDragHandler:
+class GraphicsLinkDragHandler(QtCore.QObject):
     """Drags a link out of a socket of a plug and turns the drop into a command.
 
     Owns the state of the drag. The stage only forwards the calls of the plugs
     to it, and it adds and removes its preview item in the stage.
+
+    `drag_changed` is emitted when the drag ends before a link is created, so
+    whoever listens is already back to normal when the command is pushed.
     """
+
+    drag_changed = QtCore.Signal(bool)
+    """Emitted with True when a drag starts and False when it ends."""
 
     def __init__(self, gr_stage: GraphicsStage):
         """Initialize GraphicsLinkDragHandler.
@@ -76,6 +82,7 @@ class GraphicsLinkDragHandler:
         Args:
             gr_stage (GraphicsStage): stage the links are dragged in.
         """
+        super().__init__(gr_stage)
         self._gr_stage = gr_stage
         self._context: LinkDragContext | None = None
 
@@ -124,6 +131,7 @@ class GraphicsLinkDragHandler:
         context.preview.set_floating_pos(anchor)
         self._gr_stage.addItem(context.preview)
         self._context = context
+        self.drag_changed.emit(True)
 
     def update(self, scene_pos: QtCore.QPointF):
         """Move the open end of the dragged link.
@@ -143,6 +151,7 @@ class GraphicsLinkDragHandler:
             context.picked_link.setVisible(True)
         if context.preview.scene() is self._gr_stage:
             self._gr_stage.removeItem(context.preview)
+        self.drag_changed.emit(False)
 
     def finish(self, scene_pos: QtCore.QPointF):
         """Finish dragging: link to the socket under the cursor or open the palette.

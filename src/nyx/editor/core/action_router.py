@@ -16,6 +16,7 @@ from collections.abc import Callable
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from nyx.editor.core.action_condition import ActionCondition
 from nyx.editor.core.action_registry import ACTION_REGISTRY, ActionRegistry
 
 LOGGER = logging.getLogger("ActionRouter")
@@ -30,14 +31,16 @@ class _Binding:
         action_id: action the handler is bound to
         handler: weak reference to the handler callable
         scope: weak reference to the widget the handler is limited to
-        enabled_fn: extra condition for enabling the action
+        condition: extra condition for enabling the action
+        condition_connection: connection to the `changed` signal of the condition
     """
 
     handle: int
     action_id: str
     handler: Callable[[], Callable[..., typing.Any] | None]
     scope: weakref.ref[QtWidgets.QWidget] | None
-    enabled_fn: Callable[[], bool] | None
+    condition: Callable[[], bool] | None
+    condition_connection: QtCore.QMetaObject.Connection | None = None
 
     def is_alive(self) -> bool:
         """Check whether the handler and the scope widget still exist.
@@ -95,6 +98,9 @@ class ActionRouter(QtCore.QObject):
 
     def clear(self) -> None:
         """Remove all handler bindings."""
+        for bindings in self._bindings.values():
+            for binding in bindings:
+                self._release(binding)
         self._bindings.clear()
 
     # ---- Handlers ----
@@ -103,7 +109,7 @@ class ActionRouter(QtCore.QObject):
         action_id: str,
         handler: Callable[..., typing.Any],
         scope: QtWidgets.QWidget | None = None,
-        enabled_fn: Callable[[], bool] | None = None,
+        condition: Callable[[], bool] | ActionCondition | None = None,
     ) -> int:
         """Register `handler` for an action.
 
@@ -113,8 +119,10 @@ class ActionRouter(QtCore.QObject):
                 are held weakly
             scope: handler is used while the focus is inside this widget (or its
                 descendants). None registers a global fallback handler.
-            enabled_fn: extra condition for the action to be enabled while this
-                handler is the active one; call `refresh_enabled` when it changes
+            condition: extra condition for the action to be enabled while this
+                handler is the active one. An `ActionCondition` refreshes the
+                action by itself when it changes, for a plain callable call
+                `refresh_enabled` when its answer changes.
 
         Returns:
             handle usable with `unregister_handler`
@@ -125,8 +133,12 @@ class ActionRouter(QtCore.QObject):
             action_id=action_id,
             handler=_weak_callable(handler),
             scope=weakref.ref(scope) if scope is not None else None,
-            enabled_fn=enabled_fn,
+            condition=condition,
         )
+        if isinstance(condition, ActionCondition):
+            binding.condition_connection = condition.changed.connect(
+                lambda action_id=action_id: self.refresh_enabled(action_id)
+            )
         self._bindings.setdefault(action_id, []).insert(0, binding)
         if scope is not None:
             scope.destroyed.connect(lambda *_: self._prune(action_id))
@@ -142,6 +154,9 @@ class ActionRouter(QtCore.QObject):
         for action_id, bindings in self._bindings.items():
             kept = [b for b in bindings if b.handle != handle]
             if len(kept) != len(bindings):
+                for binding in bindings:
+                    if binding.handle == handle:
+                        self._release(binding)
                 self._bindings[action_id] = kept
                 self.refresh_enabled(action_id)
                 return
@@ -204,7 +219,7 @@ class ActionRouter(QtCore.QObject):
                 continue
             binding = self.resolve_binding(current_id)
             enabled = binding is not None and (
-                binding.enabled_fn is None or bool(binding.enabled_fn())
+                binding.condition is None or bool(binding.condition())
             )
             action.setEnabled(enabled)
 
@@ -232,9 +247,23 @@ class ActionRouter(QtCore.QObject):
             return
         alive = [b for b in bindings if b.is_alive()]
         if len(alive) != len(bindings):
+            for binding in bindings:
+                if binding not in alive:
+                    self._release(binding)
             self._bindings[action_id] = alive
             if refresh:
                 self.refresh_enabled(action_id)
+
+    @staticmethod
+    def _release(binding: _Binding) -> None:
+        """Stop following the condition of a binding that is going away.
+
+        Args:
+            binding (_Binding): removed binding.
+        """
+        if binding.condition_connection is not None:
+            QtCore.QObject.disconnect(binding.condition_connection)
+            binding.condition_connection = None
 
     @staticmethod
     def _current_focus_widget() -> QtWidgets.QWidget | None:

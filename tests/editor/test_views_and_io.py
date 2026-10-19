@@ -795,7 +795,7 @@ def test_cutline_unlinks_crossed_links_in_one_undo_step(stage_editor, create_nod
         middle + QtCore.QPointF(0, -30),
         middle + QtCore.QPointF(0, 30),
     ]
-    assert view.cut_intersecting_edges()
+    assert view.cut_intersecting_links()
     assert [g.target_plug for g in gr_stage.gr_links()] == [_flow_plug(stage_editor, c)]
     assert stage.undo_stack.count() == 3
 
@@ -807,7 +807,7 @@ def test_cutline_missing_links_does_nothing(stage_editor, create_node):
     create_node(stage_editor.stage, "a", type_id=CoreNodes.ACTION)
     view = stage_editor.gr_view
     view.cutline.line_points = [QtCore.QPointF(0, 0), QtCore.QPointF(50, 50)]
-    assert not view.cut_intersecting_edges()
+    assert not view.cut_intersecting_links()
 
 
 def _three_nodes(stage_editor, create_node):
@@ -882,3 +882,97 @@ def test_moved_link_dropped_on_empty_space_replaced_by_spawned_node_link(
         == ["spawned"],
         timeout=2000,
     )
+
+
+def test_view_is_in_link_drag_mode_only_while_dragging(
+    stage_editor, create_node, give_focus, monkeypatch
+):
+    a = create_node(stage_editor.stage, "a", type_id=CoreNodes.ACTION)
+    view, gr_stage = stage_editor.gr_view, stage_editor.gr_stage
+    give_focus(view)
+    plug = _flow_plug(stage_editor, a)
+    palette_action = ACTION_REGISTRY.action(ActionId.SHOW_PALETTE)
+    create_action = ACTION_REGISTRY.action(ActionId.CREATE_NODE)
+    menus = []
+    monkeypatch.setattr(QtWidgets.QMenu, "exec_", lambda self, *a: menus.append(self))
+    assert view.is_idle and palette_action.isEnabled() and create_action.isEnabled()
+
+    gr_stage.begin_link_drag(plug, plug.Socket.OUTPUT)
+    assert view.interaction_mode is view.InteractionMode.LINK_DRAG
+    assert not palette_action.isEnabled()
+    assert not create_action.isEnabled()
+    view.show_context_menu(QtCore.QPoint(5, 5))
+    assert menus == []
+
+    gr_stage.finish_link_drag(plug.output_anchor())
+    assert view.is_idle
+    assert palette_action.isEnabled() and create_action.isEnabled()
+    view.show_context_menu(QtCore.QPoint(5, 5))
+    assert len(menus) == 1
+
+
+def test_cancelled_link_drag_returns_view_to_idle(stage_editor, create_node):
+    a = create_node(stage_editor.stage, "a", type_id=CoreNodes.ACTION)
+    plug = _flow_plug(stage_editor, a)
+    stage_editor.gr_stage.begin_link_drag(plug, plug.Socket.OUTPUT)
+    stage_editor.gr_stage.cancel_link_drag()
+    assert stage_editor.gr_view.is_idle
+
+
+def test_undo_and_redo_are_disabled_while_not_idle(
+    main_window, stage_editor, create_node
+):
+    a = create_node(stage_editor.stage, "a", type_id=CoreNodes.ACTION)
+    undo_actions = list(ACTION_REGISTRY.iter_live_actions(ActionId.UNDO))
+    assert undo_actions and all(action.isEnabled() for action in undo_actions)
+    view, gr_stage = stage_editor.gr_view, stage_editor.gr_stage
+    plug = _flow_plug(stage_editor, a)
+
+    gr_stage.begin_link_drag(plug, plug.Socket.OUTPUT)
+    assert not any(action.isEnabled() for action in undo_actions)
+    gr_stage.cancel_link_drag()
+    assert all(action.isEnabled() for action in undo_actions)
+    assert main_window.undo_group.activeStack() is stage_editor.stage.undo_stack
+
+    view.set_interaction_mode(view.InteractionMode.LINK_CUT)
+    assert not any(action.isEnabled() for action in undo_actions)
+    view.set_interaction_mode(view.InteractionMode.NOOP)
+    assert all(action.isEnabled() for action in undo_actions)
+
+
+def test_dropped_link_reaches_undo_group_listeners(
+    main_window, stage_editor, create_node
+):
+    stage = stage_editor.stage
+    a = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    b = create_node(stage, "b", type_id=CoreNodes.ACTION)
+    stage.push_command(
+        commands.MoveNodeCommand(
+            stage=stage, nodes=[b], new_positions=[QtCore.QPointF(400, 0)]
+        )
+    )
+    plug_a, plug_b = _flow_plug(stage_editor, a), _flow_plug(stage_editor, b)
+    indexes = []
+    main_window.undo_group.indexChanged.connect(indexes.append)
+
+    stage_editor.gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
+    stage_editor.gr_stage.finish_link_drag(plug_b.input_anchor())
+    # The group also reports the stack leaving and returning, the link comes last.
+    assert indexes[-1] == stage.undo_stack.index()
+    assert stage.undo_stack.index() == stage.undo_stack.count()
+
+
+def test_view_state_reflects_mode_and_selection(stage_editor, create_node):
+    a = create_node(stage_editor.stage, "a")
+    view = stage_editor.gr_view
+    context = view.get_current_state()
+    assert (context.is_idle, context.has_selection) == (True, False)
+    assert not context.can_edit_selection
+
+    select(stage_editor, a)
+    assert view.get_current_state().can_edit_selection
+
+    view.set_interaction_mode(view.InteractionMode.LINK_CUT)
+    context = view.get_current_state()
+    assert (context.is_idle, context.has_selection) == (False, True)
+    assert not context.can_edit_selection

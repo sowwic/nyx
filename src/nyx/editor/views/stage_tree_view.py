@@ -72,7 +72,7 @@ class StageTreeView(QtWidgets.QTreeView):
         register(
             ActionId.FOCUS_SELECTED,
             self.focus_on_selected_nodes,
-            enabled_fn=lambda: bool(self.selected_nodes()),
+            condition=lambda: bool(self.selected_nodes()),
         )
 
     def create_connections(self):

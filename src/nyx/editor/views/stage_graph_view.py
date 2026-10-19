@@ -1,3 +1,4 @@
+import dataclasses
 import enum
 import logging
 import functools
@@ -8,6 +9,7 @@ import typing
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
+from nyx.editor.core.action_condition import CallableCondition
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
@@ -24,6 +26,24 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass(frozen=True)
+class StageGraphViewState:
+    """Snapshot of the state of the view that decides what the user may do.
+
+    Attributes:
+        is_idle: no mouse interaction (link drag, link cut) is running.
+        has_selection: at least one node is selected.
+    """
+
+    is_idle: bool
+    has_selection: bool
+
+    @property
+    def can_edit_selection(self) -> bool:
+        """bool: the selected nodes can be copied, deleted, focused, ..."""
+        return self.is_idle and self.has_selection
+
+
 class StageGraphView(QtWidgets.QGraphicsView):
     """Graphics view of a stage scope with zoom, panning and node drops.
 
@@ -35,9 +55,10 @@ class StageGraphView(QtWidgets.QGraphicsView):
     # Signals
     item_drag_entered = QtCore.Signal(QtGui.QDragEnterEvent)
     item_dropped = QtCore.Signal(QtGui.QDropEvent)
+    state_changed = QtCore.Signal()
+    """Emitted when the interaction mode or the selection changed."""
 
     # Constants
-    EDGE_DRAG_START_THRESHOLD = 50
     HIGH_QUALITY_ZOOM = 4
     DEFAULT_ZOOM = 10  # zoom level at 100% scale
     FOCUS_MARGIN = 40  # scene units kept around nodes when fitting
@@ -46,14 +67,13 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """Mouse interaction modes of the view."""
 
         NOOP = enum.auto()
-        EDGE_DRAG = enum.auto()
-        EDGE_CUT = enum.auto()
+        LINK_DRAG = enum.auto()
+        LINK_CUT = enum.auto()
 
     def __init__(
         self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget | None = None
     ) -> None:
-        """Initialize StageGraphView.
-
+        """Initialize StageGraphView
         Args:
             graph_editor (StageGraphEditor): editor owning the view.
             parent (QtWidgets.QWidget | None): parent widget.
@@ -63,6 +83,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.graph_editor: StageGraphEditor = graph_editor
         self._interaction_mode = StageGraphView.InteractionMode.NOOP
+        self._undo_suspended = False
+        self._create_conditions()
         self.cutline = GraphCutLine()
         self.scene().addItem(self.cutline)
 
@@ -133,26 +155,67 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def create_actions(self):
         """Register handlers of the editing actions for this view."""
 
-        def has_selection():
-            """bool: at least one node is selected."""
-            return not self.gr_stage.is_gr_node_selection_empty()
-
         register = functools.partial(ACTION_ROUTER.register_handler, scope=self)
-        register(ActionId.CREATE_NODE, self.create_new_node)
-        register(ActionId.PASTE, self.paste_nodes_from_clipboard)
-        register(ActionId.COPY, self.copy_selected_nodes, enabled_fn=has_selection)
-        register(ActionId.CUT, self.cut_selected_nodes, enabled_fn=has_selection)
-        register(ActionId.DELETE, self.delete_selected, enabled_fn=has_selection)
-        register(ActionId.DELETE_NODE, self.delete_selected, enabled_fn=has_selection)
+        register(
+            ActionId.CREATE_NODE, self.create_new_node, condition=self.idle_condition
+        )
+        register(
+            ActionId.PASTE,
+            self.paste_nodes_from_clipboard,
+            condition=self.idle_condition,
+        )
+        register(
+            ActionId.COPY,
+            self.copy_selected_nodes,
+            condition=self.selection_editable_condition,
+        )
+        register(
+            ActionId.CUT,
+            self.cut_selected_nodes,
+            condition=self.selection_editable_condition,
+        )
+        register(
+            ActionId.DELETE,
+            self.delete_selected,
+            condition=self.selection_editable_condition,
+        )
+        register(
+            ActionId.DELETE_NODE,
+            self.delete_selected,
+            condition=self.selection_editable_condition,
+        )
         register(
             ActionId.COPY_NODE_PATH,
             self.copy_selected_node_path,
-            enabled_fn=has_selection,
+            condition=self.selection_editable_condition,
         )
         register(
             ActionId.FOCUS_SELECTED,
             self.focus_on_selected_nodes,
-            enabled_fn=has_selection,
+            condition=self.selection_editable_condition,
+        )
+
+    def _create_conditions(self):
+        """Create the conditions of the actions, following `state_changed`."""
+        self.idle_condition = CallableCondition(
+            lambda: self.get_current_state().is_idle,
+            self.state_changed,
+            description="no mouse interaction is running",
+        )
+        self.has_selection_condition = CallableCondition(
+            lambda: self.get_current_state().has_selection,
+            self.state_changed,
+            description="nodes are selected",
+        )
+        self.selection_editable_condition = (
+            self.idle_condition & self.has_selection_condition
+        )
+
+    def get_current_state(self) -> StageGraphViewState:
+        """StageGraphViewState: what the view currently allows."""
+        return StageGraphViewState(
+            is_idle=self.is_idle,
+            has_selection=not self.gr_stage.is_gr_node_selection_empty(),
         )
 
     def create_widgets(self):
@@ -166,6 +229,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def create_connections(self):
         """Connect signals."""
         self.customContextMenuRequested.connect(self.show_context_menu)
+        self.gr_stage.link_drag_changed.connect(self._on_link_drag_changed)
 
     def update_actions(self):
         """Refresh the enabled state of the actions."""
@@ -180,6 +244,11 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def is_dragging(self):
         """bool: view is being panned."""
         return not self.isInteractive()
+
+    @property
+    def is_idle(self) -> bool:
+        """bool: no mouse interaction (link drag, link cut) is running."""
+        return self._interaction_mode is StageGraphView.InteractionMode.NOOP
 
     @property
     def interaction_mode(self):
@@ -199,6 +268,47 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """
         self._interaction_mode = mode
         LOGGER.debug(f"Interaction mode: {mode}")
+        # Actions follow the mode through their conditions.
+        self.state_changed.emit()
+        self._set_undo_available(self.is_idle)
+
+    def _set_undo_available(self, available: bool):
+        """Turn undo and redo off while a mouse interaction is running.
+
+        The undo and redo actions follow the active stack of the undo group of the
+        main window, so the stack of the stage is taken out of the group.
+
+        Args:
+            available (bool): undo and redo can be used.
+        """
+        main_window = getattr(QtWidgets.QApplication.instance(), "main_window", None)
+        if main_window is None:
+            return
+        undo_group = main_window().undo_group
+        undo_stack = self.stage.undo_stack
+        if not available:
+            if undo_group.activeStack() is undo_stack:
+                undo_group.setActiveStack(None)
+                self._undo_suspended = True
+            return
+
+        if not self._undo_suspended:
+            return
+        self._undo_suspended = False
+        # Another stage may have been activated meanwhile, don't take it over.
+        if undo_group.activeStack() is None:
+            undo_group.setActiveStack(undo_stack)
+
+    def _on_link_drag_changed(self, is_dragging: bool):
+        """Follow link dragging done by the plugs of the scene.
+
+        Args:
+            is_dragging (bool): a link drag started (True) or ended (False).
+        """
+        if is_dragging:
+            self.set_interaction_mode(self.InteractionMode.LINK_DRAG)
+        elif self.interaction_mode is self.InteractionMode.LINK_DRAG:
+            self.set_interaction_mode(self.InteractionMode.NOOP)
 
     def get_center_position(self) -> QtCore.QPointF:
         """QtCore.QPointF: scene point at the center of the viewport."""
@@ -229,7 +339,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
         # Set actual scale
         if not clamped or not self.zoom_clamp:
             self.scale(zoom_factor, zoom_factor)
-            # self.update_edge_width()
             self.update_render_hints()
 
     @staticmethod
@@ -301,18 +410,10 @@ class StageGraphView(QtWidgets.QGraphicsView):
             event (QtGui.QMouseEvent): event.
         """
         scene_pos = self.mapToScene(event.pos())
-        # self.is_view_dragging = not self.isInteractive()
 
         try:
-            # if self.edge_mode == StageGraphView.EdgeMode.DRAG:
-            #     pos = scene_pos
-            #     pos.setX(pos.x() - 1.0)
-            #     # self.dragging.update_positions(pos.x(), pos.y())
-            pass
-
-            if self.interaction_mode is self.InteractionMode.EDGE_CUT and self.cutline:
+            if self.interaction_mode is self.InteractionMode.LINK_CUT and self.cutline:
                 self.cutline.add_point(scene_pos)
-
         except Exception:
             LOGGER.exception("mouseMoveEvent exception")
 
@@ -329,21 +430,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
         # Store click position for future use
         self.last_lmb_click_pos = self.mapToScene(event.pos())
 
-        # Handle socket click
-        # if isinstance(item, graphics_socket.QLGraphicsSocket):
-        #     if self.edge_mode == QLGraphicsView.EdgeMode.NOOP:
-        #         self.edge_mode = QLGraphicsView.EdgeMode.DRAG
-        #         self.dragging.start_edge_drag(item)
-        #         return
-
-        # if self.edge_mode == QLGraphicsView.EdgeMode.DRAG:
-        #     result = self.dragging.end_edge_drag(item)
-        #     if result:
-        #         return
-
         if not item:
             if event.modifiers() & QtCore.Qt.ControlModifier:
-                self.set_interaction_mode(self.InteractionMode.EDGE_CUT)
+                self.set_interaction_mode(self.InteractionMode.LINK_CUT)
                 fake_event = QtGui.QMouseEvent(
                     QtCore.QEvent.MouseButtonRelease,
                     event.localPos(),
@@ -368,18 +457,12 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QMouseEvent): event.
         """
-        # item = self.get_item_at_click(event)
         try:
-            # if self.edge_mode == QLGraphicsView.EdgeMode.DRAG:
-            #     if self.check_lmb_release_delta(event):
-            #         result = self.dragging.end_edge_drag(item)
-            #         if result:
-            #             return
-
-            if self.interaction_mode == self.InteractionMode.EDGE_CUT:
-                self.cut_intersecting_edges()
-                self.cutline.clear()
+            if self.interaction_mode == self.InteractionMode.LINK_CUT:
+                # Back to idle first: undo is off until then and the cut is a command.
                 self.set_interaction_mode(self.InteractionMode.NOOP)
+                self.cut_intersecting_links()
+                self.cutline.clear()
                 event.accept()
                 return
 
@@ -518,13 +601,16 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             point (QtCore.QPoint): position in view coordinates.
         """
+        state = self.get_current_state()
+        if not state.is_idle:
+            return
         self.update_actions()
         menu = context_menus.build_nodes_context_menu(
-            self, has_selection=not self.gr_stage.is_gr_node_selection_empty()
+            self, has_selection=state.has_selection
         )
         menu.exec_(self.mapToGlobal(point))
 
-    def cut_intersecting_edges(self) -> bool:
+    def cut_intersecting_links(self) -> bool:
         """Unlink the links crossed by the cutline.
 
         Returns:

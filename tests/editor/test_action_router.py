@@ -149,9 +149,9 @@ def test_no_handler_disables_action(registry, router):
     assert action.isEnabled()
 
 
-def test_enabled_fn_controls_enabled_state(registry, router):
+def test_condition_controls_enabled_state(registry, router):
     state = {"on": False}
-    router.register_handler(ActionId.CUT, lambda: None, enabled_fn=lambda: state["on"])
+    router.register_handler(ActionId.CUT, lambda: None, condition=lambda: state["on"])
     action = registry.action(ActionId.CUT)
     assert not action.isEnabled()
     state["on"] = True
@@ -199,8 +199,8 @@ def test_action_created_after_handler_registered_is_enabled(registry, router):
     assert registry.action(ActionId.COPY).isEnabled()
 
 
-def test_enabled_fn_respected_for_late_created_action(registry, router):
-    router.register_handler(ActionId.COPY, lambda: None, enabled_fn=lambda: False)
+def test_condition_respected_for_late_created_action(registry, router):
+    router.register_handler(ActionId.COPY, lambda: None, condition=lambda: False)
     assert not registry.action(ActionId.COPY).isEnabled()
 
 
@@ -255,3 +255,65 @@ def test_main_window_show_nodes_palette_delegates_to_current_graph():
 
     window = mock.Mock(current_stage_graph=None)
     NyxEditorMainWindow.show_nodes_palette(window)  # must not raise
+
+
+def test_action_condition_changed_refreshes_action(registry, router):
+    from nyx.editor.core.action_condition import CallableCondition
+
+    state = {"on": False}
+    condition = CallableCondition(lambda: state["on"])
+    router.register_handler(ActionId.CUT, lambda: None, condition=condition)
+    action = registry.action(ActionId.CUT)
+    assert not action.isEnabled()
+
+    state["on"] = True
+    condition.notify()  # no manual refresh
+    assert action.isEnabled()
+
+
+def test_unregistered_condition_no_longer_refreshes_action(registry, router):
+    from nyx.editor.core.action_condition import CallableCondition
+
+    state = {"on": False}
+    condition = CallableCondition(lambda: state["on"])
+    handle = router.register_handler(ActionId.CUT, lambda: None, condition=condition)
+    router.unregister_handler(handle)
+    router.register_handler(ActionId.CUT, lambda: None)
+    action = registry.action(ActionId.CUT)
+    assert action.isEnabled()
+
+    state["on"] = False
+    with mock.patch.object(router, "refresh_enabled") as refresh:
+        condition.notify()
+    refresh.assert_not_called()
+
+
+def test_conditions_combine_and_relay_changes(qtbot):
+    from nyx.editor.core.action_condition import CallableCondition
+
+    flags = {"a": True, "b": True}
+    a = CallableCondition(lambda: flags["a"], description="a")
+    b = CallableCondition(lambda: flags["b"], description="b")
+    both, either, not_a = a & b, a | b, ~a
+    assert both() and either() and not not_a()
+    assert both.description == "(a and b)"
+    assert not_a.description == "not a"
+
+    flags["a"] = False
+    assert not both() and either() and not_a()
+    flags["b"] = False
+    assert not either()
+
+    with qtbot.waitSignal(both.changed, timeout=500):
+        a.notify()
+    with qtbot.waitSignal(not_a.changed, timeout=500):
+        a.notify()
+
+
+def test_plain_callable_combines_with_condition():
+    from nyx.editor.core.action_condition import CallableCondition
+
+    condition = CallableCondition(lambda: True) & (lambda: False)
+    assert not condition()
+    assert ((lambda: True) & CallableCondition(lambda: True))()
+    assert not ((lambda: False) | CallableCondition(lambda: False))()

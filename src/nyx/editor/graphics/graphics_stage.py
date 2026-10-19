@@ -36,6 +36,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     """`GraphicsStage` is a `QGraphicsScene` that manages
     the visual representation of nodes and edges in the graph editor."""
 
+    link_drag_changed = QtCore.Signal(bool)
+    """Emitted with True when a link drag starts and False when it ends."""
+
     def __init__(
         self, graph_editor: StageGraphEditor, parent: QtCore.QObject | None = None
     ):
@@ -51,6 +54,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self._gr_nodes: dict[UUID, GraphicsNode] = {}
         self._gr_links: dict[UUID, GraphicsLink] = {}
         self._link_drag_handler = GraphicsLinkDragHandler(self)
+        self._link_drag_handler.drag_changed.connect(self.link_drag_changed)
         self._scope_path: pathlib.PurePosixPath | None = None
 
         # Settings
