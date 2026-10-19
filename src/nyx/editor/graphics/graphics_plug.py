@@ -1,9 +1,11 @@
 import enum
-import math
 import typing
 from uuid import UUID
 
 from PySide6 import QtCore, QtGui, QtWidgets
+
+from nyx.editor.graphics.graphics_plug_shape import PlugShape, plug_shape_for
+from nyx.static.enums import GraphicsPlugShape
 
 if typing.TYPE_CHECKING:
     from nyx.core.node_component import NodeComponent
@@ -25,12 +27,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         OUTPUT = enum.auto()
 
     ROW_HEIGHT = 20.0
-    SOCKET_RADIUS = 5.0
-    SOCKET_HIT_RADIUS = 9.0
-    SOCKET_COLOR = QtGui.QColor("#FFA637")
-    SOCKET_HOLE_COLOR = QtGui.QColor("black")
-    SOCKET_HOLE_RADIUS = 3.5
-    SOCKET_OUTLINE = QtGui.QColor("#7F000000")
+    SOCKET_HIT_RADIUS = PlugShape.HIT_RADIUS
     LABEL_COLOR = QtGui.QColor("#CCCCCC")
     LABEL_FONT = QtGui.QFont("Zed Mono", 10)
 
@@ -50,6 +47,10 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._produces_output = False
         self._input_linked = False
         self._output_linked = False
+        self._shape_kind: GraphicsPlugShape | None = None
+        self._shape: PlugShape = plug_shape_for(GraphicsPlugShape.CIRCLE)
+        self._color = QtGui.QColor()
+        self._link_width_multiplier = 1.0
         self._links: set[GraphicsLink] = set()
         self.refresh()
 
@@ -67,6 +68,21 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     def gr_node(self) -> GraphicsNode:
         """GraphicsNode: node owning the plug."""
         return self.parentItem()
+
+    @property
+    def shape(self) -> PlugShape:
+        """PlugShape: drawing of the sockets, chosen by the component."""
+        return self._shape
+
+    @property
+    def color(self) -> QtGui.QColor:
+        """QtGui.QColor: color of the sockets, chosen by the component."""
+        return QtGui.QColor(self._color)
+
+    @property
+    def link_width_multiplier(self) -> float:
+        """float: how thick links of the plug are drawn, chosen by the component."""
+        return self._link_width_multiplier
 
     @property
     def links(self) -> list[GraphicsLink]:
@@ -93,6 +109,9 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             self._component.produces_output,
             bool(self._component.input_links_uuids),
             bool(self._component.output_links_uuids),
+            type(self._component).get_plug_shape(),
+            self._component.get_plug_color(),
+            type(self._component).get_link_width_multiplier(),
         )
         if state == (
             self._label,
@@ -100,6 +119,9 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             self._produces_output,
             self._input_linked,
             self._output_linked,
+            self._shape_kind,
+            self._color,
+            self._link_width_multiplier,
         ):
             return
         (
@@ -108,7 +130,13 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             self._produces_output,
             self._input_linked,
             self._output_linked,
+            self._shape_kind,
+            self._color,
+            self._link_width_multiplier,
         ) = state
+        self._shape = plug_shape_for(self._shape_kind)
+        for link in self._links:
+            link.update_style()
         self.update()
 
     def set_width(self, width: float):
@@ -162,13 +190,12 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         """
         local = self.mapFromScene(scene_pos)
         center_y = self.ROW_HEIGHT / 2
-        if self._accepts_input and (
-            math.hypot(local.x(), local.y() - center_y) <= self.SOCKET_HIT_RADIUS
+        if self._accepts_input and self._shape.contains(
+            QtCore.QPointF(local.x(), local.y() - center_y)
         ):
             return self.Socket.INPUT
-        if self._produces_output and (
-            math.hypot(local.x() - self._width, local.y() - center_y)
-            <= self.SOCKET_HIT_RADIUS
+        if self._produces_output and self._shape.contains(
+            QtCore.QPointF(local.x() - self._width, local.y() - center_y)
         ):
             return self.Socket.OUTPUT
         return None
@@ -241,7 +268,6 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         """
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         center_y = self.ROW_HEIGHT / 2
-        r = self.SOCKET_RADIUS
         # (center, is linked) per visible socket
         sockets = []
         if self._accepts_input:
@@ -249,19 +275,12 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         if self._produces_output:
             sockets.append((QtCore.QPointF(self._width, center_y), self._output_linked))
 
-        hole = self.SOCKET_HOLE_RADIUS
         for center, linked in sockets:
-            painter.setPen(QtGui.QPen(self.SOCKET_OUTLINE, 1.0))
-            painter.setBrush(self.SOCKET_COLOR)
-            painter.drawEllipse(center, r, r)
-            if not linked:
-                painter.setPen(QtCore.Qt.PenStyle.NoPen)
-                painter.setBrush(self.SOCKET_HOLE_COLOR)
-                painter.drawEllipse(center, hole, hole)
+            self._shape.paint(painter, center, self._color, linked)
 
         painter.setFont(self.LABEL_FONT)
         painter.setPen(self.LABEL_COLOR)
-        margin = r * 2 + 2
+        margin = self._shape.RADIUS * 2 + 2
         text_rect = QtCore.QRectF(margin, 0.0, self._width - 2 * margin, self.ROW_HEIGHT)
         align = (
             QtCore.Qt.AlignmentFlag.AlignRight

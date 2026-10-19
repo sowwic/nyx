@@ -110,3 +110,14 @@ class EditorUIObject(enum.StrEnum):
     LOG_OUTPUT_DOCK = "log_output_dock"
     TOOLBAR_DOCK = "toolbar_dock"
     INSPECTOR_DOCK = "inspector_dock"
+
+
+class GraphicsPlugShape(enum.IntEnum):
+    CIRCLE = 0
+    TRIANGLE = enum.auto()
+
+
+class DatatypeColor(enum.StrEnum):
+    BOOL = "#FF0000"
+    STRING = "#FFA637"
+    FLOW = "#FFFFFF"

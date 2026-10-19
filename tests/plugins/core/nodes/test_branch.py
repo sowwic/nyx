@@ -38,16 +38,16 @@ def test_execute_activates_correct_flow_out():
     assert branch_node is not None
 
     # True case
-    branch_node["value"].push_value(True)
+    branch_node["condition"].push_value(True)
     branch_node.execution_hook()
 
-    assert branch_node["flow_in"].is_active is True
-    assert branch_node["flow_out_true"].is_active is True
-    assert branch_node["flow_out_false"].is_active is False
+    assert branch_node["flow"].is_active is True
+    assert branch_node["true"].is_active is True
+    assert branch_node["false"].is_active is False
     # Switch to false
-    branch_node["value"].push_value(False)
+    branch_node["condition"].push_value(False)
     branch_node.execution_hook()
 
-    assert branch_node["flow_in"].is_active is True
-    assert branch_node["flow_out_true"].is_active is False
-    assert branch_node["flow_out_false"].is_active is True
+    assert branch_node["flow"].is_active is True
+    assert branch_node["true"].is_active is False
+    assert branch_node["false"].is_active is True

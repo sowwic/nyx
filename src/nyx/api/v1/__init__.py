@@ -19,6 +19,8 @@ from nyx.static.enums import (
     RestoreUuidOption,
     NodeComponentFlag,
     NodeComponentValueMask,
+    GraphicsPlugShape,
+    DatatypeColor,
 )
 from nyx.static import vars as static_vars
 from nyx.static import paths as static_paths
@@ -36,6 +38,8 @@ __all__ = [
     "NodeComponentValueMask",
     "NodeSerializationContext",
     "NodeDeserializationContext",
+    "GraphicsPlugShape",
+    "DatatypeColor",
     "NyxPluginManager",
     "NyxPlugin",
     "CoreNodes",

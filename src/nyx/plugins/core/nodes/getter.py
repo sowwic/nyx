@@ -1,3 +1,4 @@
+from PySide6 import QtGui
 from nyx.api.v1 import (
     Node,
     NodeComponent,
@@ -85,9 +86,21 @@ class GetterNode(Node):
         # Replace pull value to pull path from inputs
         self.value_cpnt.pull_value = self.get_pull_value_from_path
         self.value_cpnt.get_display_value = self.get_pulled_display_value
+        self.value_cpnt.get_plug_color = self.get_pulled_plug_color
 
         # The value is the one of the component the path points at: when the path
         # changes, views have to ask for it again.
         self.components_model.add_dependency(
             dependent=self.value_cpnt, on=self.in_component_path
+        )
+
+    def get_pulled_plug_color(self):
+        try:
+            value_type = type(self.get_pull_value_from_path())
+        except Exception:
+            value_type = type(object)
+        return QtGui.QColor(
+            self.value_cpnt.VALUE_TYPE_COLOR_MAP.get(
+                value_type, NodeComponent.DEFAULT_PLUG_COLOR
+            )
         )

@@ -1,4 +1,10 @@
-from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentFlag
+from PySide6 import QtGui
+from nyx.api.v1 import (
+    NodeComponent,
+    CoreNodeComponents,
+    NodeComponentFlag,
+    DatatypeColor,
+)
 
 
 class CommentComponent(NodeComponent):
@@ -41,3 +47,7 @@ class CommentComponent(NodeComponent):
     def get_default_expanded_state(cls) -> bool:
         """bool: comments start expanded."""
         return True
+
+    def get_plug_color(self) -> QtGui.QColor:
+        """QtGui.QColor: flow plugs are white."""
+        return QtGui.QColor(DatatypeColor.STRING)
