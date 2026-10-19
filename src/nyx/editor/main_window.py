@@ -299,6 +299,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.mdi_area.subWindowActivated.connect(self.update_title)
         self.undo_group.indexChanged.connect(self.update_title)
         self.undo_group.indexChanged.connect(self.inspector.update_data)
+        self.inspector.setEnabled(self.current_mdi_window is not None)
 
     # Events
     def showEvent(self, show_event: QtGui.QShowEvent) -> None:
@@ -538,6 +539,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             mdi_window (QtWidgets.QMdiSubWindow | None): activated window, None if there
                 is none.
         """
+        self.inspector.setEnabled(mdi_window is not None)
         if mdi_window is None:
             self.stage_tree_view.set_stage(None)
             self.undo_group.setActiveStack(None)
