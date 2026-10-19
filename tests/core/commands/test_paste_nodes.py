@@ -206,9 +206,10 @@ def test_pasting_with_flat_links():
     assert len(action2["flow"].input_links) == 1
     assert len(action3["flow"].input_links) == 1
 
-    assert action1["flow"].is_linked_to(pasted_action["flow"], as_source=True)
-    assert len(pasted_action["flow"].links_uuids) == 1
-    assert len(stage.collect_links()) == 3
+    # The flow output of action1 is taken: the paste doesn't steal it.
+    assert not action1["flow"].is_linked_to(pasted_action["flow"], as_source=True)
+    assert len(pasted_action["flow"].links_uuids) == 0
+    assert len(stage.collect_links()) == 2
 
     # Undo paste
     stage.undo_stack.undo()
@@ -228,9 +229,10 @@ def test_pasting_with_flat_links():
     assert len(action2["flow"].input_links) == 1
     assert len(action3["flow"].input_links) == 1
 
-    assert action1["flow"].is_linked_to(pasted_action["flow"], as_source=True)
-    assert len(pasted_action["flow"].links_uuids) == 1
-    assert len(stage.collect_links()) == 3
+    # The flow output of action1 is taken: the paste doesn't steal it.
+    assert not action1["flow"].is_linked_to(pasted_action["flow"], as_source=True)
+    assert len(pasted_action["flow"].links_uuids) == 0
+    assert len(stage.collect_links()) == 2
 
 
 def test_paste_into_own_child():

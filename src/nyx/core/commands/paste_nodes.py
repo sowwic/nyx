@@ -203,6 +203,11 @@ class PasteNodesCommand(NyxCommand):
             if source is None or target is None:
                 continue
 
+            # A paste never steals the only output link of a component.
+            if first_run and source.single_output and source.output_links:
+                LOGGER.warning(f"Skipping paste link {source} -> {target}")
+                continue
+
             # Built fresh each redo, so it never holds stale component objects
             command = LinkNodeComponentsCommand(
                 stage=self.stage, source=source, target=target
@@ -211,7 +216,7 @@ class PasteNodesCommand(NyxCommand):
                 try:
                     command.validate()
                 except NyxCommandValidationError:
-                    LOGGER.warning("Skipping paste link %s -> %s", source, target)
+                    LOGGER.warning(f"Skipping paste link {source} -> {target}")
                     continue
             command.redo()
             self._active_link_commands.append(command)

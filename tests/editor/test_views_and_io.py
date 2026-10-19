@@ -783,7 +783,7 @@ def test_cutline_unlinks_crossed_links_in_one_undo_step(stage_editor, create_nod
     )
     stage.undo_stack.clear()
     _link_flows(stage, a, b)
-    _link_flows(stage, a, c)
+    _link_flows(stage, b, c)
     assert len(gr_stage.gr_links()) == 2
 
     # Line crossing only the curve between a and b
@@ -976,3 +976,54 @@ def test_view_state_reflects_mode_and_selection(stage_editor, create_node):
     context = view.get_current_state()
     assert (context.is_idle, context.has_selection) == (False, True)
     assert not context.can_edit_selection
+
+
+def test_dragging_single_output_socket_picks_up_its_link(stage_editor, create_node):
+    a, b, c = _three_nodes(stage_editor, create_node)
+    stage, gr_stage = stage_editor.stage, stage_editor.gr_stage
+    _link_flows(stage, a, b)
+    plug_a, plug_b, plug_c = (_flow_plug(stage_editor, n) for n in (a, b, c))
+    (old_link,) = gr_stage.gr_links()
+
+    gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
+    assert not old_link.isVisible()
+    assert gr_stage.link_drag_handler.preview.target_plug is plug_b
+
+    # Dropped on a node body: cancelled, old link is back
+    gr_stage.finish_link_drag(gr_stage.get_gr_node(c).mapToScene(50, 90))
+    assert old_link.isVisible()
+    assert [g.source_plug for g in gr_stage.gr_links()] == [plug_a]
+
+
+def test_single_output_link_dropped_on_other_output_moves_in_one_undo_step(
+    stage_editor, create_node
+):
+    a, b, c = _three_nodes(stage_editor, create_node)
+    stage, gr_stage = stage_editor.stage, stage_editor.gr_stage
+    _link_flows(stage, a, b)
+    plug_a, plug_b, plug_c = (_flow_plug(stage_editor, n) for n in (a, b, c))
+    count = stage.undo_stack.count()
+
+    gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
+    gr_stage.finish_link_drag(plug_c.output_anchor())
+    (moved,) = gr_stage.gr_links()
+    assert (moved.source_plug, moved.target_plug) == (plug_c, plug_b)
+    assert stage.undo_stack.count() == count + 1
+
+    stage.undo_stack.undo()
+    (restored,) = gr_stage.gr_links()
+    assert (restored.source_plug, restored.target_plug) == (plug_a, plug_b)
+
+
+def test_dragging_to_a_single_output_source_replaces_its_link(stage_editor, create_node):
+    a, b, c = _three_nodes(stage_editor, create_node)
+    stage, gr_stage = stage_editor.stage, stage_editor.gr_stage
+    _link_flows(stage, a, b)
+    plug_a, plug_b, plug_c = (_flow_plug(stage_editor, n) for n in (a, b, c))
+
+    # Output of a is taken by the link to b: a new one from the input of c replaces it
+    gr_stage.begin_link_drag(plug_c, plug_c.Socket.INPUT)
+    gr_stage.finish_link_drag(plug_a.output_anchor())
+    (replacing,) = gr_stage.gr_links()
+    assert (replacing.source_plug, replacing.target_plug) == (plug_a, plug_c)
+    assert len(a["flow"].output_links) == 1

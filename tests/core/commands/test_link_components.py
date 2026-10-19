@@ -103,3 +103,50 @@ def test_linking_from_not_readable_component_raises_link_error():
         exceptions.NodeComponentLinkError, match="Not readable component"
     ):
         make_link(stage=stage, source=node1["test_cpnt"], target=node2["message"])
+
+
+def test_flow_component_allows_a_single_output_link():
+    stage = Stage()
+    node1, node2, node3 = (make_node(stage, CoreNodes.ACTION) for _ in range(3))
+    assert node1["flow"].single_output
+
+    stage.link_components(node1["flow"], node2["flow"])
+    with pytest.raises(exceptions.NodeComponentLinkError, match="single output"):
+        stage.link_components(node1["flow"], node3["flow"])
+    assert len(node1["flow"].output_links) == 1
+
+
+def test_value_component_allows_many_output_links():
+    stage = Stage()
+    node1 = make_node(stage, CoreNodes.ACTION)
+    node2, node3 = make_node(stage, CoreNodes.LOG), make_node(stage, CoreNodes.LOG)
+    add = commands.AddNodeComponentCommand(
+        node=node1, type_id=CoreNodeComponents.VALUE, name="out"
+    )
+    stage.push_command(add)
+    out = add.result_component
+    out.produces_output = True
+    assert not out.single_output
+
+    stage.link_components(out, node2["message"])
+    stage.link_components(out, node3["message"])
+    assert len(out.output_links) == 2
+
+
+def test_linking_from_a_single_output_component_replaces_its_link_in_one_undo_step():
+    stage = Stage()
+    node1, node2, node3 = (make_node(stage, CoreNodes.ACTION) for _ in range(3))
+    first = make_link(stage, node1["flow"], node2["flow"])
+    second = make_link(stage, node1["flow"], node3["flow"])
+
+    assert_link_state(stage, first, node1, node2, linked=False)
+    assert_link_state(stage, second, node1, node3, linked=True)
+    assert [link.target for link in node1["flow"].output_links] == [node3["flow"].uuid]
+
+    stage.undo_stack.undo()
+    assert_link_state(stage, first, node1, node2, linked=True)
+    assert_link_state(stage, second, node1, node3, linked=False)
+
+    stage.undo_stack.redo()
+    assert_link_state(stage, first, node1, node2, linked=False)
+    assert_link_state(stage, second, node1, node3, linked=True)

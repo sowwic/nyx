@@ -44,8 +44,13 @@ class FlowComponent(NodeComponent):
 
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
-        """NodeComponentFlag: static, readable and writable."""
-        return NodeComponentFlag.STATIC
+        """NodeComponentFlag: static, with a single output link."""
+        return NodeComponentFlag.STATIC | NodeComponentFlag.SINGLE_OUTPUT
+
+    @classmethod
+    def get_type_enforced_flags(cls) -> NodeComponentFlag:
+        """NodeComponentFlag: the single output link is a rule of the type."""
+        return NodeComponentFlag.SINGLE_OUTPUT
 
     def get_plug_color(self) -> QtGui.QColor:
         """QtGui.QColor: flow plugs are white."""

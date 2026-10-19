@@ -308,6 +308,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         )
 
     @property
+    def single_output(self) -> bool:
+        """bool: component can be the source of one link at most."""
+        return NodeComponentFlag.SINGLE_OUTPUT in self.component_flags
+
+    @property
     def is_editable(self) -> bool:
         """bool: value can be edited in the UI."""
         return NodeComponentFlag.EDITABLE in self.component_flags
@@ -632,7 +637,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             value=data.get("default_value")
         )
         component.is_active = data["is_active"]
-        component.component_flags = NodeComponentFlag(data["flags"])
+        component.component_flags = (
+            NodeComponentFlag(data["flags"]) | component.get_type_enforced_flags()
+        )
 
         return component
 
@@ -719,6 +726,15 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
         """NodeComponentFlag: flags set on new components of the type."""
+        return NodeComponentFlag.NONE
+
+    @classmethod
+    def get_type_enforced_flags(cls) -> NodeComponentFlag:
+        """NodeComponentFlag: flags every component of the type has.
+
+        Unlike the default flags these are also added when a component is
+        deserialized, so files saved before a rule existed follow it too.
+        """
         return NodeComponentFlag.NONE
 
     @classmethod
