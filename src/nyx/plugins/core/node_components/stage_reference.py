@@ -60,7 +60,7 @@ class StageReferenceComponent(NodeComponent):
     @classmethod
     def get_type_icon(cls) -> str:
         """str: resource path of the type icon."""
-        return ":/core/icons/value_cpnt"
+        return ":/icons/stage_reference"
 
     @classmethod
     def get_tags(cls) -> set[str]:
