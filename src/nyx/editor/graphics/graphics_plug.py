@@ -21,7 +21,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     SOCKET_LINKED_COLOR = QtGui.QColor("#FFD08A")
     SOCKET_OUTLINE = QtGui.QColor("#7F000000")
     LABEL_COLOR = QtGui.QColor("#CCCCCC")
-    LABEL_FONT = QtGui.QFont("Zed Mono", 8)
+    LABEL_FONT = QtGui.QFont("Zed Mono", 10)
 
     def __init__(self, component: NodeComponent, gr_node: GraphicsNode):
         """Initialize GraphicsPlug.
