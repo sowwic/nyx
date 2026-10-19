@@ -147,6 +147,7 @@ DraggableDelegate {
                     ToolButton {
                         id: expandCollapseToggleButton
                         Layout.alignment: Qt.AlignVCenter
+                        flat: true
                         text: itemRoot.showExpanded ? "\u25BE" : "\u25B8"
                         onClicked: itemRoot.toggleExpanded()
                     }
@@ -272,7 +273,7 @@ DraggableDelegate {
 
                 Layout.fillWidth: true
 
-                visible: (itemRoot.model.readable || itemRoot.model.writable) && itemRoot.isExpanded
+                visible: !!(itemRoot.model.readable || itemRoot.model.writable) && itemRoot.showExpanded
                 titleText: "Links"
                 isExpanded: itemRoot.model.linksExpanded
 
