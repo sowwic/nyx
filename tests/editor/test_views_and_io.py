@@ -4,6 +4,8 @@ import pytest
 
 from PySide6 import QtCore, QtWidgets
 
+from nyx.api.v1 import CoreNodeComponents, CoreNodes, commands
+from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import io
@@ -187,7 +189,11 @@ def test_graph_view_focus_centers_on_selected_nodes(stage_editor, create_node):
 
     view.focus_on_selected_nodes()
 
-    united = a.gr_node.sceneBoundingRect().united(b.gr_node.sceneBoundingRect())
+    united = (
+        stage_editor.gr_stage.get_gr_node(a)
+        .sceneBoundingRect()
+        .united(stage_editor.gr_stage.get_gr_node(b).sceneBoundingRect())
+    )
     center = view.get_center_position()
     # Tolerance: a couple of viewport pixels, expressed in scene units.
     tolerance = 2 / view.transform().m11()
@@ -209,7 +215,9 @@ def test_graph_view_focus_zooms_out_to_fit_distant_nodes(stage_editor, create_no
     assert view.zoom >= view.zoom_range[0]
     visible = _visible_scene_rect(view)
     for node in (a, b):
-        assert visible.contains(node.gr_node.sceneBoundingRect())
+        assert visible.contains(
+            stage_editor.gr_stage.get_gr_node(node).sceneBoundingRect()
+        )
 
 
 def test_graph_view_focus_does_not_magnify_beyond_max_zoom(stage_editor, create_node):
@@ -268,7 +276,7 @@ def test_focus_action_from_tree_view_centers_graph(
 
     action.trigger()
 
-    united = node.gr_node.sceneBoundingRect()
+    united = stage_editor.gr_stage.get_gr_node(node).sceneBoundingRect()
     center = stage_editor.gr_view.get_center_position()
     assert center.x() == pytest.approx(united.center().x(), abs=2)
     assert center.y() == pytest.approx(united.center().y(), abs=2)
@@ -477,3 +485,114 @@ def test_reference_into_itself_is_rejected(
     with caplog.at_level("ERROR"):
         io._import_nodes(stage_editor, [file_path], as_reference=True)
     assert "Can't reference file into itself" in caplog.text
+
+
+# ---- Graphics stage ----
+def _gr_names(stage_editor):
+    return sorted(g.node.name for g in stage_editor.gr_stage.gr_nodes())
+
+
+def test_graphics_stage_draws_only_scope_children(stage_editor, create_node):
+    stage = stage_editor.stage
+    parent = create_node(stage, "parent")
+    child = create_node(stage, "child", parent=parent)
+    create_node(stage, "grandchild", parent=child)
+    create_node(stage, "sibling")
+    gr_stage = stage_editor.gr_stage
+
+    assert _gr_names(stage_editor) == ["parent", "sibling"]
+    assert gr_stage.get_gr_node(child) is None
+
+    stage_editor.set_scope_path(parent)
+    assert _gr_names(stage_editor) == ["child"]
+
+    stage_editor.set_scope_path(child)
+    assert _gr_names(stage_editor) == ["grandchild"]
+
+
+def test_graphics_stage_add_node_rejects_out_of_scope(stage_editor, create_node):
+    stage = stage_editor.stage
+    parent = create_node(stage, "parent")
+    child = create_node(stage, "child", parent=parent)
+    assert stage_editor.gr_stage.add_node(child) is None
+    assert stage_editor.gr_stage.get_gr_node(child) is None
+
+
+def test_graphics_stage_rebuild_keeps_items_of_unchanged_nodes(
+    stage_editor, create_node
+):
+    a = create_node(stage_editor.stage, "a")
+    gr_a = stage_editor.gr_stage.get_gr_node(a)
+    create_node(stage_editor.stage, "b")
+    assert stage_editor.gr_stage.get_gr_node(a) is gr_a
+    assert _gr_names(stage_editor) == ["a", "b"]
+
+
+def test_graphics_stage_removes_items_of_deleted_nodes(stage_editor, create_node):
+    a = create_node(stage_editor.stage, "a")
+    create_node(stage_editor.stage, "b")
+    select(stage_editor, a)
+    stage_editor.gr_view.delete_selected()
+    assert _gr_names(stage_editor) == ["b"]
+    stage_editor.stage.undo_stack.undo()
+    assert _gr_names(stage_editor) == ["a", "b"]
+
+
+def test_graphics_node_follows_position_and_undo(stage_editor, create_node):
+    a = create_node(stage_editor.stage, "a")
+    gr_a = stage_editor.gr_stage.get_gr_node(a)
+    command = commands.MoveNodeCommand(
+        stage=stage_editor.stage, nodes=[a], new_positions=[QtCore.QPointF(50, 60)]
+    )
+    stage_editor.stage.push_command(command)
+    assert gr_a.pos() == QtCore.QPointF(50, 60)
+    stage_editor.stage.undo_stack.undo()
+    assert gr_a.pos() == QtCore.QPointF(0, 0)
+
+
+def test_graphics_node_title_follows_rename_and_grows(stage_editor, create_node):
+    a = create_node(stage_editor.stage, "a")
+    gr_a = stage_editor.gr_stage.get_gr_node(a)
+    assert gr_a.width == gr_a.MIN_WIDTH
+    stage_editor.stage.push_command(
+        commands.RenameNodeCommand(
+            stage=stage_editor.stage, node=a, new_name="a_very_long_node_name_indeed"
+        )
+    )
+    assert gr_a.title_item.toPlainText() == "a_very_long_node_name_indeed"
+    assert gr_a.width > gr_a.MIN_WIDTH
+
+
+def test_graphics_node_creates_plugs_for_linkable_components(stage_editor, create_node):
+    stage = stage_editor.stage
+    node = create_node(stage, "a", type_id=CoreNodes.ACTION)
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+    plug_count = len(gr_node.plugs)
+
+    add_cmd = commands.AddNodeComponentCommand(
+        node=node, type_id=CoreNodeComponents.VALUE, name="test_cpnt"
+    )
+    stage.push_command(add_cmd)
+    component = add_cmd.result_component
+    assert len(gr_node.plugs) == plug_count
+    assert gr_node.get_plug(component) is None
+
+    component.accepts_input = True
+    stage_editor.gr_stage.rebuild_current_scope()
+    assert stage_editor.gr_stage.get_gr_node(node) is gr_node
+    assert len(gr_node.plugs) == plug_count + 1
+    assert gr_node.get_plug(component).component is component
+
+    stage.undo_stack.undo()
+    assert len(gr_node.plugs) == plug_count
+    assert gr_node.get_plug(component) is None
+
+
+def test_cutline_bounds_follow_points(qtbot):
+    cutline = GraphCutLine()
+    assert cutline.boundingRect().isNull()
+    cutline.add_point(QtCore.QPointF(0, 0))
+    cutline.add_point(QtCore.QPointF(100, 50))
+    assert cutline.boundingRect().contains(QtCore.QPointF(100, 50))
+    cutline.clear()
+    assert cutline.boundingRect().isNull()

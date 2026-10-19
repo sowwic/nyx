@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
 class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
     """Title text of a graphics node, editable in place."""
 
-    TITLE_FONT = QtGui.QFont("Zed Mono", 10)
+    TITLE_FONT = QtGui.QFont("Zed Mono", 10, QtGui.QFont.Weight.Bold)
 
     def __init__(self, gr_node: GraphicsNode):
         """Initialize GraphicsNodeTitle.
@@ -20,35 +20,65 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         Args:
             gr_node (GraphicsNode): graphics node the title belongs to.
         """
+        super().__init__(gr_node.node.name, gr_node)
         self.gr_node = gr_node
-        super().__init__(self.gr_node.node.name, gr_node)
+        self._editor_proxy: QtWidgets.QGraphicsProxyWidget | None = None
         self.setFont(self.TITLE_FONT)
-        self.font().setBold(True)
 
     @property
-    def height(self):
+    def height(self) -> float:
         """float: height of the title text."""
         return self.boundingRect().height()
 
     @property
-    def width(self):
+    def width(self) -> float:
         """float: width of the title text."""
         return self.boundingRect().width()
 
+    def refresh(self) -> bool:
+        """Show the current node name.
+
+        Returns:
+            bool: text changed, so the owner needs a new layout.
+        """
+        name = self.gr_node.node.name
+        if name == self.toPlainText():
+            return False
+        self.setPlainText(name)
+        return True
+
     def edit(self):
         """Show a line edit over the title to rename the node."""
+        if self._editor_proxy is not None:
+            return
         line_edit = QtWidgets.QLineEdit()
-        line_edit_proxy = QtWidgets.QGraphicsProxyWidget(self)
-        line_edit_proxy.setWidget(line_edit)
-        line_edit.editingFinished.connect(lambda: self.apply_edit(line_edit.text()))
-        line_edit.editingFinished.connect(line_edit_proxy.deleteLater)
         line_edit.setFont(self.font())
-
-        line_edit.setMaximumWidth(self.gr_node.width)
+        line_edit.setMaximumWidth(int(self.gr_node.width))
         line_edit.setText(self.toPlainText())
+
+        proxy = QtWidgets.QGraphicsProxyWidget(self)
+        proxy.setWidget(line_edit)
+        self._editor_proxy = proxy
+        line_edit.editingFinished.connect(lambda: self._finish_edit(proxy, line_edit))
         line_edit.setFocus(QtCore.Qt.MouseFocusReason)
 
-    def apply_edit(self, new_text):
+    def _finish_edit(
+        self, proxy: QtWidgets.QGraphicsProxyWidget, line_edit: QtWidgets.QLineEdit
+    ):
+        """Close the editor and apply its text. Safe against repeated signals.
+
+        Args:
+            proxy (QtWidgets.QGraphicsProxyWidget): proxy holding the editor.
+            line_edit (QtWidgets.QLineEdit): the editor.
+        """
+        if self._editor_proxy is not proxy:
+            return
+        self._editor_proxy = None
+        new_text = line_edit.text()
+        proxy.deleteLater()
+        self.apply_edit(new_text)
+
+    def apply_edit(self, new_text: str):
         """Rename the node through an undoable command if the name changed.
 
         Args:

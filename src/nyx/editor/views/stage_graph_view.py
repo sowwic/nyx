@@ -296,8 +296,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             pass
 
             if self.interaction_mode is self.InteractionMode.EDGE_CUT and self.cutline:
-                self.cutline.line_points.append(scene_pos)
-                self.cutline.update()
+                self.cutline.add_point(scene_pos)
 
         except Exception:
             LOGGER.exception("mouseMoveEvent exception")
@@ -364,8 +363,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
             if self.interaction_mode == self.InteractionMode.EDGE_CUT:
                 self.cut_intersecting_edges()
-                self.cutline.line_points = []
-                self.cutline.update()
+                self.cutline.clear()
                 self.set_interaction_mode(self.InteractionMode.NOOP)
                 event.accept()
                 return
@@ -598,8 +596,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
         nodes_rect = QtCore.QRectF()
         for node in nodes_in_scope:
-            if node.gr_node is not None:
-                nodes_rect = nodes_rect.united(node.gr_node.sceneBoundingRect())
+            gr_node = self.gr_stage.get_gr_node(node)
+            if gr_node is not None:
+                nodes_rect = nodes_rect.united(gr_node.sceneBoundingRect())
 
         if nodes_rect.isNull():
             return
