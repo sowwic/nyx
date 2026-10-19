@@ -47,6 +47,8 @@ class Stage(QtGui.QStandardItemModel):
     FILE_EXTENSION = ".nyx"
 
     node_deleted = QtCore.Signal(UUID)
+    execution_started = QtCore.Signal()
+    execution_finished = QtCore.Signal()
 
     def __repr__(self) -> str:
         """str: node count and file path."""

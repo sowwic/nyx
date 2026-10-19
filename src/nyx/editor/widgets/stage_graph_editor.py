@@ -144,6 +144,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         # Stage connections
         self.stage.undo_stack.indexChanged.connect(self.update_title)
         self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope)
+        self.stage.execution_finished.connect(self.gr_stage.rebuild_current_scope)
         self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
         # Selection model connections
         self.selection_model.selectionChanged.connect(

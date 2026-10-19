@@ -99,9 +99,10 @@ class StageCrawler:
     def start(self, start_node: Node | None = None) -> None:
         """Begin (or restart) a crawl from ``start_node`` or the stage root."""
         self.clear_cached_data()
-
+        self.stage.execution_started.emit()
         start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
         self._traverse_children(start_node)  # kicks off recursive post-order descent
+        self.stage.execution_finished.emit()
 
     # -- NodeVisitor -----------------------------------------------------
 
