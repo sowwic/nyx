@@ -37,6 +37,12 @@ type NodeLike = Node | UUID | pathlib.PurePosixPath | str
 
 
 class Node(QtGui.QStandardItem, StageObject):
+    """Stage node holding a list of components and child nodes.
+
+    Subclasses define the node type by overriding the `get_type_*` classmethods and
+    can customize setup and execution through the hook methods.
+    """
+
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
 
@@ -51,6 +57,8 @@ class Node(QtGui.QStandardItem, StageObject):
     LINKS_KEY = "links"
 
     class Roles(enum.IntEnum):
+        """Item data roles used to store node state in the stage model."""
+
         TYPE_ID = QtCore.Qt.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
@@ -69,6 +77,13 @@ class Node(QtGui.QStandardItem, StageObject):
         uuid: UUID | str | None = None,
         parent: Node | None = None,
     ) -> None:
+        """Initialize Node.
+
+        Args:
+            name (str | None): node name. Defaults to the node type's default name.
+            uuid (UUID | str | None): node uuid. Generated if omitted.
+            parent (Node | None): parent node.
+        """
         QtGui.QStandardItem.__init__(self, name or self.DEFAULT_NAME)
         StageObject.__init__(self, uuid=uuid)
         self._set_default_role_values()
@@ -79,25 +94,39 @@ class Node(QtGui.QStandardItem, StageObject):
             parent.appendRow(self)
 
     def setup(self):
+        """Create the default components of the node type. Override in subclasses."""
         pass
 
     def post_setup_hook(self):
+        """Run after setup, marking components created by setup as built-in."""
         self._mark_setup_components_as_builtin()
 
     def _mark_setup_components_as_builtin(self):
+        """Mark all current components as built-in, so they can't be removed."""
         for component in self.components_model.list_components():
             component.mark_as_built_in()
 
     def __repr__(self) -> str:
+        """str: node class and path."""
         return f"{inspect_fn.class_string(self.__class__)} ({self.path})"
 
     def __hash__(self) -> int:
+        """int: hash of the node path."""
         return hash(self.path)
 
     def __getitem__(self, key: str) -> NodeComponent:
+        """Get a component by name.
+
+        Args:
+            key (str): component name.
+
+        Returns:
+            NodeComponent: component with that name.
+        """
         return self.components_model.get_component(key)
 
     def _set_default_role_values(self):
+        """Initialize item data roles with the defaults of the node type."""
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
         self.setData(True, role=self.Roles.IS_ACTIVE)
@@ -122,10 +151,12 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def is_stage_root_node(self):
+        """bool: node is the stage root node."""
         return self is self.stage.root_node
 
     @property
     def scope(self):
+        """pathlib.PurePosixPath: path of the parent scope."""
         return tuple(self.path.parents)[0]
 
     @property
@@ -162,16 +193,19 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def reference_file_path(self) -> pathlib.Path | None:
+        """pathlib.Path | None: file this node is referenced from."""
         return self.data(role=self.Roles.REFERENCE_FILE_PATH)
 
     @property
     def is_referenced(self):
+        """bool: node or one of its parents is referenced from a file."""
         nodes = [self]
         nodes.extend(self.list_parents())
         return any([node.reference_file_path is not None for node in nodes])
 
     @property
     def is_locked(self):
+        """bool: node can't be modified."""
         return self.data(self.Roles.IS_LOCKED)
 
     @is_locked.setter
@@ -180,6 +214,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def tags(self) -> set[str]:
+        """set[str]: node tags."""
         return self.data(role=self.Roles.TAGS)
 
     @tags.setter
@@ -188,6 +223,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def raised_exception(self) -> Exception | None:
+        """Exception | None: exception raised by the last execution."""
         return self.data(self.Roles.RAISED_EXCEPTION)
 
     @raised_exception.setter
@@ -196,6 +232,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def execution_order(self) -> NodeExecutionOrderFlag:
+        """NodeExecutionOrderFlag: when the node executes relative to its children."""
         return self.data(self.Roles.EXECUTION_ORDER)
 
     @execution_order.setter
@@ -206,6 +243,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def execution_status(self) -> NodeExecutionStatus:
+        """NodeExecutionStatus: status of the last execution."""
         return self.data(self.Roles.EXECUTION_STATUS)
 
     @execution_status.setter
@@ -213,6 +251,7 @@ class Node(QtGui.QStandardItem, StageObject):
         self.setData(status, role=self.Roles.EXECUTION_STATUS)
 
     def reset_execution_status(self):
+        """Set the execution status back to not ran."""
         self.execution_status = NodeExecutionStatus.NOT_RAN
 
     def is_active(self) -> bool:
@@ -242,16 +281,32 @@ class Node(QtGui.QStandardItem, StageObject):
         self.set_active(True)
 
     def position(self) -> QtCore.QPointF:
+        """QtCore.QPointF: position in the graph."""
         return self.data(role=Node.Roles.POSITION)
 
     def serializable_position(self):
+        """Get the position as plain numbers.
+
+        Returns:
+            list[float]: x and y.
+        """
         position = self.position()
         return [position.x(), position.y()]
 
     def set_position(self, position: QtCore.QPointF):
+        """Set the position in the graph.
+
+        Args:
+            position (QtCore.QPointF): new position.
+        """
         self.setData(position, role=Node.Roles.POSITION)
 
     def set_reference_file(self, path: pathlib.Path | str):
+        """Set the file this node is referenced from.
+
+        Args:
+            path (pathlib.Path | str): reference file path.
+        """
         self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH)
 
     def appendRow(self, items: Node | typing.Sequence[Node]) -> None:
@@ -361,9 +416,15 @@ class Node(QtGui.QStandardItem, StageObject):
         self.stage.delete_node(self)
 
     def add_component(self, node_component: NodeComponent):
+        """Add a component to the node.
+
+        Args:
+            node_component (NodeComponent): component to add.
+        """
         self.components_model.add_component(node_component)
 
     def on_changed(self):
+        """Called when the item changes. Override in subclasses."""
         pass
 
     def serialize(
@@ -408,6 +469,23 @@ class Node(QtGui.QStandardItem, StageObject):
         context: NodeDeserializationContext | None = None,
         restore_uuid: RestoreUuidOption = RestoreUuidOption.ATTEMPT_RESTORE,
     ) -> Node:
+        """Create or update a node and its contents from serialized data.
+
+        Components, children and links are restored with the node.
+
+        Args:
+            serialized_node (OrderedDict[str, typing.Any]): serialized node.
+            node (Node | None): existing node to update.
+            parent_node (Node | None): parent of the created node.
+            context (NodeDeserializationContext | None): deserialization context.
+            restore_uuid (RestoreUuidOption): how serialized uuids are restored.
+
+        Returns:
+            Node: deserialized node.
+
+        Raises:
+            ValueError: if neither node nor parent_node is given.
+        """
         if not (node or parent_node):
             raise ValueError(
                 "Either parent node or node must be provided for deserialization."
@@ -494,6 +572,13 @@ class Node(QtGui.QStandardItem, StageObject):
         restore_uuid: RestoreUuidOption,
         context: NodeDeserializationContext,
     ):
+        """Create links from serialized data.
+
+        Args:
+            links_data (list[OrderedDict[str, typing.Any]]): serialized links.
+            restore_uuid (RestoreUuidOption): how serialized uuids are restored.
+            context (NodeDeserializationContext): deserialization context.
+        """
         for each_link_data in links_data:
             link_data = context.remap_link(each_link_data)
             if link_data is None:
@@ -507,6 +592,14 @@ class Node(QtGui.QStandardItem, StageObject):
             self.stage.register_link(link)
 
     def _load_reference_file_data(self) -> OrderedDict:
+        """Load the serialized data from the reference file.
+
+        Returns:
+            OrderedDict: file data, empty if the file doesn't exist.
+
+        Raises:
+            ValueError: if the file isn't a nyx file.
+        """
         data = OrderedDict()
         try:
             if self.reference_file_path.suffix == NYX_FILE_EXTENSION:
@@ -540,11 +633,27 @@ class Node(QtGui.QStandardItem, StageObject):
         self.deserialize(json_data)
 
     def find_child_by_name(self, name) -> Node | None:
+        """Find a direct child by name.
+
+        Args:
+            name (str): child name.
+
+        Returns:
+            Node | None: child, None if not found.
+        """
         for node in self.list_children():
             if node.name == name:
                 return node
 
     def find_child_node_of_type(self, type_id: str) -> Node | None:
+        """Find the first direct child of a type.
+
+        Args:
+            type_id (str): node type id.
+
+        Returns:
+            Node | None: child, None if not found.
+        """
         for node in self.list_children():
             if node.get_type_id() == type_id:
                 return node
@@ -558,18 +667,26 @@ class Node(QtGui.QStandardItem, StageObject):
         return self.find_child_node_of_type(type_id=CoreNodes.FLOW_START)
 
     def accept_visitor(self, visitor: NodeVisitor):
+        """Let a visitor visit this node. Inactive nodes are skipped.
+
+        Args:
+            visitor (NodeVisitor): visitor.
+        """
         if not self.is_active():
             LOGGER.warning("Not Active: %s", self.path.as_posix())
             return
         visitor.visit_node(self)
 
     def pre_execution(self):
+        """Clear the raised exception before executing."""
         self.setData(None, self.Roles.RAISED_EXCEPTION)
 
     def pre_execution_hook(self):
+        """Called before execution. Override in subclasses."""
         pass
 
     def post_execution_hook(self):
+        """Called after execution. Override in subclasses."""
         pass
 
     def evaluate(self):
@@ -582,13 +699,16 @@ class Node(QtGui.QStandardItem, StageObject):
         pass
 
     def execute(self):
+        """Run the node logic. Override in subclasses."""
         pass
 
     def evaluate_components(self):
+        """Run the evaluation hook of every component."""
         for component in self.components_model.list_components():
             component.evaluation_hook()
 
     def execute_components(self):
+        """Run the execution hook of every component."""
         for component in self.components_model.list_components():
             component.execution_hook()
 
@@ -625,16 +745,20 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @classmethod
     def get_type_id(cls) -> str:
+        """str: unique type id. Subclasses must implement."""
         raise NotImplementedError
 
     @classmethod
     def get_type_display_name(cls) -> str:
+        """str: name shown in the UI. Subclasses must implement."""
         raise NotImplementedError
 
     @classmethod
     def get_type_execution_order(cls) -> NodeExecutionOrderFlag:
+        """NodeExecutionOrderFlag: default execution order of the node type."""
         return NodeExecutionOrderFlag.BEFORE_CHILDREN
 
     @classmethod
     def get_tags(cls) -> set[str]:
+        """set[str]: default tags of the node type."""
         return set()

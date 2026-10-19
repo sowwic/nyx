@@ -17,7 +17,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NyxApplication(QtWidgets.QApplication):
+    """Qt application owning the session (config, stages) and plugin manager."""
+
     def __init__(self, initialize_plugins=True) -> None:
+        """Initialize NyxApplication.
+
+        Args:
+            initialize_plugins (bool): load registered plugins on startup.
+        """
         super().__init__(sys.argv)
         self._session = NyxSession()
         self._plugin_manager = NyxPluginManager()
@@ -31,10 +38,12 @@ class NyxApplication(QtWidgets.QApplication):
 
     @property
     def session(self) -> NyxSession:
+        """NyxSession: backend state shared by the editor."""
         return self._session
 
     @property
     def config(self) -> NyxConfig:
+        """NyxConfig: layered application config, owned by the session."""
         return self._session.config
 
     def reset_config(self):
@@ -43,7 +52,10 @@ class NyxApplication(QtWidgets.QApplication):
 
 
 class NyxEditorApplication(NyxApplication):
+    """Nyx application with the editor UI (main window, QML engine, actions)."""
+
     def __init__(self) -> None:
+        """Initialize the editor application, its QML engine and main window."""
         super().__init__()
         if self.config.values.editor_style.dark_mode:
             pyside_fn.set_dark_fusion_palette(self)
@@ -57,10 +69,16 @@ class NyxEditorApplication(NyxApplication):
             self.main_window().on_stage_new()
 
     def main_window(self) -> NyxEditorMainWindow:
+        """Get the editor main window.
+
+        Returns:
+            NyxEditorMainWindow: main window singleton.
+        """
         return NyxEditorMainWindow.instance()
 
     @property
     def qml_engine(self):
+        """QtQml.QQmlEngine: engine shared by all QML widgets."""
         return self._qml_engine
 
     def _load_resources(self):
@@ -68,6 +86,7 @@ class NyxEditorApplication(NyxApplication):
         QtGui.QFontDatabase.addApplicationFont(":/fonts/zed-mono.ttf")
 
     def _setup_qml_engine(self):
+        """Create the shared QML engine and register plugin import paths."""
         self._qml_engine = QtQml.QQmlEngine(self)
         self.sync_qml_import_paths()
 

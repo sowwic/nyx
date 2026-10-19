@@ -29,6 +29,12 @@ if typing.TYPE_CHECKING:
 
 
 class OutputLogWidget(QWidget):
+    """Collapsible log with a header showing the latest message.
+
+    Attributes:
+        expansion_state_changed: emitted with the new expansion state
+    """
+
     expansion_state_changed = Signal(bool)
 
     def __init__(
@@ -36,6 +42,13 @@ class OutputLogWidget(QWidget):
         log_message_list_model: LogRecordListModel | None = None,
         parent: QWidget | None = None,
     ):
+        """Initialize OutputLogWidget.
+
+        Args:
+            log_message_list_model (LogRecordListModel | None): model of log
+                records. Created if omitted.
+            parent (QWidget | None): parent widget.
+        """
         super().__init__(parent)
         self._log_message_list_model = log_message_list_model or LogRecordListModel(
             parent=self
@@ -91,12 +104,19 @@ class OutputLogWidget(QWidget):
 
     # ---- Public API ----
     def header_height_in_pixels(self) -> int:
+        """int: height of the always visible header."""
         return self._header_widget.height()
 
     def is_expanded(self) -> bool:
+        """bool: log list is shown."""
         return self._is_expanded
 
     def set_expanded(self, should_be_expanded: bool) -> None:
+        """Show or hide the log list.
+
+        Args:
+            should_be_expanded (bool): whether the list is shown.
+        """
         if should_be_expanded == self._is_expanded:
             return
         self._is_expanded = should_be_expanded
@@ -104,10 +124,12 @@ class OutputLogWidget(QWidget):
         self.expansion_state_changed.emit(self._is_expanded)
 
     def toggle_expanded_state(self) -> None:
+        """Toggle between expanded and collapsed."""
         self.set_expanded(not self._is_expanded)
 
     # ---- Internals ----
     def set_logger(self):
+        """Feed the model with records from the root logger."""
         self._logger: NyxLogger = logging.getLogger()
         signal_handler = logging_fn.add_signal_handler(self._logger)
         # The signal carries a logging.LogRecord, so it can feed the model directly.
@@ -118,6 +140,7 @@ class OutputLogWidget(QWidget):
         )
 
     def _apply_expansion_state_to_child_widgets(self) -> None:
+        """Show the list and arrow matching the expansion state."""
         self._log_message_list_view.setVisible(self._is_expanded)
         self._toggle_expansion_button.setArrowType(
             Qt.ArrowType.DownArrow if self._is_expanded else Qt.ArrowType.UpArrow
@@ -126,10 +149,12 @@ class OutputLogWidget(QWidget):
             self._log_message_list_view.scrollToBottom()
 
     def _on_log_records_inserted(self, *_unused_signal_arguments) -> None:
+        """Update the header and scroll to the newest record."""
         self._refresh_latest_message_display()
         self._log_message_list_view.scrollToBottom()
 
     def _refresh_latest_message_display(self) -> None:
+        """Show the latest record in the header, or "Ready" if there is none."""
         latest_log_record = self._log_message_list_model.latest_log_record()
         if latest_log_record is None:
             self._latest_message_label.set_full_text("Ready")

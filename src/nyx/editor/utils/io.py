@@ -54,6 +54,13 @@ def _import_nodes(
     file_paths: Collection[str] | Collection[pathlib.Path],
     as_reference=False,
 ):
+    """Import nodes from stage files into the active stage.
+
+    Args:
+        stage_graph (StageGraphEditor): editor receiving the nodes.
+        file_paths (Collection[str] | Collection[pathlib.Path]): files to import.
+        as_reference (bool): reference the files instead of copying their content.
+    """
     serialized_nodes = []
     for path in file_paths:
         path = pathlib.Path(path)

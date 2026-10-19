@@ -12,6 +12,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class AddNodeComponentCommand(NyxCommand):
+    """Add a new component to a node."""
+
     def __init__(
         self,
         node: Node,
@@ -19,6 +21,14 @@ class AddNodeComponentCommand(NyxCommand):
         name: str | None = None,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize AddNodeComponentCommand.
+
+        Args:
+            node (Node): node receiving the component.
+            type_id (str): registered component type id.
+            name (str | None): component name. Defaults to the type's default name.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(
             stage=node.stage, text=f"Add component {type_id}", parent=parent
         )
@@ -29,9 +39,11 @@ class AddNodeComponentCommand(NyxCommand):
 
     @property
     def result_component(self) -> NodeComponent:
+        """NodeComponent: component created by the command."""
         return self.stage.get_object(self.component_uuid)
 
     def redo(self) -> None:
+        """Create and add the component."""
         node = self.stage.get_object(self.node_uuid, expected_type=Node)
         component = node.components_model.create_component(
             self.type_id, uuid=self.component_uuid
@@ -47,11 +59,13 @@ class AddNodeComponentCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Remove the added component."""
         node = self.stage.get_object(self.node_uuid)
         node.components_model.remove_component(self.component_uuid)
         return super().undo()
 
     def validate(self):
+        """Check the node exists and the component type is registered."""
         node = self.stage.get_object(self.node_uuid)
         if node is None:
             raise NyxCommandValidationError(

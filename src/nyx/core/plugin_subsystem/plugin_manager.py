@@ -19,6 +19,7 @@ class NyxPluginManager:
 
     @property
     def loader(self) -> NyxPluginLoader:
+        """NyxPluginLoader: loader used to discover and import plugins."""
         return self._loader
 
     @loader.setter

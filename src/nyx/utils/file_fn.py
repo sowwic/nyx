@@ -6,6 +6,8 @@ import pathlib
 
 
 class DirectoryStruct(abc.ABC):
+    """Base class for structures whose path fields are directories."""
+
     def make_dirs(self, exist_ok: bool = True):
         """Create directory for each path field.
 
@@ -94,6 +96,14 @@ def load_json(
 
 
 def is_jsonable(obj):
+    """Check whether an object can be serialized to JSON.
+
+    Args:
+        obj: object to test.
+
+    Returns:
+        bool: object is serializable.
+    """
     try:
         json.dumps(obj)
         return True

@@ -32,10 +32,19 @@ def profile(name=None, text="{name}: {seconds:.4f}s"):
     """Always logs timing; additionally dumps a pstats file under PROFILING_DIR."""
 
     def decorator(func):
+        """Wrap a function with timing and optional profiling.
+
+        Args:
+            func: function to wrap.
+
+        Returns:
+            The wrapped function.
+        """
         timer_name = name or func.__name__
 
         @wraps(func)
         def wrapper(*args, **kwargs):
+            """Time the call and write a profile when profiling is enabled."""
             with Timer(name=timer_name, text=text, logger=LOGGER.info):
                 if not PROFILING:
                     return func(*args, **kwargs)

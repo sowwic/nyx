@@ -10,9 +10,16 @@ if typing.TYPE_CHECKING:
 
 
 class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
+    """Title text of a graphics node, editable in place."""
+
     TITLE_FONT = QtGui.QFont("Zed Mono", 10)
 
     def __init__(self, gr_node: GraphicsNode):
+        """Initialize GraphicsNodeTitle.
+
+        Args:
+            gr_node (GraphicsNode): graphics node the title belongs to.
+        """
         self.gr_node = gr_node
         super().__init__(self.gr_node.node.name, gr_node)
         self.setFont(self.TITLE_FONT)
@@ -20,13 +27,16 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
 
     @property
     def height(self):
+        """float: height of the title text."""
         return self.boundingRect().height()
 
     @property
     def width(self):
+        """float: width of the title text."""
         return self.boundingRect().width()
 
     def edit(self):
+        """Show a line edit over the title to rename the node."""
         line_edit = QtWidgets.QLineEdit()
         line_edit_proxy = QtWidgets.QGraphicsProxyWidget(self)
         line_edit_proxy.setWidget(line_edit)
@@ -39,6 +49,11 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         line_edit.setFocus(QtCore.Qt.MouseFocusReason)
 
     def apply_edit(self, new_text):
+        """Rename the node through an undoable command if the name changed.
+
+        Args:
+            new_text (str): edited name, sanitized to a valid object name.
+        """
         new_text = NameValidator.get_valid_stage_object_name(new_text)
         if not new_text or new_text == self.gr_node.node.name:
             return

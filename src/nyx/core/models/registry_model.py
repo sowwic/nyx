@@ -14,6 +14,8 @@ class RegistryListModel(QtCore.QAbstractListModel):
     countChanged = QtCore.Signal()
 
     class Roles(enum.IntEnum):
+        """Data roles exposed by the model."""
+
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_CLASS = enum.auto()
         TYPE_DISPLAY_NAME = enum.auto()
@@ -21,10 +23,12 @@ class RegistryListModel(QtCore.QAbstractListModel):
         TYPE_TAGS = enum.auto()
 
     def __init__(self, get_items: typing.Callable[[], OrderedDict], parent=None):
-        """
+        """Initialize RegistryListModel.
+
         Args:
             get_items: callable returning current {type_id: cls} dict,
                        e.g. lambda: NYX_REGISTRY.nodes
+            parent (QtCore.QObject | None): parent object.
         """
         super().__init__(parent)
         self._get_items = get_items
@@ -34,20 +38,39 @@ class RegistryListModel(QtCore.QAbstractListModel):
 
     @QtCore.Property(int, notify=countChanged)
     def count(self) -> int:
+        """int: number of registry entries."""
         return len(self._get_items())
 
     def rebuild(self):
+        """Reload entries from the registry."""
         self.beginResetModel()
         self._cls_by_id = dict(self._get_items())
         self._type_ids = sorted(self._cls_by_id.keys())
         self.endResetModel()
 
     def rowCount(self, parent=QtCore.QModelIndex()):
+        """Get the number of entries.
+
+        Args:
+            parent: parent index.
+
+        Returns:
+            int: entry count, 0 for a valid parent.
+        """
         if parent.isValid():
             return 0
         return len(self._type_ids)
 
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        """Get entry data.
+
+        Args:
+            index (QtCore.QModelIndex): item index.
+            role: data role.
+
+        Returns:
+            Value for the role, None if unsupported.
+        """
         if not index.isValid():
             return None
         type_id = self._type_ids[index.row()]
@@ -68,4 +91,5 @@ class RegistryListModel(QtCore.QAbstractListModel):
         return None
 
     def roleNames(self):
+        """dict: role names exposed to QML."""
         return enum_to_dict(self.Roles)

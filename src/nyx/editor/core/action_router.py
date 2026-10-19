@@ -23,6 +23,16 @@ LOGGER = logging.getLogger("ActionRouter")
 
 @dataclasses.dataclass(eq=False)
 class _Binding:
+    """Handler registered for an action, optionally limited to a widget scope.
+
+    Attributes:
+        handle: unique binding id
+        action_id: action the handler is bound to
+        handler: weak reference to the handler callable
+        scope: weak reference to the widget the handler is limited to
+        enabled_fn: extra condition for enabling the action
+    """
+
     handle: int
     action_id: str
     handler: Callable[[], Callable[..., typing.Any] | None]
@@ -30,21 +40,43 @@ class _Binding:
     enabled_fn: Callable[[], bool] | None
 
     def is_alive(self) -> bool:
+        """Check whether the handler and the scope widget still exist.
+
+        Returns:
+            bool: binding is usable.
+        """
         if self.handler() is None:
             return False
         return self.scope is None or self.scope() is not None
 
 
 def _weak_callable(fn: Callable[..., typing.Any]) -> Callable[[], typing.Any]:
+    """Wrap a callable in a weak reference when it is a bound method.
+
+    Args:
+        fn (Callable[..., typing.Any]): callable to wrap.
+
+    Returns:
+        Callable[[], typing.Any]: returns the callable, or None once a method's owner is
+            gone.
+    """
     if hasattr(fn, "__self__") and hasattr(fn, "__func__"):
         return weakref.WeakMethod(fn)
     return lambda: fn
 
 
 class ActionRouter(QtCore.QObject):
+    """Routes triggered shared actions to handlers chosen by widget focus."""
+
     def __init__(
         self, registry: ActionRegistry, parent: QtCore.QObject | None = None
     ) -> None:
+        """Initialize ActionRouter.
+
+        Args:
+            registry (ActionRegistry): registry providing the actions.
+            parent (QtCore.QObject | None): parent object.
+        """
         super().__init__(parent)
         self._registry = registry
         self._bindings: dict[str, list[_Binding]] = {}
@@ -58,9 +90,11 @@ class ActionRouter(QtCore.QObject):
 
     @property
     def registry(self) -> ActionRegistry:
+        """ActionRegistry: registry the router dispatches actions of."""
         return self._registry
 
     def clear(self) -> None:
+        """Remove all handler bindings."""
         self._bindings.clear()
 
     # ---- Handlers ----
@@ -100,6 +134,11 @@ class ActionRouter(QtCore.QObject):
         return binding.handle
 
     def unregister_handler(self, handle: int) -> None:
+        """Remove a handler binding.
+
+        Args:
+            handle (int): handle returned when the handler was registered.
+        """
         for action_id, bindings in self._bindings.items():
             kept = [b for b in bindings if b.handle != handle]
             if len(kept) != len(bindings):
@@ -132,6 +171,15 @@ class ActionRouter(QtCore.QObject):
     def resolve_handler(
         self, action_id: str, focus_widget: QtWidgets.QWidget | None = None
     ) -> Callable[..., typing.Any] | None:
+        """Find the handler an action would run for the given focus.
+
+        Args:
+            action_id (str): action id.
+            focus_widget (QtWidgets.QWidget | None): widget with focus.
+
+        Returns:
+            Callable[..., typing.Any] | None: handler, None if there is none.
+        """
         binding = self.resolve_binding(action_id, focus_widget)
         return binding.handler() if binding else None
 
@@ -162,11 +210,23 @@ class ActionRouter(QtCore.QObject):
 
     # ---- Internals ----
     def _on_action_created(self, action_id: str, action: QtGui.QAction) -> None:
+        """Connect a new shared action to dispatching.
+
+        Args:
+            action_id (str): action id.
+            action (QtGui.QAction): created action.
+        """
         action.triggered.connect(lambda _checked=False, i=action_id: self.dispatch(i))
         self.refresh_enabled(action_id)
         self._connect_focus_tracking()
 
     def _prune(self, action_id: str, refresh: bool = True) -> None:
+        """Drop bindings whose handler or scope no longer exists.
+
+        Args:
+            action_id (str): action id.
+            refresh (bool): refresh the enabled state if bindings were dropped.
+        """
         bindings = self._bindings.get(action_id)
         if not bindings:
             return
@@ -178,6 +238,11 @@ class ActionRouter(QtCore.QObject):
 
     @staticmethod
     def _current_focus_widget() -> QtWidgets.QWidget | None:
+        """Get the widget that receives key input.
+
+        Returns:
+            QtWidgets.QWidget | None: active popup, else the focus widget.
+        """
         app = QtWidgets.QApplication.instance()
         if app is None:
             return None
@@ -185,6 +250,7 @@ class ActionRouter(QtCore.QObject):
         return popup or app.focusWidget()
 
     def _connect_focus_tracking(self) -> None:
+        """Refresh action enabled states whenever the focus changes."""
         if self._focus_connected:
             return
         app = QtWidgets.QApplication.instance()

@@ -11,6 +11,14 @@ if typing.TYPE_CHECKING:
 
 
 def get_application_qml_engine() -> QtQml.QQmlEngine:
+    """Get the QML engine of the application.
+
+    Returns:
+        QtQml.QQmlEngine: shared QML engine.
+
+    Raises:
+        RuntimeError: if no application exists.
+    """
     app: NyxEditorApplication | None = QtWidgets.QApplication.instance()
     if app is None:
         raise RuntimeError("Failed to get Qml engine: no QApplication exists yet; ")
@@ -18,11 +26,24 @@ def get_application_qml_engine() -> QtQml.QQmlEngine:
 
 
 def get_current_stage_graph() -> StageGraphEditor:
+    """Get the editor of the active window.
+
+    Returns:
+        StageGraphEditor: active editor, None if no window is open.
+    """
     app: NyxEditorApplication = QtWidgets.QApplication.instance()
     return app.main_window().current_stage_graph
 
 
 def resolve_to_source_index(model_index: QtCore.QModelIndex) -> QtCore.QModelIndex:
+    """Map an index through proxy models down to the source model.
+
+    Args:
+        model_index (QtCore.QModelIndex): index in any model of the proxy chain.
+
+    Returns:
+        QtCore.QModelIndex: index in the source model.
+    """
     current_model = model_index.model()
     while isinstance(current_model, QtCore.QAbstractProxyModel):
         model_index = current_model.mapToSource(model_index)
@@ -32,6 +53,14 @@ def resolve_to_source_index(model_index: QtCore.QModelIndex) -> QtCore.QModelInd
 
 @contextlib.contextmanager
 def blocked_signals(*objs):
+    """Block signals of objects within a context, restoring their previous state after.
+
+    Args:
+        *objs (QtCore.QObject): objects to block.
+
+    Yields:
+        None: while signals are blocked.
+    """
     previous = [o.blockSignals(True) for o in objs]
     try:
         yield
@@ -43,6 +72,15 @@ def blocked_signals(*objs):
 def build_role_tooltip_html(
     model_index: QtCore.QModelIndex, maximum_value_length: int = 200
 ) -> str:
+    """Build an HTML table of all roles of a model index.
+
+    Args:
+        model_index (QtCore.QModelIndex): index to describe.
+        maximum_value_length (int): role values are truncated to this length.
+
+    Returns:
+        str: HTML table.
+    """
     model_of_index = model_index.model()
     role_identifier_to_role_name = model_of_index.roleNames()
 

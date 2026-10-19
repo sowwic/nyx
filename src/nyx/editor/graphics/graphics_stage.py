@@ -82,6 +82,11 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     # ======== Events ========= #
 
     def dragMoveEvent(self, event):
+        """Ignore drag moves so the parent doesn't handle them.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneDragDropEvent): event.
+        """
         # Disable parent event
         pass
 

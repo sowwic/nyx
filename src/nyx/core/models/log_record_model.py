@@ -3,6 +3,8 @@ from PySide6 import QtCore
 
 
 class LogRecordListModel(QtCore.QAbstractListModel):
+    """List model of log records, keeping only the most recent ones."""
+
     LogRecordRole = QtCore.Qt.ItemDataRole.UserRole + 1
 
     def __init__(
@@ -10,6 +12,13 @@ class LogRecordListModel(QtCore.QAbstractListModel):
         maximum_retained_log_record_count: int = 500,
         parent: QtCore.QObject | None = None,
     ):
+        """Initialize LogRecordListModel.
+
+        Args:
+            maximum_retained_log_record_count (int): records kept before the oldest are
+                dropped.
+            parent (QtCore.QObject | None): parent object.
+        """
         super().__init__(parent)
         self._maximum_retained_log_record_count = maximum_retained_log_record_count
         self._log_records: list[logging.LogRecord] = []
@@ -20,6 +29,15 @@ class LogRecordListModel(QtCore.QAbstractListModel):
         parent_index: QtCore.QModelIndex
         | QtCore.QPersistentModelIndex = QtCore.QModelIndex(),
     ) -> int:
+        """Get the number of log records.
+
+        Args:
+            parent_index (QtCore.QModelIndex | QtCore.QPersistentModelIndex): parent
+                index.
+
+        Returns:
+            int: record count, 0 for a valid parent.
+        """
         return 0 if parent_index.isValid() else len(self._log_records)
 
     def data(
@@ -27,6 +45,15 @@ class LogRecordListModel(QtCore.QAbstractListModel):
         index: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
         role: int = QtCore.Qt.ItemDataRole.DisplayRole,
     ):
+        """Get log record data.
+
+        Args:
+            index (QtCore.QModelIndex | QtCore.QPersistentModelIndex): item index.
+            role (int): data role.
+
+        Returns:
+            The log record for LogRecordRole, formatted text for display roles.
+        """
         if not index.isValid():
             return None
         log_record = self._log_records[index.row()]
@@ -41,6 +68,11 @@ class LogRecordListModel(QtCore.QAbstractListModel):
 
     # ---- Public API ----
     def append_log_record(self, log_record: logging.LogRecord) -> None:
+        """Append a record, dropping the oldest ones above the retention limit.
+
+        Args:
+            log_record (logging.LogRecord): record to append.
+        """
         new_row_index = len(self._log_records)
         self.beginInsertRows(QtCore.QModelIndex(), new_row_index, new_row_index)
         self._log_records.append(log_record)
@@ -57,9 +89,11 @@ class LogRecordListModel(QtCore.QAbstractListModel):
             self.endRemoveRows()
 
     def clear_log_records(self) -> None:
+        """Remove all records."""
         self.beginResetModel()
         self._log_records.clear()
         self.endResetModel()
 
     def latest_log_record(self) -> logging.LogRecord | None:
+        """logging.LogRecord | None: most recent record."""
         return self._log_records[-1] if self._log_records else None

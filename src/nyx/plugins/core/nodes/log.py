@@ -3,22 +3,28 @@ from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
 
 
 class LogNode(Node):
+    """Node writing a message to the log."""
+
     DEFAULT_NAME = "log"
 
     @classmethod
     def get_type_id(cls) -> str:
+        """str: node type id."""
         return CoreNodes.LOG
 
     @classmethod
     def get_type_display_name(cls) -> str:
+        """str: name shown in the UI."""
         return "Log"
 
     @classmethod
     def get_type_icon(cls) -> str:
+        """str: resource path of the type icon."""
         return ":/core/icons/log_node"
 
     @classmethod
     def get_tags(cls) -> set[str]:
+        """set[str]: node tags."""
         return {"utils"}
 
     def setup(self) -> None:

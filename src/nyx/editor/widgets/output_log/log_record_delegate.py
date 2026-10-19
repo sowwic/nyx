@@ -19,6 +19,8 @@ def color_for_logging_level(logging_level: int) -> QtGui.QColor:
 
 
 class LogRecordItemDelegate(QtWidgets.QStyledItemDelegate):
+    """Draws a log record row with a severity bar, level, time and message."""
+
     ROW_VERTICAL_PADDING_IN_PIXELS = 4
     SEVERITY_BAR_WIDTH_IN_PIXELS = 4
     HORIZONTAL_SPACING_IN_PIXELS = 10
@@ -31,6 +33,15 @@ class LogRecordItemDelegate(QtWidgets.QStyledItemDelegate):
         option: QtWidgets.QStyleOptionViewItem,
         index: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
     ) -> QtCore.QSize:
+        """Get the row size.
+
+        Args:
+            option (QtWidgets.QStyleOptionViewItem): style options.
+            index (QtCore.QModelIndex | QtCore.QPersistentModelIndex): item index.
+
+        Returns:
+            QtCore.QSize: row size. The width is left to the view.
+        """
         row_height_in_pixels = (
             option.fontMetrics.height() + 2 * self.ROW_VERTICAL_PADDING_IN_PIXELS
         )
@@ -42,6 +53,13 @@ class LogRecordItemDelegate(QtWidgets.QStyledItemDelegate):
         option: QtWidgets.QStyleOptionViewItem,
         index: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
     ) -> None:
+        """Draw the log record row.
+
+        Args:
+            painter (QtGui.QPainter): painter.
+            option (QtWidgets.QStyleOptionViewItem): style options.
+            index (QtCore.QModelIndex | QtCore.QPersistentModelIndex): item index.
+        """
         painter.save()
 
         is_row_selected = bool(option.state & QtWidgets.QStyle.StateFlag.State_Selected)

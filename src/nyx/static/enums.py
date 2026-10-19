@@ -2,6 +2,8 @@ import enum
 
 
 class CoreNodes(enum.StrEnum):
+    """Type ids of the nodes provided by the core plugin."""
+
     EMPTY = "core:node"
     GET = "core:get"
     SET = "core:set"
@@ -13,6 +15,8 @@ class CoreNodes(enum.StrEnum):
 
 
 class CoreNodeComponents(enum.StrEnum):
+    """Type ids of the node components provided by the core plugin."""
+
     VALUE = "core:value"
     FLOW = "core:flow"
     COMMENT = "core:comment"
@@ -20,12 +24,22 @@ class CoreNodeComponents(enum.StrEnum):
 
 
 class RestoreUuidOption(enum.IntEnum):
+    """How uuids stored in serialized data are used when deserializing.
+
+    Attributes:
+        GENERATE_NEW: always generate a new uuid
+        RESTORE: always reuse the serialized uuid
+        ATTEMPT_RESTORE: reuse the serialized uuid unless it is already taken
+    """
+
     GENERATE_NEW = enum.auto()
     RESTORE = enum.auto()
     ATTEMPT_RESTORE = enum.auto()
 
 
 class NodeExecutionStatus(enum.IntEnum):
+    """Outcome of the last node execution."""
+
     SUCCESS = enum.auto()
     ERROR = enum.auto()
     PENDING = enum.auto()
@@ -33,11 +47,23 @@ class NodeExecutionStatus(enum.IntEnum):
 
 
 class NodeExecutionOrderFlag(enum.IntFlag):
+    """When a node executes relative to its children."""
+
     BEFORE_CHILDREN = enum.auto()
     AFTER_CHILDREN = enum.auto()
 
 
 class NodeComponentFlag(enum.IntFlag):
+    """Flags describing what a node component can do.
+
+    Attributes:
+        BUILT_IN: created by the node type, can't be removed
+        WRITABLE: accepts input links
+        READABLE: produces output links
+        EDITABLE: value can be edited in the UI
+        STATIC: skipped during execution
+    """
+
     NONE = 0
     BUILT_IN = enum.auto()
     WRITABLE = enum.auto()
@@ -47,18 +73,36 @@ class NodeComponentFlag(enum.IntFlag):
 
 
 class NodeComponentValueMask(enum.IntEnum):
+    """Selects which value of a component is read.
+
+    Attributes:
+        RAW: value as set
+        CACHE: evaluated value
+        DISPLAY: text shown in the UI
+    """
+
     RAW = 0
     CACHE = enum.auto()
     DISPLAY = enum.auto()
 
 
 class ItemSelectionMode(enum.IntEnum):
+    """How a clicked item changes the selection.
+
+    Attributes:
+        REPLACE: select only the clicked item
+        TOGGLE: toggle the clicked item
+        RANGE: select from the anchor to the clicked item
+    """
+
     REPLACE = 0
     TOGGLE = enum.auto()
     RANGE = enum.auto()
 
 
 class EditorUIObject(enum.StrEnum):
+    """Object names of the editor docks."""
+
     NODES_PALETTE_DOCK = "nodes_palette_dock"
     STAGE_TREE_DOCK = "stage_tree_dock"
     UNDO_HISTORY_DOCK = "undo_history_dock"

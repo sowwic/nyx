@@ -12,6 +12,15 @@ class PlaceholderPainter:
         hint_extra_points: int = 2,
         gap: int = 8,
     ):
+        """Initialize PlaceholderPainter.
+
+        Args:
+            title (str): main text.
+            hint (str): smaller text shown under the title.
+            title_extra_points (int): points added to the base font size for the title.
+            hint_extra_points (int): points added to the base font size for the hint.
+            gap (int): pixels between title and hint.
+        """
         self.title = title
         self.hint = hint
         self.title_extra_points = title_extra_points

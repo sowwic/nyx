@@ -17,6 +17,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LinkNodeComponentsCommand(NyxCommand):
+    """Link a source component to a target component.
+
+    An existing input link on the target is replaced.
+    """
+
     def __init__(
         self,
         stage: Stage,
@@ -24,6 +29,14 @@ class LinkNodeComponentsCommand(NyxCommand):
         target: NodeComponentLike,
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize LinkNodeComponentsCommand.
+
+        Args:
+            stage (Stage): target stage.
+            source (NodeComponentLike): source component.
+            target (NodeComponentLike): target component.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         super().__init__(stage=stage, text="Link components", parent=parent)
         self.source_component_uuid: UUID = self.stage.get_object(source).uuid
         self.target_component_uuid: UUID = self.stage.get_object(target).uuid
@@ -35,21 +48,26 @@ class LinkNodeComponentsCommand(NyxCommand):
 
     @property
     def result_link(self) -> Link:
+        """Link: link created by the command."""
         return self.stage.get_object(self._link_uuid)
 
     @property
     def result_link_uuid(self) -> UUID:
+        """UUID: uuid of the link created by the command."""
         return self._link_uuid
 
     @property
     def source_component(self) -> NodeComponent:
+        """NodeComponent: link source."""
         return self.stage.get_object(self.source_component_uuid)
 
     @property
     def target_component(self) -> NodeComponent:
+        """NodeComponent: link target."""
         return self.stage.get_object(self.target_component_uuid)
 
     def redo(self) -> None:
+        """Create the link, removing the target's previous input link."""
         if self._unlink_command:
             self._unlink_command.redo()
 
@@ -64,12 +82,14 @@ class LinkNodeComponentsCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Remove the link and restore the replaced one."""
         self.stage.unregister_link(self._link_uuid)
         if self._unlink_command:
             self._unlink_command.undo()
         return super().undo()
 
     def _build_child_unlink_command(self):
+        """Create an unlink command for the target's existing input link, if any."""
         target_component = self.target_component
         target_input_links = target_component.input_links
         if not target_input_links:
@@ -86,6 +106,7 @@ class LinkNodeComponentsCommand(NyxCommand):
         )
 
     def validate(self):
+        """Check the components differ and are of the same type."""
         if self.target_component is self.source_component:
             raise NyxCommandValidationError("Can't connect component to itself")
 

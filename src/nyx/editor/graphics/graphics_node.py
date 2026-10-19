@@ -14,12 +14,20 @@ if typing.TYPE_CHECKING:
 
 
 class GraphicsNode(QtWidgets.QGraphicsItem):
+    """Graphics item representing a node in the stage scene."""
+
     MIN_WIDTH = 100
     MIN_HEIGHT = 100
     TITLE_COLOR = QtGui.QColor("#FF313131")
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
 
     def __init__(self, node: Node, parent=None):
+        """Initialize GraphicsNode.
+
+        Args:
+            node (Node): node to show.
+            parent (QtWidgets.QGraphicsItem | None): parent item.
+        """
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
@@ -38,9 +46,15 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.create_connections()
 
     def create_connections(self):
+        """Connect signals. Nothing to connect yet."""
         pass
 
     def _set_node(self, node: Node | None):
+        """Link this item with a node, or detach it.
+
+        Args:
+            node (Node | None): node to show, None to detach the current one.
+        """
         if node:
             node.gr_node = self
             # Connect signals
@@ -51,6 +65,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._node = node
 
     def _init_sizes(self):
+        """Initialize size and padding values."""
         self.width = self.MIN_WIDTH
         self.height = self.MIN_HEIGHT
         self.one_side_horizontal_padding = 20.0
@@ -61,6 +76,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.lower_padding = 8.0
 
     def _init_assets(self):
+        """Create the pens and brushes."""
         # Pens, Brushes
         self._pen_default = QtGui.QPen(QtGui.QColor("#7F000000"))
         self._pen_selected = QtGui.QPen(QtGui.QColor("#FFA637"))
@@ -70,10 +86,12 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._brush_title = QtGui.QBrush(self.TITLE_COLOR)
 
     def _init_title(self):
+        """Create the title item."""
         self.title_item = GraphicsNodeTitle(self)
         self.title_item.setPos(28, 0)
 
     def boundingRect(self):
+        """QtCore.QRectF: bounds of the node."""
         return QtCore.QRectF(0, 0, self.width, self.height).normalized()
 
     def paint(
@@ -82,6 +100,13 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget | None = None,
     ) -> None:
+        """Draw the node body, title bar and icon.
+
+        Args:
+            painter (QtGui.QPainter): painter.
+            option (QtWidgets.QStyleOptionGraphicsItem): style options.
+            widget (QtWidgets.QWidget | None): painted widget.
+        """
         # TODO: Adjust title visibility based on scale
         # self.title_item.setVisible(
         #     self.node.scene.view.zoom > self.TEXT_ZOOM_OUT_LIMIT
@@ -177,21 +202,26 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     @property
     def node(self) -> Node:
+        """Node: node shown by the item."""
         return self._node
 
     @property
     def gr_stage(self) -> GraphicsStage:
+        """GraphicsStage: scene containing the item."""
         return self.scene()
 
     @property
     def title_height(self):
+        """float: height of the title."""
         return self.title_item.height
 
     @property
     def title_width(self):
+        """float: width of the title."""
         return self.title_item.width
 
     def _refresh_tooltip(self):
+        """Show node role diagnostics as tooltip if enabled in config or debug mode."""
         config = NyxConfig()
         node_config = config.values.editor_widgets.graphics_stage.nodes
         if not self.node.index().isValid():
@@ -202,11 +232,21 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     # Events
     def mouseMoveEvent(self, event):
+        """Handle mouse move.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMouseEvent): event.
+        """
         super().mouseMoveEvent(event)
         # for node in self.scene().scene.selected_nodes:
         #     node.update_connected_edges()
 
     def mouseReleaseEvent(self, event):
+        """Push a move command for the selected nodes that were moved.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMouseEvent): event.
+        """
         super().mouseReleaseEvent(event)
 
         moved_nodes = []
@@ -223,12 +263,27 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             self.node.stage.push_command(move_cmd)
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        """Handle double click.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMouseEvent): event.
+        """
         return super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        """Refresh the tooltip when the cursor enters.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneHoverEvent): event.
+        """
         self._refresh_tooltip()
         super().hoverEnterEvent(event)
 
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMoveEvent) -> None:
+        """Refresh the tooltip while the cursor moves over the node.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMoveEvent): event.
+        """
         self._refresh_tooltip()
         super().hoverMoveEvent(event)

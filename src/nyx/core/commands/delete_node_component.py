@@ -32,16 +32,26 @@ class DeletedComponentRecord:
 
     @property
     def component_uuid(self):
+        """UUID: uuid of the deleted component."""
         return self.serialized_component_data[NodeComponent.UUID_KEY]
 
 
 class DeleteNodeComponentCommand(NyxCommand):
+    """Delete components from a node, unlinking their links first."""
+
     def __init__(
         self,
         node: Node,
         component_names: typing.Sequence[str],
         parent: QtGui.QUndoCommand | None = None,
     ) -> None:
+        """Initialize DeleteNodeComponentCommand.
+
+        Args:
+            node (Node): node owning the components.
+            component_names (typing.Sequence[str]): names of components to delete.
+            parent (QtGui.QUndoCommand | None): parent command.
+        """
         self.node_uuid = node.uuid
 
         # Remove duplicates while preserving the order the caller gave us.
@@ -66,12 +76,14 @@ class DeleteNodeComponentCommand(NyxCommand):
 
     @property
     def deleted_component_uuids(self) -> list:
+        """list: uuids of the components deleted by the command."""
         return [
             deleted_component_record.component_uuid
             for deleted_component_record in self.deleted_component_records
         ]
 
     def redo(self) -> None:
+        """Unlink and delete the components, recording them for undo."""
         self._redo_unlink()
         node: Node = self.stage.get_object(self.node_uuid)
 
@@ -102,6 +114,7 @@ class DeleteNodeComponentCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
+        """Restore the deleted components and their links."""
         node: Node = self.stage.get_object(self.node_uuid)
 
         # Restore in reverse so each component returns to the row it had at the
@@ -130,14 +143,17 @@ class DeleteNodeComponentCommand(NyxCommand):
         return result
 
     def _redo_unlink(self) -> None:
+        """Redo the unlink commands."""
         for unlink_command in self._unlink_commands:
             unlink_command.redo()
 
     def _undo_unlink(self) -> None:
+        """Undo the unlink commands in reverse order."""
         for unlink_command in reversed(self._unlink_commands):
             unlink_command.undo()
 
     def _build_child_unlink_commands(self) -> None:
+        """Create unlink commands for every link touching the deleted components."""
         node: Node = self.stage.get_object(self.node_uuid)
 
         # A link between two components that are both being deleted shows up on
@@ -156,6 +172,7 @@ class DeleteNodeComponentCommand(NyxCommand):
             )
 
     def validate(self) -> None:
+        """Check the node and all requested components exist."""
         node = self.stage.get_object(self.node_uuid)
         if node is None:
             raise NyxCommandValidationError(

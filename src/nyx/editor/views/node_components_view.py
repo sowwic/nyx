@@ -17,6 +17,8 @@ if typing.TYPE_CHECKING:
 
 
 class NodeComponentsView(NyxQuickWidget):
+    """QML view listing the components of a node."""
+
     QML_MODULE = "NyxEditor.ComponentsView"
     QML_COMPONENT = "NodeComponentsView"
 
@@ -25,6 +27,12 @@ class NodeComponentsView(NyxQuickWidget):
         model: NodeComponentsModel | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
+        """Initialize NodeComponentsView.
+
+        Args:
+            model (NodeComponentsModel | None): components to show.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         self._model: NodeComponentsModel | None = None
         self._components_registry_model = RegistryListModel(
             get_items=lambda: NYX_REGISTRY.node_components
@@ -71,6 +79,11 @@ class NodeComponentsView(NyxQuickWidget):
         self.setSource(self.source_url)
 
     def setModel(self, model: NodeComponentsModel):
+        """Set the components shown by the view.
+
+        Args:
+            model (NodeComponentsModel): components model.
+        """
         if self._model == model:
             return
 

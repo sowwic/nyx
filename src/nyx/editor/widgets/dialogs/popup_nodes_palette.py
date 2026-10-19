@@ -13,7 +13,15 @@ if typing.TYPE_CHECKING:
 
 # TODO: Potentially a singleton?
 class PopupNodesPalette(QtWidgets.QDialog):
+    """Frameless popup with the nodes palette, closing once a node is created."""
+
     def __init__(self, scene_pos, parent=None):
+        """Initialize PopupNodesPalette.
+
+        Args:
+            scene_pos (QtCore.QPointF): scene position the node is created at.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(
             parent, QtCore.Qt.WindowType.Dialog | QtCore.Qt.FramelessWindowHint
         )
@@ -28,22 +36,31 @@ class PopupNodesPalette(QtWidgets.QDialog):
         self._create_connections()
 
     def _create_widgets(self):
+        """Create the palette view."""
         self._nodes_palette_view = NodesPaletteView(drag_enabled=False, parent=self)
 
     def _create_layouts(self):
+        """Lay out the palette view."""
         self._main_layout = QtWidgets.QVBoxLayout()
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._main_layout)
         self._main_layout.addWidget(self._nodes_palette_view)
 
     def _create_connections(self):
+        """Close the popup when a node is spawned."""
         self._nodes_palette_view.nodes_spawner.nodeSpawned.connect(self.deleteLater)
 
     def set_spawner_position(self, position: QtCore.QPointF):
+        """Set the position nodes are created at.
+
+        Args:
+            position (QtCore.QPointF): scene position.
+        """
         self._nodes_palette_view.nodes_spawner.spawn_position = position
 
     @classmethod
     def get_current_editor(cls) -> StageGraphEditor | None:
+        """StageGraphEditor | None: editor of the active window."""
         application: NyxEditorApplication = QtWidgets.QApplication.instance()
         return application.main_window().current_stage_graph
 
@@ -64,6 +81,7 @@ class PopupNodesPalette(QtWidgets.QDialog):
 
     @classmethod
     def popup(cls):
+        """Show the palette at the cursor, creating nodes at that scene position."""
         current_editor = cls.get_current_editor()
         if current_editor is None:
             return

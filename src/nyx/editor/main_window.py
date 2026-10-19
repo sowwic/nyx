@@ -39,6 +39,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NyxEditorMainWindow(QtWidgets.QMainWindow):
+    """Main window of the Nyx editor: docks, menus and the MDI area of stage editors."""
+
     _INSTANCE: NyxEditorMainWindow = None
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
@@ -47,10 +49,16 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @classmethod
     def instance(cls):
+        """Get the window singleton.
+
+        Returns:
+            NyxEditorMainWindow | None: window, None if not displayed yet.
+        """
         return cls._INSTANCE
 
     @classmethod
     def display(cls):
+        """Create the window singleton if needed and show it."""
         if not cls._INSTANCE:
             cls._INSTANCE = cls()
 
@@ -61,6 +69,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             cls._INSTANCE.activateWindow()
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
+        """Initialize NyxEditorMainWindow.
+
+        Args:
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(parent)
         self._has_completed_first_show = False
         self._dock_widgets: list[QtWidgets.QDockWidget] = []
@@ -86,25 +99,30 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @property
     def config(self) -> NyxConfig:
+        """NyxConfig: application config."""
         return self.application.session.config
 
     @property
     def current_stage_graph(self) -> StageGraphEditor | None:
+        """StageGraphEditor | None: editor of the active window."""
         if not self.current_mdi_window:
             return None
         return self.current_mdi_window.widget()
 
     @property
     def current_mdi_window(self) -> QtWidgets.QMdiSubWindow | None:
+        """QtWidgets.QMdiSubWindow | None: active MDI window."""
         return self.mdi_area.currentSubWindow()
 
     @property
     def application(self):
+        """NyxEditorApplication: running application."""
         app: NyxEditorApplication = QtWidgets.QApplication.instance()
         return app
 
     @property
     def dock_widgets(self) -> list[QtWidgets.QDockWidget]:
+        """list[QtWidgets.QDockWidget]: docks created by the window."""
         return self._dock_widgets
 
     def _create_dock(
@@ -115,6 +133,20 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         dock_class: type[QtWidgets.QDockWidget] | None = None,
         allowed_areas: QtCore.Qt.DockWidgetArea | None = None,
     ) -> QtWidgets.QDockWidget:
+        """Create a dock widget owned by the window.
+
+        Args:
+            title (str): dock title.
+            object_name (str): object name used to save and restore the layout.
+            widget (QtWidgets.QWidget): widget shown in the dock.
+            dock_class (type[QtWidgets.QDockWidget] | None): dock class. Defaults to
+                QDockWidget.
+            allowed_areas (QtCore.Qt.DockWidgetArea | None): areas the dock can be placed
+                in.
+
+        Returns:
+            QtWidgets.QDockWidget: created dock.
+        """
         if dock_class is None:
             dock_class = QtWidgets.QDockWidget
         dock = dock_class(title, self)
@@ -127,6 +159,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return dock
 
     def create_actions(self):
+        """Register handlers of the window actions."""
         register = ACTION_ROUTER.register_handler
         register(ActionId.EXECUTE_STAGE, self.execute_stage_graph)
         register(ActionId.EXECUTE_FROM_SELECTED, self.execute_from_selected_node)
@@ -152,6 +185,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             self.current_stage_graph.show_nodes_palette_centered()
 
     def create_menubar(self):
+        """Create the menu bar menus."""
         self.menubar_file_menu = menubar_menus.FileMenu(self)
         self.menubar_edit_menu = menubar_menus.EditMenu(self)
         self.menubar_session_menu = menubar_menus.SessionMenu(self)
@@ -164,6 +198,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(self.menubar_window_menu)
 
     def create_widgets(self):
+        """Create the window widgets."""
         self.stage_tree_view = StageTreeView()
         self.inspector = Inspector(self)
         self.nodes_palette_view = NodesPaletteView(drag_enabled=True, parent=self)
@@ -177,6 +212,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.mdi_area)
 
     def _create_dock_widgets(self):
+        """Create the dock widgets and the default tab positions."""
         # Dock Widgets
         self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
         self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.West)
@@ -220,6 +256,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         )
 
     def _apply_default_docks_layout(self):
+        """Reset the docks to the default layout."""
         # Start from a clean slate so no stale tab groups or floating state remain
         for dock in self.dock_widgets:
             dock.setFloating(False)
@@ -245,6 +282,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.stage_tree_dock.raise_()
 
     def _apply_default_geometry(self):
+        """Resize the window to most of the screen and center it."""
         screen_geometry = self.screen().availableGeometry()
         default_width = int(screen_geometry.width() * 0.8)
         default_height = int(screen_geometry.height() * 0.8)
@@ -252,9 +290,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         pyside_fn.move_window_to_screen_center(self)
 
     def create_layouts(self):
+        """Create layouts. The window has none yet."""
         pass
 
     def create_connections(self):
+        """Connect signals."""
         self.mdi_area.subWindowActivated.connect(self.on_node_graph_window_activated)
         self.mdi_area.subWindowActivated.connect(self.update_title)
         self.undo_group.indexChanged.connect(self.update_title)
@@ -262,6 +302,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     # Events
     def showEvent(self, show_event: QtGui.QShowEvent) -> None:
+        """Restore the log dock height after the first show.
+
+        Args:
+            show_event (QtGui.QShowEvent): event.
+        """
         super().showEvent(show_event)
         if self._has_completed_first_show:
             return
@@ -274,6 +319,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         )
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """Prompt to save each editor, then save the last session and config.
+
+        The close is ignored if any save prompt is cancelled.
+
+        Args:
+            event (QtGui.QCloseEvent): event.
+        """
         for sub_window in self.mdi_area.subWindowList():
             graph_editor: StageGraphEditor = sub_window.widget()
             result = graph_editor.maybe_save()
@@ -294,6 +346,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     # Config methods
     def save_config_value(self):
+        """Store window geometry and layout in the config."""
         self.config.values.main_window.position = (self.pos().x(), self.pos().y())
         self.config.values.main_window.size = (self.width(), self.height())
         self.config.values.main_window.layout.version = self.LAYOUT_VERSION
@@ -323,6 +376,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self._load_layout_from_config()
 
     def _load_layout_from_config(self):
+        """Restore the dock layout from the config.
+
+        Returns:
+            bool: saved layout was applied, False if the default was used.
+        """
         layout_config = self.config.values.main_window.layout
         if not layout_config.state or layout_config.version != self.LAYOUT_VERSION:
             LOGGER.info("No compatible saved layout, using default")
@@ -352,6 +410,15 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def create_stage_node_graph(
         self, stage: Stage | None = None, file_path: pathlib.Path | str | None = None
     ):
+        """Create an editor sub-window and add it to the MDI area.
+
+        Args:
+            stage (Stage | None): stage to edit. A new one is created if omitted.
+            file_path (pathlib.Path | str | None): stage file to load instead of a stage.
+
+        Returns:
+            QtWidgets.QMdiSubWindow: created sub-window.
+        """
         if file_path:
             stage_graph_editor_widget = StageGraphEditor.from_json_file(file_path)
         else:
@@ -372,14 +439,32 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return mdi_sub_window
 
     def add_recent_file(self, file_path: str):
+        """Add a file to the recent files.
+
+        Args:
+            file_path (str): stage file path.
+        """
         self.application.session.add_recent_file(file_path)
 
     def remove_recent_file(self, file_path: str):
+        """Remove a file from the recent files.
+
+        Args:
+            file_path (str): stage file path.
+        """
         self.application.session.remove_recent_file(file_path)
 
     def find_window_for_file(
         self, file_path: pathlib.Path | str
     ) -> QtWidgets.QMdiSubWindow | None:
+        """Find the window editing a stage file.
+
+        Args:
+            file_path (pathlib.Path | str): stage file path.
+
+        Returns:
+            QtWidgets.QMdiSubWindow | None: window, None if the file isn't open.
+        """
         stage = self.application.session.find_stage_for_file(file_path)
         if stage is None:
             return None
@@ -389,6 +474,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return None
 
     def activate_editor_window(self, sub_wnd: QtWidgets.QMdiSubWindow) -> None:
+        """Bring an editor window to the front and make it the active one.
+
+        Args:
+            sub_wnd (QtWidgets.QMdiSubWindow): window to activate.
+        """
         if sub_wnd.isMinimized():
             sub_wnd.showNormal()
         self.mdi_area.setActiveSubWindow(sub_wnd)
@@ -404,6 +494,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         return True
 
     def on_stage_open_recent(self, file_path: str):
+        """Open a recent file in a new window, or activate the window already showing it.
+
+        Missing files are removed from the recent files.
+
+        Args:
+            file_path (str): stage file path.
+        """
         if not pathlib.Path(file_path).is_file():
             LOGGER.warning("Recent file no longer exists: %s", file_path)
             self.remove_recent_file(file_path)
@@ -425,6 +522,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     # Slots
     def update_title(self):
+        """Show the active stage in the window title."""
         if not self.current_stage_graph:
             self.setWindowTitle(self.DEFAULT_TITLE)
             return
@@ -434,6 +532,12 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @QtCore.Slot(QtWidgets.QMdiSubWindow)
     def on_node_graph_window_activated(self, mdi_window: QtWidgets.QMdiSubWindow | None):
+        """Point the tree view and undo group at the activated editor.
+
+        Args:
+            mdi_window (QtWidgets.QMdiSubWindow | None): activated window, None if there
+                is none.
+        """
         if mdi_window is None:
             self.stage_tree_view.set_stage(None)
             self.undo_group.setActiveStack(None)
@@ -445,6 +549,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.stage_tree_view.setSelectionModel(stage_graph.selection_model)
 
     def on_stage_open(self, tabbed: bool = False):
+        """Ask for a stage file and open it.
+
+        The active window is reused unless `tabbed` is set, and a file that is already
+        open is activated instead.
+
+        Args:
+            tabbed (bool): open in a new window.
+        """
         file_path = StageGraphEditor.pick_stage_file(self)
         if not file_path:
             return
@@ -470,6 +582,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.on_node_graph_window_activated(sub_wnd)
 
     def on_session_save(self):
+        """Ask for a file and save the session to it."""
         file_filter = f"Nyx Session (*{SESSION_FILE_SUFFIX})"
         file_path = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save session to file", None, file_filter
@@ -481,6 +594,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.save_session(file_path)
 
     def save_session(self, file_path: pathlib.Path | str):
+        """Save open stages with their scope and view state, and the active stage.
+
+        Args:
+            file_path (pathlib.Path | str): session file.
+        """
         current = self.current_stage_graph
         editors = {w.widget().stage: w.widget() for w in self.mdi_area.subWindowList()}
         self.application.session.save_to_file(
@@ -492,6 +610,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         )
 
     def on_session_load(self):
+        """Ask for a session file and load it."""
         file_filter = f"Nyx Session (*{SESSION_FILE_SUFFIX})"
         file_path = QtWidgets.QFileDialog.getOpenFileName(
             self, "Load session", None, file_filter
@@ -501,12 +620,20 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.load_session(file_path)
 
     def on_session_restore_last(self):
+        """Load the session saved when the editor last exited."""
         if not LAST_SESSION_FILE_PATH.is_file():
             LOGGER.warning("No last session to restore")
             return
         self.load_session(LAST_SESSION_FILE_PATH)
 
     def load_session(self, file_path: pathlib.Path | str):
+        """Open the stages of a session file and restore their state.
+
+        Stages that are already open are only activated, not changed.
+
+        Args:
+            file_path (pathlib.Path | str): session file.
+        """
         try:
             data = self.application.session.read_file(file_path)
         except (OSError, ValueError):
@@ -530,13 +657,21 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def _apply_view_state(editor: StageGraphEditor, entry: dict):
+        """Apply the saved view state if the editor still exists.
+
+        Args:
+            editor (StageGraphEditor): editor to update.
+            entry (dict): session entry holding the "view" state.
+        """
         if shiboken6.isValid(editor) and "view" in entry:
             editor.gr_view.apply_view_state(entry["view"])
 
     def on_stage_open_tabbed(self):
+        """Open a stage file in a new window."""
         self.on_stage_open(tabbed=True)
 
     def on_stage_new(self):
+        """Open a new empty stage in a new window."""
         try:
             sub_wnd = self.create_stage_node_graph()
             sub_wnd.show()
@@ -544,19 +679,23 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             LOGGER.exception("Failed to create new stage view window")
 
     def on_stage_save(self):
+        """Save the active stage."""
         if self.current_stage_graph:
             self.current_stage_graph.on_stage_save()
 
     def on_stage_save_as(self):
+        """Save the active stage to a new file."""
         if self.current_stage_graph:
             self.current_stage_graph.on_stage_save_as()
 
     def execute_stage_graph(self):
+        """Execute the active stage."""
         if not self.current_stage_graph:
             return
         self.current_stage_graph.stage.crawler.start()
 
     def execute_from_selected_node(self):
+        """Execute the active stage starting from the selected node."""
         if not self.current_stage_graph:
             return
 

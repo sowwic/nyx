@@ -14,6 +14,8 @@ QWIDGETSIZE_MAX_IN_PIXELS = 16777215  # Qt's "no maximum" value
 
 
 class OutputLogDockWidget(QtWidgets.QDockWidget):
+    """Dock holding the output log, remembering the height the user expanded it to."""
+
     MINIMUM_EXPANDED_EXTRA_HEIGHT = 80
     INITIAL_EXPANDED_HEIGHT = 220
 
@@ -22,6 +24,12 @@ class OutputLogDockWidget(QtWidgets.QDockWidget):
         title: str,
         parent_main_window: QtWidgets.QMainWindow,
     ):
+        """Initialize OutputLogDockWidget.
+
+        Args:
+            title (str): dock title.
+            parent_main_window (QtWidgets.QMainWindow): main window the dock belongs to.
+        """
         super().__init__(title, parent=parent_main_window)
 
         self.output_log_widget = OutputLogWidget(parent=self)
@@ -68,12 +76,18 @@ class OutputLogDockWidget(QtWidgets.QDockWidget):
         )
 
     def save_config_values(self, config: NyxConfig) -> None:
+        """Store the expansion state and height in the config.
+
+        Args:
+            config (NyxConfig): config to update.
+        """
         config_values = config.values.editor_widgets.log_widget
         config_values.expanded_height = self._last_user_expanded_height
         config_values.is_expanded = self.output_log_widget.is_expanded()
 
     # ---- Sizing ----
     def sizeHint(self) -> QtCore.QSize:
+        """QtCore.QSize: preferred size, using the last expanded height when expanded."""
         # Used by QMainWindow when it places the dock without a saved size.
         base_size_hint = super().sizeHint()
         if self.output_log_widget.is_expanded():
@@ -81,12 +95,18 @@ class OutputLogDockWidget(QtWidgets.QDockWidget):
         return base_size_hint
 
     def _minimum_expanded_height_in_pixels(self) -> int:
+        """int: smallest height the expanded log can have."""
         return (
             self.output_log_widget.header_height_in_pixels()
             + self.MINIMUM_EXPANDED_EXTRA_HEIGHT
         )
 
     def _apply_size_constraints_for_expansion_state(self, is_expanded: bool) -> None:
+        """Pin the log to its header height when collapsed and free it when expanded.
+
+        Args:
+            is_expanded (bool): whether the log is expanded.
+        """
         if not is_expanded:
             collapsed_height_in_pixels = self.output_log_widget.header_height_in_pixels()
             self.output_log_widget.setMinimumHeight(collapsed_height_in_pixels)
@@ -104,15 +124,22 @@ class OutputLogDockWidget(QtWidgets.QDockWidget):
 
     # ---- Deferred height restore ----
     def schedule_restore_of_expanded_height(self) -> None:
+        """Restore the expanded height on the next event-loop turn."""
         QtCore.QTimer.singleShot(
             0, self.restore_expanded_height_into_main_window_if_possible
         )
 
     def _on_visibility_changed(self, is_visible: bool) -> None:
+        """Restore a pending expanded height once the dock becomes visible.
+
+        Args:
+            is_visible (bool): dock visibility.
+        """
         if is_visible and self._is_restore_of_expanded_height_pending:
             self.schedule_restore_of_expanded_height()
 
     def restore_expanded_height_into_main_window_if_possible(self) -> None:
+        """Resize the dock to the last user height if it is expanded and visible."""
         if not self.output_log_widget.is_expanded():
             return
 
@@ -138,10 +165,16 @@ class OutputLogDockWidget(QtWidgets.QDockWidget):
         QtCore.QTimer.singleShot(0, self._finish_programmatic_restore_of_expanded_height)
 
     def _finish_programmatic_restore_of_expanded_height(self) -> None:
+        """Clear the flags set while restoring the height."""
         self._is_restoring_expanded_height_programmatically = False
         self._is_restore_of_expanded_height_pending = False
 
     def resizeEvent(self, resize_event: QtGui.QResizeEvent) -> None:
+        """Remember the height the user resized the expanded dock to.
+
+        Args:
+            resize_event (QtGui.QResizeEvent): event.
+        """
         super().resizeEvent(resize_event)
 
         if not self.output_log_widget.is_expanded():

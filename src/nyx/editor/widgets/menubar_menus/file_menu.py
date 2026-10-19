@@ -13,12 +13,22 @@ from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
 class FileMenu(BaseMenu):
+    """File menu: stage open and save, recent files and node import and export."""
+
     def __init__(
         self, main_window: NyxEditorMainWindow, title: str = "&File", parent=None
     ):
+        """Initialize FileMenu.
+
+        Args:
+            main_window (NyxEditorMainWindow): editor main window.
+            title (str): menu title.
+            parent (QtWidgets.QWidget | None): parent widget.
+        """
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
+        """Register the handlers of the node import and export actions."""
         register = ACTION_ROUTER.register_handler
         register(ActionId.EXPORT_NODES, export_selected_nodes)
         register(ActionId.IMPORT_NODES, import_nodes_from_explorer)
@@ -28,6 +38,7 @@ class FileMenu(BaseMenu):
         )
 
     def populate(self):
+        """Add the file actions and the recent files submenu."""
         action = ACTION_REGISTRY.action
         self.addSection("Open")
         self.addAction(action(ActionId.NEW_STAGE))
@@ -46,6 +57,7 @@ class FileMenu(BaseMenu):
         self.addAction(action(ActionId.EXPORT_NODES))
 
     def rebuild_recent_menu(self):
+        """Refill the recent files submenu from the session."""
         self.recent_menu.clear()
         recent_files = self.main_window.config.values.editor_session.recent_files
         if not recent_files:
@@ -62,4 +74,10 @@ class FileMenu(BaseMenu):
             )
 
     def _open_recent(self, file_path: str, _checked: bool = False):
+        """Open a recent file.
+
+        Args:
+            file_path (str): stage file path.
+            _checked (bool): unused triggered state.
+        """
         self.main_window.on_stage_open_recent(file_path)
