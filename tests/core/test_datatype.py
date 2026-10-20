@@ -77,3 +77,22 @@ def test_type_datatype_gets_the_type_from_any_input(value, expected):
 
 def test_type_datatype_accepts_a_datatype():
     assert get(CoreDatatypes.TYPE).cast(get(CoreDatatypes.INT)) == CoreDatatypes.INT
+
+
+@pytest.mark.parametrize(
+    "type_id, expected",
+    [
+        (CoreDatatypes.BOOL, False),
+        (CoreDatatypes.STRING, ""),
+        (CoreDatatypes.INT, 0),
+        (CoreDatatypes.FLOAT, 0.0),
+        (CoreDatatypes.TYPE, "core:object"),
+        (CoreDatatypes.OBJECT, None),
+        (CoreDatatypes.PATH, None),
+        (CoreDatatypes.FLOW, None),
+    ],
+)
+def test_default_values(type_id, expected):
+    default = get(type_id).create_default()
+    assert default == expected
+    assert type(default) is type(expected)

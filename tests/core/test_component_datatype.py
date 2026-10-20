@@ -67,11 +67,46 @@ def test_next_valid_value_clears_invalid_state(value):
     assert value.cached_value == 2
 
 
-def test_none_is_not_cast(value):
+def test_none_becomes_the_default_of_the_datatype(value):
     value.set_datatype(CoreDatatypes.INT)
     value.push_value(None)
-    assert value.cached_value is None
+    assert value.cached_value == 0
     assert value.is_valid
+
+
+def test_none_stays_none_for_datatypes_without_a_default(value):
+    value.push_value(None)
+    assert value.cached_value is None
+
+
+def test_setting_a_datatype_on_an_empty_value_pushes_its_default():
+    component = make_branch(Stage())["condition"]
+    component.push_value(None)
+
+    component.set_datatype(CoreDatatypes.STRING)
+
+    assert component.raw_value == ""
+    assert component.cached_value == ""
+
+
+def test_setting_a_datatype_keeps_an_existing_value():
+    component = make_branch(Stage())["condition"]
+    component.push_value("5")
+
+    component.set_datatype(CoreDatatypes.INT)
+
+    assert component.raw_value == "5"
+    assert component.cached_value == 5
+
+
+def test_reset_to_type_default_uses_the_datatype_default():
+    component = make_branch(Stage())["condition"]
+    component.set_datatype(CoreDatatypes.INT)
+    component.push_value(9)
+
+    component.reset_value_to_type_default()
+
+    assert component.cached_value == 0
 
 
 def test_unknown_datatype_falls_back_to_object_but_is_kept(value):

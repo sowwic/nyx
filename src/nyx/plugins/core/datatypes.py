@@ -33,6 +33,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         display_name="Type",
         color="#B04BFF",
         caster=cast_to_type_id,
+        default_factory=lambda: CoreDatatypes.OBJECT.value,
         is_wildcard=True,
     ),
     Datatype(
@@ -41,6 +42,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         color="#FF0000",
         caster=bool,
         python_type=bool,
+        default_factory=bool,
     ),
     Datatype(
         type_id=CoreDatatypes.STRING,
@@ -48,6 +50,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         color="#FFA637",
         caster=str,
         python_type=str,
+        default_factory=str,
     ),
     Datatype(
         type_id=CoreDatatypes.INT,
@@ -55,6 +58,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         color="#38D6A4",
         caster=int,
         python_type=int,
+        default_factory=int,
     ),
     Datatype(
         type_id=CoreDatatypes.FLOAT,
@@ -62,6 +66,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         color="#9BE04B",
         caster=float,
         python_type=float,
+        default_factory=float,
     ),
     Datatype(
         type_id=CoreDatatypes.PATH,

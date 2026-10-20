@@ -312,6 +312,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         self.setData(str(type_id), role=self.Roles.DATATYPE)
         self._notify_datatype_changed()
+        if self.raw_value is None:
+            self.push_value(self.datatype.create_default())
+            return
         self.value_storage.evaluate()
         self.value_storage.refresh_display_value()
 
@@ -469,7 +472,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
-        self.push_value(self.get_type_default_value())
+        self.push_value(self.get_initial_value())
 
     def set_component_flag(
         self, flag: NodeComponentFlag, role: NodeComponent.Roles, state: bool
@@ -550,7 +553,17 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def reset_value_to_type_default(self) -> None:
         """Set the value to the default value of the component type."""
-        self.push_value(self.get_type_default_value())
+        self.push_value(self.get_initial_value())
+
+    def get_initial_value(self) -> typing.Any:
+        """Get the value a new component starts with.
+
+        Returns:
+            typing.Any: the default value of the component type, or the default of
+                the datatype if the type has none.
+        """
+        value = self.get_type_default_value()
+        return self.datatype.create_default() if value is None else value
 
     def add_link(self, link_uuid: UUID | str):
         """Register a link as connected to this component.

@@ -19,6 +19,7 @@ class Datatype:
         caster: converts an evaluated value, raises on failure
         python_type: python type of values of this datatype, used to infer the
             datatype of a value
+        default_factory: creates the value components of the datatype start with
         is_wildcard: compatible with every datatype
     """
 
@@ -27,7 +28,16 @@ class Datatype:
     color: str
     caster: typing.Callable[[typing.Any], typing.Any] = lambda value: value
     python_type: type | None = None
+    default_factory: typing.Callable[[], typing.Any] = lambda: None
     is_wildcard: bool = False
+
+    def create_default(self) -> typing.Any:
+        """Create the default value of the datatype.
+
+        Returns:
+            typing.Any: new default value, None for datatypes without one.
+        """
+        return self.default_factory()
 
     def cast(self, value: typing.Any) -> typing.Any:
         """Convert a value to this datatype.

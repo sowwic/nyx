@@ -126,7 +126,9 @@ class ValueStorage:
             self._set_cast_error(None)
 
     def cast_value(self, value: typing.Any) -> typing.Any:
-        """Cast an evaluated value to the component datatype. None is left as is.
+        """Cast an evaluated value to the component datatype.
+
+        A missing value (None) becomes the default of the datatype, if it has one.
 
         Args:
             value (typing.Any): evaluated value.
@@ -137,9 +139,12 @@ class ValueStorage:
         Returns:
             typing.Any: converted value.
         """
+        datatype = self.component.datatype
+        if value is None:
+            value = datatype.create_default()
         if value is None:
             return None
-        return self.component.datatype.cast(value)
+        return datatype.cast(value)
 
     def _set_cast_error(self, error: str | None) -> None:
         """Store the cast error and notify the model when validity changed.
