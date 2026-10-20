@@ -8,7 +8,9 @@ from nyx.editor.graphics.animation.link_animation import LinkAnimation, color_fr
 from nyx.editor.utils.common import get_app_config
 
 if typing.TYPE_CHECKING:
-    from nyx.core.layered_config import NyxEditorLinkGlowAnimationConfigValues
+    from nyx.core.config_values.animation_values import (
+        NyxEditorLinkGlowAnimationConfigValues,
+    )
     from nyx.editor.graphics.graphics_link import GraphicsLink
 
 LOGGER = logging.getLogger(__name__)

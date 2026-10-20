@@ -6,7 +6,9 @@ from nyx.editor.graphics.animation.link_animation import LinkAnimation, color_fr
 from nyx.editor.utils.common import get_app_config
 
 if typing.TYPE_CHECKING:
-    from nyx.core.layered_config import NyxEditorLinkPulseAnimationConfigValues
+    from nyx.core.config_values.animation_values import (
+        NyxEditorLinkPulseAnimationConfigValues,
+    )
     from nyx.editor.graphics.graphics_link import GraphicsLink
 
 

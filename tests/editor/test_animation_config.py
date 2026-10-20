@@ -3,11 +3,11 @@ import json
 import pytest
 from PySide6 import QtGui
 
-from nyx.core.layered_config import (
-    NyxConfigValues,
+from nyx.core.config_values.animation_values import (
     NyxEditorLinkGlowAnimationConfigValues,
     NyxEditorLinkPulseAnimationConfigValues,
 )
+from nyx.core.config_values.root_values import NyxConfigValues
 from nyx.editor.graphics.animation.glow_animation import MIN_PERIOD, GlowAnimation
 from nyx.editor.graphics.animation.pulse_animation import PulseAnimation
 

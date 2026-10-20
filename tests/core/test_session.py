@@ -21,15 +21,39 @@ def test_find_stage_for_file(session, tmp_path):
 
 
 def test_recent_files_cap_and_dedupe(session, monkeypatch):
-    from nyx.core.layered_config import MAX_RECENT_FILES
-
     monkeypatch.setattr(session.config, "save", lambda *a, **k: None)
-    for i in range(MAX_RECENT_FILES + 3):
+    max_recent_files = session.config.values.editor_session.max_recent_files
+    for i in range(max_recent_files + 3):
         session.add_recent_file(f"/x/{i}.nyx")
-    session.add_recent_file(f"/x/{MAX_RECENT_FILES + 2}.nyx")
-    assert len(session.recent_files) == MAX_RECENT_FILES
+    session.add_recent_file(f"/x/{max_recent_files + 2}.nyx")
+    assert len(session.recent_files) == max_recent_files
     session.remove_recent_file(session.recent_files[0])
-    assert len(session.recent_files) == MAX_RECENT_FILES - 1
+    assert len(session.recent_files) == max_recent_files - 1
+
+
+def test_recent_files_limit_comes_from_the_config(session, monkeypatch):
+    monkeypatch.setattr(session.config, "save", lambda *a, **k: None)
+    monkeypatch.setattr(session.config.values.editor_session, "max_recent_files", 3)
+
+    for i in range(6):
+        session.add_recent_file(f"/x/{i}.nyx")
+
+    assert session.recent_files == ["/x/5.nyx", "/x/4.nyx", "/x/3.nyx"]
+
+
+def test_recent_files_limit_below_zero_keeps_nothing(session, monkeypatch):
+    monkeypatch.setattr(session.config, "save", lambda *a, **k: None)
+    monkeypatch.setattr(session.config.values.editor_session, "max_recent_files", -2)
+
+    session.add_recent_file("/x/a.nyx")
+
+    assert session.recent_files == []
+
+
+def test_recent_files_limit_defaults_to_ten():
+    from nyx.core.config_values.editor_values import NyxEditorSessionConfigValues
+
+    assert NyxEditorSessionConfigValues().max_recent_files == 10
 
 
 def test_session_roundtrip_skips_unsaved_stages(session, tmp_path):
