@@ -59,7 +59,7 @@ class FlowComponent(NodeComponent):
     @classmethod
     def get_plug_shape(cls) -> GraphicsPlugShape:
         """GraphicsPlugShape: flow plugs are triangles, pointing along the flow."""
-        return GraphicsPlugShape.TRIANGLE
+        return GraphicsPlugShape.PENTAGON
 
     @classmethod
     def get_link_width_multiplier(cls) -> float:

@@ -117,6 +117,9 @@ class EditorUIObject(enum.StrEnum):
 class GraphicsPlugShape(enum.IntEnum):
     CIRCLE = 0
     TRIANGLE = enum.auto()
+    PENTAGON = enum.auto()
+    SQUARE = enum.auto()
+    SQUARE_MATRIX = enum.auto()
 
 
 class DatatypeColor(enum.StrEnum):

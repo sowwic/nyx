@@ -9,6 +9,7 @@ from nyx.api.v1 import (
     NodeComponent,
     NodeComponentFlag,
     NodeComponentValueMask,
+    GraphicsPlugShape,
     exceptions,
 )
 from nyx.core.path_resolver import StagePathResolver
@@ -76,6 +77,11 @@ class StageReferenceComponent(NodeComponent):
     def get_default_expanded_state(cls) -> bool:
         """bool: reference components start expanded."""
         return True
+
+    @classmethod
+    def get_plug_shape(cls) -> GraphicsPlugShape:
+        """GraphicsPlugShape: flow plugs are triangles, pointing along the flow."""
+        return GraphicsPlugShape.SQUARE
 
     # ======== Resolving ========= #
 

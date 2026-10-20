@@ -141,7 +141,7 @@ def test_components_describe_their_plug(qapp):
     stage.push_command(value_command)
     value = value_command.result_component
 
-    assert flow.get_plug_shape() is GraphicsPlugShape.TRIANGLE
+    assert flow.get_plug_shape() is GraphicsPlugShape.PENTAGON
     assert flow.get_plug_color() == FLOW
     assert value.get_plug_shape() is GraphicsPlugShape.CIRCLE
     assert value.get_plug_color() == DEFAULT  # no value yet, so no type to go by
@@ -256,14 +256,14 @@ def paint_plug(plug):
     return render(draw, size=(width, int(plug.ROW_HEIGHT)), antialiasing=True), plug
 
 
-def test_flow_plug_is_painted_as_triangle_with_the_component_color(plugs):
+def test_flow_plug_is_painted_as_pentagon_with_the_component_color(plugs):
     flow_plug, value_plug = plugs
     image, _ = paint_plug(flow_plug)
     left = -flow_plug.boundingRect().left()
-    tip_x = int(left + flow_plug.gr_node.width + 3)  # inside the output triangle
+    tip_x = int(left + flow_plug.gr_node.width + 3)  # inside the output pentagon
     # Not linked: only the outline is drawn, white and not the circle's orange.
     on_outline = QtGui.QColor(
-        image.pixelColor(int(left + flow_plug.gr_node.width - 4), 10)
+        image.pixelColor(int(left + flow_plug.gr_node.width - 5), 10)
     )
     assert on_outline.alpha() > 0
     assert (on_outline.red(), on_outline.green(), on_outline.blue()) == (255, 255, 255)
