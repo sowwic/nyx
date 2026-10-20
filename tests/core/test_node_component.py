@@ -90,7 +90,7 @@ def test_serialize_deserialize():
         )
     )
     flow_component.push_value("/stage/test")
-    flow_component.produces_output = False
+    flow_component.readable = False
     flow_component.is_active = False
     data = flow_component.serialize()
 
@@ -104,8 +104,8 @@ def test_serialize_deserialize():
 
     assert str(new_flow_component.pull_value()) == flow_component.pull_value()
     assert new_flow_component.is_active == flow_component.is_active
-    assert new_flow_component.produces_output == flow_component.produces_output
-    assert new_flow_component.accepts_input == flow_component.accepts_input
+    assert new_flow_component.readable == flow_component.readable
+    assert new_flow_component.writable == flow_component.writable
 
 
 def test_deserialized_flow_component_gets_the_enforced_flags():

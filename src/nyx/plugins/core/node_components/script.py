@@ -4,7 +4,12 @@ import runpy
 import importlib.util
 import typing
 
-from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentFlag
+from nyx.api.v1 import (
+    NodeComponent,
+    CoreNodeComponents,
+    NodeComponentFlag,
+    CoreDatatypes,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -44,7 +49,12 @@ class ScriptComponent(NodeComponent):
         return ""
 
     @classmethod
-    def get_tags(self) -> set[str]:
+    def get_type_default_datatype(cls) -> str:
+        """str: the value is a script path or an entry point, both strings."""
+        return CoreDatatypes.STRING
+
+    @classmethod
+    def get_tags(cls) -> set[str]:
         """set[str]: component tags."""
         return {"common", "script", "logic"}
 
@@ -63,8 +73,9 @@ class ScriptComponent(NodeComponent):
 
         Raises:
             ValueError: if the value is neither.
+            DatatypeCastError: if the pulled value can't be used as a string.
         """
-        script_value = self.pull_value()
+        script_value = self.cast_value(self.pull_value())
         if not script_value:
             return
 

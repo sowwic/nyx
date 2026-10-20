@@ -1,3 +1,5 @@
+import collections.abc
+import dataclasses
 import enum
 import logging
 import pathlib
@@ -35,6 +37,39 @@ LOGGER = logging.getLogger(__name__)
 type NodeLike = Node | UUID | pathlib.PurePosixPath | str
 
 
+@dataclasses.dataclass(frozen=True)
+class _SubtitleBinding:
+    """Ties the subtitle of a node to one of its components.
+
+    Attributes:
+        component_name: name of the component to follow
+        formatter: turns the component into the text, its display value if omitted
+    """
+
+    component_name: str
+    formatter: collections.abc.Callable[[NodeComponent], str] | None = None
+
+    def text(self, node: Node) -> str:
+        """Work out the subtitle.
+
+        Args:
+            node (Node): node owning the component.
+
+        Returns:
+            str: text, empty if the node has no such component.
+        """
+        try:
+            component = node.components_model.get_component(self.component_name)
+        except ValueError:
+            return ""
+        text = (
+            self.formatter(component)
+            if self.formatter is not None
+            else component.display_value
+        )
+        return "" if text is None else str(text)
+
+
 class Node(QtGui.QStandardItem, StageObject):
     """Stage node holding a list of components and child nodes.
 
@@ -69,6 +104,7 @@ class Node(QtGui.QStandardItem, StageObject):
         EXECUTION_STATUS = enum.auto()
         EXECUTION_ORDER = enum.auto()
         RAISED_EXCEPTION = enum.auto()
+        SUBTITLE = enum.auto()
 
     def __init__(
         self,
@@ -87,6 +123,8 @@ class Node(QtGui.QStandardItem, StageObject):
         StageObject.__init__(self, uuid=uuid)
         self._set_default_role_values()
         self._components_model = NodeComponentsModel(node=self)
+        self._subtitle_binding: _SubtitleBinding | None = None
+        self._components_model.dataChanged.connect(self._on_components_data_changed)
 
         if parent:
             parent.appendRow(self)
@@ -136,6 +174,66 @@ class Node(QtGui.QStandardItem, StageObject):
         self.setData(None, role=self.Roles.RAISED_EXCEPTION)
         self.setData(NodeExecutionStatus.NOT_RAN, role=self.Roles.EXECUTION_STATUS)
         self.setData(self.get_type_execution_order(), role=self.Roles.EXECUTION_ORDER)
+        self.setData("", role=self.Roles.SUBTITLE)
+
+    @property
+    def subtitle(self) -> str:
+        """str: extra text shown next to the title of the node, empty for none.
+
+        Not editable by the user and not saved: nodes set it up themselves, either with
+        a text or by following a component (see `bind_subtitle_to_component`).
+        """
+        if self._subtitle_binding is not None:
+            return self._subtitle_binding.text(self)
+        return self.data(self.Roles.SUBTITLE) or ""
+
+    @subtitle.setter
+    def subtitle(self, text: str | None) -> None:
+        self._subtitle_binding = None
+        self.setData(text or "", role=self.Roles.SUBTITLE)
+
+    def bind_subtitle_to_component(
+        self,
+        component_name: str,
+        formatter: collections.abc.Callable[[NodeComponent], str] | None = None,
+    ) -> None:
+        """Make the subtitle follow a component of the node.
+
+        The text is worked out whenever it is asked for, and the views are told when
+        the value of the component changes. Setting `subtitle` to a text ends the
+        binding.
+
+        Args:
+            component_name (str): name of the component to follow.
+            formatter (Callable[[NodeComponent], str] | None): turns the component into
+                the text. Defaults to its display value.
+        """
+        self._subtitle_binding = _SubtitleBinding(component_name, formatter)
+        self.emitDataChanged()
+
+    def _on_components_data_changed(
+        self,
+        top_left: QtCore.QModelIndex,
+        bottom_right: QtCore.QModelIndex,
+        roles: list[int],
+    ) -> None:
+        """Tell the views the subtitle may have changed when its component changed.
+
+        Args:
+            top_left (QtCore.QModelIndex): first changed index.
+            bottom_right (QtCore.QModelIndex): last changed index.
+            roles (list[int]): changed roles, empty for all.
+        """
+        binding = self._subtitle_binding
+        if binding is None:
+            return
+        if roles and not set(roles) & set(NodeComponentsModel.VALUE_ROLES):
+            return
+        for row in range(top_left.row(), bottom_right.row() + 1):
+            component = self._components_model.item(row, 0)
+            if component is not None and component.name == binding.component_name:
+                self.emitDataChanged()
+                return
 
     @property
     def name(self) -> str:

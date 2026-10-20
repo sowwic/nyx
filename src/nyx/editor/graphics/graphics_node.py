@@ -3,12 +3,11 @@ from uuid import UUID
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from .graphics_node_subtitle import GraphicsNodeSubtitle
 from .graphics_node_title import GraphicsNodeTitle
 from .graphics_plug import GraphicsPlug
-from ..utils.common import build_role_tooltip_html
-from ...core.layered_config import NyxConfig
+from ..utils.common import build_role_tooltip_html, are_hover_diagnostics_enabled
 from ...core import commands
-from ...static.vars import DEBUG
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -23,12 +22,13 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     """
 
     MIN_WIDTH = 100
-    MIN_HEIGHT = 100
+    MIN_PLUG_ROWS = 1  # a node is tall enough for this many plugs, even with fewer
     TITLE_COLOR = QtGui.QColor("#FF313131")
     BACKGROUND_COLOR = QtGui.QColor("#E3212121")
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
     ICON_RECT = QtCore.QRect(8, 6, 16, 16)
     TITLE_OFFSET_X = 28.0
+    SUBTITLE_MARGIN = 8.0  # space between the subtitle and the sides of the node
 
     def __init__(self, node: Node, parent=None):
         """Initialize GraphicsNode.
@@ -54,13 +54,14 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._init_assets()
         self.title_item = GraphicsNodeTitle(self)
         self.title_item.setPos(self.TITLE_OFFSET_X, 0)
+        self.subtitle_item = GraphicsNodeSubtitle(self)
 
         self.refresh()
 
     def _init_sizes(self):
         """Initialize size and padding values."""
         self.width = self.MIN_WIDTH
-        self.height = self.MIN_HEIGHT
+        self.height = 0.0  # set by update_layout
         self.edge_roundness = 10.0
         self.title_horizontal_padding = 4.0
         self.plugs_top_padding = 4.0
@@ -87,8 +88,8 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     @property
     def title_height(self) -> float:
-        """float: height of the title."""
-        return self.title_item.height
+        """float: height of the header: the title and the subtitle under it, if any."""
+        return self.title_item.height + self.subtitle_item.height
 
     @property
     def title_width(self) -> float:
@@ -120,6 +121,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             self.setPos(position)
 
         self.title_item.refresh()
+        self.subtitle_item.refresh(self._node.subtitle)
         self._icon = QtGui.QIcon(self._node.get_type_icon())
         self._brush_background = QtGui.QBrush(
             self.REFERENCE_NODE_BACKGROUND
@@ -171,16 +173,23 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.width = max(
             self.MIN_WIDTH,
             self.TITLE_OFFSET_X + self.title_width + self.title_horizontal_padding,
+            self.subtitle_item.width + 2 * self.SUBTITLE_MARGIN,
+            *(plug.preferred_width() for plug in self._plugs.values()),
+        )
+        # Right aligned: the subtitle ends where the node does, the title starts at it
+        self.subtitle_item.setPos(
+            self.width - self.SUBTITLE_MARGIN - self.subtitle_item.width,
+            self.title_item.height - self.subtitle_item.TITLE_OVERLAP,
         )
         plugs_top = self.title_height + self.plugs_top_padding
         for row, plug in enumerate(self._plugs.values()):
             plug.set_width(self.width)
             plug.setPos(0.0, plugs_top + row * GraphicsPlug.ROW_HEIGHT)
             plug.update_links()
-        plugs_bottom = (
-            plugs_top + len(self._plugs) * GraphicsPlug.ROW_HEIGHT + self.lower_padding
+        plug_rows = max(len(self._plugs), self.MIN_PLUG_ROWS)
+        self.height = (
+            plugs_top + plug_rows * GraphicsPlug.ROW_HEIGHT + self.lower_padding
         )
-        self.height = max(self.MIN_HEIGHT, plugs_bottom)
         self._rebuild_paths()
 
     def _rebuild_paths(self):
@@ -243,12 +252,10 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     def _refresh_tooltip(self):
         """Show node role diagnostics as tooltip if enabled in config or debug mode."""
-        config = NyxConfig()
-        node_config = config.values.editor_widgets.graphics_stage.nodes
         if not self._node.index().isValid():
             return
 
-        if node_config.hover_diagnostics or DEBUG:
+        if are_hover_diagnostics_enabled():
             self.setToolTip(build_role_tooltip_html(self._node.index()))
 
     # ======== Events ========= #

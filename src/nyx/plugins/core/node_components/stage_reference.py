@@ -4,12 +4,12 @@ import typing
 from uuid import UUID
 
 from nyx.api.v1 import (
+    CoreDatatypes,
     CoreNodeComponents,
     Node,
     NodeComponent,
     NodeComponentFlag,
     NodeComponentValueMask,
-    GraphicsPlugShape,
     exceptions,
 )
 from nyx.core.path_resolver import StagePathResolver
@@ -79,9 +79,9 @@ class StageReferenceComponent(NodeComponent):
         return True
 
     @classmethod
-    def get_plug_shape(cls) -> GraphicsPlugShape:
-        """GraphicsPlugShape: flow plugs are triangles, pointing along the flow."""
-        return GraphicsPlugShape.SQUARE
+    def get_type_default_datatype(cls) -> str:
+        """str: references have a datatype of their own."""
+        return CoreDatatypes.REFERENCE
 
     # ======== Resolving ========= #
 
@@ -227,6 +227,15 @@ class StageReferenceComponent(NodeComponent):
         if target is not None:
             return target.path.as_posix()
         return "" if self.raw_value is None else str(self.raw_value)
+
+    def current_name_text(self) -> str:
+        """Get the short name of the target, without the rest of its path.
+
+        Returns:
+            str: name of the target node, or `node.component` for a component, like
+                `log.message`. The last part of the given text if there is no target.
+        """
+        return pathlib.PurePosixPath(self.current_path_text()).name
 
     def current_display_text(self) -> str:
         """Get the text shown for the reference right now.

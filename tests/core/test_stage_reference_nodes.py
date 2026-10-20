@@ -32,7 +32,7 @@ def create_owner(stage, name="getter", parent=None):
         node=node, type_id=CoreNodeComponents.STAGE_REFERENCE, name="node_path"
     )
     stage.push_command(command)
-    command.result_component.accepts_input = True
+    command.result_component.writable = True
     return node
 
 
@@ -145,7 +145,7 @@ def test_linked_reference_provides_the_path():
     owner = create_owner(stage, name="owner")
     source_node = create_owner(stage, name="source")
     source = source_node["node_path"]
-    source.produces_output = True
+    source.readable = True
     source.push_value(target.path.as_posix())
 
     stage.push_command(
@@ -166,7 +166,7 @@ def test_plain_value_cannot_be_linked_into_a_reference():
         node=source_node, type_id=CoreNodeComponents.VALUE, name="path"
     )
     stage.push_command(add_command)
-    add_command.result_component.produces_output = True
+    add_command.result_component.readable = True
 
     with pytest.raises(exceptions.NyxCommandValidationError):
         stage.push_command(

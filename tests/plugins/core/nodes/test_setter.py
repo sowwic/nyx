@@ -17,19 +17,19 @@ def test_setter_creation():
 
     flow = result_node["flow"]
     assert flow.get_type_id() == CoreNodeComponents.FLOW
-    assert flow.accepts_input is True
-    assert flow.produces_output is True
+    assert flow.writable is True
+    assert flow.readable is True
 
     in_component_path = result_node["component"]
     assert in_component_path.get_type_id() == CoreNodeComponents.STAGE_REFERENCE
     assert in_component_path.is_editable is True
-    assert in_component_path.accepts_input is True
-    assert in_component_path.produces_output is False
+    assert in_component_path.writable is True
+    assert in_component_path.readable is False
 
     in_value = result_node["value"]
     assert in_value.get_type_id() == CoreNodeComponents.VALUE
-    assert in_value.accepts_input is True
-    assert in_value.produces_output is False
+    assert in_value.writable is True
+    assert in_value.readable is False
 
 
 def test_setter_execution_sets_component_value(request: pytest.FixtureRequest):
@@ -76,3 +76,100 @@ def test_setter_with_missing_component_raises():
     setter_node["component"].push_value("/stage/missing.message")
     with pytest.raises(exceptions.StageObjectQueryError):
         setter_node.execute()
+
+
+def test_setter_value_datatype_is_unlocked_until_linked():
+    from nyx.api.v1 import CoreDatatypes
+
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    value = setter_command.result_node["value"]
+    assert value.is_built_in
+    assert not value.is_datatype_locked
+
+    stage.push_command(
+        commands.SetNodeComponentDatatypeCommand(
+            stage=stage, node_component=value, datatype_id=CoreDatatypes.FLOAT
+        )
+    )
+    assert value.datatype.type_id == CoreDatatypes.FLOAT
+
+    source = log_command.result_node["message"]
+    source.readable = True
+    with pytest.raises(exceptions.NodeComponentLinkError, match="Incompatible"):
+        stage.push_command(
+            commands.LinkNodeComponentsCommand(stage=stage, source=source, target=value)
+        )
+
+
+def test_setter_value_takes_the_datatype_of_the_linked_component():
+    from nyx.api.v1 import CoreDatatypes
+
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    value = setter_command.result_node["value"]
+    source = log_command.result_node["message"]
+    source.readable = True
+
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(stage=stage, source=source, target=value)
+    )
+
+    assert value.datatype.type_id == CoreDatatypes.STRING
+    assert value.is_datatype_locked
+
+    stage.undo_stack.undo()
+    assert value.datatype.type_id == CoreDatatypes.OBJECT
+    assert not value.is_datatype_locked
+
+
+def make_setter_and_log():
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    log_node, setter_node = log_command.result_node, setter_command.result_node
+    setter_node["component"].push_value(f"./{log_node.name}.level")
+    return log_node, setter_node
+
+
+def test_setter_casts_the_value_to_the_datatype_of_the_target():
+    log_node, setter_node = make_setter_and_log()
+    setter_node["value"].push_value("30")  # evaluated to 30 already
+
+    setter_node.execute()
+    assert log_node["level"].cached_value == 30
+
+    setter_node["value"].push_value("'40'")  # a string, the target is an int
+    setter_node.execute()
+    assert log_node["level"].cached_value == 40
+    assert log_node["level"].is_valid
+
+
+def test_setter_raises_and_leaves_the_target_when_the_cast_fails():
+    from nyx.core.exceptions import DatatypeCastError
+
+    log_node, setter_node = make_setter_and_log()
+    setter_node["value"].push_value("'loud'")
+
+    with pytest.raises(DatatypeCastError):
+        setter_node.execute()
+
+    assert log_node["level"].cached_value == 10
+    assert log_node["level"].is_valid
+
+
+def test_setter_uses_the_datatype_default_for_a_missing_value():
+    log_node, setter_node = make_setter_and_log()
+    setter_node["value"].push_value(None)
+
+    setter_node.execute()
+
+    assert log_node["level"].cached_value == 0

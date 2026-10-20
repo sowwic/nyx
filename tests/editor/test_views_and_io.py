@@ -577,7 +577,7 @@ def test_graphics_node_creates_plugs_for_linkable_components(stage_editor, creat
     assert len(gr_node.plugs) == plug_count
     assert gr_node.get_plug(component) is None
 
-    component.accepts_input = True
+    component.writable = True
     stage_editor.gr_stage.rebuild_current_scope()
     assert stage_editor.gr_stage.get_gr_node(node) is gr_node
     assert len(gr_node.plugs) == plug_count + 1
@@ -623,6 +623,11 @@ def test_double_click_anywhere_on_node_steps_in(
         pos=view.mapFromScene(scene_pos),
     )
     assert stage_editor.get_scope_path() == node.path
+
+
+def _node_body_point(gr_node):
+    """Scene point inside the node that is neither on a plug row nor on a socket."""
+    return gr_node.mapToScene(50, gr_node.height - gr_node.lower_padding / 2)
 
 
 def _flow_plug(stage_editor, node):
@@ -733,7 +738,7 @@ def test_dropping_on_wrong_socket_or_node_does_not_link(
     gr_stage.finish_link_drag(plug_b.output_anchor())
     # dropped on the body of a node
     gr_stage.begin_link_drag(plug_a, plug_a.Socket.OUTPUT)
-    gr_stage.finish_link_drag(gr_stage.get_gr_node(b).mapToScene(50, 90))
+    gr_stage.finish_link_drag(_node_body_point(gr_stage.get_gr_node(b)))
 
     QtWidgets.QApplication.processEvents()
     assert gr_stage.gr_links() == []
@@ -835,7 +840,7 @@ def test_dragging_linked_input_socket_picks_up_the_link(stage_editor, create_nod
     assert gr_stage.link_drag_handler.preview.source_plug is plug_a
 
     # Dropped on empty node body: cancelled, old link is back
-    gr_stage.finish_link_drag(gr_stage.get_gr_node(c).mapToScene(50, 90))
+    gr_stage.finish_link_drag(_node_body_point(gr_stage.get_gr_node(c)))
     assert old_link.isVisible()
     assert [g.target_plug for g in gr_stage.gr_links()] == [plug_b]
 
@@ -990,7 +995,7 @@ def test_dragging_single_output_socket_picks_up_its_link(stage_editor, create_no
     assert gr_stage.link_drag_handler.preview.target_plug is plug_b
 
     # Dropped on a node body: cancelled, old link is back
-    gr_stage.finish_link_drag(gr_stage.get_gr_node(c).mapToScene(50, 90))
+    gr_stage.finish_link_drag(_node_body_point(gr_stage.get_gr_node(c)))
     assert old_link.isVisible()
     assert [g.source_plug for g in gr_stage.gr_links()] == [plug_a]
 
@@ -1027,3 +1032,35 @@ def test_dragging_to_a_single_output_source_replaces_its_link(stage_editor, crea
     (replacing,) = gr_stage.gr_links()
     assert (replacing.source_plug, replacing.target_plug) == (plug_a, plug_c)
     assert len(a["flow"].output_links) == 1
+
+
+def test_node_without_plugs_is_as_tall_as_a_single_plug_row(stage_editor, create_node):
+    from nyx.editor.graphics.graphics_plug import GraphicsPlug
+
+    node = create_node(stage_editor.stage, "empty", type_id=CoreNodes.EMPTY)
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+
+    assert not gr_node.plugs
+    assert gr_node.height == (
+        gr_node.title_height
+        + gr_node.plugs_top_padding
+        + GraphicsPlug.ROW_HEIGHT
+        + gr_node.lower_padding
+    )
+    assert gr_node.height < 100
+
+
+def test_node_grows_by_a_row_per_plug_beyond_the_first(stage_editor, create_node):
+    from nyx.editor.graphics.graphics_plug import GraphicsPlug
+
+    stage = stage_editor.stage
+    single = stage_editor.gr_stage.get_gr_node(
+        create_node(stage, "single", type_id=CoreNodes.FLOW_START)
+    )
+    branch = stage_editor.gr_stage.get_gr_node(
+        create_node(stage, "branch", type_id=CoreNodes.BRANCH)
+    )
+
+    assert len(single.plugs) == 1
+    assert len(branch.plugs) == 4
+    assert branch.height - single.height == 3 * GraphicsPlug.ROW_HEIGHT

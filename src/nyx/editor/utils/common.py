@@ -4,6 +4,8 @@ import html
 
 from PySide6 import QtCore, QtWidgets, QtQml
 
+from ...core.layered_config import NyxConfig
+from ...static.vars import DEBUG
 
 if typing.TYPE_CHECKING:
     from ..widgets.stage_graph_editor import StageGraphEditor
@@ -67,6 +69,16 @@ def blocked_signals(*objs):
     finally:
         for o, p in zip(objs, previous):
             o.blockSignals(p)
+
+
+def are_hover_diagnostics_enabled() -> bool:
+    """Check whether graphics items show their model roles as a tooltip.
+
+    Returns:
+        bool: enabled in the config or in debug mode.
+    """
+    node_config = NyxConfig().values.editor_widgets.graphics_stage.nodes
+    return bool(node_config.hover_diagnostics or DEBUG)
 
 
 def build_role_tooltip_html(

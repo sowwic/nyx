@@ -1,9 +1,10 @@
 from PySide6 import QtGui
 from nyx.api.v1 import (
+    NYX_REGISTRY,
+    Datatype,
     NodeComponent,
     CoreNodeComponents,
     NodeComponentFlag,
-    DatatypeColor,
 )
 
 
@@ -12,8 +13,6 @@ class ValueComponent(NodeComponent):
 
     DEFAULT_NAME = "value"
     EDITOR_QML = "ValueComponentItem"
-
-    VALUE_TYPE_COLOR_MAP = {bool: DatatypeColor.BOOL, str: DatatypeColor.STRING}
 
     @classmethod
     def get_type_id(cls) -> str:
@@ -45,9 +44,17 @@ class ValueComponent(NodeComponent):
         """bool: value components start expanded."""
         return True
 
-    def get_plug_color(self):
-        return QtGui.QColor(
-            self.VALUE_TYPE_COLOR_MAP.get(
-                type(self.cached_value), NodeComponent.DEFAULT_PLUG_COLOR
-            )
-        )
+    def get_shown_datatype(self) -> Datatype:
+        """Get the datatype the component is shown with.
+
+        Returns:
+            Datatype: the datatype hint, or for an unhinted component the datatype
+                of the current value.
+        """
+        if not self.datatype.is_wildcard:
+            return self.datatype
+        return NYX_REGISTRY.infer_datatype(self.cached_value)
+
+    def get_plug_color(self) -> QtGui.QColor:
+        """QtGui.QColor: color of the shown datatype."""
+        return QtGui.QColor(self.get_shown_datatype().color)

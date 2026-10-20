@@ -4,6 +4,7 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
     NodeComponentValueMask,
+    NodeComponentFlag,
 )
 
 
@@ -35,8 +36,8 @@ class SetterNode(Node):
     def setup(self):
         """Add the flow, component path and value components."""
         self.flow_cpnt = self.components_model.create_component(CoreNodeComponents.FLOW)
-        self.flow_cpnt.produces_output = True
-        self.flow_cpnt.accepts_input = True
+        self.flow_cpnt.readable = True
+        self.flow_cpnt.writable = True
         self.flow_cpnt.name = "flow"
 
         self.component_path_cpnt = self.components_model.create_component(
@@ -45,24 +46,31 @@ class SetterNode(Node):
         self.component_path_cpnt.name = "component"
         # A node is no use here: the value of a component is needed.
         self.component_path_cpnt.target_types = (NodeComponent,)
-        self.component_path_cpnt.accepts_input = True
+        self.component_path_cpnt.writable = True
         self.component_path_cpnt.is_editable = True
 
         self.value_cpnt = self.components_model.create_component(
             CoreNodeComponents.VALUE
         )
         self.value_cpnt.name = "value"
+        self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE
         self.value_cpnt.is_editable = True
-        self.value_cpnt.accepts_input = True
+        self.value_cpnt.writable = True
 
         self.components_model.add_component(self.flow_cpnt)
         self.components_model.add_component(self.component_path_cpnt)
         self.components_model.add_component(self.value_cpnt)
+        self.bind_subtitle_to_component(
+            self.component_path_cpnt.name,
+            lambda reference: reference.current_name_text(),
+        )
 
     def execute(self):
-        """Push the value into the target component."""
+        """Push the value, cast to the datatype of the target, into the target.
+
+        Raises:
+            DatatypeCastError: the value can't be cast, the target is left as it is.
+        """
         component: NodeComponent = self.component_path_cpnt.resolve_component()
-        component.push_value(
-            self.value_cpnt.pull_value(value_mask=NodeComponentValueMask.CACHE),
-            evaluate=False,
-        )
+        value = self.value_cpnt.pull_value(value_mask=NodeComponentValueMask.CACHE)
+        component.push_value(component.cast_value(value), evaluate=False)

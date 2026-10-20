@@ -123,8 +123,8 @@ def test_deleting_linked_componet_deletes_link():
     )
 
     stage.push_command(add_cpnt1_command, add_cpnt2_command)
-    add_cpnt1_command.result_component.produces_output = True
-    add_cpnt2_command.result_component.accepts_input = True
+    add_cpnt1_command.result_component.readable = True
+    add_cpnt2_command.result_component.writable = True
 
     # Create links between new value components
     link1_command = LinkNodeComponentsCommand(

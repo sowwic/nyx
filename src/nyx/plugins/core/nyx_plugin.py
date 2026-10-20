@@ -4,6 +4,8 @@ import logging
 from .resources import resources_rc  # noqa: F401
 from nyx.api.v1 import NyxPluginManager, NyxPlugin
 
+from .datatypes import CORE_DATATYPES
+
 from .node_components.comment import CommentComponent
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
@@ -49,6 +51,7 @@ class NyxCore(NyxPlugin):
             ScriptComponent,
             StageReferenceComponent,
         ]
+        plugin.contents.datatypes = list(CORE_DATATYPES)
         plugin.contents.nodes = [
             BlankNode,
             SetterNode,

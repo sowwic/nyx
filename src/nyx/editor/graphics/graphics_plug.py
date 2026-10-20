@@ -5,6 +5,10 @@ from uuid import UUID
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.graphics.graphics_plug_shape import PlugShape, plug_shape_for
+from nyx.editor.utils.common import (
+    are_hover_diagnostics_enabled,
+    build_role_tooltip_html,
+)
 from nyx.static.enums import GraphicsPlugShape
 
 if typing.TYPE_CHECKING:
@@ -27,7 +31,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         OUTPUT = enum.auto()
 
     ROW_HEIGHT = 20.0
-    SOCKET_HIT_RADIUS = PlugShape.HIT_RADIUS
+    SOCKET_INSET = 10.0  # distance of the sockets from the sides of the node
     LABEL_COLOR = QtGui.QColor("#CCCCCC")
     LABEL_FONT = QtGui.QFont("Zed Mono", 10)
 
@@ -43,8 +47,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._uuid: UUID = component.uuid
         self._width = gr_node.width
         self._label = component.name
-        self._accepts_input = False
-        self._produces_output = False
+        self._writable = False
+        self._readable = False
         self._input_linked = False
         self._output_linked = False
         self._shape_kind: GraphicsPlugShape | None = None
@@ -52,6 +56,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._color = QtGui.QColor()
         self._link_width_multiplier = 1.0
         self._links: set[GraphicsLink] = set()
+        self.setAcceptHoverEvents(True)
         self.refresh()
 
     @property
@@ -99,24 +104,24 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         Returns:
             bool: component accepts input or produces output.
         """
-        return component.accepts_input or component.produces_output
+        return component.writable or component.readable
 
     def refresh(self):
         """Re-read the state of the component and repaint if it changed."""
         state = (
             self._component.name,
-            self._component.accepts_input,
-            self._component.produces_output,
+            self._component.writable,
+            self._component.readable,
             bool(self._component.input_links_uuids),
             bool(self._component.output_links_uuids),
-            type(self._component).get_plug_shape(),
+            self._component.get_plug_shape(),
             self._component.get_plug_color(),
             type(self._component).get_link_width_multiplier(),
         )
         if state == (
             self._label,
-            self._accepts_input,
-            self._produces_output,
+            self._writable,
+            self._readable,
             self._input_linked,
             self._output_linked,
             self._shape_kind,
@@ -126,8 +131,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             return
         (
             self._label,
-            self._accepts_input,
-            self._produces_output,
+            self._writable,
+            self._readable,
             self._input_linked,
             self._output_linked,
             self._shape_kind,
@@ -150,13 +155,46 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self.prepareGeometryChange()
         self._width = width
 
+    @property
+    def _input_x(self) -> float:
+        """float: x of the input socket, in the coordinates of the plug."""
+        return self.SOCKET_INSET
+
+    @property
+    def _output_x(self) -> float:
+        """float: x of the output socket, in the coordinates of the plug."""
+        return self._width - self.SOCKET_INSET
+
     def input_anchor(self) -> QtCore.QPointF:
         """QtCore.QPointF: scene position input links should attach to."""
-        return self.mapToScene(0.0, self.ROW_HEIGHT / 2)
+        return self.mapToScene(self._input_x, self.ROW_HEIGHT / 2)
 
     def output_anchor(self) -> QtCore.QPointF:
         """QtCore.QPointF: scene position output links should attach to."""
-        return self.mapToScene(self._width, self.ROW_HEIGHT / 2)
+        return self.mapToScene(self._output_x, self.ROW_HEIGHT / 2)
+
+    def _label_margins(self) -> tuple[float, float]:
+        """Get the space the label keeps clear of the sides of the row.
+
+        Returns:
+            tuple[float, float]: left and right margin. Room for the socket on a side
+                that has one, a small padding on the other.
+        """
+        socket_room = self.SOCKET_INSET + self._shape.RADIUS * 2 + 2
+        return (
+            socket_room if self._writable else self.SOCKET_INSET,
+            socket_room if self._readable else self.SOCKET_INSET,
+        )
+
+    def preferred_width(self) -> float:
+        """Get the width the row needs to show its label next to its sockets.
+
+        Returns:
+            float: width of the label plus its margins.
+        """
+        left, right = self._label_margins()
+        text_width = QtGui.QFontMetricsF(self.LABEL_FONT).horizontalAdvance(self._label)
+        return left + text_width + right
 
     def add_link(self, link: GraphicsLink):
         """Track a link so it can follow the plug.
@@ -190,22 +228,39 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         """
         local = self.mapFromScene(scene_pos)
         center_y = self.ROW_HEIGHT / 2
-        if self._accepts_input and self._shape.contains(
-            QtCore.QPointF(local.x(), local.y() - center_y)
+        if self._writable and self._shape.contains(
+            QtCore.QPointF(local.x() - self._input_x, local.y() - center_y)
         ):
             return self.Socket.INPUT
-        if self._produces_output and self._shape.contains(
-            QtCore.QPointF(local.x() - self._width, local.y() - center_y)
+        if self._readable and self._shape.contains(
+            QtCore.QPointF(local.x() - self._output_x, local.y() - center_y)
         ):
             return self.Socket.OUTPUT
         return None
 
     def boundingRect(self) -> QtCore.QRectF:
-        """QtCore.QRectF: bounds of the row, including sockets sticking out."""
-        r = self.SOCKET_HIT_RADIUS
-        return QtCore.QRectF(-r, 0.0, self._width + 2 * r, self.ROW_HEIGHT)
+        """QtCore.QRectF: bounds of the row, the sockets are inside of it."""
+        return QtCore.QRectF(0.0, 0.0, self._width, self.ROW_HEIGHT)
 
     # ======== Events ========= #
+
+    def _refresh_tooltip(self):
+        """Show the roles of the component as tooltip if diagnostics are enabled."""
+        index = self._component.index()
+        if not index.isValid():
+            return
+
+        if are_hover_diagnostics_enabled():
+            self.setToolTip(build_role_tooltip_html(index))
+
+    def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        """Refresh the tooltip when the cursor enters.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneHoverEvent): event.
+        """
+        self._refresh_tooltip()
+        super().hoverEnterEvent(event)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         """Start dragging a link from the socket under the cursor.
@@ -270,21 +325,23 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         center_y = self.ROW_HEIGHT / 2
         # (center, is linked) per visible socket
         sockets = []
-        if self._accepts_input:
-            sockets.append((QtCore.QPointF(0.0, center_y), self._input_linked))
-        if self._produces_output:
-            sockets.append((QtCore.QPointF(self._width, center_y), self._output_linked))
+        if self._writable:
+            sockets.append((QtCore.QPointF(self._input_x, center_y), self._input_linked))
+        if self._readable:
+            sockets.append(
+                (QtCore.QPointF(self._output_x, center_y), self._output_linked)
+            )
 
         for center, linked in sockets:
             self._shape.paint(painter, center, self._color, linked)
 
         painter.setFont(self.LABEL_FONT)
         painter.setPen(self.LABEL_COLOR)
-        margin = self._shape.RADIUS * 2 + 2
-        text_rect = QtCore.QRectF(margin, 0.0, self._width - 2 * margin, self.ROW_HEIGHT)
+        left, right = self._label_margins()
+        text_rect = QtCore.QRectF(left, 0.0, self._width - left - right, self.ROW_HEIGHT)
         align = (
             QtCore.Qt.AlignmentFlag.AlignRight
-            if self._produces_output and not self._accepts_input
+            if self._readable and not self._writable
             else QtCore.Qt.AlignmentFlag.AlignLeft
         ) | QtCore.Qt.AlignmentFlag.AlignVCenter
         painter.drawText(text_rect, align, self._label)

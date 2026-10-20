@@ -29,6 +29,6 @@ class FlowStartNode(Node):
     def setup(self):
         """Add the flow output component."""
         self.flow_cpnt = self.components_model.create_component(CoreNodeComponents.FLOW)
-        self.flow_cpnt.produces_output = True
+        self.flow_cpnt.readable = True
         self.flow_cpnt.name = "flow"
         self.components_model.add_component(self.flow_cpnt)

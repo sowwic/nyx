@@ -18,11 +18,23 @@ class ControllerStub(QtCore.QObject):
         super().__init__()
         self.calls = []
         self.file_dialogs = []
+        self.datatype_calls = []
         self.chosen_file = ""
 
     @QtCore.Slot(int, str, bool)
     def setComponentValue(self, row, new_value, raw):
         self.calls.append((row, new_value, raw))
+
+    @QtCore.Slot(int, str)
+    def setComponentDatatype(self, row, datatype_id):
+        self.datatype_calls.append((row, datatype_id))
+
+    @QtCore.Slot(result="QVariantList")
+    def availableDatatypes(self):
+        return [
+            {"id": "core:object", "name": "Object"},
+            {"id": "core:bool", "name": "Boolean"},
+        ]
 
     @QtCore.Slot(str, str, str, result=str)
     def selectFile(self, title, name_filters, start_path):
@@ -486,3 +498,48 @@ def test_getter_value_in_inspector_updates_when_the_path_changes(
     assert value.property("field").property("text") == "two"
     commit("/stage/missing.message")
     assert value.property("field").property("text") == ""
+
+
+def test_datatype_selector_shows_the_datatype_of_the_component(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", resolvedDatatype="core:bool"
+    )
+
+    selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
+    assert selector.property("currentText") == "Boolean"
+
+
+def test_picking_a_datatype_goes_through_the_controller(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", resolvedDatatype="core:object"
+    )
+
+    selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
+    QtCore.QMetaObject.invokeMethod(
+        selector,
+        "activated",
+        QtCore.Qt.ConnectionType.DirectConnection,
+        QtCore.Q_ARG(int, 1),
+    )
+    assert editor.controller.datatype_calls == [(3, "core:bool")]
+
+
+def test_datatype_selector_is_disabled_when_the_datatype_is_locked(make_editor):
+    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=True)
+    selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
+    assert selector.property("enabled") is False
+
+
+def test_datatype_selector_is_enabled_when_the_datatype_is_not_locked(make_editor):
+    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=False)
+    selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
+    assert selector.property("enabled") is True
+
+
+def test_controller_lists_only_selectable_datatypes(qapp):
+    from nyx.editor.controllers.components import ComponentsController
+
+    ids = [entry["id"] for entry in ComponentsController().availableDatatypes()]
+
+    assert "core:bool" in ids
+    assert "core:flow" not in ids

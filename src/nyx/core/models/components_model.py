@@ -201,14 +201,18 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_editable
             if role == NodeComponent.Roles.IS_VALID:
                 return component.is_valid
+            if role == NodeComponent.Roles.RESOLVED_DATATYPE:
+                return component.resolved_datatype_id
+            if role == NodeComponent.Roles.IS_DATATYPE_LOCKED:
+                return component.is_datatype_locked
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:
                 return component.is_static
             if role == NodeComponent.Roles.WRITABLE:
-                return component.accepts_input
+                return component.writable
             if role == NodeComponent.Roles.READABLE:
-                return component.produces_output
+                return component.readable
             else:
                 LOGGER.error(f"No value defined for virtual role: {role}")
                 return None
@@ -417,7 +421,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             FlowComponent: matching flow components.
         """
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
-            if flow_component.is_active and flow_component.accepts_input:
+            if flow_component.is_active and flow_component.writable:
                 yield flow_component  # ty: ignore
 
     def find_readable_flow_components(self) -> Iterator[FlowComponent]:
@@ -427,7 +431,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             FlowComponent: matching flow components.
         """
         for flow_component in self.find_components_of_type(CoreNodeComponents.FLOW):
-            if flow_component.is_active and flow_component.produces_output:
+            if flow_component.is_active and flow_component.readable:
                 yield flow_component  # ty: ignore
 
     def find_components_of_type(self, type_id: str) -> Iterator[NodeComponent]:

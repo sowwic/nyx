@@ -152,3 +152,144 @@ def test_crawler_order_correct_with_nested_hierarchy(
         action2_child.path.as_posix(),
     ]
     assert stage.crawler._execution_paths_stack == stage.crawler.visited_node_paths
+
+
+# ======== Traversal ========= #
+
+
+def make_node(stage, type_id=CoreNodes.ACTION, parent=None, name=None):
+    command = commands.CreateNodeCommand(
+        stage=stage, type_id=type_id, parent_node=parent, name=name
+    )
+    stage.push_command(command)
+    return command.result_node
+
+
+def executed_names(stage):
+    return [
+        pathlib.PurePosixPath(path).name for path in stage.crawler.execution_paths_stack
+    ]
+
+
+def test_long_flow_chain_is_not_limited_by_the_recursion_limit():
+    stage = Stage()
+    previous = make_node(stage, CoreNodes.FLOW_START, name="start")
+    length = 1500  # more than the recursion limit
+    for index in range(length):
+        node = make_node(stage, name=f"n{index}")
+        previous["flow"] >> node["flow"]
+        previous = node
+
+    stage.crawler.start()
+
+    assert len(stage.crawler.visited_node_paths) == length + 2  # root and start too
+    assert executed_names(stage)[-1] == f"n{length - 1}"
+
+
+def test_sequence_outputs_are_followed_depth_first_in_order():
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    sequence = make_node(stage, CoreNodes.SEQUENCE, name="seq")
+    first = make_node(stage, name="a1")
+    second = make_node(stage, name="a2")
+    other = make_node(stage, name="b1")
+    start["flow"] >> sequence["flow_0"]
+    sequence["flow_1"] >> first["flow"]
+    first["flow"] >> second["flow"]
+    sequence["flow_2"] >> other["flow"]
+
+    stage.crawler.start()
+
+    assert executed_names(stage) == ["stage", "start", "seq", "a1", "a2", "b1"]
+
+
+def test_inactive_flow_output_is_not_followed():
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    sequence = make_node(stage, CoreNodes.SEQUENCE, name="seq")
+    followed = make_node(stage, name="followed")
+    skipped = make_node(stage, name="skipped")
+    start["flow"] >> sequence["flow_0"]
+    sequence["flow_1"] >> followed["flow"]
+    sequence["flow_2"] >> skipped["flow"]
+    sequence["flow_2"].is_active = False
+
+    stage.crawler.start()
+
+    assert "followed" in executed_names(stage)
+    assert "skipped" not in executed_names(stage)
+
+
+def test_converging_flows_run_the_shared_node_once():
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    sequence = make_node(stage, CoreNodes.SEQUENCE, name="seq")
+    left = make_node(stage, name="left")
+    right = make_node(stage, name="right")
+    shared = make_node(stage, name="shared")
+    tail = make_node(stage, name="tail")
+    start["flow"] >> sequence["flow_0"]
+    sequence["flow_1"] >> left["flow"]
+    sequence["flow_2"] >> right["flow"]
+    left["flow"] >> shared["flow"]
+    right["flow"] >> shared["flow"]
+    shared["flow"] >> tail["flow"]
+
+    stage.crawler.start()
+
+    assert executed_names(stage).count("shared") == 1
+    assert executed_names(stage).count("tail") == 1
+
+
+def test_cycle_ends_instead_of_running_forever():
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    first = make_node(stage, name="first")
+    second = make_node(stage, name="second")
+    start["flow"] >> first["flow"]
+    first["flow"] >> second["flow"]
+    second["flow"] >> first["flow"]
+
+    stage.crawler.start()
+
+    assert executed_names(stage).count("first") == 1
+    assert executed_names(stage).count("second") == 1
+
+
+def test_flow_pointing_at_a_node_that_is_not_a_sibling_raises():
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    first = make_node(stage, name="first")
+    holder = make_node(stage, name="holder")
+    inner = make_node(stage, parent=holder, name="inner")
+    start["flow"] >> first["flow"]
+    first["flow"] >> inner["flow"]
+
+    with pytest.raises(RuntimeError, match="not a sibling"):
+        stage.crawler.start()
+
+
+def test_visiting_a_node_directly_runs_it():
+    stage = Stage()
+    node = make_node(stage, name="direct")
+
+    node.accept_visitor(stage.crawler)
+
+    assert executed_names(stage) == ["direct"]
+
+
+def test_crawler_can_run_again_after_an_error():
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    first = make_node(stage, name="first")
+    holder = make_node(stage, name="holder")
+    inner = make_node(stage, parent=holder, name="inner")
+    start["flow"] >> first["flow"]
+    first["flow"] >> inner["flow"]
+    with pytest.raises(RuntimeError):
+        stage.crawler.start()
+
+    first["flow"].is_active = False
+    stage.crawler.start()
+
+    assert executed_names(stage) == ["stage", "start", "first"]

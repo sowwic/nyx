@@ -9,6 +9,9 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
+from .datatype import Datatype
+from .exceptions import DatatypeCastError
+from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import (
@@ -16,6 +19,7 @@ from ..static.enums import (
     NodeComponentFlag,
     NodeComponentValueMask,
     GraphicsPlugShape,
+    CoreDatatypes,
 )
 from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
@@ -40,6 +44,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     DEFAULT_PLUG_COLOR: str = "#0096FF"
     EDITOR_QML: str | None = None
     PATH_SEPARATOR: str = "."
+    VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
@@ -54,6 +59,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_ICON = enum.auto()
         RAW_VALUE = enum.auto()
         CACHED_VALUE = enum.auto()
+        DATATYPE = enum.auto()
         LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
@@ -75,6 +81,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_STATIC = enum.auto()
         IS_BUILT_IN = enum.auto()
         IS_VALID = enum.auto()
+        RESOLVED_DATATYPE = enum.auto()
+        IS_DATATYPE_LOCKED = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -97,6 +105,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,
                 cls.IS_VALID,
+                cls.RESOLVED_DATATYPE,
+                cls.IS_DATATYPE_LOCKED,
             )
 
     def __repr__(self) -> str:
@@ -117,6 +127,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         QtGui.QStandardItem.__init__(self)
         StageObject.__init__(self, uuid=uuid)
 
+        self.value_storage = self.VALUE_STORAGE_CLS(self)
         self.name = name or self.DEFAULT_NAME
         self.init_default_data_values()
 
@@ -225,17 +236,113 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @property
     def raw_value(self) -> typing.Any:
         """typing.Any: value as set, before evaluation."""
-        return self.data(self.Roles.RAW_VALUE)
+        return self.value_storage.raw_value
 
     @property
     def cached_value(self) -> typing.Any:
         """typing.Any: evaluated value."""
-        return self.data(self.Roles.CACHED_VALUE)
+        return self.value_storage.cached_value
 
     @property
     def display_value(self) -> str:
         """str: value text shown in the UI."""
-        return self.data(self.Roles.DISPLAY_VALUE)
+        return self.value_storage.display_value
+
+    @property
+    def datatype_id(self) -> str:
+        """str: type id of the datatype hint, kept even if it isn't registered."""
+        return self.data(self.Roles.DATATYPE) or CoreDatatypes.OBJECT
+
+    @property
+    def resolved_datatype_id(self) -> str:
+        """str: type id of the datatype in effect, the source's if there is one."""
+        source = self.get_datatype_source()
+        if source is None:
+            return self.datatype_id
+        return source.resolved_datatype_id
+
+    @property
+    def datatype(self) -> Datatype:
+        """Datatype: datatype in effect, the object datatype if unset or unknown."""
+        return NYX_REGISTRY.resolve_datatype(self.resolved_datatype_id)
+
+    @property
+    def inherits_datatype(self) -> bool:
+        """bool: datatype follows the component the value comes from."""
+        return NodeComponentFlag.INHERITS_DATATYPE in self.component_flags
+
+    @property
+    def is_datatype_locked(self) -> bool:
+        """bool: the datatype can't be changed by the user.
+
+        Built-ins are locked, unless they inherit their datatype and have nothing to
+        inherit it from.
+        """
+        if self.get_datatype_source() is not None:
+            return True
+        return self.is_built_in and not self.inherits_datatype
+
+    def cast_value(self, value: typing.Any) -> typing.Any:
+        """Cast an already evaluated value to the datatype of the component.
+
+        Args:
+            value (typing.Any): evaluated value.
+
+        Raises:
+            DatatypeCastError: the value can't be converted.
+
+        Returns:
+            typing.Any: converted value, the datatype default for None.
+        """
+        return self.value_storage.cast_value(value)
+
+    def accepts_datatype_of(self, source: NodeComponent) -> bool:
+        """Check whether the datatype of another component is compatible with this one.
+
+        Args:
+            source (NodeComponent): component providing the value.
+
+        Returns:
+            bool: this component accepts the value of the source.
+        """
+        return self.datatype.accepts(source.datatype)
+
+    def get_datatype_source(self) -> NodeComponent | None:
+        """Get the component the datatype is taken from, like the value is pulled.
+
+        Returns:
+            NodeComponent | None: source of the input link for components inheriting
+                their datatype, None if there is none or the datatype is the own one.
+        """
+        if not self.inherits_datatype:
+            return None
+        input_links = self.input_links
+        return input_links[0].source_component if input_links else None
+
+    def set_datatype(self, type_id: str) -> None:
+        """Set the datatype hint and re-evaluate the value against it.
+
+        Args:
+            type_id (str): datatype type id.
+        """
+        self.setData(str(type_id), role=self.Roles.DATATYPE)
+        self._notify_datatype_changed()
+        if self.raw_value is None:
+            self.push_value(self.datatype.create_default())
+            return
+        self.value_storage.evaluate()
+        self.value_storage.refresh_display_value()
+
+    def _notify_datatype_changed(self):
+        """Tell the model the datatype in effect changed, so views refresh."""
+        model = self.model()
+        if model is None:
+            return
+        model.dataChanged.emit(
+            self.index(),
+            self.index(),
+            [self.Roles.RESOLVED_DATATYPE, self.Roles.IS_DATATYPE_LOCKED],
+        )
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
@@ -286,23 +393,23 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(state, self.Roles.IS_ACTIVE)
 
     @property
-    def produces_output(self) -> bool:
+    def readable(self) -> bool:
         """bool: component can be the source of a link."""
         return NodeComponentFlag.READABLE in self.component_flags
 
-    @produces_output.setter
-    def produces_output(self, state: bool) -> None:
+    @readable.setter
+    def readable(self, state: bool) -> None:
         self.set_component_flag(
             NodeComponentFlag.READABLE, self.Roles.READABLE, state=state
         )
 
     @property
-    def accepts_input(self) -> bool:
+    def writable(self) -> bool:
         """bool: component can be the target of a link."""
         return NodeComponentFlag.WRITABLE in self.component_flags
 
-    @accepts_input.setter
-    def accepts_input(self, state: bool) -> None:
+    @writable.setter
+    def writable(self, state: bool) -> None:
         self.set_component_flag(
             NodeComponentFlag.WRITABLE, self.Roles.WRITABLE, state=state
         )
@@ -337,7 +444,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @property
     def is_valid(self) -> bool:
         """bool: the value is usable. Components with something to resolve override."""
-        return True
+        return self.value_storage.is_valid
 
     @property
     def is_built_in(self) -> bool:
@@ -372,6 +479,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
+        self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
         self.setData(True, role=self.Roles.LINKS_EXPANDED)
         self.setData(set(), role=self.Roles.LINKS)
@@ -379,7 +487,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
-        self.push_value(self.get_type_default_value())
+        self.push_value(self.get_initial_value())
 
     def set_component_flag(
         self, flag: NodeComponentFlag, role: NodeComponent.Roles, state: bool
@@ -414,8 +522,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def clear_cached_value(self):
         """Clear the cached value and reset the display value to the raw value."""
-        self.setData(None, role=self.Roles.CACHED_VALUE)
-        self.setData(str(self.raw_value), self.Roles.DISPLAY_VALUE)
+        self.value_storage.clear_cache()
 
     def push_value(self, value: typing.Any, evaluate: bool = True):
         """Set the value of the component.
@@ -424,11 +531,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             value (typing.Any): new raw value.
             evaluate (bool): evaluate the value after setting it.
         """
-        self.setData(value, role=self.Roles.RAW_VALUE)
-        self.setData(value, role=self.Roles.CACHED_VALUE)
-        if evaluate:
-            self._evaluate_value()
-        self.setData(str(self.cached_value), role=self.Roles.DISPLAY_VALUE)
+        self.value_storage.push(value, evaluate=evaluate)
 
     def pull_value(
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
@@ -445,14 +548,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         if input_links:
             return input_links[0].source_component.pull_value(value_mask=value_mask)
 
-        if value_mask is NodeComponentValueMask.RAW:
-            return self.raw_value
-        elif value_mask is NodeComponentValueMask.CACHE:
-            return self.cached_value
-        elif value_mask is NodeComponentValueMask.DISPLAY:
-            return self.display_value
-        else:
-            raise ValueError(f"Invalid value mask: {value_mask}")
+        return self.value_storage.pull(value_mask)
 
     def evaluate_value(self) -> typing.Any:
         """Evaluate the raw value. Strings are evaluated as python expressions.
@@ -460,18 +556,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             typing.Any: evaluated value, the raw value if evaluation fails.
         """
-        out_value = self.raw_value
-        if isinstance(self.raw_value, str):
-            try:
-                out_value = eval(self.raw_value)
-            except Exception:
-                LOGGER.warning(f"Failed to eval {self.raw_value}, defaulting to str")
-        return out_value
+        return self.value_storage.compute_value()
 
     def _evaluate_value(self):
         """Evaluate the raw value and store the result as the cached value."""
-        eval_value = self.evaluate_value()
-        self.setData(eval_value, role=self.Roles.CACHED_VALUE)
+        self.value_storage.set_cached_value(self.evaluate_value())
 
     def reset_value_to_default(self) -> None:
         """Set the value to the component's default value."""
@@ -479,7 +568,31 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def reset_value_to_type_default(self) -> None:
         """Set the value to the default value of the component type."""
-        self.push_value(self.get_type_default_value())
+        self.push_value(self.get_initial_value())
+
+    def get_initial_value(self) -> typing.Any:
+        """Get the value a new component starts with.
+
+        Returns:
+            typing.Any: the default value of the component type, or the default of
+                the datatype if the type has none or its one can't be cast to it.
+        """
+        value = self.get_type_default_value()
+        datatype = self.datatype
+        if value is None:
+            return datatype.create_default()
+        try:
+            datatype.cast(value)
+        except DatatypeCastError as err:
+            LOGGER.warning(
+                "Default value of %s is not valid for datatype %s, using the "
+                "default of the datatype: %s",
+                self.get_type_id(),
+                datatype.display_name,
+                err,
+            )
+            return datatype.create_default()
+        return value
 
     def add_link(self, link_uuid: UUID | str):
         """Register a link as connected to this component.
@@ -512,6 +625,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 self.Roles.INPUT_LINKS,
                 self.Roles.OUTPUT_LINKS,
                 self.Roles.DISPLAY_VALUE,
+                self.Roles.RESOLVED_DATATYPE,
+                self.Roles.IS_DATATYPE_LOCKED,
             ],
         )
 
@@ -596,6 +711,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         data["type_id"] = self.get_type_id()
         data["flags"] = self.component_flags
         data["name"] = self.name
+        data["datatype"] = self.datatype_id
         data["value"] = self.serialize_value()
         data["default_value"] = self.serialize_default_value()
         data["is_active"] = self.is_active
@@ -632,6 +748,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.uuid = uuid
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
+        component.setData(
+            data.get("datatype") or component.datatype_id, role=cls.Roles.DATATYPE
+        )
         component.restore_value(data["value"], context)
         component.default_value = component.deserialize_default_value(
             value=data.get("default_value")
@@ -673,16 +792,15 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             QtGui.QColor: plug color.
         """
-        return QtGui.QColor(self.DEFAULT_PLUG_COLOR)
+        return QtGui.QColor(self.datatype.color)
 
-    @classmethod
-    def get_plug_shape(cls) -> GraphicsPlugShape:
+    def get_plug_shape(self) -> GraphicsPlugShape:
         """Get the shape the plug of the component is drawn with.
 
         Returns:
-            GraphicsPlugShape: plug shape.
+            GraphicsPlugShape: plug shape of the datatype.
         """
-        return GraphicsPlugShape.CIRCLE
+        return self.datatype.plug_shape
 
     @classmethod
     def get_link_width_multiplier(cls) -> float:
@@ -712,6 +830,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def get_type_default_value(self) -> typing.Any:
         """typing.Any: initial value of the component type."""
         return None
+
+    @classmethod
+    def get_type_default_datatype(cls) -> str:
+        """str: type id of the datatype new components of the type are hinted with."""
+        return CoreDatatypes.OBJECT
 
     @classmethod
     def get_type_id(cls) -> str:

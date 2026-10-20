@@ -24,6 +24,20 @@ class CoreNodeComponents(enum.StrEnum):
     STAGE_REFERENCE = "core:stage_reference"
 
 
+class CoreDatatypes(enum.StrEnum):
+    """Type ids of the datatypes provided by the core plugin."""
+
+    OBJECT = "core:object"
+    TYPE = "core:type"
+    BOOL = "core:bool"
+    STRING = "core:string"
+    INT = "core:int"
+    FLOAT = "core:float"
+    PATH = "core:path"
+    FLOW = "core:flow"
+    REFERENCE = "core:reference"
+
+
 class RestoreUuidOption(enum.IntEnum):
     """How uuids stored in serialized data are used when deserializing.
 
@@ -64,6 +78,8 @@ class NodeComponentFlag(enum.IntFlag):
         EDITABLE: value can be edited in the UI
         STATIC: skipped during execution
         SINGLE_OUTPUT: can be the source of one link at most
+        INHERITS_DATATYPE: datatype follows the component it takes its value from,
+            and can be changed by the user while there is none
     """
 
     NONE = 0
@@ -73,6 +89,7 @@ class NodeComponentFlag(enum.IntFlag):
     EDITABLE = enum.auto()
     STATIC = enum.auto()
     SINGLE_OUTPUT = enum.auto()
+    INHERITS_DATATYPE = enum.auto()
 
 
 class NodeComponentValueMask(enum.IntEnum):
@@ -120,9 +137,3 @@ class GraphicsPlugShape(enum.IntEnum):
     PENTAGON = enum.auto()
     SQUARE = enum.auto()
     SQUARE_MATRIX = enum.auto()
-
-
-class DatatypeColor(enum.StrEnum):
-    BOOL = "#FF0000"
-    STRING = "#FFA637"
-    FLOW = "#FFFFFF"

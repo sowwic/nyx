@@ -360,11 +360,17 @@ class Stage(QtGui.QStandardItemModel):
         source_component: NodeComponent = self.get_object(source_component)
         target_component: NodeComponent = self.get_object(target_component)
 
-        if not source_component.produces_output:
+        if not source_component.readable:
             raise NodeComponentLinkError(f"Not readable component: {source_component}")
 
-        if not target_component.accepts_input:
+        if not target_component.writable:
             raise NodeComponentLinkError(f"Not writable component: {target_component}")
+
+        if not target_component.accepts_datatype_of(source_component):
+            raise NodeComponentLinkError(
+                f"Incompatible datatypes: {source_component.datatype.display_name} "
+                f"to {target_component.datatype.display_name}"
+            )
 
         if source_component.single_output and source_component.output_links:
             raise NodeComponentLinkError(

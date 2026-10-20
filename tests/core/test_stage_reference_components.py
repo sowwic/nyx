@@ -190,7 +190,7 @@ def test_linked_reference_provides_the_path():
     )
     stage.push_command(add_command)
     source = add_command.result_component
-    source.produces_output = True
+    source.readable = True
     source.push_value("/stage/target.message")
 
     stage.push_command(
@@ -211,7 +211,7 @@ def test_plain_value_cannot_be_linked_into_the_component_field():
         node=source_node, type_id=CoreNodeComponents.VALUE, name="path"
     )
     stage.push_command(add_command)
-    add_command.result_component.produces_output = True
+    add_command.result_component.readable = True
 
     with pytest.raises(exceptions.NyxCommandValidationError):
         stage.push_command(
@@ -484,3 +484,34 @@ def test_display_shows_the_text_when_there_is_no_target(getter_and_target, text,
     getter["component"].push_value(text)
     assert getter["component"].get_display_value() == shown
     assert not getter["component"].is_valid
+
+
+def test_reference_component_uses_the_reference_datatype():
+    from nyx.api.v1 import CoreDatatypes, GraphicsPlugShape
+
+    stage = Stage()
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(command)
+    reference = command.result_node["component"]
+
+    assert reference.datatype_id == CoreDatatypes.REFERENCE
+    assert reference.get_plug_shape() is GraphicsPlugShape.SQUARE
+
+
+def test_name_text_is_the_last_part_of_the_path():
+    stage = Stage()
+    target_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.LOG, name="target"
+    )
+    stage.push_command(target_command)
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    reference = getter_command.result_node["component"]
+
+    assert reference.current_name_text() == ""
+
+    reference.push_value("/stage/target.message")
+    assert reference.current_name_text() == "target.message"
+
+    reference.push_value("/stage/missing/deep.value")
+    assert reference.current_name_text() == "deep.value"

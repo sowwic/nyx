@@ -6,7 +6,7 @@ import inspect
 
 
 if typing.TYPE_CHECKING:
-    from nyx.api.v1 import Node, NodeComponent
+    from nyx.api.v1 import Node, NodeComponent, Datatype
 
 
 @dataclasses.dataclass()
@@ -17,6 +17,8 @@ class NyxPluginContents:
 
     Attributes:
         node_components: List of NodeComponent classes
+        nodes: List of Node classes
+        datatypes: List of Datatype instances
     """
 
     namespace: str = ""
@@ -24,6 +26,7 @@ class NyxPluginContents:
         init=False, default_factory=list
     )
     nodes: list[type[Node]] = dataclasses.field(init=False, default_factory=list)
+    datatypes: list[Datatype] = dataclasses.field(init=False, default_factory=list)
 
 
 class NyxPlugin(ABC):

@@ -24,3 +24,7 @@ class ActionRegistrationError(RuntimeError):
 
 class ActionLookupError(RuntimeError):
     """Raised when an editor action id isn't registered."""
+
+
+class DatatypeCastError(ValueError):
+    """Raised when a value can't be converted to a datatype."""

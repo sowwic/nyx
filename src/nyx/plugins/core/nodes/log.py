@@ -1,5 +1,5 @@
 import logging
-from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
+from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents, CoreDatatypes
 
 
 class LogNode(Node):
@@ -33,24 +33,26 @@ class LogNode(Node):
         self.flow_cpnt = self.components_model.create_component(
             type_id=CoreNodeComponents.FLOW
         )
-        self.flow_cpnt.produces_output = True
-        self.flow_cpnt.accepts_input = True
+        self.flow_cpnt.readable = True
+        self.flow_cpnt.writable = True
 
         self.message = self.components_model.create_component(
             type_id=CoreNodeComponents.VALUE
         )
         self.message.name = "message"
         self.message.is_editable = True
-        self.message.accepts_input = True
+        self.message.writable = True
+        self.message.set_datatype(CoreDatatypes.STRING)
         self.message.push_value("")
 
         self.level = self.components_model.create_component(
             type_id=CoreNodeComponents.VALUE
         )
         self.level.name = "level"
+        self.level.set_datatype(CoreDatatypes.INT)
         self.level.push_value(10)
         self.level.is_editable = True
-        self.level.accepts_input = True
+        self.level.writable = True
 
         self.components_model.add_component(self.flow_cpnt)
         self.components_model.add_component(self.message)

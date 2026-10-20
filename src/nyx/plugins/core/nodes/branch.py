@@ -1,4 +1,4 @@
-from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
+from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents, CoreDatatypes
 
 
 class BranchNode(Node):
@@ -42,16 +42,17 @@ class BranchNode(Node):
         )
 
         self.flow_in.name = "flow"
-        self.flow_in.accepts_input = True
+        self.flow_in.writable = True
 
         self.flow_out_true.name = "true"
-        self.flow_out_true.produces_output = True
+        self.flow_out_true.readable = True
         self.flow_out_false.name = "false"
-        self.flow_out_false.produces_output = True
+        self.flow_out_false.readable = True
 
         self.value_cpnt.name = "condition"
-        self.value_cpnt.accepts_input = True
+        self.value_cpnt.writable = True
         self.value_cpnt.is_editable = True
+        self.value_cpnt.set_datatype(CoreDatatypes.BOOL)
         self.value_cpnt.push_value(True)
 
         self.components_model.add_component(self.flow_in)

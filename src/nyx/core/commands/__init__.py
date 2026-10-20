@@ -10,6 +10,7 @@ from .add_node_component import AddNodeComponentCommand
 from .delete_node_component import DeleteNodeComponentCommand
 from .rename_node_component import RenameNodeComponentCommand
 from .set_component_value import SetNodeComponentValueCommand
+from .set_component_datatype import SetNodeComponentDatatypeCommand
 from .set_component_flag import SetNodeComponentFlagCommand
 from .reorder_node_component import ReorderNodeComponentCommand
 from .link_node_components import LinkNodeComponentsCommand
@@ -23,6 +24,7 @@ __all__ = [
     "SetNodeActiveStateCommand",
     "SetNodeComponentActiveStateCommand",
     "SetNodeComponentValueCommand",
+    "SetNodeComponentDatatypeCommand",
     "SetNodeComponentFlagCommand",
     "PasteNodesCommand",
     "MoveNodeCommand",

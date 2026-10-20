@@ -11,6 +11,7 @@ if typing.TYPE_CHECKING:
     from .plugin import NyxPlugin
     from ..node import Node
     from ..node_component import NodeComponent
+    from ..datatype import Datatype
 
 
 logging.setLoggerClass(NyxLogger)
@@ -43,6 +44,7 @@ class NyxRegistry:
         plugins: plugin entries by type id
         node_components: component classes by type id
         nodes: node classes by type id
+        datatypes: datatypes by type id
         qml_import_root_directories: QML import roots of registered plugins
     """
 
@@ -53,6 +55,9 @@ class NyxRegistry:
         init=False, default_factory=OrderedDict
     )
     nodes: OrderedDict[str, type[Node]] = dataclasses.field(
+        init=False, default_factory=OrderedDict
+    )
+    datatypes: OrderedDict[str, Datatype] = dataclasses.field(
         init=False, default_factory=OrderedDict
     )
     qml_import_root_directories: list[pathlib.Path] = dataclasses.field(
@@ -67,6 +72,7 @@ class NyxRegistry:
         """Remove everything from the registry."""
         self.nodes.clear()
         self.node_components.clear()
+        self.datatypes.clear()
         self.plugins.clear()
         self.qml_import_root_directories.clear()
 
@@ -121,6 +127,7 @@ class NyxRegistry:
         """Rebuild the node and component registries from enabled plugins."""
         self.nodes.clear()
         self.node_components.clear()
+        self.datatypes.clear()
 
         for plugin_entry in self.iter_plugin_entries():
             if not plugin_entry.plugin_instance:
@@ -137,6 +144,7 @@ class NyxRegistry:
 
             self.register_node_components(plugin_entry)
             self.register_nodes(plugin_entry)
+            self.register_datatypes(plugin_entry)
             self.register_qml_import_root(plugin_entry)
 
     def register_node_components(self, plugin_entry: NyxPluginRegistryEntry):
@@ -196,6 +204,84 @@ class NyxRegistry:
                 node_cls.__name__,
                 plugin_entry.plugin_cls.get_type_id(),
             )
+
+    def register_datatypes(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the datatypes provided by a plugin. Duplicate type ids are skipped.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): initialized plugin entry.
+        """
+        LOGGER.debug("Registering new datatypes...")
+        for datatype in plugin_entry.plugin_instance.contents.datatypes:
+            if datatype.type_id in self.datatypes:
+                LOGGER.error(
+                    "Failed to register datatype %s - already registered",
+                    datatype.type_id,
+                )
+                continue
+
+            self.datatypes[datatype.type_id] = datatype
+            LOGGER.debug(
+                "Registered datatype %s from %s",
+                datatype.type_id,
+                plugin_entry.plugin_cls.get_type_id(),
+            )
+
+    def get_datatype(self, type_id: str) -> Datatype | None:
+        """Get a datatype.
+
+        Args:
+            type_id (str): datatype type id.
+
+        Returns:
+            Datatype | None: datatype, None if not registered.
+        """
+        return self.datatypes.get(type_id)
+
+    def resolve_datatype(self, type_id: str | None) -> Datatype:
+        """Get a datatype, falling back to the object datatype.
+
+        Args:
+            type_id (str | None): datatype type id.
+
+        Returns:
+            Datatype: registered datatype, `OBJECT_DATATYPE` for missing or unknown
+                ids (e.g. provided by a plugin that isn't loaded).
+        """
+        from ..datatype import OBJECT_DATATYPE
+
+        if not type_id:
+            return OBJECT_DATATYPE
+        datatype = self.datatypes.get(type_id)
+        if datatype is None:
+            LOGGER.warning("Unknown datatype %s, using object", type_id)
+            return OBJECT_DATATYPE
+        return datatype
+
+    def infer_datatype(self, value: typing.Any) -> Datatype:
+        """Get the datatype of a value.
+
+        Args:
+            value (typing.Any): value to find the datatype of.
+
+        Returns:
+            Datatype: first registered datatype matching the value,
+                `OBJECT_DATATYPE` if there is none.
+        """
+        from ..datatype import OBJECT_DATATYPE
+
+        for datatype in self.datatypes.values():
+            if datatype.matches(value):
+                return datatype
+        return OBJECT_DATATYPE
+
+    def iter_datatypes(self) -> Iterator[Datatype]:
+        """Iterate registered datatypes.
+
+        Yields:
+            Datatype: registered datatype.
+        """
+        yield from self.datatypes.values()
 
     def register_qml_import_root_directory(
         self, import_root_directory: pathlib.Path

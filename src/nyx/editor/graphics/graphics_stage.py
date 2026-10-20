@@ -16,12 +16,16 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
 from nyx.core.exceptions import StageObjectQueryError
+from nyx.core.execution_chain import ExecutionChain
+from nyx.core.layered_config import NyxConfig
 from nyx.core.link import Link
 from nyx.core.stage_object import StageObject
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_link_drag_handler import GraphicsLinkDragHandler
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
+from nyx.editor.graphics.link_pulse_animator import LinkPulseAnimator
+from nyx.static.enums import CoreNodeComponents
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import Node
@@ -55,6 +59,10 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self._gr_links: dict[UUID, GraphicsLink] = {}
         self._link_drag_handler = GraphicsLinkDragHandler(self)
         self._link_drag_handler.drag_changed.connect(self.link_drag_changed)
+        self._pulse_animator = LinkPulseAnimator(
+            is_visible=self._is_shown_in_a_view, parent=self
+        )
+        self.link_drag_changed.connect(self._pulse_animator.set_paused)
         self._scope_path: pathlib.PurePosixPath | None = None
 
         # Settings
@@ -312,6 +320,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         gr_link = link if isinstance(link, GraphicsLink) else self.get_gr_link(link)
         if gr_link is None:
             return
+        self._pulse_animator.unregister(gr_link)
         self._gr_links.pop(gr_link.uuid, None)
         gr_link.detach()
         if gr_link.scene() is self:
@@ -343,7 +352,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         uuid_map = self.stage.uuid_map
         for source_uuid, source_plug in plugs.items():
             component = source_plug.component
-            if not component.produces_output:
+            if not component.readable:
                 continue
             for link_uuid in component.links_uuids:
                 link = uuid_map.get(link_uuid)
@@ -352,6 +361,59 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                 target_plug = plugs.get(link.target)
                 if target_plug is not None:
                     self.add_link(link, source_plug, target_plug)
+
+    @staticmethod
+    def is_flow_chain_highlight_enabled() -> bool:
+        """Check whether links on the execution chain are animated.
+
+        Returns:
+            bool: enabled in the editor behaviour config.
+        """
+        return NyxConfig().values.editor_behaviour.highlight_flow_chain
+
+    def update_flow_chain_highlight(self, scope_node: Node):
+        """Make the flow links on the execution chain of the scope pulse.
+
+        Nothing is resolved or animated when the highlight is disabled. Must run after
+        `build_links`.
+
+        Args:
+            scope_node (Node): node being drawn.
+        """
+        self._pulse_animator.clear()
+        for gr_link in self.gr_links():
+            gr_link.set_pulsing(False)
+        if not self.is_flow_chain_highlight_enabled():
+            return
+
+        chain = ExecutionChain.find_node_uuids(scope_node)
+        for gr_link in self.gr_links():
+            if self._is_flow_link_on_chain(gr_link, chain):
+                gr_link.set_pulsing(True)
+                self._pulse_animator.register(gr_link)
+
+    @staticmethod
+    def _is_flow_link_on_chain(gr_link: GraphicsLink, chain: frozenset[UUID]) -> bool:
+        """Check whether a link is an active flow link leaving a node on the chain.
+
+        Args:
+            gr_link (GraphicsLink): link to check.
+            chain (frozenset[UUID]): uuids of the nodes on the chain.
+
+        Returns:
+            bool: the link is a flow link of an active component and its source node
+                is on the chain.
+        """
+        source = gr_link.source_plug.component
+        return (
+            source.get_type_id() == CoreNodeComponents.FLOW
+            and source.is_active
+            and source.node.uuid in chain
+        )
+
+    def _is_shown_in_a_view(self) -> bool:
+        """bool: a view showing the scene is visible."""
+        return any(view.isVisible() for view in self.views())
 
     def find_links_along(self, scene_points: list[QtCore.QPointF]) -> list[GraphicsLink]:
         """Find the links crossed by a polyline.
@@ -410,7 +472,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """
         if source is target:
             return False
-        if not source.produces_output or not target.accepts_input:
+        if not source.readable or not target.writable:
             return False
         if not isinstance(target, type(source)):
             return False
@@ -485,6 +547,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         scope_node = self.stage.get_object(scope_path)
         self.build_nodes(scope_node)
         self.build_links(scope_node)
+        self.update_flow_chain_highlight(scope_node)
         self._restore_selection(previous_selection)
 
     def _restore_selection(self, paths: list[pathlib.PurePosixPath]):

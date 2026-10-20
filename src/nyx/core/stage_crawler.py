@@ -1,8 +1,11 @@
+import collections.abc
+import functools
 import logging
 import typing
 from typing import Protocol, runtime_checkable
 
 
+from .execution_chain import ExecutionChain
 from ..static.enums import NodeExecutionOrderFlag
 
 if typing.TYPE_CHECKING:
@@ -50,10 +53,17 @@ class StageCrawler:
     - Sequence nodes: multiple outgoing ``core:flow`` components can be
       ``is_active`` simultaneously -- each is traversed fully, depth-first,
       one after another.
-    - ``core:flow`` components with ``produces_output == False`` are write/inout
+    - ``core:flow`` components with ``readable == False`` are write/inout
       only and are never treated as traversable paths.
     - A ``core:flow`` component can only ever point to a sibling under the
       same parent; anything else is treated as a misconfiguration and logged.
+    - A node that was already reached in the run is not followed again, so
+      convergence and cycles end instead of repeating.
+
+    The walk is depth-first but iterative: the steps still to do are kept on a stack
+    instead of in recursive calls, so the length of a flow chain is not limited by the
+    recursion limit. Which flow components lead on is decided by ``ExecutionChain``,
+    the same rule the editor uses to show the chain.
     """
 
     def __repr__(self) -> str:
@@ -68,8 +78,12 @@ class StageCrawler:
         """
         self._stage = stage
         self._visited_node_paths: list[str] = []
+        self._visited_node_path_set: set[str] = set()
+        self._followed_node_paths: set[str] = set()
         self._execution_paths_stack: list[str] = []
         self._current_node: Node | None = None
+        self._pending_steps: list[collections.abc.Callable[[], None]] = []
+        self._is_running_steps = False
 
     @property
     def stage(self) -> Stage:
@@ -94,6 +108,8 @@ class StageCrawler:
     def clear_cached_data(self):
         """Forget visited and executed nodes."""
         self.visited_node_paths.clear()
+        self._visited_node_path_set.clear()
+        self._followed_node_paths.clear()
         self.execution_paths_stack.clear()
 
     def start(self, start_node: Node | None = None) -> None:
@@ -101,7 +117,7 @@ class StageCrawler:
         self.clear_cached_data()
         self.stage.execution_started.emit()
         start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
-        self._traverse_children(start_node)  # kicks off recursive post-order descent
+        self._traverse_children(start_node)  # kicks off the descent
         self.stage.execution_finished.emit()
 
     # -- NodeVisitor -----------------------------------------------------
@@ -122,15 +138,21 @@ class StageCrawler:
             )
             return
         self._visited_node_paths.append(node_path_as_string)
+        self._visited_node_path_set.add(node_path_as_string)
 
         node_execution_order = node.get_type_execution_order()
 
         if node_execution_order is NodeExecutionOrderFlag.BEFORE_CHILDREN:
-            self._execute_node_and_record_its_path(node)
-            self._resolve_children_of_node(node)
+            self._schedule(
+                functools.partial(self._execute_node_and_record_its_path, node),
+                functools.partial(self._resolve_children_of_node, node),
+            )
         elif node_execution_order is NodeExecutionOrderFlag.AFTER_CHILDREN:
-            self._resolve_children_of_node(node)
-            self._execute_node_and_record_its_path(node)
+            self._schedule(
+                functools.partial(self._resolve_children_of_node, node),
+                functools.partial(self._execute_node_and_record_its_path, node),
+            )
+        self._run_scheduled_steps()
 
     def _has_node_already_been_visited(self, node_path_as_string: str) -> bool:
         """Check whether a node path was already visited.
@@ -141,7 +163,7 @@ class StageCrawler:
         Returns:
             bool: node was visited.
         """
-        return node_path_as_string in self._visited_node_paths
+        return node_path_as_string in self._visited_node_path_set
 
     def _execute_node_and_record_its_path(self, node: Node) -> None:
         """Run the node's execution hook and record its path.
@@ -155,7 +177,7 @@ class StageCrawler:
         self._execution_paths_stack.append(node.path.as_posix())
 
     def _resolve_children_of_node(self, node: Node) -> None:
-        """Traverse the node's children starting from its flow start node.
+        """Schedule the traversal of the node's children from its flow start node.
 
         Args:
             node (Node): parent node.
@@ -163,7 +185,9 @@ class StageCrawler:
         # Fully resolve this node's own children before anything else.
         flow_start_child_node = node.find_flow_start_node()
         if flow_start_child_node is not None:
-            self._traverse_children(flow_start_child_node)
+            self._schedule(
+                functools.partial(self._traverse_children, flow_start_child_node)
+            )
 
     def _traverse_children(self, child_node: Node) -> None:
         """Visit a child node, then the flow siblings that follow it.
@@ -171,14 +195,35 @@ class StageCrawler:
         Args:
             child_node (Node): node to start from.
         """
-        # child_node.accept_visitor(self) -> visit_node(child_node): this resolves
-        # the child's own children first, then executes the child. Only after the
-        # child has executed do we look at its core:flow components to find the
-        # next flow-sibling.
-        child_node.accept_visitor(self)
+        node_path_as_string = str(child_node.path)
+        if node_path_as_string in self._followed_node_paths:
+            LOGGER.warning(
+                "Cycle/convergence at %s, not following it again", node_path_as_string
+            )
+            return
+        self._followed_node_paths.add(node_path_as_string)
 
-        for next_sibling_node in self._find_next_nodes(child_node):
-            self._traverse_children(next_sibling_node)
+        # Steps are taken off a stack, so what is scheduled last runs first. The
+        # siblings are scheduled before the visit and so run after all of it: the
+        # child's own children and the child itself. Only then do we look at its
+        # core:flow components, which a branch sets while executing.
+        self._schedule(functools.partial(self._traverse_next_nodes, child_node))
+        child_node.accept_visitor(self)
+        self._run_scheduled_steps()
+
+    def _traverse_next_nodes(self, node: Node) -> None:
+        """Schedule the traversal of the flow siblings that follow a node.
+
+        Args:
+            node (Node): node that was just visited.
+        """
+        next_nodes = self._find_next_nodes(node)
+        self._schedule(
+            *(
+                functools.partial(self._traverse_children, next_node)
+                for next_node in next_nodes
+            )
+        )
 
     def _find_next_nodes(self, node: Node) -> list[Node]:
         """Resolve the (possibly zero, one, or many) next nodes after ``node``.
@@ -188,17 +233,12 @@ class StageCrawler:
         data links). Resolution is restricted to siblings of ``node`` under
         the same parent -- a flow component is not expected to point anywhere
         else.
+
+        Raises:
+            RuntimeError: if a flow component points at a node that is not a sibling.
         """
-        readable_flow_components = node.components_model.find_readable_flow_components()
-        if not readable_flow_components:
-            return []
-
         next_nodes: list[Node] = []
-        for flow_component in readable_flow_components:
-            next_node = flow_component.get_next_node()
-            if next_node is None:
-                continue
-
+        for flow_component, next_node in ExecutionChain.find_flow_hops(node):
             if next_node.parent() != node.parent():
                 raise RuntimeError(
                     f"{flow_component.path} points to "
@@ -207,3 +247,30 @@ class StageCrawler:
             next_nodes.append(next_node)
 
         return next_nodes
+
+    # -- Steps -----------------------------------------------------------
+
+    def _schedule(self, *steps: collections.abc.Callable[[], None]) -> None:
+        """Schedule steps to run in the given order, before anything scheduled earlier.
+
+        Args:
+            *steps (Callable[[], None]): steps, the first one runs first.
+        """
+        self._pending_steps.extend(reversed(steps))
+
+    def _run_scheduled_steps(self) -> None:
+        """Run the scheduled steps until none is left.
+
+        Steps scheduled while running are run too. Called while already running, it
+        does nothing: the loop that is running picks up the new steps.
+        """
+        if self._is_running_steps:
+            return
+
+        self._is_running_steps = True
+        try:
+            while self._pending_steps:
+                self._pending_steps.pop()()
+        finally:
+            self._pending_steps.clear()
+            self._is_running_steps = False
