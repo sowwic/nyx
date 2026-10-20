@@ -51,7 +51,7 @@ def test_scope_without_a_flow_start_has_an_empty_chain():
     assert chain_of(stage) == set()
 
 
-def test_both_outputs_of_a_branch_are_on_the_chain():
+def test_only_the_active_output_of_a_branch_is_on_the_chain():
     stage = Stage()
     start = make_node(stage, CoreNodes.FLOW_START)
     branch = make_node(stage, CoreNodes.BRANCH)
@@ -61,7 +61,14 @@ def test_both_outputs_of_a_branch_are_on_the_chain():
     connect(stage, branch, on_true, source_name="true")
     connect(stage, branch, on_false, source_name="false")
 
-    assert {on_true.uuid, on_false.uuid} <= chain_of(stage)
+    # The condition is true by default, so only the true output is active.
+    assert on_true.uuid in chain_of(stage)
+    assert on_false.uuid not in chain_of(stage)
+
+    branch["condition"].push_value(False)
+
+    assert on_false.uuid in chain_of(stage)
+    assert on_true.uuid not in chain_of(stage)
 
 
 def test_inactive_flow_output_does_not_lead_on():

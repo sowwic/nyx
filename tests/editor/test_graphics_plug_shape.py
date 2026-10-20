@@ -12,6 +12,7 @@ from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.graphics.graphics_plug_shape import (
     PLUG_SHAPES,
     CirclePlugShape,
+    SquareMatrixPlugShape,
     PlugShape,
     TrianglePlugShape,
     plug_shape_for,
@@ -201,7 +202,7 @@ def test_plug_picks_the_shape_and_color_of_its_component(plugs):
     flow_plug, value_plug = plugs
     assert isinstance(flow_plug.shape, TrianglePlugShape)
     assert flow_plug.color == FLOW
-    assert isinstance(value_plug.shape, CirclePlugShape)
+    assert isinstance(value_plug.shape, SquareMatrixPlugShape)
     assert value_plug.color == DEFAULT
 
 

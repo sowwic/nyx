@@ -99,7 +99,7 @@ def test_setter_value_datatype_is_unlocked_until_linked():
 
     source = log_command.result_node["message"]
     source.readable = True
-    with pytest.raises(exceptions.NodeComponentLinkError, match="Incompatible"):
+    with pytest.raises(exceptions.NyxCommandValidationError, match="different datatype"):
         stage.push_command(
             commands.LinkNodeComponentsCommand(stage=stage, source=source, target=value)
         )

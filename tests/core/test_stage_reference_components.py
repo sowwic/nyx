@@ -203,7 +203,7 @@ def test_linked_reference_provides_the_path():
     assert not setter["component"].is_valid
 
 
-def test_plain_value_cannot_be_linked_into_the_component_field():
+def test_plain_value_can_be_linked_into_the_component_field():
     stage = Stage()
     setter = create(stage, CoreNodes.SET, name="setter")
     source_node = create(stage, name="source")
@@ -213,15 +213,15 @@ def test_plain_value_cannot_be_linked_into_the_component_field():
     stage.push_command(add_command)
     add_command.result_component.readable = True
 
-    with pytest.raises(exceptions.NyxCommandValidationError):
-        stage.push_command(
-            commands.LinkNodeComponentsCommand(
-                stage=stage,
-                source=add_command.result_component,
-                target=setter["component"],
-            )
+    # A plain value is a wildcard datatype, so it is accepted.
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage,
+            source=add_command.result_component,
+            target=setter["component"],
         )
-    assert not setter["component"].input_links
+    )
+    assert len(setter["component"].input_links) == 1
 
 
 def test_reference_survives_delete_and_undo_of_component_and_node(getter_and_target):

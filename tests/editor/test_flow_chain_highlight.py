@@ -333,23 +333,23 @@ def test_flow_link_of_an_inactive_component_does_not_pulse(stage_editor, create_
     link(stage, start["flow"], branch["flow"])
     link(stage, branch["true"], on_true["flow"])
     link(stage, branch["false"], on_false["flow"])
-    assert len(pulsing_links(stage_editor)) == 3
+    # The condition is true by default: the false output is already inactive.
+    assert len(pulsing_links(stage_editor)) == 2
 
     stage.push_command(
         commands.SetNodeComponentActiveStateCommand(
-            stage=stage, node_component=branch["false"], state=False
+            stage=stage, node_component=branch["true"], state=False
         )
     )
 
     pulsing_sources = [
         gr_link.source_plug.component for gr_link in pulsing_links(stage_editor)
     ]
-    assert not any(source is branch["false"] for source in pulsing_sources)
-    assert any(source is branch["true"] for source in pulsing_sources)
-    assert len(pulsing_links(stage_editor)) == 2
+    assert not any(source is branch["true"] for source in pulsing_sources)
+    assert len(pulsing_sources) == 1
 
     stage.undo_stack.undo()
-    assert len(pulsing_links(stage_editor)) == 3
+    assert len(pulsing_links(stage_editor)) == 2
 
 
 def test_pulse_stops_at_an_inactive_node(chain):
