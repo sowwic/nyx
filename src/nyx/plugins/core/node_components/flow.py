@@ -5,7 +5,6 @@ from nyx.api.v1 import (
     NodeComponent,
     CoreNodeComponents,
     NodeComponentFlag,
-    GraphicsPlugShape,
     CoreDatatypes,
 )
 
@@ -55,11 +54,6 @@ class FlowComponent(NodeComponent):
     def get_type_default_datatype(cls) -> str:
         """str: flow datatype, only compatible with flow and wildcards."""
         return CoreDatatypes.FLOW
-
-    @classmethod
-    def get_plug_shape(cls) -> GraphicsPlugShape:
-        """GraphicsPlugShape: flow plugs are triangles, pointing along the flow."""
-        return GraphicsPlugShape.PENTAGON
 
     @classmethod
     def get_link_width_multiplier(cls) -> float:

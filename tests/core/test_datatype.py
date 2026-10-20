@@ -96,3 +96,13 @@ def test_default_values(type_id, expected):
     default = get(type_id).create_default()
     assert default == expected
     assert type(default) is type(expected)
+
+
+def test_plug_shape_defaults_to_circle():
+    from nyx.api.v1 import GraphicsPlugShape
+
+    assert Datatype(type_id="t:t", display_name="T", color="#000").plug_shape is (
+        GraphicsPlugShape.CIRCLE
+    )
+    assert get(CoreDatatypes.BOOL).plug_shape is GraphicsPlugShape.CIRCLE
+    assert get(CoreDatatypes.FLOW).plug_shape is GraphicsPlugShape.PENTAGON

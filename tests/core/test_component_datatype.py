@@ -212,3 +212,11 @@ def test_valid_type_default_is_used(caplog):
 
     assert component.cached_value == 7
     assert "not valid for datatype" not in caplog.text
+
+
+def test_plug_shape_follows_the_datatype(value):
+    from nyx.api.v1 import GraphicsPlugShape
+
+    assert value.get_plug_shape() is GraphicsPlugShape.CIRCLE
+    value.set_datatype(CoreDatatypes.FLOW)
+    assert value.get_plug_shape() is GraphicsPlugShape.PENTAGON

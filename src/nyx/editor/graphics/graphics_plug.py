@@ -109,7 +109,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             self._component.produces_output,
             bool(self._component.input_links_uuids),
             bool(self._component.output_links_uuids),
-            type(self._component).get_plug_shape(),
+            self._component.get_plug_shape(),
             self._component.get_plug_color(),
             type(self._component).get_link_width_multiplier(),
         )

@@ -1,7 +1,13 @@
 import pathlib
 import typing
 
-from nyx.api.v1 import NYX_REGISTRY, CoreDatatypes, Datatype, OBJECT_DATATYPE
+from nyx.api.v1 import (
+    NYX_REGISTRY,
+    CoreDatatypes,
+    Datatype,
+    GraphicsPlugShape,
+    OBJECT_DATATYPE,
+)
 
 
 def cast_to_type_id(value: typing.Any) -> str:
@@ -79,5 +85,6 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         type_id=CoreDatatypes.FLOW,
         display_name="Flow",
         color="#FFFFFF",
+        plug_shape=GraphicsPlugShape.PENTAGON,
     ),
 )

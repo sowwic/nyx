@@ -2,7 +2,7 @@ import dataclasses
 import typing
 
 from .exceptions import DatatypeCastError
-from ..static.enums import CoreDatatypes
+from ..static.enums import CoreDatatypes, GraphicsPlugShape
 
 
 @dataclasses.dataclass(frozen=True)
@@ -16,6 +16,7 @@ class Datatype:
         type_id: unique id, namespaced by the providing plugin
         display_name: name shown in the UI
         color: plug color as a hex string
+        plug_shape: shape of the plugs of components with the datatype
         caster: converts an evaluated value, raises on failure
         python_type: python type of values of this datatype, used to infer the
             datatype of a value
@@ -28,6 +29,7 @@ class Datatype:
     color: str
     caster: typing.Callable[[typing.Any], typing.Any] = lambda value: value
     python_type: type | None = None
+    plug_shape: GraphicsPlugShape = GraphicsPlugShape.CIRCLE
     default_factory: typing.Callable[[], typing.Any] = lambda: None
     is_wildcard: bool = False
 

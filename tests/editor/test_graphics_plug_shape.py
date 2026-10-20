@@ -217,9 +217,7 @@ def test_plug_follows_a_color_change_of_the_component(plugs, monkeypatch):
 def test_plug_follows_a_shape_change_of_the_component(plugs, monkeypatch):
     _flow_plug, value_plug = plugs
     monkeypatch.setattr(
-        type(value_plug.component),
-        "get_plug_shape",
-        classmethod(lambda cls: GraphicsPlugShape.TRIANGLE),
+        value_plug.component, "get_plug_shape", lambda: GraphicsPlugShape.TRIANGLE
     )
     value_plug.refresh()
     assert isinstance(value_plug.shape, TrianglePlugShape)

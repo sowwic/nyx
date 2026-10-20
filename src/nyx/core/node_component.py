@@ -794,14 +794,13 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         return QtGui.QColor(self.datatype.color)
 
-    @classmethod
-    def get_plug_shape(cls) -> GraphicsPlugShape:
+    def get_plug_shape(self) -> GraphicsPlugShape:
         """Get the shape the plug of the component is drawn with.
 
         Returns:
-            GraphicsPlugShape: plug shape.
+            GraphicsPlugShape: plug shape of the datatype.
         """
-        return GraphicsPlugShape.CIRCLE
+        return self.datatype.plug_shape
 
     @classmethod
     def get_link_width_multiplier(cls) -> float:

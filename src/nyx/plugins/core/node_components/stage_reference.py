@@ -78,9 +78,8 @@ class StageReferenceComponent(NodeComponent):
         """bool: reference components start expanded."""
         return True
 
-    @classmethod
-    def get_plug_shape(cls) -> GraphicsPlugShape:
-        """GraphicsPlugShape: flow plugs are triangles, pointing along the flow."""
+    def get_plug_shape(self) -> GraphicsPlugShape:
+        """GraphicsPlugShape: references are squares, whatever the datatype."""
         return GraphicsPlugShape.SQUARE
 
     # ======== Resolving ========= #
