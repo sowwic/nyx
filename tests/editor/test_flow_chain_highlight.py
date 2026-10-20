@@ -322,3 +322,31 @@ def test_bounds_leave_room_for_the_pulse(chain):
     assert (
         pulsing.width() == gr_link.boundingRect().width() + 2 * GraphicsLink.PULSE_RADIUS
     )
+
+
+def test_flow_link_of_an_inactive_component_does_not_pulse(stage_editor, create_node):
+    stage = stage_editor.stage
+    start = create_node(stage, "start", type_id=CoreNodes.FLOW_START)
+    branch = create_node(stage, "branch", type_id=CoreNodes.BRANCH)
+    on_true = create_node(stage, "on_true", type_id=CoreNodes.ACTION)
+    on_false = create_node(stage, "on_false", type_id=CoreNodes.ACTION)
+    link(stage, start["flow"], branch["flow"])
+    link(stage, branch["true"], on_true["flow"])
+    link(stage, branch["false"], on_false["flow"])
+    assert len(pulsing_links(stage_editor)) == 3
+
+    stage.push_command(
+        commands.SetNodeComponentActiveStateCommand(
+            stage=stage, node_component=branch["false"], state=False
+        )
+    )
+
+    pulsing_sources = [
+        gr_link.source_plug.component for gr_link in pulsing_links(stage_editor)
+    ]
+    assert not any(source is branch["false"] for source in pulsing_sources)
+    assert any(source is branch["true"] for source in pulsing_sources)
+    assert len(pulsing_links(stage_editor)) == 2
+
+    stage.undo_stack.undo()
+    assert len(pulsing_links(stage_editor)) == 3

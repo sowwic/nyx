@@ -12,9 +12,9 @@ class ExecutionChain:
     """Finds the nodes the execution flow reaches.
 
     The flow of a scope begins at its flow start node and follows the flow components
-    from node to node, like `StageCrawler` does. Which outputs of a branch or sequence
-    are active is only decided while executing, so every readable flow component
-    counts here: the chain is the static graph, not one particular run.
+    from node to node, like `StageCrawler` does. Only active flow components lead on:
+    before a node is evaluated all its outputs are active, afterwards a branch or
+    sequence has switched off the ones it did not choose.
     """
 
     @staticmethod
@@ -91,7 +91,7 @@ class ExecutionChain:
         for flow_component in node.components_model.find_components_of_type(
             CoreNodeComponents.FLOW
         ):
-            if not flow_component.readable:
+            if not (flow_component.readable and flow_component.is_active):
                 continue
             next_node = flow_component.get_next_node()
             if next_node is None or next_node.parent() is not parent:

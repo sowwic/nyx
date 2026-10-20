@@ -64,7 +64,7 @@ def test_both_outputs_of_a_branch_are_on_the_chain():
     assert {on_true.uuid, on_false.uuid} <= chain_of(stage)
 
 
-def test_inactive_branch_output_is_still_on_the_chain():
+def test_inactive_flow_output_does_not_lead_on():
     stage = Stage()
     start = make_node(stage, CoreNodes.FLOW_START)
     branch = make_node(stage, CoreNodes.BRANCH)
@@ -73,7 +73,7 @@ def test_inactive_branch_output_is_still_on_the_chain():
     connect(stage, branch, on_false, source_name="false")
     branch["false"].is_active = False
 
-    assert on_false.uuid in chain_of(stage)
+    assert on_false.uuid not in chain_of(stage)
 
 
 def test_cycle_does_not_loop_forever():

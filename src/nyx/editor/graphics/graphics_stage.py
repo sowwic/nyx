@@ -394,18 +394,21 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     @staticmethod
     def _is_flow_link_on_chain(gr_link: GraphicsLink, chain: frozenset[UUID]) -> bool:
-        """Check whether a link is a flow link leaving a node on the chain.
+        """Check whether a link is an active flow link leaving a node on the chain.
 
         Args:
             gr_link (GraphicsLink): link to check.
             chain (frozenset[UUID]): uuids of the nodes on the chain.
 
         Returns:
-            bool: the link is a flow link and its source node is on the chain.
+            bool: the link is a flow link of an active component and its source node
+                is on the chain.
         """
         source = gr_link.source_plug.component
         return (
-            source.get_type_id() == CoreNodeComponents.FLOW and source.node.uuid in chain
+            source.get_type_id() == CoreNodeComponents.FLOW
+            and source.is_active
+            and source.node.uuid in chain
         )
 
     def _is_shown_in_a_view(self) -> bool:
