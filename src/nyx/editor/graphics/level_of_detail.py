@@ -56,6 +56,23 @@ class LevelOfDetail(enum.IntEnum):
             return cls.NO_TEXT
         return cls.FULL
 
+    @staticmethod
+    def scale_from_painter(painter: QtGui.QPainter) -> float:
+        """Get the scale an element is drawn with from the transform of the painter.
+
+        The transform includes the view and all parents of the item, so this is the
+        scale the element really has on screen, whatever view shows it.
+
+        Args:
+            painter (QtGui.QPainter): painter of the element.
+
+        Returns:
+            float: scale on screen.
+        """
+        return QtWidgets.QStyleOptionGraphicsItem.levelOfDetailFromTransform(
+            painter.worldTransform()
+        )
+
     @classmethod
     def from_painter(
         cls,
@@ -77,7 +94,4 @@ class LevelOfDetail(enum.IntEnum):
         Returns:
             LevelOfDetail: level of detail to draw.
         """
-        scale = QtWidgets.QStyleOptionGraphicsItem.levelOfDetailFromTransform(
-            painter.worldTransform()
-        )
-        return cls.from_scale(scale, text_size, shape_size)
+        return cls.from_scale(cls.scale_from_painter(painter), text_size, shape_size)

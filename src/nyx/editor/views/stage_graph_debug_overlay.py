@@ -129,9 +129,9 @@ class StageGraphDebugOverlay:
         visible = view.items(view.viewport().rect())
         visible_nodes = self._count(visible, GraphicsNode)
         visible_links = self._count(visible, GraphicsLink)
-        animator = gr_stage.pulse_animator
-        pulses_active = len(animator.links_in_view()) if animator.is_running else 0
-        pulses_skipped = len(animator.links) - pulses_active
+        animator = gr_stage.link_animator
+        animated = len(animator.active_links()) if animator.is_running else 0
+        skipped = len(animator.links) - animated
         mouse = view.last_scene_mouse_pos
         size = view.viewport().size()
         return [
@@ -143,7 +143,7 @@ class StageGraphDebugOverlay:
             f"links     {visible_links} / {len(gr_stage.gr_links())}",
             f"plugs     {self._count(visible, GraphicsPlug)}",
             f"items     {len(visible)} / {len(gr_stage.items())}",
-            f"pulsing   {pulses_active} ({pulses_skipped} skipped)",
+            f"animated  {animated} ({skipped} skipped)",
             f"mouse     {mouse.x():.0f}, {mouse.y():.0f}",
             f"viewport  {size.width()}x{size.height()} @{view.devicePixelRatioF():g}x",
             f"mode      {view.interaction_mode.name}",

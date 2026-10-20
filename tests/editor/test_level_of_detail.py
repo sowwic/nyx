@@ -2,8 +2,8 @@ import pytest
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.api.v1 import CoreNodes, commands
-from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
+from nyx.editor.graphics.animation.pulse_animation import PulseAnimation
 from nyx.editor.graphics.level_of_detail import (
     MIN_SHAPE_SIZE,
     MIN_TEXT_SIZE,
@@ -189,13 +189,17 @@ def pulsing_link(stage_editor, create_node):
             stage=stage, source=start["flow"], target=action["flow"]
         )
     )
-    gr_link = next(link for link in stage_editor.gr_stage.gr_links() if link.is_pulsing)
-    gr_link.set_pulse_offset(40.0)
+    gr_link = next(
+        link
+        for link in stage_editor.gr_stage.gr_links()
+        if link.has_animation(PulseAnimation)
+    )
+    gr_link.get_animation(PulseAnimation).offset = 40.0
     return gr_link
 
 
 def has_pulse_color(image) -> bool:
-    pulse = GraphicsLink.PULSE_COLOR.rgb()
+    pulse = PulseAnimation().color.rgb()
     return any(
         image.pixel(x, y) == pulse
         for x in range(image.width())
@@ -235,7 +239,7 @@ def test_pulse_stops_ticking_when_zoomed_far_out(stage_editor, pulsing_link):
     view = stage_editor.gr_view
 
     view.setTransform(QtGui.QTransform.fromScale(FULL_SCALE, FULL_SCALE))
-    assert gr_stage._is_pulse_shown_in_a_view() == view.isVisible()
+    assert bool(gr_stage.link_animator.active_links()) == view.isVisible()
 
     view.setTransform(QtGui.QTransform.fromScale(MINIMAL_SCALE, MINIMAL_SCALE))
-    assert not gr_stage._is_pulse_shown_in_a_view()
+    assert not gr_stage.link_animator.active_links()

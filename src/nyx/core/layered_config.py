@@ -4,6 +4,7 @@ import logging
 from pydantic.dataclasses import Field
 from json_config.api import ConfigLayer, ConfigValues, LayeredConfig
 
+from ..static.enums import LinkAnimationStyle
 from ..static.paths import USER_CONFIG_FILE_PATH
 
 MAX_RECENT_FILES = 10
@@ -38,16 +39,6 @@ class NyxMainWindowConfigValues(ConfigValues):
     )
 
 
-class NyxEditorStyleConfigValues(ConfigValues):
-    """Editor styling config values.
-
-    Attributes:
-        dark_mode: dark mode enabled
-    """
-
-    dark_mode: bool = Field(default=True)
-
-
 class NyxEditorLogWidgetConfigValues(ConfigValues):
     """Logger widget config values.
 
@@ -70,18 +61,75 @@ class NyxEditorGraphicsNodeConfigValues(ConfigValues):
     hover_diagnostics: bool = Field(default=False)
 
 
+class NyxEditorLinkPulseAnimationConfigValues(ConfigValues):
+    """Link pulse animation config values.
+
+    Attributes:
+        color: color of the dot and its tail
+        speed: scene units the dot travels per second
+        radius: radius of the dot in scene units
+        tail_samples: number of dots the tail is made of
+        tail_step: scene units between the dots of the tail
+    """
+
+    color: str = Field(default="#4BE3FF")
+    speed: float = Field(default=160.0)
+    radius: int = Field(default=5)
+    tail_samples: int = Field(default=6)
+    tail_step: float = Field(default=6.0)
+
+
+class NyxEditorLinkGlowAnimationConfigValues(ConfigValues):
+    """Link glow animation config values.
+
+    Attributes:
+        color: color of the halo
+        period: seconds for the glow to swell and fade once
+        layers: strokes the halo is made of, as (width, opacity) pairs. The width is in
+            scene units, the opacity is the one at full intensity.
+    """
+
+    color: str = Field(default="#4BE3FF")
+    period: float = Field(default=1.6)
+    layers: tuple[tuple[float, float], ...] = Field(
+        default=((12.0, 0.15), (8.0, 0.25), (4.0, 0.4))
+    )
+
+
+class NyxEditorAnimationConfigValues(ConfigValues):
+    """Animation config values.
+
+    Attributes:
+        link_pulse: link pulse animation config values
+        link_glow: link glow animation config values
+    """
+
+    link_pulse: NyxEditorLinkPulseAnimationConfigValues = Field(
+        default_factory=NyxEditorLinkPulseAnimationConfigValues, alias="link_pulse"
+    )
+    link_glow: NyxEditorLinkGlowAnimationConfigValues = Field(
+        default_factory=NyxEditorLinkGlowAnimationConfigValues, alias="link_glow"
+    )
+
+
 class NyxEditorGraphicsStageConfigValues(ConfigValues):
     """Graphics stage config values.
 
     Attributes:
         nodes: graphics node config values
         viewport_debug_overlay: show performance numbers over the graph views
+        highlight_flow_chain: animate the flow links that are part of the execution
+            chain of the drawn scope
+        highlight_flow_chain_style: animation that highlights the flow links of the
+            execution chain, a `LinkAnimationStyle` value
     """
 
     nodes: NyxEditorGraphicsNodeConfigValues = Field(
         default_factory=NyxEditorGraphicsNodeConfigValues, alias="nodes"
     )
     viewport_debug_overlay: bool = Field(default=False)
+    highlight_flow_chain: bool = Field(default=True)
+    highlight_flow_chain_style: str = Field(default=LinkAnimationStyle.PULSE.value)
 
 
 class NyxEditorWidgetsConfigValues(ConfigValues):
@@ -104,12 +152,9 @@ class NyxEditorBehaviourConfigValues(ConfigValues):
 
     Attributes:
         new_stage_on_launch: create an empty stage at startup
-        highlight_flow_chain: animate the flow links that are part of the execution
-            chain of the drawn scope
     """
 
     new_stage_on_launch: bool = Field(default=False)
-    highlight_flow_chain: bool = Field(default=True)
 
 
 class NyxEditorSessionConfigValues(ConfigValues):
@@ -141,6 +186,20 @@ class NyxEditorSessionConfigValues(ConfigValues):
         return data
 
 
+class NyxEditorStyleConfigValues(ConfigValues):
+    """Editor styling config values.
+
+    Attributes:
+        dark_mode: dark mode enabled
+        animations: animation config values
+    """
+
+    dark_mode: bool = Field(default=True)
+    animations: NyxEditorAnimationConfigValues = Field(
+        default_factory=NyxEditorAnimationConfigValues, alias="animations"
+    )
+
+
 class NyxConfigValues(ConfigValues):
     """Main container for config values.
 
@@ -154,6 +213,7 @@ class NyxConfigValues(ConfigValues):
     main_window: NyxMainWindowConfigValues = Field(
         default_factory=NyxMainWindowConfigValues, alias="main_window"
     )
+
     editor_behaviour: NyxEditorBehaviourConfigValues = Field(
         default_factory=NyxEditorBehaviourConfigValues, alias="editor_behaviour"
     )

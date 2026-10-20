@@ -15,6 +15,13 @@ class CoreNodes(enum.StrEnum):
     LOG = "core:log"
 
 
+class LinkAnimationStyle(enum.StrEnum):
+    """Animations a graphics link can be highlighted with."""
+
+    PULSE = "pulse"
+    GLOW = "glow"
+
+
 class CoreNodeComponents(enum.StrEnum):
     """Type ids of the node components provided by the core plugin."""
 

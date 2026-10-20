@@ -8,6 +8,7 @@ from nyx.editor.graphics.level_of_detail import LevelOfDetail
 
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
+    from nyx.editor.graphics.animation.link_animation import LinkAnimation
 
 
 class GraphicsLink(QtWidgets.QGraphicsPathItem):
@@ -21,21 +22,14 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     the component scales. A link between plugs of different colors fades from the
     color of the source to the one of the target.
 
-    A link on the execution chain can pulse: a dot with a short tail travels from the
-    source to the target. The link only draws what it is told to, `LinkPulseAnimator`
-    decides when and how far the pulse is.
+    A link can carry animations (see `LinkAnimation`), such as a pulse that travels from
+    the source to the target. The link only draws them, `LinkAnimator` decides when and
+    how far they are.
     """
 
     WIDTH = 2.0
     PREVIEW_OPACITY = 0.8
     MIN_TANGENT = 40.0
-
-    PULSE_COLOR = QtGui.QColor("#4BE3FF")
-    PULSE_SPEED = 160.0  # scene units per second
-    PULSE_RADIUS = 5
-    PULSE_TAIL_SAMPLES = 6
-    PULSE_TAIL_STEP = 6.0
-    LOD_SHAPE_SIZE = PULSE_RADIUS * 2  # smaller than this the pulse is not worth drawing
 
     def __init__(
         self,
@@ -56,8 +50,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         self._uuid = link_uuid
         self._floating_pos = QtCore.QPointF()
         self._attached = False
-        self._pulsing = False
-        self._pulse_offset: float | None = None
+        self._animations: dict[type, LinkAnimation] = {}
         self._path_length = 0.0
 
         # Links are drawn behind nodes, previews above everything.
@@ -97,48 +90,64 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         return self._source_plug if self._source_plug is not None else self._target_plug
 
     @property
-    def is_pulsing(self) -> bool:
-        """bool: the link is part of the execution chain and can show a pulse."""
-        return self._pulsing
+    def path_length(self) -> float:
+        """float: length of the curve in scene units."""
+        return self._path_length
 
     @property
-    def pulse_offset(self) -> float | None:
-        """float | None: distance of the pulse along the link, None if not shown."""
-        return self._pulse_offset
+    def animations(self) -> list[LinkAnimation]:
+        """list[LinkAnimation]: animations of the link, in the order they were added."""
+        return list(self._animations.values())
 
-    def set_pulsing(self, state: bool):
-        """Mark the link as pulsing or not.
+    def get_animation(self, kind: type[LinkAnimation]) -> LinkAnimation | None:
+        """Get the animation of a kind.
 
         Args:
-            state (bool): the link is part of the execution chain.
+            kind (type[LinkAnimation]): class of the animation.
+
+        Returns:
+            LinkAnimation | None: animation, None if the link has none of the kind.
         """
-        if state == self._pulsing:
-            return
-        # The pulse is bigger than the stroke, so the bounds change with it.
+        return self._animations.get(kind)
+
+    def has_animation(self, kind: type[LinkAnimation]) -> bool:
+        """Check whether the link has an animation of a kind.
+
+        Args:
+            kind (type[LinkAnimation]): class of the animation.
+
+        Returns:
+            bool: the link has the animation.
+        """
+        return kind in self._animations
+
+    def add_animation(self, animation: LinkAnimation):
+        """Let the link draw an animation. One of the same kind is replaced.
+
+        Args:
+            animation (LinkAnimation): animation to draw.
+        """
+        # Animations can be bigger than the stroke, so the bounds change with them.
         self.prepareGeometryChange()
-        self._pulsing = state
-        if not state:
-            self._pulse_offset = None
+        self._animations[type(animation)] = animation
         self.update()
 
-    def set_pulse_offset(self, offset: float | None):
-        """Move the pulse.
+    def remove_animation(self, kind: type[LinkAnimation]):
+        """Stop drawing an animation.
 
         Args:
-            offset (float | None): distance from the source along the curve, wrapped
-                around the length of the link. None hides the pulse.
+            kind (type[LinkAnimation]): class of the animation to remove.
         """
-        if not self._pulsing:
+        if kind not in self._animations:
             return
-        self._pulse_offset = offset
+        self.prepareGeometryChange()
+        del self._animations[kind]
         self.update()
 
     def boundingRect(self) -> QtCore.QRectF:
-        """QtCore.QRectF: bounds of the stroke, with room for the pulse."""
+        """QtCore.QRectF: bounds of the stroke, with room for the animations."""
         rect = super().boundingRect()
-        if not self._pulsing:
-            return rect
-        margin = self.PULSE_RADIUS
+        margin = max((a.MARGIN for a in self._animations.values()), default=0.0)
         return rect.adjusted(-margin, -margin, margin, margin)
 
     def paint(
@@ -147,47 +156,27 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget | None = None,
     ) -> None:
-        """Paint the link, then the pulse on top of it.
+        """Paint the link with its animations behind and over the stroke.
 
-        A link too small on screen for its pulse is drawn without it. It stays
-        antialiased, so a stroke thinner than a pixel fades out instead of breaking up.
+        An animation too small on screen to see is left out. The stroke stays
+        antialiased, so one thinner than a pixel fades out instead of breaking up.
 
         Args:
             painter (QtGui.QPainter): painter.
             option (QtWidgets.QStyleOptionGraphicsItem): style option.
             widget (QtWidgets.QWidget | None): widget being painted on.
         """
-        lod = LevelOfDetail.from_painter(painter, shape_size=self.LOD_SHAPE_SIZE)
+        scale = LevelOfDetail.scale_from_painter(painter)
+        visible = (
+            []
+            if self.is_preview
+            else [a for a in self._animations.values() if a.is_visible_at(scale)]
+        )
+        for animation in visible:
+            animation.paint_below(painter, self)
         super().paint(painter, option, widget)
-        if lod.shows_shapes:
-            self._paint_pulse(painter)
-
-    def _paint_pulse(self, painter: QtGui.QPainter):
-        """Draw the pulse: a dot at the offset followed by a fading tail.
-
-        Args:
-            painter (QtGui.QPainter): painter.
-        """
-        if self._pulse_offset is None or self.is_preview or self._path_length <= 0:
-            return
-
-        path = self.path()
-        head = self._pulse_offset % self._path_length
-        color = QtGui.QColor(self.PULSE_COLOR)
-        painter.save()
-        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        painter.setPen(QtCore.Qt.PenStyle.NoPen)
-        for sample in range(self.PULSE_TAIL_SAMPLES):
-            distance = head - sample * self.PULSE_TAIL_STEP
-            if distance < 0:
-                break
-            fade = sample / self.PULSE_TAIL_SAMPLES
-            color.setAlphaF(1.0 - fade)
-            painter.setBrush(color)
-            radius = self.PULSE_RADIUS * (1.0 - 0.5 * fade)
-            point = path.pointAtPercent(path.percentAtLength(distance))
-            painter.drawEllipse(point, radius, radius)
-        painter.restore()
+        for animation in visible:
+            animation.paint_above(painter, self)
 
     def update_style(self):
         """Take color and width from the plug the link comes from.

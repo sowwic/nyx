@@ -55,7 +55,7 @@ def test_lines_describe_the_view(stage_editor, create_node, overlay):
 
     text = "\n".join(overlay.lines())
 
-    for label in ("paints/s", "zoom", "detail", "nodes", "links", "plugs", "pulsing"):
+    for label in ("paints/s", "zoom", "detail", "nodes", "links", "plugs", "animated"):
         assert label in text
     assert "scale 100%" in text
     assert "FULL" in text
@@ -181,11 +181,11 @@ def test_view_without_the_overlay_does_not_count_paints(stage_editor, overlay):
     assert overlay.paint_rate() == 0
 
 
-def pulsing_line(overlay) -> str:
-    return next(line for line in overlay.lines() if line.startswith("pulsing"))
+def animated_line(overlay) -> str:
+    return next(line for line in overlay.lines() if line.startswith("animated"))
 
 
-def test_pulsing_line_counts_active_and_skipped_pulses(
+def test_animated_line_counts_active_and_skipped_links(
     stage_editor, create_node, overlay
 ):
     from nyx.api.v1 import commands
@@ -199,20 +199,20 @@ def test_pulsing_line_counts_active_and_skipped_pulses(
         )
     )
     view = stage_editor.gr_view
-    animator = stage_editor.gr_stage.pulse_animator
+    animator = stage_editor.gr_stage.link_animator
     assert animator.is_running
 
     view.setTransform(QtGui.QTransform.fromScale(1.0, 1.0))
     if view.isVisible():
-        assert pulsing_line(overlay).split()[1:] == ["1", "(0", "skipped)"]
+        assert animated_line(overlay).split()[1:] == ["1", "(0", "skipped)"]
 
     # Too small to see: the timer runs, the pulse is skipped.
     view.setTransform(QtGui.QTransform.fromScale(0.1, 0.1))
     assert animator.is_running
-    assert pulsing_line(overlay).split()[1:] == ["0", "(1", "skipped)"]
+    assert animated_line(overlay).split()[1:] == ["0", "(1", "skipped)"]
 
 
-def test_pulses_outside_of_the_view_count_as_skipped(stage_editor, create_node, overlay):
+def test_links_outside_of_the_view_count_as_skipped(stage_editor, create_node, overlay):
     from nyx.api.v1 import commands
 
     stage = stage_editor.stage
@@ -227,8 +227,8 @@ def test_pulses_outside_of_the_view_count_as_skipped(stage_editor, create_node, 
     for gr_node in stage_editor.gr_stage.gr_nodes():
         gr_node.setPos(100000, 100000)
 
-    assert pulsing_line(overlay).split()[1:] == ["0", "(1", "skipped)"]
+    assert animated_line(overlay).split()[1:] == ["0", "(1", "skipped)"]
 
 
-def test_pulsing_line_without_pulses(overlay):
-    assert pulsing_line(overlay).split()[1:] == ["0", "(0", "skipped)"]
+def test_animated_line_without_animations(overlay):
+    assert animated_line(overlay).split()[1:] == ["0", "(0", "skipped)"]

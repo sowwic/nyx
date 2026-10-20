@@ -71,13 +71,28 @@ def blocked_signals(*objs):
             o.blockSignals(p)
 
 
+def get_app_config() -> NyxConfig:
+    """Get the config of the running application.
+
+    Returns:
+        NyxConfig: config the application loaded at startup, so it has the values of
+            the user's config file. Without an application a new config is created and
+            resolved.
+    """
+    config = getattr(QtWidgets.QApplication.instance(), "config", None)
+    if config is None:
+        config = NyxConfig()
+        config.resolve()
+    return config
+
+
 def are_hover_diagnostics_enabled() -> bool:
     """Check whether graphics items show their model roles as a tooltip.
 
     Returns:
         bool: enabled in the config or in debug mode.
     """
-    node_config = NyxConfig().values.editor_widgets.graphics_stage.nodes
+    node_config = get_app_config().values.editor_widgets.graphics_stage.nodes
     return bool(node_config.hover_diagnostics or DEBUG)
 
 
