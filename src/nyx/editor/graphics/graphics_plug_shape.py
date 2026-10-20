@@ -109,13 +109,11 @@ class SquarePlugShape(PlugShape):
             h = self.HOLE_RADIUS
             painter.setPen(QtCore.Qt.PenStyle.NoPen)
             painter.setBrush(self.HOLE_COLOR)
-            painter.drawRect(
-                QtCore.QRectF(center.x() - h, center.y() - h, 2 * h, 2 * h)
-            )
+            painter.drawRect(QtCore.QRectF(center.x() - h, center.y() - h, 2 * h, 2 * h))
 
 
 class SquareMatrixPlugShape(PlugShape):
-    """Grid of 3x3 small squares, the center one is missing until the socket is linked."""
+    """Grid of 3x3 small squares, the center one is missing if not linked."""
 
     GRID = 3
     GAP = 1.0
