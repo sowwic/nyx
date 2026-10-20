@@ -125,3 +125,12 @@ def test_reference_is_a_square_that_exchanges_paths_with_strings():
     assert reference.accepts(get(CoreDatatypes.STRING))
     assert get(CoreDatatypes.STRING).accepts(reference)
     assert not reference.accepts(get(CoreDatatypes.BOOL))
+
+
+def test_only_flow_is_not_selectable():
+    not_selectable = {
+        datatype.type_id
+        for datatype in NYX_REGISTRY.iter_datatypes()
+        if not datatype.selectable
+    }
+    assert not_selectable == {CoreDatatypes.FLOW}

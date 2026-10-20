@@ -23,6 +23,8 @@ class Datatype:
         default_factory: creates the value components of the datatype start with
         is_wildcard: compatible with every datatype
         compatible_with: type ids of the other datatypes it is compatible with
+        selectable: can be picked by the user as the datatype of a component, false
+            for datatypes that belong to a specific component type
     """
 
     type_id: str
@@ -34,6 +36,7 @@ class Datatype:
     default_factory: typing.Callable[[], typing.Any] = lambda: None
     is_wildcard: bool = False
     compatible_with: frozenset[str] = frozenset()
+    selectable: bool = True
 
     def create_default(self) -> typing.Any:
         """Create the default value of the datatype.

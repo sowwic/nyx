@@ -9,6 +9,7 @@ from ._base_nyx_command import NyxCommand
 from .unlink_node_components import UnlinkNodeComponentsCommand
 from ..link import Link
 from ..node_component import NodeComponent, NodeComponentLike
+from ..plugin_subsystem.registry import NYX_REGISTRY
 from ..stage import Stage
 
 LOGGER = logging.getLogger(__name__)
@@ -57,7 +58,14 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
         return list(self._unlink_command.link_uuids) if self._unlink_command else []
 
     def validate(self) -> None:
-        """Check the datatype of the component can be changed."""
+        """Check the datatype of the component can be changed to the new one."""
+        datatype = NYX_REGISTRY.get_datatype(self.new_datatype_id)
+        if datatype is None:
+            raise NyxCommandValidationError(f"Unknown datatype: {self.new_datatype_id}")
+        if not datatype.selectable:
+            raise NyxCommandValidationError(
+                f"Datatype {datatype.display_name} can't be selected"
+            )
         if self.component.is_datatype_locked:
             raise NyxCommandValidationError(
                 f"Datatype of {self.component.path} is locked"

@@ -18,6 +18,8 @@ ComboBox {
     // Locked by the component, e.g. built-ins or a datatype taken from a source.
     enabled: component ? component.isEditable === true && component.isDatatypeLocked !== true : false
     currentIndex: component ? indexOfValue(component.resolvedDatatype) : -1
+    // A datatype that can't be picked, like flow, is still shown when it is in effect.
+    displayText: currentIndex >= 0 ? currentText : (component ? component.resolvedDatatype : "")
 
     onActivated: index => {
         if (controller && component)

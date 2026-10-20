@@ -270,11 +270,12 @@ class ComponentsController(QtCore.QObject):
         """Get the datatypes a component can be hinted with.
 
         Returns:
-            list[dict[str, str]]: `id` and `name` of every registered datatype.
+            list[dict[str, str]]: `id` and `name` of every selectable datatype.
         """
         return [
             {"id": str(datatype.type_id), "name": datatype.display_name}
             for datatype in NYX_REGISTRY.iter_datatypes()
+            if datatype.selectable
         ]
 
     @QtCore.Slot(str, str, str, result=str)

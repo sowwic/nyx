@@ -86,6 +86,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         display_name="Flow",
         color="#FFFFFF",
         plug_shape=GraphicsPlugShape.PENTAGON,
+        selectable=False,
     ),
     Datatype(
         type_id=CoreDatatypes.REFERENCE,

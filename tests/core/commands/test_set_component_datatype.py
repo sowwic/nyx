@@ -211,12 +211,23 @@ def test_links_of_a_getter_pointing_at_the_changed_component_are_checked_too():
     assert getter["value"].datatype.type_id == CoreDatatypes.BOOL
     assert len(condition.links) == 1
 
-    command = change_datatype(stage, target, CoreDatatypes.FLOW)
+    command = change_datatype(stage, target, CoreDatatypes.STRING)
 
-    assert getter["value"].datatype.type_id == CoreDatatypes.FLOW
+    assert getter["value"].datatype.type_id == CoreDatatypes.STRING
     assert not condition.links
     assert command.removed_link_uuids == [link_command.result_link_uuid]
 
     stage.undo_stack.undo()
     assert getter["value"].datatype.type_id == CoreDatatypes.BOOL
     assert len(condition.links) == 1
+
+
+@pytest.mark.parametrize("datatype_id", [CoreDatatypes.FLOW, "missing:type"])
+def test_datatype_that_can_not_be_selected_is_rejected(datatype_id):
+    stage = Stage()
+    value = make_user_value(stage)
+
+    with pytest.raises(NyxCommandValidationError):
+        change_datatype(stage, value, datatype_id)
+
+    assert value.datatype_id == CoreDatatypes.OBJECT

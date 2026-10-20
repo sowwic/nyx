@@ -534,3 +534,12 @@ def test_datatype_selector_is_enabled_when_the_datatype_is_not_locked(make_edito
     editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=False)
     selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
     assert selector.property("enabled") is True
+
+
+def test_controller_lists_only_selectable_datatypes(qapp):
+    from nyx.editor.controllers.components import ComponentsController
+
+    ids = [entry["id"] for entry in ComponentsController().availableDatatypes()]
+
+    assert "core:bool" in ids
+    assert "core:flow" not in ids
