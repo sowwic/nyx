@@ -8,7 +8,7 @@ from nyx.api.v1 import CoreNodeComponents, CoreNodes, commands
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
-from nyx.editor.utils import io
+from nyx.editor.utils import context_menus, io
 
 
 def select(stage_editor, *nodes):
@@ -354,14 +354,14 @@ def test_graph_and_tree_context_menus_match(
     layouts = {}
 
     def capture(name):
-        def fake_exec(self, *args, **kwargs):
-            layouts[name] = menu_layout(self)
+        def fake_show(menu, global_pos):
+            layouts[name] = menu_layout(menu)
 
-        return fake_exec
+        return fake_show
 
-    monkeypatch.setattr(QtWidgets.QMenu, "exec_", capture("graph"))
+    monkeypatch.setattr(context_menus, "show_menu", capture("graph"))
     stage_editor.gr_view.show_context_menu(QtCore.QPoint(5, 5))
-    monkeypatch.setattr(QtWidgets.QMenu, "exec_", capture("tree"))
+    monkeypatch.setattr(context_menus, "show_menu", capture("tree"))
     main_window.stage_tree_view.show_context_menu(QtCore.QPoint(5, 5))
 
     assert layouts["graph"] == layouts["tree"]
@@ -901,7 +901,7 @@ def test_view_is_in_link_drag_mode_only_while_dragging(
     palette_action = ACTION_REGISTRY.action(ActionId.SHOW_PALETTE)
     create_action = ACTION_REGISTRY.action(ActionId.CREATE_NODE)
     menus = []
-    monkeypatch.setattr(QtWidgets.QMenu, "exec_", lambda self, *a: menus.append(self))
+    monkeypatch.setattr(context_menus, "show_menu", lambda menu, pos: menus.append(menu))
     assert view.is_idle and palette_action.isEnabled() and create_action.isEnabled()
 
     gr_stage.begin_link_drag(plug, plug.Socket.OUTPUT)

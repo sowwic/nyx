@@ -165,7 +165,7 @@ class StageTreeView(QtWidgets.QTreeView):
             event (QtGui.QMouseEvent): event.
         """
         if event.button() == QtCore.Qt.LeftButton:
-            if not self.indexAt(event.pos()).isValid():
+            if not self.indexAt(event.position().toPoint()).isValid():
                 self.selectionModel().clear()
 
         return super().mousePressEvent(event)
@@ -242,4 +242,4 @@ class StageTreeView(QtWidgets.QTreeView):
         menu = context_menus.build_nodes_context_menu(
             self, has_selection=bool(self.current_node())
         )
-        menu.exec_(self.mapToGlobal(point))
+        context_menus.show_menu(menu, self.mapToGlobal(point))

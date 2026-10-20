@@ -328,7 +328,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QMouseEvent): event.
         """
-        gr_item = self.itemAt(event.pos())
+        gr_item = self.itemAt(event.position().toPoint())
         if not gr_item:
             event.ignore()
             return
@@ -376,7 +376,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QMouseEvent): event.
         """
-        scene_pos = self.mapToScene(event.pos())
+        scene_pos = self.mapToScene(event.position().toPoint())
 
         try:
             if self.interaction_mode is self.InteractionMode.LINK_CUT and self.cutline:
@@ -393,20 +393,20 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QMouseEvent): event.
         """
-        item = self.itemAt(event.pos())
+        item = self.itemAt(event.position().toPoint())
         # A band whose release never came must not hold back the selection.
         if self.interaction_mode is self.InteractionMode.RUBBER_BAND:
             self.set_interaction_mode(self.InteractionMode.NOOP)
         # Store click position for future use
-        self.last_lmb_click_pos = self.mapToScene(event.pos())
+        self.last_lmb_click_pos = self.mapToScene(event.position().toPoint())
 
         if not item:
             if event.modifiers() & QtCore.Qt.ControlModifier:
                 self.set_interaction_mode(self.InteractionMode.LINK_CUT)
                 fake_event = QtGui.QMouseEvent(
                     QtCore.QEvent.MouseButtonRelease,
-                    event.localPos(),
-                    event.screenPos(),
+                    event.position(),
+                    event.globalPosition(),
                     QtCore.Qt.LeftButton,
                     QtCore.Qt.NoButton,
                     event.modifiers(),
@@ -476,8 +476,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """
         release_event = QtGui.QMouseEvent(
             QtCore.QEvent.MouseButtonRelease,
-            event.localPos(),
-            event.screenPos(),
+            event.position(),
+            event.globalPosition(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.NoButton,
             event.modifiers(),
@@ -487,8 +487,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
         fake_event = QtGui.QMouseEvent(
             event.type(),
-            event.localPos(),
-            event.screenPos(),
+            event.position(),
+            event.globalPosition(),
             QtCore.Qt.LeftButton,
             event.buttons() | QtCore.Qt.LeftButton,
             event.modifiers(),
@@ -503,8 +503,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """
         fake_event = QtGui.QMouseEvent(
             event.type(),
-            event.localPos(),
-            event.screenPos(),
+            event.position(),
+            event.globalPosition(),
             QtGui.Qt.LeftButton,
             event.buttons() & ~QtGui.Qt.LeftButton,
             event.modifiers(),
@@ -575,7 +575,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         menu = context_menus.build_nodes_context_menu(
             self, has_selection=state.has_selection
         )
-        menu.exec_(self.mapToGlobal(point))
+        context_menus.show_menu(menu, self.mapToGlobal(point))
 
     def cut_intersecting_links(self) -> bool:
         """Unlink the links crossed by the cutline.
