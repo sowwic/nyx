@@ -96,7 +96,7 @@ class GetterNode(Node):
         self.components_model.add_component(self.in_component_path)
         self.components_model.add_component(self.value_cpnt)
         self.bind_subtitle_to_component(
-            self.in_component_path.name, lambda reference: reference.current_path_text()
+            self.in_component_path.name, lambda reference: reference.current_name_text()
         )
 
         # Replace pull value to pull path from inputs

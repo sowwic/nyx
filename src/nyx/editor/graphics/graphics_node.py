@@ -28,7 +28,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
     ICON_RECT = QtCore.QRect(8, 6, 16, 16)
     TITLE_OFFSET_X = 28.0
-    SUBTITLE_INDENT = 4.0  # lines up with the text of the title, inside its margin
+    SUBTITLE_MARGIN = 8.0  # space between the subtitle and the sides of the node
 
     def __init__(self, node: Node, parent=None):
         """Initialize GraphicsNode.
@@ -93,11 +93,8 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     @property
     def title_width(self) -> float:
-        """float: width of the widest line of the header."""
-        subtitle_width = self.subtitle_item.width
-        if subtitle_width:
-            subtitle_width += self.SUBTITLE_INDENT
-        return max(self.title_item.width, subtitle_width)
+        """float: width of the title."""
+        return self.title_item.width
 
     @property
     def plugs(self) -> list[GraphicsPlug]:
@@ -176,9 +173,11 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.width = max(
             self.MIN_WIDTH,
             self.TITLE_OFFSET_X + self.title_width + self.title_horizontal_padding,
+            self.subtitle_item.width + 2 * self.SUBTITLE_MARGIN,
         )
+        # Right aligned: the subtitle ends where the node does, the title starts at it
         self.subtitle_item.setPos(
-            self.TITLE_OFFSET_X + self.SUBTITLE_INDENT,
+            self.width - self.SUBTITLE_MARGIN - self.subtitle_item.width,
             self.title_item.height - self.subtitle_item.TITLE_OVERLAP,
         )
         plugs_top = self.title_height + self.plugs_top_padding

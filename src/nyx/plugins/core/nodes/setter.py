@@ -62,7 +62,7 @@ class SetterNode(Node):
         self.components_model.add_component(self.value_cpnt)
         self.bind_subtitle_to_component(
             self.component_path_cpnt.name,
-            lambda reference: reference.current_path_text(),
+            lambda reference: reference.current_name_text(),
         )
 
     def execute(self):

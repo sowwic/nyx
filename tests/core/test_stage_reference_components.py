@@ -496,3 +496,22 @@ def test_reference_component_uses_the_reference_datatype():
 
     assert reference.datatype_id == CoreDatatypes.REFERENCE
     assert reference.get_plug_shape() is GraphicsPlugShape.SQUARE
+
+
+def test_name_text_is_the_last_part_of_the_path():
+    stage = Stage()
+    target_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.LOG, name="target"
+    )
+    stage.push_command(target_command)
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    reference = getter_command.result_node["component"]
+
+    assert reference.current_name_text() == ""
+
+    reference.push_value("/stage/target.message")
+    assert reference.current_name_text() == "target.message"
+
+    reference.push_value("/stage/missing/deep.value")
+    assert reference.current_name_text() == "deep.value"

@@ -134,7 +134,7 @@ def test_getter_and_setter_show_the_component_they_point_at(type_id):
 
     node["component"].push_value(f"{target.path.as_posix()}.message")
 
-    assert node.subtitle == f"{target.path.as_posix()}.message"
+    assert node.subtitle == "target.message"
 
 
 @pytest.mark.parametrize("type_id", [CoreNodes.GET, CoreNodes.SET])
@@ -159,22 +159,22 @@ def test_subtitle_follows_a_rename_of_the_target():
         commands.RenameNodeCommand(stage=stage, node=target, new_name="renamed")
     )
 
-    assert node.subtitle == "/stage/renamed.message"
+    assert node.subtitle == "renamed.message"
 
 
-def test_relative_path_is_shown_as_the_path_of_the_target():
+def test_relative_path_is_shown_as_the_name_of_the_target():
     stage = Stage()
     make_node(stage, CoreNodes.LOG, name="target")
     node = make_node(stage, CoreNodes.SET)
 
     node["component"].push_value("./target.message")
 
-    assert node.subtitle == "/stage/target.message"
+    assert node.subtitle == "target.message"
 
 
-def test_unresolved_path_is_shown_as_typed():
+def test_unresolved_path_is_shown_as_its_last_part():
     node = make_node(Stage(), CoreNodes.GET)
 
     node["component"].push_value("/stage/nowhere.value")
 
-    assert node.subtitle == "/stage/nowhere.value"
+    assert node.subtitle == "nowhere.value"

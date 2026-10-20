@@ -228,6 +228,15 @@ class StageReferenceComponent(NodeComponent):
             return target.path.as_posix()
         return "" if self.raw_value is None else str(self.raw_value)
 
+    def current_name_text(self) -> str:
+        """Get the short name of the target, without the rest of its path.
+
+        Returns:
+            str: name of the target node, or `node.component` for a component, like
+                `log.message`. The last part of the given text if there is no target.
+        """
+        return pathlib.PurePosixPath(self.current_path_text()).name
+
     def current_display_text(self) -> str:
         """Get the text shown for the reference right now.
 

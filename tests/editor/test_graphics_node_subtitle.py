@@ -91,9 +91,7 @@ def test_node_grows_to_fit_a_wide_subtitle(make_gr_node):
     node.subtitle = "a rather wide subtitle text that needs more room than the title"
 
     assert gr_node.width > plain_width
-    assert gr_node.width >= (
-        gr_node.TITLE_OFFSET_X + gr_node.subtitle_item.width + gr_node.SUBTITLE_INDENT
-    )
+    assert gr_node.width >= gr_node.subtitle_item.width + 2 * gr_node.SUBTITLE_MARGIN
 
 
 def test_subtitle_can_not_be_clicked_or_edited(make_gr_node):
@@ -107,11 +105,42 @@ def test_subtitle_can_not_be_clicked_or_edited(make_gr_node):
 def test_getter_and_setter_show_the_component_they_point_at(
     make_gr_node, create_node, stage_editor, type_id
 ):
-    target = create_node(stage_editor.stage, "target", type_id=CoreNodes.LOG)
+    create_node(stage_editor.stage, "target", type_id=CoreNodes.LOG)
     node, gr_node = make_gr_node(type_id, "pointer")
     assert not gr_node.subtitle_item.isVisible()
 
     node["component"].push_value("./target.message")
 
     assert gr_node.subtitle_item.isVisible()
-    assert gr_node.subtitle_item.full_text == f"{target.path.as_posix()}.message"
+    assert gr_node.subtitle_item.full_text == "target.message"
+
+
+def test_subtitle_is_right_aligned(make_gr_node):
+    node, gr_node = make_gr_node()
+
+    node.subtitle = "short"
+
+    subtitle = gr_node.subtitle_item
+    right_edge = subtitle.pos().x() + subtitle.width
+    assert right_edge == gr_node.width - gr_node.SUBTITLE_MARGIN
+
+
+def test_subtitle_stays_right_aligned_when_the_node_grows(make_gr_node):
+    node, gr_node = make_gr_node()
+    node.subtitle = "short"
+
+    node.subtitle = "a rather wide subtitle text that needs more room than the title"
+
+    subtitle = gr_node.subtitle_item
+    assert subtitle.pos().x() + subtitle.width == (
+        gr_node.width - gr_node.SUBTITLE_MARGIN
+    )
+    assert subtitle.pos().x() >= gr_node.SUBTITLE_MARGIN
+
+
+def test_title_stays_on_the_left(make_gr_node):
+    node, gr_node = make_gr_node()
+    node.subtitle = "short"
+
+    assert gr_node.title_item.pos().x() == gr_node.TITLE_OFFSET_X
+    assert gr_node.subtitle_item.pos().x() > gr_node.title_item.pos().x()
