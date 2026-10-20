@@ -16,9 +16,10 @@ class GraphicsNodeSubtitle(QtWidgets.QGraphicsSimpleTextItem):
     SUBTITLE_FONT = QtGui.QFont("Zed Mono", 8)
     COLOR = QtGui.QColor("#9A9A9A")
     MAX_WIDTH = 240.0
-    # The title item keeps a margin around its text. The subtitle tucks into it, and
-    # adds this much less than its own height to the header.
-    TITLE_OVERLAP = 6.0
+    # The title item keeps a margin around its text. The subtitle tucks into it by this
+    # much, and adds this much less than its own height to the header. Lower values
+    # leave more space between the title and the subtitle.
+    TITLE_OVERLAP = 2.0
     HEADER_PADDING = 4.0
 
     def __init__(self, gr_node: GraphicsNode):
