@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Iterator
+from uuid import UUID
 
 from PySide6 import QtGui
 
@@ -64,10 +66,11 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
     def redo(self) -> None:
         """Apply the new datatype, then fix the value and links it makes invalid."""
         component = self.component
+        incompatible_before = self._incompatible_link_uuids()
         component.set_datatype(self.new_datatype_id)
         if not component.is_valid:
             component.push_value(component.datatype.create_default())
-        self._build_child_unlink_command()
+        self._build_child_unlink_command(skip=incompatible_before)
         if self._unlink_command:
             self._unlink_command.redo()
         return super().redo()
@@ -82,9 +85,17 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
             self._unlink_command.undo()
         return super().undo()
 
-    def _build_child_unlink_command(self) -> None:
-        """Create an unlink command for the links that became incompatible, if any."""
-        incompatible = self._collect_incompatible_links()
+    def _build_child_unlink_command(self, skip: set[UUID]) -> None:
+        """Create an unlink command for the links that became incompatible, if any.
+
+        Args:
+            skip (set[UUID]): links that were incompatible before, left as they are.
+        """
+        incompatible = [
+            link
+            for link in self._iter_stage_links()
+            if not link.is_datatype_compatible and link.uuid not in skip
+        ]
         self._unlink_command = None
         if not incompatible:
             return
@@ -94,27 +105,23 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
             stage=self.stage, link_uuids=[link.uuid for link in incompatible]
         )
 
-    def _collect_incompatible_links(self) -> list[Link]:
-        """Find the incompatible links of the component and of what inherits from it.
+    def _incompatible_link_uuids(self) -> set[UUID]:
+        """set[UUID]: uuids of the links that are incompatible right now."""
+        return {
+            link.uuid
+            for link in self._iter_stage_links()
+            if not link.is_datatype_compatible
+        }
 
-        Returns:
-            list[Link]: links whose target doesn't accept the source datatype.
+    def _iter_stage_links(self) -> Iterator[Link]:
+        """Iterate over all links of the stage.
+
+        The whole stage is checked, not only the links of the component: other
+        components take their datatype from it, like a getter pointing at it.
+
+        Yields:
+            Link: registered link.
         """
-        incompatible: list[Link] = []
-        pending = [self.component]
-        visited: set = set()
-        while pending:
-            current = pending.pop()
-            if current.uuid in visited:
-                continue
-            visited.add(current.uuid)
-
-            for link in current.links:
-                if not link.is_datatype_compatible:
-                    incompatible.append(link)
-            pending.extend(
-                link.target_component
-                for link in current.output_links
-                if link.target_component.get_datatype_source() is current
-            )
-        return incompatible
+        for stage_object in list(self.stage.uuid_map.values()):
+            if isinstance(stage_object, Link):
+                yield stage_object

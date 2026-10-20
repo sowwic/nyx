@@ -191,3 +191,32 @@ def test_undo_restores_the_replaced_value():
 
     stage.undo_stack.redo()
     assert value.raw_value == 0
+
+
+def test_links_of_a_getter_pointing_at_the_changed_component_are_checked_too():
+    stage = Stage()
+    target = make_user_value(stage)
+    target.set_datatype(CoreDatatypes.BOOL)
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    getter = getter_command.result_node
+    getter["component"].push_value(target.path.as_posix())
+    branch_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.BRANCH)
+    stage.push_command(branch_command)
+    condition = branch_command.result_node["condition"]
+    link_command = commands.LinkNodeComponentsCommand(
+        stage=stage, source=getter["value"], target=condition
+    )
+    stage.push_command(link_command)
+    assert getter["value"].datatype.type_id == CoreDatatypes.BOOL
+    assert len(condition.links) == 1
+
+    command = change_datatype(stage, target, CoreDatatypes.FLOW)
+
+    assert getter["value"].datatype.type_id == CoreDatatypes.FLOW
+    assert not condition.links
+    assert command.removed_link_uuids == [link_command.result_link_uuid]
+
+    stage.undo_stack.undo()
+    assert getter["value"].datatype.type_id == CoreDatatypes.BOOL
+    assert len(condition.links) == 1
