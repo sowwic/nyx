@@ -9,6 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
+from .datatype import Datatype
 from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
@@ -17,6 +18,7 @@ from ..static.enums import (
     NodeComponentFlag,
     NodeComponentValueMask,
     GraphicsPlugShape,
+    CoreDatatypes,
 )
 from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
@@ -56,6 +58,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_ICON = enum.auto()
         RAW_VALUE = enum.auto()
         CACHED_VALUE = enum.auto()
+        DATATYPE = enum.auto()
         LINKS = enum.auto()
         DEFAULT_VALUE = enum.auto()
         TAGS = enum.auto()
@@ -241,6 +244,26 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return self.value_storage.display_value
 
     @property
+    def datatype_id(self) -> str:
+        """str: type id of the datatype hint, kept even if it isn't registered."""
+        return self.data(self.Roles.DATATYPE) or CoreDatatypes.OBJECT
+
+    @property
+    def datatype(self) -> Datatype:
+        """Datatype: datatype hint, the object datatype if unset or unknown."""
+        return NYX_REGISTRY.resolve_datatype(self.datatype_id)
+
+    def set_datatype(self, type_id: str) -> None:
+        """Set the datatype hint and re-evaluate the value against it.
+
+        Args:
+            type_id (str): datatype type id.
+        """
+        self.setData(str(type_id), role=self.Roles.DATATYPE)
+        self.value_storage.evaluate()
+        self.value_storage.refresh_display_value()
+
+    @property
     def links_uuids(self) -> frozenset[UUID]:
         """frozenset[UUID]: uuids of links connected to the component."""
         return self.data(self.Roles.LINKS)
@@ -340,7 +363,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @property
     def is_valid(self) -> bool:
         """bool: the value is usable. Components with something to resolve override."""
-        return True
+        return self.value_storage.is_valid
 
     @property
     def is_built_in(self) -> bool:
@@ -375,6 +398,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
+        self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
         self.setData(True, role=self.Roles.LINKS_EXPANDED)
         self.setData(set(), role=self.Roles.LINKS)
@@ -580,6 +604,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         data["type_id"] = self.get_type_id()
         data["flags"] = self.component_flags
         data["name"] = self.name
+        data["datatype"] = self.datatype_id
         data["value"] = self.serialize_value()
         data["default_value"] = self.serialize_default_value()
         data["is_active"] = self.is_active
@@ -616,6 +641,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.uuid = uuid
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
+        component.setData(
+            data.get("datatype") or component.datatype_id, role=cls.Roles.DATATYPE
+        )
         component.restore_value(data["value"], context)
         component.default_value = component.deserialize_default_value(
             value=data.get("default_value")
@@ -696,6 +724,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def get_type_default_value(self) -> typing.Any:
         """typing.Any: initial value of the component type."""
         return None
+
+    @classmethod
+    def get_type_default_datatype(cls) -> str:
+        """str: type id of the datatype new components of the type are hinted with."""
+        return CoreDatatypes.OBJECT
 
     @classmethod
     def get_type_id(cls) -> str:

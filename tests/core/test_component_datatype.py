@@ -1,0 +1,127 @@
+import pytest
+
+from nyx.api.v1 import (
+    Stage,
+    NodeComponent,
+    NodeDeserializationContext,
+    commands,
+    exceptions,
+    CoreNodes,
+    CoreDatatypes,
+)
+
+
+def make_branch(stage: Stage):
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.BRANCH)
+    stage.push_command(command)
+    return command.result_node
+
+
+@pytest.fixture
+def value():
+    component = make_branch(Stage())["condition"]
+    component.set_datatype(CoreDatatypes.OBJECT)
+    return component
+
+
+def test_default_datatype_is_object(value):
+    assert value.datatype_id == CoreDatatypes.OBJECT
+    assert value.datatype.is_wildcard
+
+
+def test_object_evaluates_without_casting(value):
+    value.push_value("[1, 2]")
+    assert value.cached_value == [1, 2]
+    assert value.is_valid
+
+
+def test_typed_value_is_cast_after_evaluation(value):
+    value.set_datatype(CoreDatatypes.INT)
+    value.push_value("3.0")
+    assert value.cached_value == 3
+    assert value.display_value == "3"
+
+
+def test_setting_datatype_recasts_current_value(value):
+    value.push_value("5")
+    value.set_datatype(CoreDatatypes.STRING)
+    assert value.cached_value == "5"
+
+
+def test_failed_cast_keeps_previous_value_and_marks_invalid(value):
+    value.set_datatype(CoreDatatypes.INT)
+    value.push_value("4")
+    value.push_value("abc")
+    assert value.cached_value == 4
+    assert value.raw_value == "abc"
+    assert not value.is_valid
+    assert value.value_storage.cast_error
+
+
+def test_next_valid_value_clears_invalid_state(value):
+    value.set_datatype(CoreDatatypes.INT)
+    value.push_value("abc")
+    value.push_value("2")
+    assert value.is_valid
+    assert value.cached_value == 2
+
+
+def test_none_is_not_cast(value):
+    value.set_datatype(CoreDatatypes.INT)
+    value.push_value(None)
+    assert value.cached_value is None
+    assert value.is_valid
+
+
+def test_unknown_datatype_falls_back_to_object_but_is_kept(value):
+    value.set_datatype("missing:type")
+    assert value.datatype.is_wildcard
+    assert value.datatype_id == "missing:type"
+    assert value.serialize()["datatype"] == "missing:type"
+
+
+def test_datatype_survives_serialization(value):
+    value.set_datatype(CoreDatatypes.FLOAT)
+    value.push_value("1")
+    node = value.node
+    data = value.serialize()
+    context = NodeDeserializationContext(stage=node.stage, entry_node=node)
+
+    restored = NodeComponent.deserialize(data=data, node=node, context=context)
+
+    assert restored.datatype_id == CoreDatatypes.FLOAT
+    assert restored.cached_value == 1.0
+
+
+def test_legacy_data_without_datatype_deserializes(value):
+    data = value.serialize()
+    del data["datatype"]
+    node = value.node
+    context = NodeDeserializationContext(stage=node.stage, entry_node=node)
+
+    restored = NodeComponent.deserialize(data=data, node=node, context=context)
+
+    assert restored.datatype_id == CoreDatatypes.OBJECT
+
+
+def test_linking_incompatible_datatypes_is_rejected():
+    stage = Stage()
+    source = make_branch(stage)["condition"]
+    target = make_branch(stage)["condition"]
+    source.produces_output = True
+    source.set_datatype(CoreDatatypes.STRING)
+    target.set_datatype(CoreDatatypes.BOOL)
+
+    with pytest.raises(exceptions.NodeComponentLinkError, match="Incompatible"):
+        stage.link_components(source, target)
+
+
+def test_linking_wildcard_to_concrete_datatype_is_allowed():
+    stage = Stage()
+    source = make_branch(stage)["condition"]
+    target = make_branch(stage)["condition"]
+    source.produces_output = True
+    source.set_datatype(CoreDatatypes.OBJECT)
+    target.set_datatype(CoreDatatypes.BOOL)
+
+    assert stage.link_components(source, target) is not None

@@ -1,6 +1,7 @@
 import typing
 import logging
 
+from .exceptions import DatatypeCastError
 from ..static.enums import NodeComponentValueMask
 
 if typing.TYPE_CHECKING:
@@ -25,6 +26,17 @@ class ValueStorage:
             component (NodeComponent): component the value belongs to.
         """
         self.component = component
+        self._cast_error: str | None = None
+
+    @property
+    def is_valid(self) -> bool:
+        """bool: the last evaluated value could be cast to the component datatype."""
+        return self._cast_error is None
+
+    @property
+    def cast_error(self) -> str | None:
+        """str | None: why the last evaluated value couldn't be cast."""
+        return self._cast_error
 
     @property
     def raw_value(self) -> typing.Any:
@@ -73,9 +85,12 @@ class ValueStorage:
             value (typing.Any): new raw value.
             evaluate (bool): evaluate the value after setting it.
         """
-        self.set_raw_value(value)
         if evaluate:
+            self.component.setData(value, role=self.component.Roles.RAW_VALUE)
             self.evaluate()
+        else:
+            self.set_raw_value(value)
+            self._set_cast_error(None)
         self.refresh_display_value()
 
     def pull(self, value_mask: NodeComponentValueMask) -> typing.Any:
@@ -97,8 +112,50 @@ class ValueStorage:
             raise ValueError(f"Invalid value mask: {value_mask}")
 
     def evaluate(self) -> None:
-        """Evaluate the raw value and store the result as the cached value."""
-        self.set_cached_value(self.compute_value())
+        """Evaluate the raw value and store the result as the cached value.
+
+        The value is cast to the component datatype. When that fails the previous
+        cached value is kept and the storage becomes invalid.
+        """
+        try:
+            self.set_cached_value(self.cast_value(self.compute_value()))
+        except DatatypeCastError as err:
+            LOGGER.warning(str(err))
+            self._set_cast_error(str(err))
+        else:
+            self._set_cast_error(None)
+
+    def cast_value(self, value: typing.Any) -> typing.Any:
+        """Cast an evaluated value to the component datatype. None is left as is.
+
+        Args:
+            value (typing.Any): evaluated value.
+
+        Raises:
+            DatatypeCastError: the value can't be converted.
+
+        Returns:
+            typing.Any: converted value.
+        """
+        if value is None:
+            return None
+        return self.component.datatype.cast(value)
+
+    def _set_cast_error(self, error: str | None) -> None:
+        """Store the cast error and notify the model when validity changed.
+
+        Args:
+            error (str | None): error message, None if the cast succeeded.
+        """
+        was_valid = self.is_valid
+        self._cast_error = error
+        model = self.component.model()
+        if model is not None and was_valid != self.is_valid:
+            model.dataChanged.emit(
+                self.component.index(),
+                self.component.index(),
+                [self.component.Roles.IS_VALID],
+            )
 
     def compute_value(self) -> typing.Any:
         """Compute the evaluated value. Strings are evaluated as python expressions.

@@ -2,6 +2,7 @@ import dataclasses
 import typing
 
 from .exceptions import DatatypeCastError
+from ..static.enums import CoreDatatypes
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,3 +55,12 @@ class Datatype:
             bool: datatypes are compatible.
         """
         return self.is_wildcard or other.is_wildcard or self.type_id == other.type_id
+
+
+OBJECT_DATATYPE = Datatype(
+    type_id=CoreDatatypes.OBJECT,
+    display_name="Object",
+    color="#0096FF",
+    is_wildcard=True,
+)
+"""Datatype of values without a type hint, used wherever no datatype is set."""

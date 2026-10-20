@@ -238,6 +238,26 @@ class NyxRegistry:
         """
         return self.datatypes.get(type_id)
 
+    def resolve_datatype(self, type_id: str | None) -> Datatype:
+        """Get a datatype, falling back to the object datatype.
+
+        Args:
+            type_id (str | None): datatype type id.
+
+        Returns:
+            Datatype: registered datatype, `OBJECT_DATATYPE` for missing or unknown
+                ids (e.g. provided by a plugin that isn't loaded).
+        """
+        from ..datatype import OBJECT_DATATYPE
+
+        if not type_id:
+            return OBJECT_DATATYPE
+        datatype = self.datatypes.get(type_id)
+        if datatype is None:
+            LOGGER.warning("Unknown datatype %s, using object", type_id)
+            return OBJECT_DATATYPE
+        return datatype
+
     def iter_datatypes(self) -> Iterator[Datatype]:
         """Iterate registered datatypes.
 

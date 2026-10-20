@@ -1,14 +1,9 @@
 import pathlib
 
-from nyx.api.v1 import CoreDatatypes, Datatype, DatatypeColor
+from nyx.api.v1 import CoreDatatypes, Datatype, DatatypeColor, OBJECT_DATATYPE
 
 CORE_DATATYPES: tuple[Datatype, ...] = (
-    Datatype(
-        type_id=CoreDatatypes.OBJECT,
-        display_name="Object",
-        color="#0096FF",
-        is_wildcard=True,
-    ),
+    OBJECT_DATATYPE,
     Datatype(
         type_id=CoreDatatypes.TYPE,
         display_name="Type",
