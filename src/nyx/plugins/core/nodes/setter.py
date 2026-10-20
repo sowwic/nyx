@@ -60,6 +60,10 @@ class SetterNode(Node):
         self.components_model.add_component(self.flow_cpnt)
         self.components_model.add_component(self.component_path_cpnt)
         self.components_model.add_component(self.value_cpnt)
+        self.bind_subtitle_to_component(
+            self.component_path_cpnt.name,
+            lambda reference: reference.current_path_text(),
+        )
 
     def execute(self):
         """Push the value, cast to the datatype of the target, into the target.

@@ -3,6 +3,7 @@ from uuid import UUID
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from .graphics_node_subtitle import GraphicsNodeSubtitle
 from .graphics_node_title import GraphicsNodeTitle
 from .graphics_plug import GraphicsPlug
 from ..utils.common import build_role_tooltip_html, are_hover_diagnostics_enabled
@@ -27,6 +28,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
     ICON_RECT = QtCore.QRect(8, 6, 16, 16)
     TITLE_OFFSET_X = 28.0
+    SUBTITLE_INDENT = 4.0  # lines up with the text of the title, inside its margin
 
     def __init__(self, node: Node, parent=None):
         """Initialize GraphicsNode.
@@ -52,6 +54,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._init_assets()
         self.title_item = GraphicsNodeTitle(self)
         self.title_item.setPos(self.TITLE_OFFSET_X, 0)
+        self.subtitle_item = GraphicsNodeSubtitle(self)
 
         self.refresh()
 
@@ -85,13 +88,16 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     @property
     def title_height(self) -> float:
-        """float: height of the title."""
-        return self.title_item.height
+        """float: height of the header: the title and the subtitle under it, if any."""
+        return self.title_item.height + self.subtitle_item.height
 
     @property
     def title_width(self) -> float:
-        """float: width of the title."""
-        return self.title_item.width
+        """float: width of the widest line of the header."""
+        subtitle_width = self.subtitle_item.width
+        if subtitle_width:
+            subtitle_width += self.SUBTITLE_INDENT
+        return max(self.title_item.width, subtitle_width)
 
     @property
     def plugs(self) -> list[GraphicsPlug]:
@@ -118,6 +124,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             self.setPos(position)
 
         self.title_item.refresh()
+        self.subtitle_item.refresh(self._node.subtitle)
         self._icon = QtGui.QIcon(self._node.get_type_icon())
         self._brush_background = QtGui.QBrush(
             self.REFERENCE_NODE_BACKGROUND
@@ -169,6 +176,10 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.width = max(
             self.MIN_WIDTH,
             self.TITLE_OFFSET_X + self.title_width + self.title_horizontal_padding,
+        )
+        self.subtitle_item.setPos(
+            self.TITLE_OFFSET_X + self.SUBTITLE_INDENT,
+            self.title_item.height - self.subtitle_item.TITLE_OVERLAP,
         )
         plugs_top = self.title_height + self.plugs_top_padding
         for row, plug in enumerate(self._plugs.values()):
