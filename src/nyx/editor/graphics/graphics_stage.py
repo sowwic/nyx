@@ -646,12 +646,22 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             gr_node.refresh()
 
     def on_selection_changed(self):
-        """Updates the selection model to match the scene selection."""
-        gr_nodes = self.selected_gr_nodes()
-        nodes = [gr_node.node for gr_node in gr_nodes]
-        self.selection_model.clearSelection()
-        for node in nodes:
-            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
+        """Updates the selection model to match the scene selection.
+
+        The model reports the change once, however many nodes are selected. Nothing is
+        done while a rubber band is being dragged: the scene selection changes for every
+        node that enters the band, so the view syncs it when the band is released.
+        """
+        view = self.graph_editor.gr_view
+        if view is not None and view.is_rubber_banding:
+            return
+        selection = QtCore.QItemSelection()
+        for gr_node in self.selected_gr_nodes():
+            index = gr_node.node.index()
+            selection.select(index, index)
+        self.selection_model.select(
+            selection, QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+        )
 
     def start_selected_node_rename(self):
         """Starts editing the title of the last selected GraphicsNode item."""

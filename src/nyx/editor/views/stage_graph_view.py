@@ -68,6 +68,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         NOOP = enum.auto()
         LINK_DRAG = enum.auto()
         LINK_CUT = enum.auto()
+        RUBBER_BAND = enum.auto()
 
     def __init__(
         self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget | None = None
@@ -94,8 +95,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
         # Positions
         self.last_lmb_click_pos = QtCore.QPointF(0.0, 0.0)
         self.last_scene_mouse_pos = QtCore.QPointF(0.0, 0.0)
-        # Toggles
-        self.rubberband_dragging_rect = False
 
         self._setup_view()
         self.update_render_hints()
@@ -211,6 +210,11 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def is_idle(self) -> bool:
         """bool: no mouse interaction (link drag, link cut) is running."""
         return self._interaction_mode is StageGraphView.InteractionMode.NOOP
+
+    @property
+    def is_rubber_banding(self) -> bool:
+        """bool: a rubber band selection is being dragged."""
+        return self._interaction_mode is StageGraphView.InteractionMode.RUBBER_BAND
 
     @property
     def interaction_mode(self):
@@ -390,6 +394,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
             event (QtGui.QMouseEvent): event.
         """
         item = self.itemAt(event.pos())
+        # A band whose release never came must not hold back the selection.
+        if self.interaction_mode is self.InteractionMode.RUBBER_BAND:
+            self.set_interaction_mode(self.InteractionMode.NOOP)
         # Store click position for future use
         self.last_lmb_click_pos = self.mapToScene(event.pos())
 
@@ -410,7 +417,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             else:
                 if not self.is_dragging:
                     self.gr_stage.selection_model.clearSelection()
-                self.rubberband_dragging_rect = True
+                self.set_interaction_mode(self.InteractionMode.RUBBER_BAND)
 
         super().mousePressEvent(event)
 
@@ -429,10 +436,14 @@ class StageGraphView(QtWidgets.QGraphicsView):
                 event.accept()
                 return
 
-            if self.rubberband_dragging_rect:
-                self.rubberband_dragging_rect = False
+            if self.interaction_mode is self.InteractionMode.RUBBER_BAND:
+                # Qt ends the band and hides its rectangle. The selection is still held
+                # back while it does, and synced once the band is over.
+                try:
+                    super().mouseReleaseEvent(event)
+                finally:
+                    self.set_interaction_mode(self.InteractionMode.NOOP)
                 self.gr_stage.on_selection_changed()
-                event.accept()
                 return
         except Exception:
             LOGGER.exception("Left mouse release exception")
