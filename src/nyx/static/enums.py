@@ -22,6 +22,14 @@ class LinkAnimationStyle(enum.StrEnum):
     GLOW = "glow"
 
 
+class LinkStyle(enum.StrEnum):
+    """Shapes a graphics link can be drawn with."""
+
+    BEZIER = "bezier"
+    DIRECT = "direct"
+    SQUARE = "square"
+
+
 class CoreNodeComponents(enum.StrEnum):
     """Type ids of the node components provided by the core plugin."""
 

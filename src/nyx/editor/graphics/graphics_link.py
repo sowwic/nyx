@@ -5,6 +5,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core.node_component import NodeComponent
 from nyx.editor.graphics.level_of_detail import LevelOfDetail
+from nyx.editor.graphics.link_path import build_link_path, get_link_style
+from nyx.static.enums import LinkStyle
 
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
@@ -12,7 +14,10 @@ if typing.TYPE_CHECKING:
 
 
 class GraphicsLink(QtWidgets.QGraphicsPathItem):
-    """Curve between the output socket of one plug and the input socket of another.
+    """Path between the output socket of one plug and the input socket of another.
+
+    The path is drawn in the `LinkStyle` from the config when the link is created, for
+    example as a bezier curve or with right angles.
 
     A link with a missing end is a preview that is being dragged: the missing
     end follows `floating_pos`. Previews are never attached to plugs, only
@@ -29,13 +34,13 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
 
     WIDTH = 2.0
     PREVIEW_OPACITY = 0.8
-    MIN_TANGENT = 40.0
 
     def __init__(
         self,
         source_plug: GraphicsPlug | None = None,
         target_plug: GraphicsPlug | None = None,
         link_uuid: UUID | None = None,
+        style: LinkStyle | None = None,
     ):
         """Initialize GraphicsLink.
 
@@ -43,8 +48,11 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
             source_plug (GraphicsPlug | None): plug the link starts at.
             target_plug (GraphicsPlug | None): plug the link ends at.
             link_uuid (UUID | None): uuid of the link in the stage, None for previews.
+            style (LinkStyle | None): style to draw the path in, the configured one if
+                omitted.
         """
         super().__init__()
+        self._style = style if style is not None else get_link_style()
         self._source_plug = source_plug
         self._target_plug = target_plug
         self._uuid = link_uuid
@@ -88,6 +96,22 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         it is dragged from.
         """
         return self._source_plug if self._source_plug is not None else self._target_plug
+
+    @property
+    def style(self) -> LinkStyle:
+        """LinkStyle: style the path is drawn in."""
+        return self._style
+
+    def set_style(self, style: LinkStyle):
+        """Draw the path in another style.
+
+        Args:
+            style (LinkStyle): new style.
+        """
+        if style == self._style:
+            return
+        self._style = style
+        self.update_path()
 
     @property
     def path_length(self) -> float:
@@ -194,6 +218,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
             color.setAlphaF(color.alphaF() * self.PREVIEW_OPACITY)
         pen = QtGui.QPen(self._build_stroke_brush(color), width)
         pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(QtCore.Qt.PenJoinStyle.RoundJoin)
         self.setPen(pen)
 
     def _build_stroke_brush(self, color: QtGui.QColor) -> QtGui.QBrush:
@@ -242,7 +267,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         self._attached = False
 
     def update_path(self):
-        """Rebuild the curve from the current anchors."""
+        """Rebuild the path from the current anchors."""
         start = (
             self._source_plug.output_anchor()
             if self._source_plug
@@ -251,13 +276,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         end = (
             self._target_plug.input_anchor() if self._target_plug else self._floating_pos
         )
-        tangent = max(self.MIN_TANGENT, abs(end.x() - start.x()) * 0.5)
-        path = QtGui.QPainterPath(start)
-        path.cubicTo(
-            start + QtCore.QPointF(tangent, 0.0),
-            end - QtCore.QPointF(tangent, 0.0),
-            end,
-        )
+        path = build_link_path(self._style, start, end)
         self.setPath(path)
         self._path_length = path.length()
         # The gradient runs between the anchors, so it follows them.
