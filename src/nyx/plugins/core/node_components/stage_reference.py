@@ -4,12 +4,12 @@ import typing
 from uuid import UUID
 
 from nyx.api.v1 import (
+    CoreDatatypes,
     CoreNodeComponents,
     Node,
     NodeComponent,
     NodeComponentFlag,
     NodeComponentValueMask,
-    GraphicsPlugShape,
     exceptions,
 )
 from nyx.core.path_resolver import StagePathResolver
@@ -78,9 +78,10 @@ class StageReferenceComponent(NodeComponent):
         """bool: reference components start expanded."""
         return True
 
-    def get_plug_shape(self) -> GraphicsPlugShape:
-        """GraphicsPlugShape: references are squares, whatever the datatype."""
-        return GraphicsPlugShape.SQUARE
+    @classmethod
+    def get_type_default_datatype(cls) -> str:
+        """str: references have a datatype of their own."""
+        return CoreDatatypes.REFERENCE
 
     # ======== Resolving ========= #
 

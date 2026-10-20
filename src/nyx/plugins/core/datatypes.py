@@ -57,6 +57,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         caster=str,
         python_type=str,
         default_factory=str,
+        compatible_with=frozenset({CoreDatatypes.REFERENCE}),
     ),
     Datatype(
         type_id=CoreDatatypes.INT,
@@ -86,5 +87,12 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         display_name="Flow",
         color="#FFFFFF",
         plug_shape=GraphicsPlugShape.PENTAGON,
+    ),
+    Datatype(
+        type_id=CoreDatatypes.REFERENCE,
+        display_name="Reference",
+        color="#0096FF",
+        plug_shape=GraphicsPlugShape.SQUARE,
+        compatible_with=frozenset({CoreDatatypes.STRING}),
     ),
 )

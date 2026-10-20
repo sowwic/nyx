@@ -484,3 +484,15 @@ def test_display_shows_the_text_when_there_is_no_target(getter_and_target, text,
     getter["component"].push_value(text)
     assert getter["component"].get_display_value() == shown
     assert not getter["component"].is_valid
+
+
+def test_reference_component_uses_the_reference_datatype():
+    from nyx.api.v1 import CoreDatatypes, GraphicsPlugShape
+
+    stage = Stage()
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(command)
+    reference = command.result_node["component"]
+
+    assert reference.datatype_id == CoreDatatypes.REFERENCE
+    assert reference.get_plug_shape() is GraphicsPlugShape.SQUARE

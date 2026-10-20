@@ -22,6 +22,7 @@ class Datatype:
             datatype of a value
         default_factory: creates the value components of the datatype start with
         is_wildcard: compatible with every datatype
+        compatible_with: type ids of the other datatypes it is compatible with
     """
 
     type_id: str
@@ -32,6 +33,7 @@ class Datatype:
     plug_shape: GraphicsPlugShape = GraphicsPlugShape.CIRCLE
     default_factory: typing.Callable[[], typing.Any] = lambda: None
     is_wildcard: bool = False
+    compatible_with: frozenset[str] = frozenset()
 
     def create_default(self) -> typing.Any:
         """Create the default value of the datatype.
@@ -80,7 +82,12 @@ class Datatype:
         Returns:
             bool: datatypes are compatible.
         """
-        return self.is_wildcard or other.is_wildcard or self.type_id == other.type_id
+        return (
+            self.is_wildcard
+            or other.is_wildcard
+            or self.type_id == other.type_id
+            or other.type_id in self.compatible_with
+        )
 
 
 OBJECT_DATATYPE = Datatype(

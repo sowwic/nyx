@@ -35,6 +35,7 @@ class CoreDatatypes(enum.StrEnum):
     FLOAT = "core:float"
     PATH = "core:path"
     FLOW = "core:flow"
+    REFERENCE = "core:reference"
 
 
 class RestoreUuidOption(enum.IntEnum):

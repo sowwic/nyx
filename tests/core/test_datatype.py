@@ -106,3 +106,13 @@ def test_plug_shape_defaults_to_circle():
     )
     assert get(CoreDatatypes.BOOL).plug_shape is GraphicsPlugShape.CIRCLE
     assert get(CoreDatatypes.FLOW).plug_shape is GraphicsPlugShape.PENTAGON
+
+
+def test_reference_is_a_square_that_exchanges_paths_with_strings():
+    from nyx.api.v1 import GraphicsPlugShape
+
+    reference = get(CoreDatatypes.REFERENCE)
+    assert reference.plug_shape is GraphicsPlugShape.SQUARE
+    assert reference.accepts(get(CoreDatatypes.STRING))
+    assert get(CoreDatatypes.STRING).accepts(reference)
+    assert not reference.accepts(get(CoreDatatypes.BOOL))
