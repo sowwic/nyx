@@ -201,6 +201,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_editable
             if role == NodeComponent.Roles.IS_VALID:
                 return component.is_valid
+            if role == NodeComponent.Roles.RESOLVED_DATATYPE:
+                return component.resolved_datatype_id
+            if role == NodeComponent.Roles.IS_DATATYPE_LOCKED:
+                return component.is_datatype_locked
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:

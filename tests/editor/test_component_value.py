@@ -501,14 +501,18 @@ def test_getter_value_in_inspector_updates_when_the_path_changes(
 
 
 def test_datatype_selector_shows_the_datatype_of_the_component(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", datatype="core:bool")
+    editor = make_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", resolvedDatatype="core:bool"
+    )
 
     selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
     assert selector.property("currentText") == "Boolean"
 
 
 def test_picking_a_datatype_goes_through_the_controller(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", datatype="core:object")
+    editor = make_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", resolvedDatatype="core:object"
+    )
 
     selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
     QtCore.QMetaObject.invokeMethod(
@@ -520,13 +524,13 @@ def test_picking_a_datatype_goes_through_the_controller(make_editor):
     assert editor.controller.datatype_calls == [(3, "core:bool")]
 
 
-def test_datatype_selector_is_disabled_for_built_in_components(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isBuiltIn=True)
+def test_datatype_selector_is_disabled_when_the_datatype_is_locked(make_editor):
+    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=True)
     selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
     assert selector.property("enabled") is False
 
 
-def test_datatype_selector_is_enabled_for_other_components(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isBuiltIn=False)
+def test_datatype_selector_is_enabled_when_the_datatype_is_not_locked(make_editor):
+    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=False)
     selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
     assert selector.property("enabled") is True

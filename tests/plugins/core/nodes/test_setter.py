@@ -76,3 +76,54 @@ def test_setter_with_missing_component_raises():
     setter_node["component"].push_value("/stage/missing.message")
     with pytest.raises(exceptions.StageObjectQueryError):
         setter_node.execute()
+
+
+def test_setter_value_datatype_is_unlocked_until_linked():
+    from nyx.api.v1 import CoreDatatypes
+
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    value = setter_command.result_node["value"]
+    assert value.is_built_in
+    assert not value.is_datatype_locked
+
+    stage.push_command(
+        commands.SetNodeComponentDatatypeCommand(
+            stage=stage, node_component=value, datatype_id=CoreDatatypes.FLOAT
+        )
+    )
+    assert value.datatype.type_id == CoreDatatypes.FLOAT
+
+    source = log_command.result_node["message"]
+    source.produces_output = True
+    with pytest.raises(exceptions.NodeComponentLinkError, match="Incompatible"):
+        stage.push_command(
+            commands.LinkNodeComponentsCommand(stage=stage, source=source, target=value)
+        )
+
+
+def test_setter_value_takes_the_datatype_of_the_linked_component():
+    from nyx.api.v1 import CoreDatatypes
+
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    value = setter_command.result_node["value"]
+    source = log_command.result_node["message"]
+    source.produces_output = True
+
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(stage=stage, source=source, target=value)
+    )
+
+    assert value.datatype.type_id == CoreDatatypes.STRING
+    assert value.is_datatype_locked
+
+    stage.undo_stack.undo()
+    assert value.datatype.type_id == CoreDatatypes.OBJECT
+    assert not value.is_datatype_locked

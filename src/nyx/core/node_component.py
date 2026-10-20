@@ -80,6 +80,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_STATIC = enum.auto()
         IS_BUILT_IN = enum.auto()
         IS_VALID = enum.auto()
+        RESOLVED_DATATYPE = enum.auto()
+        IS_DATATYPE_LOCKED = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -102,6 +104,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,
                 cls.IS_VALID,
+                cls.RESOLVED_DATATYPE,
+                cls.IS_DATATYPE_LOCKED,
             )
 
     def __repr__(self) -> str:
@@ -249,14 +253,45 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return self.data(self.Roles.DATATYPE) or CoreDatatypes.OBJECT
 
     @property
+    def resolved_datatype_id(self) -> str:
+        """str: type id of the datatype in effect, the source's if there is one."""
+        source = self.get_datatype_source()
+        if source is None:
+            return self.datatype_id
+        return source.resolved_datatype_id
+
+    @property
     def datatype(self) -> Datatype:
-        """Datatype: datatype hint, the object datatype if unset or unknown."""
-        return NYX_REGISTRY.resolve_datatype(self.datatype_id)
+        """Datatype: datatype in effect, the object datatype if unset or unknown."""
+        return NYX_REGISTRY.resolve_datatype(self.resolved_datatype_id)
+
+    @property
+    def inherits_datatype(self) -> bool:
+        """bool: datatype follows the component the value comes from."""
+        return NodeComponentFlag.INHERITS_DATATYPE in self.component_flags
 
     @property
     def is_datatype_locked(self) -> bool:
-        """bool: the datatype hint can't be changed by the user, true for built-ins."""
-        return self.is_built_in
+        """bool: the datatype can't be changed by the user.
+
+        Built-ins are locked, unless they inherit their datatype and have nothing to
+        inherit it from.
+        """
+        if self.get_datatype_source() is not None:
+            return True
+        return self.is_built_in and not self.inherits_datatype
+
+    def get_datatype_source(self) -> NodeComponent | None:
+        """Get the component the datatype is taken from, like the value is pulled.
+
+        Returns:
+            NodeComponent | None: source of the input link for components inheriting
+                their datatype, None if there is none or the datatype is the own one.
+        """
+        if not self.inherits_datatype:
+            return None
+        input_links = self.input_links
+        return input_links[0].source_component if input_links else None
 
     def set_datatype(self, type_id: str) -> None:
         """Set the datatype hint and re-evaluate the value against it.
@@ -265,8 +300,20 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             type_id (str): datatype type id.
         """
         self.setData(str(type_id), role=self.Roles.DATATYPE)
+        self._notify_datatype_changed()
         self.value_storage.evaluate()
         self.value_storage.refresh_display_value()
+
+    def _notify_datatype_changed(self):
+        """Tell the model the datatype in effect changed, so views refresh."""
+        model = self.model()
+        if model is None:
+            return
+        model.dataChanged.emit(
+            self.index(),
+            self.index(),
+            [self.Roles.RESOLVED_DATATYPE, self.Roles.IS_DATATYPE_LOCKED],
+        )
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
@@ -525,6 +572,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 self.Roles.INPUT_LINKS,
                 self.Roles.OUTPUT_LINKS,
                 self.Roles.DISPLAY_VALUE,
+                self.Roles.RESOLVED_DATATYPE,
+                self.Roles.IS_DATATYPE_LOCKED,
             ],
         )
 

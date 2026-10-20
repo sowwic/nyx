@@ -4,6 +4,7 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
     NodeComponentValueMask,
+    NodeComponentFlag,
 )
 
 
@@ -52,6 +53,7 @@ class SetterNode(Node):
             CoreNodeComponents.VALUE
         )
         self.value_cpnt.name = "value"
+        self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE
         self.value_cpnt.is_editable = True
         self.value_cpnt.accepts_input = True
 

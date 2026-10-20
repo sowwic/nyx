@@ -103,3 +103,23 @@ def test_getter_value_raises_for_missing_component():
     getter["component"].push_value("/stage/missing.value")
     with pytest.raises(exceptions.StageObjectQueryError):
         getter["value"].pull_value()
+
+
+def test_getter_value_takes_the_datatype_of_the_component_it_points_at():
+    from nyx.api.v1 import CoreDatatypes
+
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    log_node, getter_node = log_command.result_node, getter_command.result_node
+    value = getter_node["value"]
+
+    assert value.datatype_id == CoreDatatypes.OBJECT
+    assert not value.is_datatype_locked  # nothing to take the datatype from
+
+    getter_node["component"].push_value(f"{log_node.path.as_posix()}.level")
+    assert value.datatype.type_id == CoreDatatypes.INT
+    assert value.is_datatype_locked
+    assert value.datatype_id == CoreDatatypes.OBJECT  # its own hint is untouched

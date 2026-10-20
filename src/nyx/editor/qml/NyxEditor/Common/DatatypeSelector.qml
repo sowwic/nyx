@@ -15,9 +15,9 @@ ComboBox {
     model: datatypes
     textRole: "name"
     valueRole: "id"
-    // Built-in components keep the datatype of their node.
-    enabled: component ? component.isEditable === true && component.isBuiltIn !== true : false
-    currentIndex: component ? indexOfValue(component.datatype) : -1
+    // Locked by the component, e.g. built-ins or a datatype taken from a source.
+    enabled: component ? component.isEditable === true && component.isDatatypeLocked !== true : false
+    currentIndex: component ? indexOfValue(component.resolvedDatatype) : -1
 
     onActivated: index => {
         if (controller && component)

@@ -5,6 +5,7 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
     NodeComponentValueMask,
+    NodeComponentFlag,
     exceptions,
 )
 
@@ -50,6 +51,17 @@ class GetterNode(Node):
         """
         return self.in_component_path.resolve_component().pull_value(value_mask)
 
+    def get_pointed_component(self) -> NodeComponent | None:
+        """Get the component the node points at.
+
+        Returns:
+            NodeComponent | None: the component, None if it doesn't exist.
+        """
+        try:
+            return self.in_component_path.resolve_component()
+        except exceptions.StageObjectQueryError:
+            return None
+
     def get_pulled_display_value(self) -> str:
         """Get the display value of the component the node points at.
 
@@ -78,6 +90,7 @@ class GetterNode(Node):
         )
         self.value_cpnt.name = "value"
         self.value_cpnt.produces_output = True
+        self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE
         self.value_cpnt.is_editable = False
 
         self.components_model.add_component(self.in_component_path)
@@ -87,11 +100,20 @@ class GetterNode(Node):
         self.value_cpnt.pull_value = self.get_pull_value_from_path
         self.value_cpnt.get_display_value = self.get_pulled_display_value
         self.value_cpnt.get_plug_color = self.get_pulled_plug_color
+        self.value_cpnt.get_datatype_source = self.get_pointed_component
 
         # The value is the one of the component the path points at: when the path
         # changes, views have to ask for it again.
         self.components_model.add_dependency(
-            dependent=self.value_cpnt, on=self.in_component_path
+            dependent=self.value_cpnt,
+            on=self.in_component_path,
+            refresh=(
+                NodeComponent.Roles.CACHED_VALUE,
+                NodeComponent.Roles.DISPLAY_VALUE,
+                NodeComponent.Roles.IS_VALID,
+                NodeComponent.Roles.RESOLVED_DATATYPE,
+                NodeComponent.Roles.IS_DATATYPE_LOCKED,
+            ),
         )
 
     def get_pulled_plug_color(self) -> QtGui.QColor:

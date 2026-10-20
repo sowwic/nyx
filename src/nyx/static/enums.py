@@ -77,6 +77,8 @@ class NodeComponentFlag(enum.IntFlag):
         EDITABLE: value can be edited in the UI
         STATIC: skipped during execution
         SINGLE_OUTPUT: can be the source of one link at most
+        INHERITS_DATATYPE: datatype follows the component it takes its value from,
+            and can be changed by the user while there is none
     """
 
     NONE = 0
@@ -86,6 +88,7 @@ class NodeComponentFlag(enum.IntFlag):
     EDITABLE = enum.auto()
     STATIC = enum.auto()
     SINGLE_OUTPUT = enum.auto()
+    INHERITS_DATATYPE = enum.auto()
 
 
 class NodeComponentValueMask(enum.IntEnum):
