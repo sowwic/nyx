@@ -2,10 +2,9 @@ import collections
 import typing
 from uuid import UUID
 
-from ..static.enums import CoreNodeComponents
-
 if typing.TYPE_CHECKING:
     from .node import Node
+    from nyx.plugins.core.node_components.flow import FlowComponent
 
 
 class ExecutionChain:
@@ -15,7 +14,29 @@ class ExecutionChain:
     from node to node, like `StageCrawler` does. Only active flow components lead on:
     before a node is evaluated all its outputs are active, afterwards a branch or
     sequence has switched off the ones it did not choose.
+
+    `find_flow_hops` is the one rule for where the flow goes from a node, used by the
+    crawler to execute and by the editor to show the chain.
     """
+
+    @staticmethod
+    def find_flow_hops(node: Node) -> typing.Iterator[tuple[FlowComponent, Node]]:
+        """Find where the flow goes from a node.
+
+        Only flow components that are readable (not write-only data links) and active
+        (not switched off by a branch or sequence) lead on, and only when linked.
+
+        Args:
+            node (Node): node the flow leaves.
+
+        Yields:
+            tuple[FlowComponent, Node]: flow component and the node its link leads to,
+                wherever that node is in the stage.
+        """
+        for flow_component in node.components_model.find_readable_flow_components():
+            next_node = flow_component.get_next_node()
+            if next_node is not None:
+                yield flow_component, next_node
 
     @staticmethod
     def find_node_uuids(scope_node: Node) -> frozenset[UUID]:
@@ -88,12 +109,6 @@ class ExecutionChain:
             Node: next node, only siblings count like they do for the crawler.
         """
         parent = node.parent()
-        for flow_component in node.components_model.find_components_of_type(
-            CoreNodeComponents.FLOW
-        ):
-            if not (flow_component.readable and flow_component.is_active):
-                continue
-            next_node = flow_component.get_next_node()
-            if next_node is None or next_node.parent() is not parent:
-                continue
-            yield next_node
+        for _flow_component, next_node in ExecutionChain.find_flow_hops(node):
+            if next_node.parent() is parent:
+                yield next_node
