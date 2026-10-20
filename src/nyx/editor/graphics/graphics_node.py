@@ -5,10 +5,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .graphics_node_title import GraphicsNodeTitle
 from .graphics_plug import GraphicsPlug
-from ..utils.common import build_role_tooltip_html
-from ...core.layered_config import NyxConfig
+from ..utils.common import build_role_tooltip_html, are_hover_diagnostics_enabled
 from ...core import commands
-from ...static.vars import DEBUG
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -243,12 +241,10 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     def _refresh_tooltip(self):
         """Show node role diagnostics as tooltip if enabled in config or debug mode."""
-        config = NyxConfig()
-        node_config = config.values.editor_widgets.graphics_stage.nodes
         if not self._node.index().isValid():
             return
 
-        if node_config.hover_diagnostics or DEBUG:
+        if are_hover_diagnostics_enabled():
             self.setToolTip(build_role_tooltip_html(self._node.index()))
 
     # ======== Events ========= #

@@ -272,3 +272,47 @@ def test_flow_plug_is_painted_as_pentagon_with_the_component_color(plugs):
     assert circle_ring.alpha() > 0
     assert circle_ring.blue() > circle_ring.green() > circle_ring.red()
     assert circle_ring.blue() - circle_ring.red() > 80
+
+
+def hover(plug):
+    plug.hoverEnterEvent(QtWidgets.QGraphicsSceneHoverEvent())
+
+
+def test_plug_shows_the_roles_of_its_component_when_diagnostics_are_on(
+    plugs, monkeypatch
+):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: True
+    )
+
+    hover(value_plug)
+
+    tooltip = value_plug.toolTip()
+    assert "resolvedDatatype" in tooltip
+    assert "core:object" in tooltip
+    assert "isValid" in tooltip
+
+
+def test_plug_has_no_tooltip_when_diagnostics_are_off(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+
+    hover(value_plug)
+
+    assert value_plug.toolTip() == ""
+
+
+def test_plug_tooltip_follows_the_component(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: True
+    )
+    hover(value_plug)
+    value_plug.component.set_datatype("core:int")
+
+    hover(value_plug)
+
+    assert "core:int" in value_plug.toolTip()

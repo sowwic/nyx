@@ -5,6 +5,10 @@ from uuid import UUID
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.graphics.graphics_plug_shape import PlugShape, plug_shape_for
+from nyx.editor.utils.common import (
+    are_hover_diagnostics_enabled,
+    build_role_tooltip_html,
+)
 from nyx.static.enums import GraphicsPlugShape
 
 if typing.TYPE_CHECKING:
@@ -52,6 +56,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._color = QtGui.QColor()
         self._link_width_multiplier = 1.0
         self._links: set[GraphicsLink] = set()
+        self.setAcceptHoverEvents(True)
         self.refresh()
 
     @property
@@ -206,6 +211,24 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         return QtCore.QRectF(-r, 0.0, self._width + 2 * r, self.ROW_HEIGHT)
 
     # ======== Events ========= #
+
+    def _refresh_tooltip(self):
+        """Show the roles of the component as tooltip if diagnostics are enabled."""
+        index = self._component.index()
+        if not index.isValid():
+            return
+
+        if are_hover_diagnostics_enabled():
+            self.setToolTip(build_role_tooltip_html(index))
+
+    def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        """Refresh the tooltip when the cursor enters.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneHoverEvent): event.
+        """
+        self._refresh_tooltip()
+        super().hoverEnterEvent(event)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         """Start dragging a link from the socket under the cursor.
