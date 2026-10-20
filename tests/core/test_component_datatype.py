@@ -217,6 +217,6 @@ def test_valid_type_default_is_used(caplog):
 def test_plug_shape_follows_the_datatype(value):
     from nyx.api.v1 import GraphicsPlugShape
 
-    assert value.get_plug_shape() is GraphicsPlugShape.CIRCLE
+    assert value.get_plug_shape() is GraphicsPlugShape.SQUARE_MATRIX
     value.set_datatype(CoreDatatypes.FLOW)
     assert value.get_plug_shape() is GraphicsPlugShape.PENTAGON

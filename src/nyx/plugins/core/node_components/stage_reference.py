@@ -131,6 +131,10 @@ class StageReferenceComponent(NodeComponent):
         if stage is None:
             return None
 
+        # An input link replaces the target: the path it provides is used.
+        if self.input_links:
+            return self._find_target_by_text(NodeComponent.pull_value(self))
+
         if self._target_uuid is not None:
             target = stage.uuid_map.get(self._target_uuid)
             if isinstance(target, self.target_types):
@@ -152,10 +156,7 @@ class StageReferenceComponent(NodeComponent):
         Raises:
             StageObjectQueryError: if there is nothing at the path.
         """
-        if self.input_links:
-            target = self._find_target_by_text(super().pull_value())
-        else:
-            target = self.target
+        target = self.target
         if target is None:
             raise exceptions.StageObjectQueryError(
                 f"{self.name}: nothing found for reference {self.raw_value!r}"
@@ -226,7 +227,8 @@ class StageReferenceComponent(NodeComponent):
         target = self.target
         if target is not None:
             return target.path.as_posix()
-        return "" if self.raw_value is None else str(self.raw_value)
+        text = NodeComponent.pull_value(self) if self.input_links else self.raw_value
+        return "" if text is None else str(text)
 
     def current_name_text(self) -> str:
         """Get the short name of the target, without the rest of its path.
@@ -247,7 +249,7 @@ class StageReferenceComponent(NodeComponent):
         target = self.target
         if target is not None:
             return str(target)
-        return "" if self.raw_value is None else str(self.raw_value)
+        return self.current_path_text()
 
     # ======== Values ========= #
 
@@ -294,14 +296,12 @@ class StageReferenceComponent(NodeComponent):
         Returns:
             typing.Any: path of the target, the raw text for the raw mask.
         """
-        if self.input_links or value_mask is NodeComponentValueMask.RAW:
+        if value_mask is NodeComponentValueMask.RAW:
             return super().pull_value(value_mask)
         return self.current_path_text()
 
     def get_display_value(self) -> str:
         """str: the target as a string, the given text if it can't be found."""
-        if self.input_links:
-            return super().get_display_value()
         return self.current_display_text()
 
     # ======== Serialization ========= #

@@ -49,6 +49,14 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         NodeComponent.Roles.IS_VALID,
     )
 
+    # Roles whose change means the value or the links of a component changed, see
+    # `Node.on_component_edited`. The cached value is the last one a push writes.
+    EDIT_ROLES = frozenset(
+        (NodeComponent.Roles.CACHED_VALUE, NodeComponent.Roles.INPUT_LINKS)
+    )
+
+    VALUE_CHANGED_ROLE = NodeComponent.Roles.CACHED_VALUE
+
     def __init__(self, node: Node):
         """Initialize NodeComponentsModel.
 

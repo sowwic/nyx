@@ -15,7 +15,7 @@ class GraphicsNodeSubtitle(QtWidgets.QGraphicsSimpleTextItem):
 
     SUBTITLE_FONT = QtGui.QFont("Zed Mono", 8)
     COLOR = QtGui.QColor("#9A9A9A")
-    MAX_WIDTH = 240.0
+    MAX_WIDTH = 200.0
     # The title item keeps a margin around its text. The subtitle tucks into it by this
     # much, and adds this much less than its own height to the header. Lower values
     # leave more space between the title and the subtitle.

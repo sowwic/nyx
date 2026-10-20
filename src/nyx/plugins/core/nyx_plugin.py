@@ -15,6 +15,7 @@ from .node_components.stage_reference import StageReferenceComponent
 from .nodes.blank import BlankNode
 from .nodes.setter import SetterNode
 from .nodes.getter import GetterNode
+from .nodes.value import ValueNode
 from .nodes.branch import BranchNode
 from .nodes.flow_start import FlowStartNode
 from .nodes.action import ActionNode
@@ -57,6 +58,7 @@ class NyxCore(NyxPlugin):
             SetterNode,
             GetterNode,
             ActionNode,
+            ValueNode,
             BranchNode,
             FlowStartNode,
             SequenceNode,

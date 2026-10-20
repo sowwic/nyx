@@ -64,3 +64,61 @@ def test_condition_is_hinted_as_bool():
     condition.push_value("0")
     assert condition.datatype_id == CoreDatatypes.BOOL
     assert condition.cached_value is False
+
+
+def test_branch_evaluates_when_condition_is_edited_or_linked():
+    stage = Stage()
+    branch_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.BRANCH)
+    stage.push_command(branch_command)
+    value_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.VALUE)
+    stage.push_command(value_command)
+    branch = branch_command.result_node
+    value_node = value_command.result_node
+    assert branch["true"].is_active
+
+    stage.push_command(
+        commands.SetNodeComponentValueCommand(
+            stage=stage, node_component=branch["condition"], value="False"
+        )
+    )
+    assert not branch["true"].is_active
+    assert branch["false"].is_active
+
+    value_node["value"].push_value("True")
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=value_node["value"], target=branch["condition"]
+        )
+    )
+    assert branch["true"].is_active
+    assert not branch["false"].is_active
+
+
+def test_branch_evaluates_when_linked_value_changes():
+    stage = Stage()
+    branch_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.BRANCH)
+    stage.push_command(branch_command)
+    value_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.VALUE)
+    stage.push_command(value_command)
+    branch = branch_command.result_node
+    value_node = value_command.result_node
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=value_node["value"], target=branch["condition"]
+        )
+    )
+
+    stage.push_command(
+        commands.SetNodeComponentValueCommand(
+            stage=stage, node_component=value_node["value"], value="0"
+        )
+    )
+    assert not branch["true"].is_active
+    assert branch["false"].is_active
+
+    stage.push_command(
+        commands.SetNodeComponentValueCommand(
+            stage=stage, node_component=value_node["value"], value="1"
+        )
+    )
+    assert branch["true"].is_active

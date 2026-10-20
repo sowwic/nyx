@@ -7,10 +7,14 @@ import NyxEditor.Common
 ComponentValue {
     id: stageReferenceRoot
 
+    readonly property bool hasInputConnection: component ? component.inputLinks.length > 0 : false
+
     // The path of a node (/stage/node) or of a component (/stage/node.component), taken
     // as typed: absolute, or relative to the scope of the node.
     label: "Object:"
     evaluateOnFinish: false
+    // A linked reference gets its path from its source.
+    editable: component ? component.isEditable && !hasInputConnection : false
 
     displayDelegate: TextField {
         readOnly: true

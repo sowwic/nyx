@@ -158,7 +158,7 @@ def test_linked_reference_provides_the_path():
     assert not owner["node_path"].is_valid
 
 
-def test_plain_value_cannot_be_linked_into_a_reference():
+def test_plain_value_can_be_linked_into_a_reference():
     stage = Stage()
     owner = create_owner(stage, name="owner")
     source_node = create(stage, CoreNodes.ACTION, name="source")
@@ -168,14 +168,15 @@ def test_plain_value_cannot_be_linked_into_a_reference():
     stage.push_command(add_command)
     add_command.result_component.readable = True
 
-    with pytest.raises(exceptions.NyxCommandValidationError):
-        stage.push_command(
-            commands.LinkNodeComponentsCommand(
-                stage=stage,
-                source=add_command.result_component,
-                target=owner["node_path"],
-            )
+    # A plain value is a wildcard datatype, so it is accepted.
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage,
+            source=add_command.result_component,
+            target=owner["node_path"],
         )
+    )
+    assert len(owner["node_path"].input_links) == 1
 
 
 def test_set_value_command_undo_redo(getter_and_target):

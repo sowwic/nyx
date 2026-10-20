@@ -31,7 +31,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
 
     PULSE_COLOR = QtGui.QColor("#4BE3FF")
     PULSE_SPEED = 160.0  # scene units per second
-    PULSE_RADIUS = 3.5
+    PULSE_RADIUS = 5
     PULSE_TAIL_SAMPLES = 6
     PULSE_TAIL_STEP = 6.0
 
