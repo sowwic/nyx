@@ -13,6 +13,11 @@ ComponentValue {
     // A linked value comes from its source.
     editable: component ? component.isEditable && !hasInputConnection : false
 
+    DatatypeSelector {
+        component: valueItemRoot.component
+        controller: valueItemRoot.controller
+    }
+
     displayDelegate: TextField {
         readOnly: true
         opacity: valueItemRoot.editable ? 1.0 : 0.6

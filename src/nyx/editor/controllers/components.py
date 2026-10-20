@@ -8,11 +8,13 @@ from ...core.commands import (
     DeleteNodeComponentCommand,
     ReorderNodeComponentCommand,
     SetNodeComponentValueCommand,
+    SetNodeComponentDatatypeCommand,
     SetNodeComponentActiveStateCommand,
     RenameNodeComponentCommand,
     SetNodeComponentFlagCommand,
 )
 from ...core.node_component import NodeComponent
+from ...core.plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import ItemSelectionMode, NodeComponentFlag
 
 
@@ -245,6 +247,35 @@ class ComponentsController(QtCore.QObject):
                 stage=self.stage, node_component=component, value=new_value, raw=raw
             )
         )
+
+    @QtCore.Slot(int, str)
+    def setComponentDatatype(self, row: int, datatype_id: str):
+        """Set the datatype hint of a component through an undoable command.
+
+        Args:
+            row (int): proxy row.
+            datatype_id (str): type id of the datatype.
+        """
+        component = self.get_component_from_proxy_row(row)
+        if component.datatype_id == datatype_id:
+            return
+        self.stage.push_command(
+            SetNodeComponentDatatypeCommand(
+                stage=self.stage, node_component=component, datatype_id=datatype_id
+            )
+        )
+
+    @QtCore.Slot(result="QVariantList")
+    def availableDatatypes(self) -> list[dict[str, str]]:
+        """Get the datatypes a component can be hinted with.
+
+        Returns:
+            list[dict[str, str]]: `id` and `name` of every registered datatype.
+        """
+        return [
+            {"id": str(datatype.type_id), "name": datatype.display_name}
+            for datatype in NYX_REGISTRY.iter_datatypes()
+        ]
 
     @QtCore.Slot(str, str, str, result=str)
     def selectFile(self, title: str, name_filters: str, start_path: str) -> str:
