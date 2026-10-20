@@ -10,10 +10,10 @@ if typing.TYPE_CHECKING:
 class LinkPulseAnimator(QtCore.QObject):
     """Drives the pulse of the links on the execution chain with a single timer.
 
-    The timer only runs while there are links to animate, the animator is not paused
-    and the scene is visible. Each tick moves the pulse of every registered link by the
-    time passed, so the cost is proportional to the number of pulsing links and nothing
-    is computed while painting.
+    The timer only runs while there are links to animate and the animator is not
+    paused. A tick moves the pulse of every registered link that is in view by the time
+    passed, so the cost is proportional to the number of pulsing links on screen and
+    nothing is computed while painting. Ticks do nothing while nothing shows the links.
     """
 
     INTERVAL_MS = 33
@@ -21,6 +21,7 @@ class LinkPulseAnimator(QtCore.QObject):
     def __init__(
         self,
         is_visible: collections.abc.Callable[[], bool] | None = None,
+        visible_rects: collections.abc.Callable[[], list[QtCore.QRectF]] | None = None,
         parent: QtCore.QObject | None = None,
     ):
         """Initialize LinkPulseAnimator.
@@ -29,10 +30,15 @@ class LinkPulseAnimator(QtCore.QObject):
             is_visible (Callable[[], bool] | None): tells whether anything shows the
                 links, ticks are skipped while it returns False. Always visible if
                 omitted.
+            visible_rects (Callable[[], list[QRectF]] | None): scene areas the links
+                are shown in. Links outside of all of them are not animated, none are
+                if it returns an empty list. Links are animated wherever they are if
+                omitted.
             parent (QtCore.QObject | None): parent object.
         """
         super().__init__(parent)
         self._is_visible = is_visible
+        self._visible_rects = visible_rects
         self._links: set[GraphicsLink] = set()
         self._paused = False
         self._clock = QtCore.QElapsedTimer()
@@ -54,6 +60,33 @@ class LinkPulseAnimator(QtCore.QObject):
     def is_paused(self) -> bool:
         """bool: the animation is paused, the pulses are hidden."""
         return self._paused
+
+    @property
+    def is_animating(self) -> bool:
+        """bool: ticks move the pulses of at least one link that is in view.
+
+        The timer also runs while nothing shows the pulses, for example when the view
+        is zoomed too far out or looks somewhere else, but its ticks are skipped then.
+        """
+        return self.is_running and bool(self.links_in_view())
+
+    def links_in_view(self) -> list[GraphicsLink]:
+        """Find the links whose pulse is worth moving.
+
+        Returns:
+            list[GraphicsLink]: registered links in an area that is shown. Empty
+                while nothing shows the links.
+        """
+        if not self._is_scene_visible():
+            return []
+        if self._visible_rects is None:
+            return list(self._links)
+        rects = self._visible_rects()
+        return [
+            link
+            for link in self._links
+            if any(link.sceneBoundingRect().intersects(rect) for rect in rects)
+        ]
 
     def register(self, link: GraphicsLink):
         """Animate a link.
@@ -104,7 +137,7 @@ class LinkPulseAnimator(QtCore.QObject):
         if self._paused or not self._is_scene_visible():
             return
         seconds = elapsed_ms / 1000.0
-        for link in self._links:
+        for link in self.links_in_view():
             link.set_pulse_offset(seconds * link.PULSE_SPEED)
 
     def _is_scene_visible(self) -> bool:

@@ -365,3 +365,58 @@ def test_pulse_stops_at_an_inactive_node(chain):
     sources = [gr_link.source_plug.component for gr_link in pulsing_links(editor)]
     assert all(source.node is not a for source in sources)
     assert len(sources) == 1
+
+
+class StubRectLink(StubLink):
+    def __init__(self, rect):
+        super().__init__()
+        self._rect = rect
+
+    def sceneBoundingRect(self):
+        return self._rect
+
+
+def test_tick_only_moves_links_inside_the_visible_rects(qapp):
+    area = QtCore.QRectF(0, 0, 100, 100)
+    animator = LinkPulseAnimator(visible_rects=lambda: [area])
+    inside = StubRectLink(QtCore.QRectF(10, 10, 20, 20))
+    outside = StubRectLink(QtCore.QRectF(5000, 5000, 20, 20))
+    animator.register(inside)
+    animator.register(outside)
+
+    animator.tick(1000)
+
+    assert inside.offsets == [inside.PULSE_SPEED]
+    assert outside.offsets == []
+    assert animator.links_in_view() == [inside]
+    assert animator.is_animating
+
+
+def test_nothing_is_animated_without_visible_rects(qapp):
+    animator = LinkPulseAnimator(visible_rects=lambda: [])
+    link_ = StubRectLink(QtCore.QRectF(0, 0, 10, 10))
+    animator.register(link_)
+
+    animator.tick(1000)
+
+    assert link_.offsets == []
+    assert animator.is_running
+    assert not animator.is_animating
+
+
+def test_pulse_of_a_link_scrolled_out_of_the_view_is_not_animated(chain):
+    editor, *_ = chain
+    animator = editor.gr_stage.pulse_animator
+    gr_links = pulsing_links(editor)
+    if not editor.gr_view.isVisible():
+        pytest.skip("the view must be shown to have a visible area")
+    assert animator.is_animating
+
+    for gr_node in editor.gr_stage.gr_nodes():
+        gr_node.setPos(100000, 100000)
+
+    assert animator.is_running
+    assert animator.links_in_view() == []
+    assert not animator.is_animating
+    for gr_link in gr_links:
+        assert gr_link not in animator.links_in_view()

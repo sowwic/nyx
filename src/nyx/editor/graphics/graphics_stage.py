@@ -24,6 +24,7 @@ from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_link_drag_handler import GraphicsLinkDragHandler
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
+from nyx.editor.graphics.level_of_detail import LevelOfDetail
 from nyx.editor.graphics.link_pulse_animator import LinkPulseAnimator
 from nyx.static.enums import CoreNodeComponents
 
@@ -60,7 +61,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self._link_drag_handler = GraphicsLinkDragHandler(self)
         self._link_drag_handler.drag_changed.connect(self.link_drag_changed)
         self._pulse_animator = LinkPulseAnimator(
-            is_visible=self._is_shown_in_a_view, parent=self
+            visible_rects=self._pulse_view_rects, parent=self
         )
         self.link_drag_changed.connect(self._pulse_animator.set_paused)
         self._scope_path: pathlib.PurePosixPath | None = None
@@ -362,6 +363,11 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                 if target_plug is not None:
                     self.add_link(link, source_plug, target_plug)
 
+    @property
+    def pulse_animator(self) -> LinkPulseAnimator:
+        """LinkPulseAnimator: animator of the pulses on the execution chain."""
+        return self._pulse_animator
+
     @staticmethod
     def is_flow_chain_highlight_enabled() -> bool:
         """Check whether links on the execution chain are animated.
@@ -412,9 +418,25 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             and source.node.uuid in chain
         )
 
-    def _is_shown_in_a_view(self) -> bool:
-        """bool: a view showing the scene is visible."""
-        return any(view.isVisible() for view in self.views())
+    def _pulse_view_rects(self) -> list[QtCore.QRectF]:
+        """Get the scene areas where a link pulse can be seen.
+
+        Returns:
+            list[QtCore.QRectF]: area of every visible view that shows the scene big
+                enough to see a pulse.
+        """
+        return [
+            view.mapToScene(view.viewport().rect()).boundingRect()
+            for view in self.views()
+            if view.isVisible()
+            and LevelOfDetail.from_scale(
+                view.transform().m11(), shape_size=GraphicsLink.LOD_SHAPE_SIZE
+            ).shows_shapes
+        ]
+
+    def _is_pulse_shown_in_a_view(self) -> bool:
+        """bool: a visible view shows the scene big enough to see a link pulse."""
+        return bool(self._pulse_view_rects())
 
     def find_links_along(self, scene_points: list[QtCore.QPointF]) -> list[GraphicsLink]:
         """Find the links crossed by a polyline.

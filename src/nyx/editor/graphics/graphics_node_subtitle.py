@@ -2,6 +2,8 @@ import typing
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from nyx.editor.graphics.level_of_detail import LevelOfDetail
+
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_node import GraphicsNode
 
@@ -35,6 +37,25 @@ class GraphicsNodeSubtitle(QtWidgets.QGraphicsSimpleTextItem):
         self.setBrush(QtGui.QBrush(self.COLOR))
         self.setAcceptedMouseButtons(QtCore.Qt.MouseButton.NoButton)
         self.setVisible(False)
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget | None = None,
+    ) -> None:
+        """Draw the text unless it is too small to read.
+
+        Args:
+            painter (QtGui.QPainter): painter.
+            option (QtWidgets.QStyleOptionGraphicsItem): style options.
+            widget (QtWidgets.QWidget | None): painted widget.
+        """
+        lod = LevelOfDetail.from_painter(
+            painter, text_size=self.SUBTITLE_FONT.pointSizeF()
+        )
+        if lod.shows_text:
+            super().paint(painter, option, widget)
 
     @property
     def full_text(self) -> str:

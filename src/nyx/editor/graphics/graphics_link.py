@@ -4,6 +4,7 @@ from uuid import UUID
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core.node_component import NodeComponent
+from nyx.editor.graphics.level_of_detail import LevelOfDetail
 
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
@@ -34,6 +35,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     PULSE_RADIUS = 5
     PULSE_TAIL_SAMPLES = 6
     PULSE_TAIL_STEP = 6.0
+    LOD_SHAPE_SIZE = PULSE_RADIUS * 2  # smaller than this the pulse is not worth drawing
 
     def __init__(
         self,
@@ -147,13 +149,18 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     ) -> None:
         """Paint the link, then the pulse on top of it.
 
+        A link too small on screen for its pulse is drawn without it. It stays
+        antialiased, so a stroke thinner than a pixel fades out instead of breaking up.
+
         Args:
             painter (QtGui.QPainter): painter.
             option (QtWidgets.QStyleOptionGraphicsItem): style option.
             widget (QtWidgets.QWidget | None): widget being painted on.
         """
+        lod = LevelOfDetail.from_painter(painter, shape_size=self.LOD_SHAPE_SIZE)
         super().paint(painter, option, widget)
-        self._paint_pulse(painter)
+        if lod.shows_shapes:
+            self._paint_pulse(painter)
 
     def _paint_pulse(self, painter: QtGui.QPainter):
         """Draw the pulse: a dot at the offset followed by a fading tail.

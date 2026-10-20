@@ -115,14 +115,14 @@ def test_graph_view_delete_selected(stage_editor, create_node):
     create_node(stage_editor.stage, "b")
     select(stage_editor, a)
     assert not stage_editor.gr_stage.is_gr_node_selection_empty()
-    stage_editor.gr_view.delete_selected()
+    stage_editor.gr_view.edit_actions.delete_selected()
     assert root_children(stage_editor) == ["b"]
 
 
 def test_graph_view_delete_without_selection_warns(stage_editor, create_node, caplog):
     create_node(stage_editor.stage, "a")
     with caplog.at_level("WARNING"):
-        stage_editor.gr_view.delete_selected()
+        stage_editor.gr_view.edit_actions.delete_selected()
     assert root_children(stage_editor) == ["a"]
     assert "No nodes selected" in caplog.text
 
@@ -131,8 +131,8 @@ def test_graph_view_copy_paste_roundtrip(stage_editor, create_node):
     a = create_node(stage_editor.stage, "a")
     select(stage_editor, a)
     view = stage_editor.gr_view
-    view.copy_selected_nodes()
-    view.paste_nodes_from_clipboard()
+    view.edit_actions.copy_selected_nodes()
+    view.edit_actions.paste_nodes_from_clipboard()
     assert len(root_children(stage_editor)) == 2
 
 
@@ -187,7 +187,7 @@ def test_graph_view_focus_centers_on_selected_nodes(stage_editor, create_node):
     select(stage_editor, a, b)
     view = stage_editor.gr_view
 
-    view.focus_on_selected_nodes()
+    view.edit_actions.focus_on_selected_nodes()
 
     united = (
         stage_editor.gr_stage.get_gr_node(a)
@@ -209,7 +209,7 @@ def test_graph_view_focus_zooms_out_to_fit_distant_nodes(stage_editor, create_no
     view = stage_editor.gr_view
     zoom_before = view.zoom
 
-    view.focus_on_selected_nodes()
+    view.edit_actions.focus_on_selected_nodes()
 
     assert view.zoom < zoom_before
     assert view.zoom >= view.zoom_range[0]
@@ -225,7 +225,7 @@ def test_graph_view_focus_does_not_magnify_beyond_max_zoom(stage_editor, create_
     select(stage_editor, node)
     view = stage_editor.gr_view
 
-    view.focus_on_selected_nodes()
+    view.edit_actions.focus_on_selected_nodes()
 
     assert view.zoom == view.zoom_range[1]
     assert view.transform().m11() == pytest.approx(1.0)
@@ -240,7 +240,7 @@ def test_graph_view_focus_keeps_zoom_counter_consistent_with_scale(
     select(stage_editor, a, b)
     view = stage_editor.gr_view
 
-    view.focus_on_selected_nodes()
+    view.edit_actions.focus_on_selected_nodes()
 
     expected = view.zoom_in_factor ** (view.zoom - view.DEFAULT_ZOOM)
     assert view.transform().m11() == pytest.approx(expected)
@@ -248,7 +248,7 @@ def test_graph_view_focus_keeps_zoom_counter_consistent_with_scale(
 
 def test_graph_view_focus_without_selection_is_noop(stage_editor, create_node):
     create_node(stage_editor.stage, "a")
-    stage_editor.gr_view.focus_on_selected_nodes()  # must not raise
+    stage_editor.gr_view.edit_actions.focus_on_selected_nodes()  # must not raise
 
 
 def test_tree_view_focus_selected_delegates_to_graph_view(
@@ -258,7 +258,9 @@ def test_tree_view_focus_selected_delegates_to_graph_view(
     select(stage_editor, a)
     calls = []
     monkeypatch.setattr(
-        stage_editor.gr_view, "focus_on_selected_nodes", lambda: calls.append(1)
+        stage_editor.gr_view.edit_actions,
+        "focus_on_selected_nodes",
+        lambda: calls.append(1),
     )
     main_window.stage_tree_view.focus_on_selected_nodes()
     assert calls == [1]
@@ -370,13 +372,13 @@ def test_graph_and_tree_context_menus_match(
 def test_graph_view_copy_node_path(stage_editor, create_node):
     node = create_node(stage_editor.stage, "pathy")
     select(stage_editor, node)
-    stage_editor.gr_view.copy_selected_node_path()
+    stage_editor.gr_view.edit_actions.copy_selected_node_path()
     assert QtWidgets.QApplication.clipboard().text() == node.path.as_posix()
 
 
 def test_graph_view_copy_node_path_without_selection_keeps_clipboard(stage_editor):
     QtWidgets.QApplication.clipboard().setText("untouched")
-    stage_editor.gr_view.copy_selected_node_path()
+    stage_editor.gr_view.edit_actions.copy_selected_node_path()
     assert QtWidgets.QApplication.clipboard().text() == "untouched"
 
 
@@ -532,7 +534,7 @@ def test_graphics_stage_removes_items_of_deleted_nodes(stage_editor, create_node
     a = create_node(stage_editor.stage, "a")
     create_node(stage_editor.stage, "b")
     select(stage_editor, a)
-    stage_editor.gr_view.delete_selected()
+    stage_editor.gr_view.edit_actions.delete_selected()
     assert _gr_names(stage_editor) == ["b"]
     stage_editor.stage.undo_stack.undo()
     assert _gr_names(stage_editor) == ["a", "b"]

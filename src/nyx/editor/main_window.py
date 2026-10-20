@@ -15,6 +15,7 @@ from ..version import __version__
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
+from .views.stage_graph_debug_overlay import StageGraphDebugOverlay
 from .views.stage_tree_view import StageTreeView
 from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
@@ -86,6 +87,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         )
 
         self.undo_group = QtGui.QUndoGroup(self)
+        self.viewport_debug_overlay = StageGraphDebugOverlay()
 
         # Initialize ui
         self.create_actions()
@@ -189,12 +191,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menubar_file_menu = menubar_menus.FileMenu(self)
         self.menubar_edit_menu = menubar_menus.EditMenu(self)
         self.menubar_session_menu = menubar_menus.SessionMenu(self)
+        self.menubar_view_menu = menubar_menus.ViewMenu(self)
         self.menubar_window_menu = menubar_menus.WindowMenu(self)
 
         self.menuBar().setNativeMenuBar(False)
         self.menuBar().addMenu(self.menubar_file_menu)
         self.menuBar().addMenu(self.menubar_edit_menu)
         self.menuBar().addMenu(self.menubar_session_menu)
+        self.menuBar().addMenu(self.menubar_view_menu)
         self.menuBar().addMenu(self.menubar_window_menu)
 
     def create_widgets(self):
@@ -369,6 +373,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # TODO: add always on top toggle
         # self.toggle_always_on_top(self.config.window_always_on_top)
         LOGGER.setLevel(self.config.values.logging_level)
+        self._apply_viewport_debug_overlay()
 
         # The log dock's expansion state and size constraints must be in place
         # BEFORE the layout is built or restored. Otherwise Qt clamps the dock
@@ -407,6 +412,24 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """Reset application config and apply changes."""
         self.config.reset()
         QtCore.QTimer.singleShot(0, self.apply_config_values)
+
+    def set_viewport_debug_overlay(self, enabled: bool):
+        """Turn the debug overlay of the graph views on or off, and remember it.
+
+        Args:
+            enabled (bool): show the overlay.
+        """
+        self.config.values.editor_widgets.graphics_stage.viewport_debug_overlay = enabled
+        self._apply_viewport_debug_overlay()
+
+    def _apply_viewport_debug_overlay(self):
+        """Show the config value of the debug overlay in the menu and the views."""
+        enabled = self.config.values.editor_widgets.graphics_stage.viewport_debug_overlay
+        self.menubar_view_menu.set_debug_overlay_checked(enabled)
+        current = self.current_stage_graph
+        self.viewport_debug_overlay.attach(
+            current.gr_view if enabled and current is not None else None
+        )
 
     def create_stage_node_graph(
         self, stage: Stage | None = None, file_path: pathlib.Path | str | None = None
@@ -540,6 +563,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
                 is none.
         """
         self.inspector.setEnabled(mdi_window is not None)
+        self._apply_viewport_debug_overlay()
         if mdi_window is None:
             self.stage_tree_view.set_stage(None)
             self.undo_group.setActiveStack(None)

@@ -223,7 +223,7 @@ class StageTreeView(QtWidgets.QTreeView):
         """Center the graph view on the nodes selected in the tree."""
         if self.current_stage_graph is None:
             return
-        self.current_stage_graph.gr_view.focus_on_selected_nodes()
+        self.current_stage_graph.gr_view.edit_actions.focus_on_selected_nodes()
 
     def copy_selected_node_path(self):
         """Copy the path of the current node to the clipboard."""

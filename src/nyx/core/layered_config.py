@@ -75,11 +75,13 @@ class NyxEditorGraphicsStageConfigValues(ConfigValues):
 
     Attributes:
         nodes: graphics node config values
+        viewport_debug_overlay: show performance numbers over the graph views
     """
 
     nodes: NyxEditorGraphicsNodeConfigValues = Field(
         default_factory=NyxEditorGraphicsNodeConfigValues, alias="nodes"
     )
+    viewport_debug_overlay: bool = Field(default=False)
 
 
 class NyxEditorWidgetsConfigValues(ConfigValues):
