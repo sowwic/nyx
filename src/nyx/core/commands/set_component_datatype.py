@@ -15,8 +15,9 @@ LOGGER = logging.getLogger(__name__)
 class SetNodeComponentDatatypeCommand(NyxCommand):
     """Set the datatype hint of a component.
 
-    Links that are no longer between compatible datatypes are removed, and restored
-    when the command is undone.
+    A value the new datatype can't hold is replaced by the default of the datatype, and
+    links that are no longer between compatible datatypes are removed. Undoing the
+    command restores both.
     """
 
     def __init__(
@@ -39,6 +40,7 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
         self.component_uuid = component.uuid
         self.old_datatype_id = component.datatype_id
         self.new_datatype_id = str(datatype_id)
+        self.old_raw_value = component.raw_value
         self._unlink_command: UnlinkNodeComponentsCommand | None = None
         self.setText(f"{self.text()} ({component.path} -> {self.new_datatype_id})")
 
@@ -60,16 +62,22 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
             )
 
     def redo(self) -> None:
-        """Apply the new datatype and remove the links it makes incompatible."""
-        self.component.set_datatype(self.new_datatype_id)
+        """Apply the new datatype, then fix the value and links it makes invalid."""
+        component = self.component
+        component.set_datatype(self.new_datatype_id)
+        if not component.is_valid:
+            component.push_value(component.datatype.create_default())
         self._build_child_unlink_command()
         if self._unlink_command:
             self._unlink_command.redo()
         return super().redo()
 
     def undo(self) -> None:
-        """Restore the previous datatype, then the links removed for the new one."""
-        self.component.set_datatype(self.old_datatype_id)
+        """Restore the previous datatype and value, then the removed links."""
+        component = self.component
+        component.set_datatype(self.old_datatype_id)
+        if component.raw_value != self.old_raw_value:
+            component.push_value(self.old_raw_value)
         if self._unlink_command:
             self._unlink_command.undo()
         return super().undo()

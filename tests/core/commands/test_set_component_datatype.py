@@ -152,3 +152,42 @@ def test_links_of_components_inheriting_the_datatype_are_checked_too():
 
     stage.undo_stack.undo()
     assert len(end.links) == 1
+
+
+def test_value_invalid_for_the_new_datatype_is_replaced_by_its_default():
+    stage = Stage()
+    value = make_user_value(stage)
+    value.push_value("abc")
+
+    change_datatype(stage, value, CoreDatatypes.INT)
+
+    assert value.raw_value == 0
+    assert value.cached_value == 0
+    assert value.is_valid
+
+
+def test_valid_value_is_kept_when_the_datatype_changes():
+    stage = Stage()
+    value = make_user_value(stage)
+    value.push_value("5")
+
+    change_datatype(stage, value, CoreDatatypes.INT)
+
+    assert value.raw_value == "5"
+    assert value.cached_value == 5
+
+
+def test_undo_restores_the_replaced_value():
+    stage = Stage()
+    value = make_user_value(stage)
+    value.push_value("abc")
+
+    change_datatype(stage, value, CoreDatatypes.INT)
+    stage.undo_stack.undo()
+
+    assert value.datatype_id == CoreDatatypes.OBJECT
+    assert value.raw_value == "abc"
+    assert value.cached_value == "abc"
+
+    stage.undo_stack.redo()
+    assert value.raw_value == 0
