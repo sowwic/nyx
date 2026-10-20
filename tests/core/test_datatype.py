@@ -37,10 +37,19 @@ def test_failed_cast_raises_cast_error():
 
 
 def test_wildcards_accept_everything():
-    for wildcard in (CoreDatatypes.OBJECT, CoreDatatypes.TYPE):
-        for other in NYX_REGISTRY.iter_datatypes():
-            assert get(wildcard).accepts(other)
-            assert other.accepts(get(wildcard))
+    wildcard = CoreDatatypes.OBJECT
+    for other in NYX_REGISTRY.iter_datatypes():
+        assert get(wildcard).accepts(other)
+        assert other.accepts(get(wildcard))
+
+
+def test_type_is_a_concrete_datatype():
+    type_datatype = get(CoreDatatypes.TYPE)
+    assert not type_datatype.is_wildcard
+    assert type_datatype.accepts(type_datatype)
+    assert type_datatype.accepts(get(CoreDatatypes.OBJECT))
+    assert not type_datatype.accepts(get(CoreDatatypes.BOOL))
+    assert not get(CoreDatatypes.BOOL).accepts(type_datatype)
 
 
 def test_concrete_datatypes_accept_only_themselves():

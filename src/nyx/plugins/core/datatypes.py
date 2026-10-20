@@ -40,7 +40,6 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         color="#B04BFF",
         caster=cast_to_type_id,
         default_factory=lambda: CoreDatatypes.OBJECT.value,
-        is_wildcard=True,
     ),
     Datatype(
         type_id=CoreDatatypes.BOOL,
