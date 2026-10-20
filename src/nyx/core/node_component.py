@@ -9,6 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
+from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import (
@@ -40,6 +41,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     DEFAULT_PLUG_COLOR: str = "#0096FF"
     EDITOR_QML: str | None = None
     PATH_SEPARATOR: str = "."
+    VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
@@ -117,6 +119,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         QtGui.QStandardItem.__init__(self)
         StageObject.__init__(self, uuid=uuid)
 
+        self.value_storage = self.VALUE_STORAGE_CLS(self)
         self.name = name or self.DEFAULT_NAME
         self.init_default_data_values()
 
@@ -225,17 +228,17 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @property
     def raw_value(self) -> typing.Any:
         """typing.Any: value as set, before evaluation."""
-        return self.data(self.Roles.RAW_VALUE)
+        return self.value_storage.raw_value
 
     @property
     def cached_value(self) -> typing.Any:
         """typing.Any: evaluated value."""
-        return self.data(self.Roles.CACHED_VALUE)
+        return self.value_storage.cached_value
 
     @property
     def display_value(self) -> str:
         """str: value text shown in the UI."""
-        return self.data(self.Roles.DISPLAY_VALUE)
+        return self.value_storage.display_value
 
     @property
     def links_uuids(self) -> frozenset[UUID]:
@@ -414,8 +417,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def clear_cached_value(self):
         """Clear the cached value and reset the display value to the raw value."""
-        self.setData(None, role=self.Roles.CACHED_VALUE)
-        self.setData(str(self.raw_value), self.Roles.DISPLAY_VALUE)
+        self.value_storage.clear_cache()
 
     def push_value(self, value: typing.Any, evaluate: bool = True):
         """Set the value of the component.
@@ -424,11 +426,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             value (typing.Any): new raw value.
             evaluate (bool): evaluate the value after setting it.
         """
-        self.setData(value, role=self.Roles.RAW_VALUE)
-        self.setData(value, role=self.Roles.CACHED_VALUE)
-        if evaluate:
-            self._evaluate_value()
-        self.setData(str(self.cached_value), role=self.Roles.DISPLAY_VALUE)
+        self.value_storage.push(value, evaluate=evaluate)
 
     def pull_value(
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
@@ -445,14 +443,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         if input_links:
             return input_links[0].source_component.pull_value(value_mask=value_mask)
 
-        if value_mask is NodeComponentValueMask.RAW:
-            return self.raw_value
-        elif value_mask is NodeComponentValueMask.CACHE:
-            return self.cached_value
-        elif value_mask is NodeComponentValueMask.DISPLAY:
-            return self.display_value
-        else:
-            raise ValueError(f"Invalid value mask: {value_mask}")
+        return self.value_storage.pull(value_mask)
 
     def evaluate_value(self) -> typing.Any:
         """Evaluate the raw value. Strings are evaluated as python expressions.
@@ -460,18 +451,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             typing.Any: evaluated value, the raw value if evaluation fails.
         """
-        out_value = self.raw_value
-        if isinstance(self.raw_value, str):
-            try:
-                out_value = eval(self.raw_value)
-            except Exception:
-                LOGGER.warning(f"Failed to eval {self.raw_value}, defaulting to str")
-        return out_value
+        return self.value_storage.compute_value()
 
     def _evaluate_value(self):
         """Evaluate the raw value and store the result as the cached value."""
-        eval_value = self.evaluate_value()
-        self.setData(eval_value, role=self.Roles.CACHED_VALUE)
+        self.value_storage.set_cached_value(self.evaluate_value())
 
     def reset_value_to_default(self) -> None:
         """Set the value to the component's default value."""
