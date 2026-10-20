@@ -75,10 +75,10 @@ def test_value_link_color_follows_the_type_of_the_source_value(value_link):
     )
     stage.push_command(command)
     text = command.result_component
-    text.produces_output = True
+    text.readable = True
     text.push_value("hello", evaluate=False)
     setter_value = setter["value"]
-    setter_value.accepts_input = True
+    setter_value.writable = True
     link(stage, text, setter_value)  # replaces the link into the setter's value
 
     colors = {link_.pen().color().name() for link_ in editor.gr_stage.gr_links()}

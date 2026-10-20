@@ -20,13 +20,13 @@ def test_getter_creation():
     in_component_path = result_node["component"]
     assert in_component_path.get_type_id() == CoreNodeComponents.STAGE_REFERENCE
     assert in_component_path.is_editable is True
-    assert in_component_path.accepts_input is False
-    assert in_component_path.produces_output is False
+    assert in_component_path.writable is False
+    assert in_component_path.readable is False
 
     in_value = result_node["value"]
     assert in_value.get_type_id() == CoreNodeComponents.VALUE
-    assert in_value.accepts_input is False
-    assert in_value.produces_output is True
+    assert in_value.writable is False
+    assert in_value.readable is True
 
 
 def test_getter_can_be_used_to_pull_values(

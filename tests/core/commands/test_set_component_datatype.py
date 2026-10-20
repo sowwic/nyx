@@ -59,8 +59,8 @@ def test_built_in_component_datatype_is_locked():
 def make_linked_values(stage: Stage, datatype=CoreDatatypes.BOOL):
     source = make_user_value(stage)
     target = make_user_value(stage)
-    source.produces_output = True
-    target.accepts_input = True
+    source.readable = True
+    target.writable = True
     source.set_datatype(datatype)
     target.set_datatype(datatype)
     link_command = commands.LinkNodeComponentsCommand(
@@ -128,14 +128,14 @@ def test_undo_restores_datatype_and_link_with_the_same_uuid():
 def test_links_of_components_inheriting_the_datatype_are_checked_too():
     stage = Stage()
     source = make_user_value(stage)
-    source.produces_output = True
+    source.readable = True
     source.set_datatype(CoreDatatypes.BOOL)
     setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
     stage.push_command(setter_command)
     middle = setter_command.result_node["value"]
-    middle.produces_output = True
+    middle.readable = True
     end = make_user_value(stage)
-    end.accepts_input = True
+    end.writable = True
     end.set_datatype(CoreDatatypes.BOOL)
     stage.push_command(
         commands.LinkNodeComponentsCommand(stage=stage, source=source, target=middle)

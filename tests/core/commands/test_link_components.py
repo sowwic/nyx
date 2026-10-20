@@ -81,7 +81,7 @@ def test_linking_to_not_writable_component_raises_link_error():
     stage = Stage()
     node1 = make_node(stage=stage, type_id=CoreNodes.ACTION)
     node2 = make_node(stage=stage, type_id=CoreNodes.FLOW_START)
-    node2["flow"].accepts_input = False
+    node2["flow"].writable = False
 
     with pytest.raises(
         exceptions.NodeComponentLinkError, match="Not writable component"
@@ -125,7 +125,7 @@ def test_value_component_allows_many_output_links():
     )
     stage.push_command(add)
     out = add.result_component
-    out.produces_output = True
+    out.readable = True
     assert not out.single_output
 
     stage.link_components(out, node2["message"])

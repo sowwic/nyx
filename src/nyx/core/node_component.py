@@ -393,23 +393,23 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(state, self.Roles.IS_ACTIVE)
 
     @property
-    def produces_output(self) -> bool:
+    def readable(self) -> bool:
         """bool: component can be the source of a link."""
         return NodeComponentFlag.READABLE in self.component_flags
 
-    @produces_output.setter
-    def produces_output(self, state: bool) -> None:
+    @readable.setter
+    def readable(self, state: bool) -> None:
         self.set_component_flag(
             NodeComponentFlag.READABLE, self.Roles.READABLE, state=state
         )
 
     @property
-    def accepts_input(self) -> bool:
+    def writable(self) -> bool:
         """bool: component can be the target of a link."""
         return NodeComponentFlag.WRITABLE in self.component_flags
 
-    @accepts_input.setter
-    def accepts_input(self, state: bool) -> None:
+    @writable.setter
+    def writable(self, state: bool) -> None:
         self.set_component_flag(
             NodeComponentFlag.WRITABLE, self.Roles.WRITABLE, state=state
         )

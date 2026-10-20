@@ -343,7 +343,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         uuid_map = self.stage.uuid_map
         for source_uuid, source_plug in plugs.items():
             component = source_plug.component
-            if not component.produces_output:
+            if not component.readable:
                 continue
             for link_uuid in component.links_uuids:
                 link = uuid_map.get(link_uuid)
@@ -410,7 +410,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """
         if source is target:
             return False
-        if not source.produces_output or not target.accepts_input:
+        if not source.readable or not target.writable:
             return False
         if not isinstance(target, type(source)):
             return False

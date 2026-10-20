@@ -144,7 +144,7 @@ def test_linking_incompatible_datatypes_is_rejected():
     stage = Stage()
     source = make_branch(stage)["condition"]
     target = make_branch(stage)["condition"]
-    source.produces_output = True
+    source.readable = True
     source.set_datatype(CoreDatatypes.STRING)
     target.set_datatype(CoreDatatypes.BOOL)
 
@@ -156,7 +156,7 @@ def test_linking_wildcard_to_concrete_datatype_is_allowed():
     stage = Stage()
     source = make_branch(stage)["condition"]
     target = make_branch(stage)["condition"]
-    source.produces_output = True
+    source.readable = True
     source.set_datatype(CoreDatatypes.OBJECT)
     target.set_datatype(CoreDatatypes.BOOL)
 

@@ -47,8 +47,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._uuid: UUID = component.uuid
         self._width = gr_node.width
         self._label = component.name
-        self._accepts_input = False
-        self._produces_output = False
+        self._writable = False
+        self._readable = False
         self._input_linked = False
         self._output_linked = False
         self._shape_kind: GraphicsPlugShape | None = None
@@ -104,14 +104,14 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         Returns:
             bool: component accepts input or produces output.
         """
-        return component.accepts_input or component.produces_output
+        return component.writable or component.readable
 
     def refresh(self):
         """Re-read the state of the component and repaint if it changed."""
         state = (
             self._component.name,
-            self._component.accepts_input,
-            self._component.produces_output,
+            self._component.writable,
+            self._component.readable,
             bool(self._component.input_links_uuids),
             bool(self._component.output_links_uuids),
             self._component.get_plug_shape(),
@@ -120,8 +120,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         )
         if state == (
             self._label,
-            self._accepts_input,
-            self._produces_output,
+            self._writable,
+            self._readable,
             self._input_linked,
             self._output_linked,
             self._shape_kind,
@@ -131,8 +131,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             return
         (
             self._label,
-            self._accepts_input,
-            self._produces_output,
+            self._writable,
+            self._readable,
             self._input_linked,
             self._output_linked,
             self._shape_kind,
@@ -195,11 +195,11 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         """
         local = self.mapFromScene(scene_pos)
         center_y = self.ROW_HEIGHT / 2
-        if self._accepts_input and self._shape.contains(
+        if self._writable and self._shape.contains(
             QtCore.QPointF(local.x(), local.y() - center_y)
         ):
             return self.Socket.INPUT
-        if self._produces_output and self._shape.contains(
+        if self._readable and self._shape.contains(
             QtCore.QPointF(local.x() - self._width, local.y() - center_y)
         ):
             return self.Socket.OUTPUT
@@ -293,9 +293,9 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         center_y = self.ROW_HEIGHT / 2
         # (center, is linked) per visible socket
         sockets = []
-        if self._accepts_input:
+        if self._writable:
             sockets.append((QtCore.QPointF(0.0, center_y), self._input_linked))
-        if self._produces_output:
+        if self._readable:
             sockets.append((QtCore.QPointF(self._width, center_y), self._output_linked))
 
         for center, linked in sockets:
@@ -307,7 +307,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         text_rect = QtCore.QRectF(margin, 0.0, self._width - 2 * margin, self.ROW_HEIGHT)
         align = (
             QtCore.Qt.AlignmentFlag.AlignRight
-            if self._produces_output and not self._accepts_input
+            if self._readable and not self._writable
             else QtCore.Qt.AlignmentFlag.AlignLeft
         ) | QtCore.Qt.AlignmentFlag.AlignVCenter
         painter.drawText(text_rect, align, self._label)

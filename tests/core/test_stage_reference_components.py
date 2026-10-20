@@ -190,7 +190,7 @@ def test_linked_reference_provides_the_path():
     )
     stage.push_command(add_command)
     source = add_command.result_component
-    source.produces_output = True
+    source.readable = True
     source.push_value("/stage/target.message")
 
     stage.push_command(
@@ -211,7 +211,7 @@ def test_plain_value_cannot_be_linked_into_the_component_field():
         node=source_node, type_id=CoreNodeComponents.VALUE, name="path"
     )
     stage.push_command(add_command)
-    add_command.result_component.produces_output = True
+    add_command.result_component.readable = True
 
     with pytest.raises(exceptions.NyxCommandValidationError):
         stage.push_command(

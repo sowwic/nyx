@@ -17,19 +17,19 @@ def test_setter_creation():
 
     flow = result_node["flow"]
     assert flow.get_type_id() == CoreNodeComponents.FLOW
-    assert flow.accepts_input is True
-    assert flow.produces_output is True
+    assert flow.writable is True
+    assert flow.readable is True
 
     in_component_path = result_node["component"]
     assert in_component_path.get_type_id() == CoreNodeComponents.STAGE_REFERENCE
     assert in_component_path.is_editable is True
-    assert in_component_path.accepts_input is True
-    assert in_component_path.produces_output is False
+    assert in_component_path.writable is True
+    assert in_component_path.readable is False
 
     in_value = result_node["value"]
     assert in_value.get_type_id() == CoreNodeComponents.VALUE
-    assert in_value.accepts_input is True
-    assert in_value.produces_output is False
+    assert in_value.writable is True
+    assert in_value.readable is False
 
 
 def test_setter_execution_sets_component_value(request: pytest.FixtureRequest):
@@ -98,7 +98,7 @@ def test_setter_value_datatype_is_unlocked_until_linked():
     assert value.datatype.type_id == CoreDatatypes.FLOAT
 
     source = log_command.result_node["message"]
-    source.produces_output = True
+    source.readable = True
     with pytest.raises(exceptions.NodeComponentLinkError, match="Incompatible"):
         stage.push_command(
             commands.LinkNodeComponentsCommand(stage=stage, source=source, target=value)
@@ -115,7 +115,7 @@ def test_setter_value_takes_the_datatype_of_the_linked_component():
     stage.push_command(setter_command)
     value = setter_command.result_node["value"]
     source = log_command.result_node["message"]
-    source.produces_output = True
+    source.readable = True
 
     stage.push_command(
         commands.LinkNodeComponentsCommand(stage=stage, source=source, target=value)

@@ -50,7 +50,7 @@ class StageCrawler:
     - Sequence nodes: multiple outgoing ``core:flow`` components can be
       ``is_active`` simultaneously -- each is traversed fully, depth-first,
       one after another.
-    - ``core:flow`` components with ``produces_output == False`` are write/inout
+    - ``core:flow`` components with ``readable == False`` are write/inout
       only and are never treated as traversable paths.
     - A ``core:flow`` component can only ever point to a sibling under the
       same parent; anything else is treated as a misconfiguration and logged.

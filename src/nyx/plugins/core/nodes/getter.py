@@ -89,7 +89,7 @@ class GetterNode(Node):
             CoreNodeComponents.VALUE
         )
         self.value_cpnt.name = "value"
-        self.value_cpnt.produces_output = True
+        self.value_cpnt.readable = True
         self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE
         self.value_cpnt.is_editable = False
 

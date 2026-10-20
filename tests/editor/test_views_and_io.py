@@ -577,7 +577,7 @@ def test_graphics_node_creates_plugs_for_linkable_components(stage_editor, creat
     assert len(gr_node.plugs) == plug_count
     assert gr_node.get_plug(component) is None
 
-    component.accepts_input = True
+    component.writable = True
     stage_editor.gr_stage.rebuild_current_scope()
     assert stage_editor.gr_stage.get_gr_node(node) is gr_node
     assert len(gr_node.plugs) == plug_count + 1
