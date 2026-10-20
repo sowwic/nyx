@@ -61,5 +61,6 @@ class BranchNode(Node):
 
     def evaluate(self):
         """Activate the flow output matching the pulled value."""
-        self.flow_out_true.is_active = self.value_cpnt.pull_value()
-        self.flow_out_false.is_active = not self.value_cpnt.pull_value()
+        pulled_value = bool(self.value_cpnt.pull_value())
+        self.flow_out_true.is_active = pulled_value
+        self.flow_out_false.is_active = not pulled_value
