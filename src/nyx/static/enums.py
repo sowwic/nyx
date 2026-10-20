@@ -63,6 +63,7 @@ class NodeComponentFlag(enum.IntFlag):
         READABLE: produces output links
         EDITABLE: value can be edited in the UI
         STATIC: skipped during execution
+        SINGLE_OUTPUT: can be the source of one link at most
     """
 
     NONE = 0
@@ -71,6 +72,7 @@ class NodeComponentFlag(enum.IntFlag):
     READABLE = enum.auto()
     EDITABLE = enum.auto()
     STATIC = enum.auto()
+    SINGLE_OUTPUT = enum.auto()
 
 
 class NodeComponentValueMask(enum.IntEnum):
@@ -110,3 +112,17 @@ class EditorUIObject(enum.StrEnum):
     LOG_OUTPUT_DOCK = "log_output_dock"
     TOOLBAR_DOCK = "toolbar_dock"
     INSPECTOR_DOCK = "inspector_dock"
+
+
+class GraphicsPlugShape(enum.IntEnum):
+    CIRCLE = 0
+    TRIANGLE = enum.auto()
+    PENTAGON = enum.auto()
+    SQUARE = enum.auto()
+    SQUARE_MATRIX = enum.auto()
+
+
+class DatatypeColor(enum.StrEnum):
+    BOOL = "#FF0000"
+    STRING = "#FFA637"
+    FLOW = "#FFFFFF"

@@ -3,6 +3,8 @@ from uuid import UUID
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from nyx.core.node_component import NodeComponent
+
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
 
@@ -13,11 +15,13 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     A link with a missing end is a preview that is being dragged: the missing
     end follows `floating_pos`. Previews are never attached to plugs, only
     complete links are (see `attach`).
+
+    The link is drawn like the component it comes from: its color, and a width that
+    the component scales.
     """
 
-    COLOR = QtGui.QColor("#FFA637")
-    PREVIEW_COLOR = QtGui.QColor("#99FFA637")
     WIDTH = 2.0
+    PREVIEW_OPACITY = 0.8
     MIN_TANGENT = 40.0
 
     def __init__(
@@ -40,14 +44,11 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         self._floating_pos = QtCore.QPointF()
         self._attached = False
 
-        is_preview = source_plug is None or target_plug is None
-        pen = QtGui.QPen(self.PREVIEW_COLOR if is_preview else self.COLOR, self.WIDTH)
-        pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
-        self.setPen(pen)
         # Links are drawn behind nodes, previews above everything.
-        self.setZValue(1 if is_preview else -1)
-        if is_preview:
+        self.setZValue(1 if self.is_preview else -1)
+        if self.is_preview:
             self.setAcceptedMouseButtons(QtCore.Qt.MouseButton.NoButton)
+        self.update_style()
         self.update_path()
 
     @property
@@ -69,6 +70,30 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     def is_preview(self) -> bool:
         """bool: link is missing an end."""
         return self._source_plug is None or self._target_plug is None
+
+    @property
+    def style_plug(self) -> GraphicsPlug | None:
+        """GraphicsPlug | None: plug the look of the link comes from.
+
+        The source of the link, or for a preview dragged from an input socket the plug
+        it is dragged from.
+        """
+        return self._source_plug if self._source_plug is not None else self._target_plug
+
+    def update_style(self):
+        """Take color and width from the plug the link comes from."""
+        plug = self.style_plug
+        color = (
+            plug.color
+            if plug is not None
+            else QtGui.QColor(NodeComponent.DEFAULT_PLUG_COLOR)
+        )
+        width = self.WIDTH * (plug.link_width_multiplier if plug is not None else 1.0)
+        if self.is_preview:
+            color.setAlphaF(color.alphaF() * self.PREVIEW_OPACITY)
+        pen = QtGui.QPen(color, width)
+        pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+        self.setPen(pen)
 
     def set_floating_pos(self, scene_pos: QtCore.QPointF):
         """Move the open end of a preview.

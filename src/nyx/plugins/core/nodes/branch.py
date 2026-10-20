@@ -41,14 +41,15 @@ class BranchNode(Node):
             type_id=CoreNodeComponents.VALUE
         )
 
-        self.flow_in.name = "flow_in"
+        self.flow_in.name = "flow"
         self.flow_in.accepts_input = True
 
-        self.flow_out_true.name = "flow_out_true"
+        self.flow_out_true.name = "true"
         self.flow_out_true.produces_output = True
-        self.flow_out_false.name = "flow_out_false"
+        self.flow_out_false.name = "false"
         self.flow_out_false.produces_output = True
 
+        self.value_cpnt.name = "condition"
         self.value_cpnt.accepts_input = True
         self.value_cpnt.is_editable = True
         self.value_cpnt.push_value(True)
@@ -60,5 +61,6 @@ class BranchNode(Node):
 
     def evaluate(self):
         """Activate the flow output matching the pulled value."""
-        self.flow_out_true.is_active = self.value_cpnt.pull_value()
-        self.flow_out_false.is_active = not self.value_cpnt.pull_value()
+        pulled_value = bool(self.value_cpnt.pull_value())
+        self.flow_out_true.is_active = pulled_value
+        self.flow_out_false.is_active = not pulled_value

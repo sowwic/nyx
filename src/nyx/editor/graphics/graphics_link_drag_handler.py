@@ -28,9 +28,10 @@ class LinkDragContext:
 
     Attributes:
         origin_plug: plug the dragged link comes out of. Dragging a linked input
-            socket picks up the link, so this is the source plug of that link.
+            socket picks up the link, so this is the source plug of that link;
+            for a picked output link it is the target plug.
         origin_socket: socket of the origin plug the drag is attached to.
-        picked_link: existing link picked up from an input socket, hidden while
+        picked_link: existing link picked up from a socket, hidden while
             it is dragged.
         preview: link following the cursor.
     """
@@ -106,7 +107,9 @@ class GraphicsLinkDragHandler(QtCore.QObject):
 
         Dragging from a linked input socket picks up that link instead of making
         a new one: the drag continues from the source of the link, and dropping
-        it elsewhere moves the link there.
+        it elsewhere moves the link there. The same goes for the output socket of
+        a component allowing a single output link, which is always linked when
+        it is dragged from.
 
         Args:
             plug (GraphicsPlug): plug the drag starts at.
@@ -121,6 +124,13 @@ class GraphicsLinkDragHandler(QtCore.QObject):
             if picked is not None:
                 picked.setVisible(False)
                 plug, socket = picked.source_plug, GraphicsPlug.Socket.OUTPUT
+        elif plug.component.single_output:
+            picked = next(
+                (link for link in plug.links if link.source_plug is plug), None
+            )
+            if picked is not None:
+                picked.setVisible(False)
+                plug, socket = picked.target_plug, GraphicsPlug.Socket.INPUT
 
         context = LinkDragContext(plug, socket, picked_link=picked)
         context.preview = GraphicsLink(
@@ -219,7 +229,11 @@ class GraphicsLinkDragHandler(QtCore.QObject):
                 stage=stage, source=source, target=target
             )
             replaced_uuid = context.replaced_link_uuid
-            if replaced_uuid is None:
+            if (
+                replaced_uuid is None
+                or replaced_uuid in link_command.replaced_link_uuids
+            ):
+                # Nothing to move, or the link command removes the link itself.
                 stage.push_command(link_command)
             else:
                 unlink_command = commands.UnlinkNodeComponentsCommand(

@@ -19,7 +19,8 @@ LOGGER = logging.getLogger(__name__)
 class LinkNodeComponentsCommand(NyxCommand):
     """Link a source component to a target component.
 
-    An existing input link on the target is replaced.
+    An existing input link on the target is replaced, and so is the output link of a
+    source allowing a single one.
     """
 
     def __init__(
@@ -88,21 +89,29 @@ class LinkNodeComponentsCommand(NyxCommand):
             self._unlink_command.undo()
         return super().undo()
 
-    def _build_child_unlink_command(self):
-        """Create an unlink command for the target's existing input link, if any."""
-        target_component = self.target_component
-        target_input_links = target_component.input_links
-        if not target_input_links:
-            return
+    @property
+    def replaced_link_uuids(self) -> list[UUID]:
+        """list[UUID]: uuids of the existing links the command removes."""
+        return list(self._unlink_command.link_uuids) if self._unlink_command else []
 
-        existing_link = target_input_links[0]
+    def _build_child_unlink_command(self):
+        """Create an unlink command for the links the new link replaces, if any.
+
+        Those are the input link of the target and, when the source allows a
+        single output link, its output link.
+        """
+        replaced = list(self.target_component.input_links)
+        if self.source_component.single_output:
+            replaced += self.source_component.output_links
+        if not replaced:
+            return
 
         # NOTE: Passing self as parent command to unlink command
         # It'll case pytest to segfault at post test garbage collection.
         # Instead manually call undo redo in appropriate time.
         self._unlink_command = UnlinkNodeComponentsCommand(
             stage=self.stage,
-            link_uuids=[existing_link.uuid],
+            link_uuids=[link.uuid for link in replaced],
         )
 
     def validate(self):

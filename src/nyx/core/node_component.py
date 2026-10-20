@@ -11,7 +11,12 @@ from .stage_object import StageObject
 from .link import Link
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
-from ..static.enums import RestoreUuidOption, NodeComponentFlag, NodeComponentValueMask
+from ..static.enums import (
+    RestoreUuidOption,
+    NodeComponentFlag,
+    NodeComponentValueMask,
+    GraphicsPlugShape,
+)
 from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
 if typing.TYPE_CHECKING:
@@ -32,6 +37,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     """
 
     DEFAULT_NAME: str = "component"
+    DEFAULT_PLUG_COLOR: str = "#0096FF"
     EDITOR_QML: str | None = None
     PATH_SEPARATOR: str = "."
 
@@ -300,6 +306,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.set_component_flag(
             NodeComponentFlag.WRITABLE, self.Roles.WRITABLE, state=state
         )
+
+    @property
+    def single_output(self) -> bool:
+        """bool: component can be the source of one link at most."""
+        return NodeComponentFlag.SINGLE_OUTPUT in self.component_flags
 
     @property
     def is_editable(self) -> bool:
@@ -626,7 +637,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             value=data.get("default_value")
         )
         component.is_active = data["is_active"]
-        component.component_flags = NodeComponentFlag(data["flags"])
+        component.component_flags = (
+            NodeComponentFlag(data["flags"]) | component.get_type_enforced_flags()
+        )
 
         return component
 
@@ -653,6 +666,32 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def execute(self):
         """Called while executing. Override in subclasses."""
         pass
+
+    def get_plug_color(self) -> QtGui.QColor:
+        """Get the color the plug of the component is drawn with.
+
+        Returns:
+            QtGui.QColor: plug color.
+        """
+        return QtGui.QColor(self.DEFAULT_PLUG_COLOR)
+
+    @classmethod
+    def get_plug_shape(cls) -> GraphicsPlugShape:
+        """Get the shape the plug of the component is drawn with.
+
+        Returns:
+            GraphicsPlugShape: plug shape.
+        """
+        return GraphicsPlugShape.CIRCLE
+
+    @classmethod
+    def get_link_width_multiplier(cls) -> float:
+        """Get how thick links coming out of the component are drawn.
+
+        Returns:
+            float: factor applied to the base width of a link, 1.0 is the base width.
+        """
+        return 1.0
 
     @classmethod
     def get_qml_editor_url(cls) -> QtCore.QUrl:
@@ -687,6 +726,15 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
         """NodeComponentFlag: flags set on new components of the type."""
+        return NodeComponentFlag.NONE
+
+    @classmethod
+    def get_type_enforced_flags(cls) -> NodeComponentFlag:
+        """NodeComponentFlag: flags every component of the type has.
+
+        Unlike the default flags these are also added when a component is
+        deserialized, so files saved before a rule existed follow it too.
+        """
         return NodeComponentFlag.NONE
 
     @classmethod

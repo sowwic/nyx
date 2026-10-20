@@ -1,4 +1,10 @@
-from nyx.api.v1 import NodeComponent, CoreNodeComponents, NodeComponentFlag
+from PySide6 import QtGui
+from nyx.api.v1 import (
+    NodeComponent,
+    CoreNodeComponents,
+    NodeComponentFlag,
+    DatatypeColor,
+)
 
 
 class ValueComponent(NodeComponent):
@@ -6,6 +12,8 @@ class ValueComponent(NodeComponent):
 
     DEFAULT_NAME = "value"
     EDITOR_QML = "ValueComponentItem"
+
+    VALUE_TYPE_COLOR_MAP = {bool: DatatypeColor.BOOL, str: DatatypeColor.STRING}
 
     @classmethod
     def get_type_id(cls) -> str:
@@ -36,3 +44,10 @@ class ValueComponent(NodeComponent):
     def get_default_expanded_state(cls) -> bool:
         """bool: value components start expanded."""
         return True
+
+    def get_plug_color(self):
+        return QtGui.QColor(
+            self.VALUE_TYPE_COLOR_MAP.get(
+                type(self.cached_value), NodeComponent.DEFAULT_PLUG_COLOR
+            )
+        )

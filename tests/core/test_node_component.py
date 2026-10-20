@@ -5,6 +5,7 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
     NodeDeserializationContext,
+    NodeComponentFlag,
 )
 from nyx.core.protocols.registry_entry import IRegistryEntry
 
@@ -105,6 +106,25 @@ def test_serialize_deserialize():
     assert new_flow_component.is_active == flow_component.is_active
     assert new_flow_component.produces_output == flow_component.produces_output
     assert new_flow_component.accepts_input == flow_component.accepts_input
+
+
+def test_deserialized_flow_component_gets_the_enforced_flags():
+    stage = Stage()
+    create_node_command = commands.CreateNodeCommand(
+        stage=stage, type_id=CoreNodes.ACTION
+    )
+    stage.push_command(create_node_command)
+    node = create_node_command.result_node
+    data = node["flow"].serialize()
+    # Saved before the flag existed
+    data["flags"] = int(
+        NodeComponentFlag(data["flags"]) & ~NodeComponentFlag.SINGLE_OUTPUT
+    )
+
+    context = NodeDeserializationContext(stage=stage, entry_node=node)
+    loaded = NodeComponent.deserialize(data=data, node=node, context=context)
+
+    assert loaded.single_output
 
 
 def test_rshift_operator():

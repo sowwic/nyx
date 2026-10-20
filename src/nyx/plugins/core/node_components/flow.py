@@ -1,10 +1,13 @@
 import pathlib
+from PySide6 import QtGui
 
 from nyx.api.v1 import (
     Node,
     NodeComponent,
     CoreNodeComponents,
     NodeComponentFlag,
+    GraphicsPlugShape,
+    DatatypeColor,
 )
 
 
@@ -41,8 +44,27 @@ class FlowComponent(NodeComponent):
 
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
-        """NodeComponentFlag: static, readable and writable."""
-        return NodeComponentFlag.STATIC
+        """NodeComponentFlag: static, with a single output link."""
+        return NodeComponentFlag.STATIC | NodeComponentFlag.SINGLE_OUTPUT
+
+    @classmethod
+    def get_type_enforced_flags(cls) -> NodeComponentFlag:
+        """NodeComponentFlag: the single output link is a rule of the type."""
+        return NodeComponentFlag.SINGLE_OUTPUT
+
+    def get_plug_color(self) -> QtGui.QColor:
+        """QtGui.QColor: flow plugs are white."""
+        return QtGui.QColor(DatatypeColor.FLOW)
+
+    @classmethod
+    def get_plug_shape(cls) -> GraphicsPlugShape:
+        """GraphicsPlugShape: flow plugs are triangles, pointing along the flow."""
+        return GraphicsPlugShape.PENTAGON
+
+    @classmethod
+    def get_link_width_multiplier(cls) -> float:
+        """float: links of the flow are drawn twice as thick as the others."""
+        return 2.0
 
     def deserialize_value(self, value: str | None) -> pathlib.PurePosixPath | None:
         """Convert a serialized path back to a path.
