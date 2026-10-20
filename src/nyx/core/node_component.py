@@ -282,6 +282,20 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             return True
         return self.is_built_in and not self.inherits_datatype
 
+    def cast_value(self, value: typing.Any) -> typing.Any:
+        """Cast an already evaluated value to the datatype of the component.
+
+        Args:
+            value (typing.Any): evaluated value.
+
+        Raises:
+            DatatypeCastError: the value can't be converted.
+
+        Returns:
+            typing.Any: converted value, the datatype default for None.
+        """
+        return self.value_storage.cast_value(value)
+
     def accepts_datatype_of(self, source: NodeComponent) -> bool:
         """Check whether the datatype of another component is compatible with this one.
 

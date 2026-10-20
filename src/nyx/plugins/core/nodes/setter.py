@@ -62,9 +62,11 @@ class SetterNode(Node):
         self.components_model.add_component(self.value_cpnt)
 
     def execute(self):
-        """Push the value into the target component."""
+        """Push the value, cast to the datatype of the target, into the target.
+
+        Raises:
+            DatatypeCastError: the value can't be cast, the target is left as it is.
+        """
         component: NodeComponent = self.component_path_cpnt.resolve_component()
-        component.push_value(
-            self.value_cpnt.pull_value(value_mask=NodeComponentValueMask.CACHE),
-            evaluate=False,
-        )
+        value = self.value_cpnt.pull_value(value_mask=NodeComponentValueMask.CACHE)
+        component.push_value(component.cast_value(value), evaluate=False)

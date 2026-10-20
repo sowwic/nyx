@@ -127,3 +127,49 @@ def test_setter_value_takes_the_datatype_of_the_linked_component():
     stage.undo_stack.undo()
     assert value.datatype.type_id == CoreDatatypes.OBJECT
     assert not value.is_datatype_locked
+
+
+def make_setter_and_log():
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    log_node, setter_node = log_command.result_node, setter_command.result_node
+    setter_node["component"].push_value(f"./{log_node.name}.level")
+    return log_node, setter_node
+
+
+def test_setter_casts_the_value_to_the_datatype_of_the_target():
+    log_node, setter_node = make_setter_and_log()
+    setter_node["value"].push_value("30")  # evaluated to 30 already
+
+    setter_node.execute()
+    assert log_node["level"].cached_value == 30
+
+    setter_node["value"].push_value("'40'")  # a string, the target is an int
+    setter_node.execute()
+    assert log_node["level"].cached_value == 40
+    assert log_node["level"].is_valid
+
+
+def test_setter_raises_and_leaves_the_target_when_the_cast_fails():
+    from nyx.core.exceptions import DatatypeCastError
+
+    log_node, setter_node = make_setter_and_log()
+    setter_node["value"].push_value("'loud'")
+
+    with pytest.raises(DatatypeCastError):
+        setter_node.execute()
+
+    assert log_node["level"].cached_value == 10
+    assert log_node["level"].is_valid
+
+
+def test_setter_uses_the_datatype_default_for_a_missing_value():
+    log_node, setter_node = make_setter_and_log()
+    setter_node["value"].push_value(None)
+
+    setter_node.execute()
+
+    assert log_node["level"].cached_value == 0
