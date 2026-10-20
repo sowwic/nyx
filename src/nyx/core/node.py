@@ -231,7 +231,9 @@ class Node(QtGui.QStandardItem, StageObject):
                 continue
             if not changed_roles or changed_roles & NodeComponentsModel.EDIT_ROLES:
                 self.on_component_edited(component)
-            if not changed_roles or NodeComponentsModel.VALUE_CHANGED_ROLE in changed_roles:
+            if not changed_roles or (
+                NodeComponentsModel.VALUE_CHANGED_ROLE in changed_roles
+            ):
                 self._notify_linked_targets(component)
             self._update_subtitle_for(component, changed_roles)
 

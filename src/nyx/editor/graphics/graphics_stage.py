@@ -394,7 +394,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     @staticmethod
     def _is_flow_link_on_chain(gr_link: GraphicsLink, chain: frozenset[UUID]) -> bool:
-        """Check whether a link is an active flow link leaving an active node on the chain.
+        """Check whether a link is an active flow link leaving an active chain node.
 
         Args:
             gr_link (GraphicsLink): link to check.
