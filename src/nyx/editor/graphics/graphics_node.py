@@ -174,6 +174,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             self.MIN_WIDTH,
             self.TITLE_OFFSET_X + self.title_width + self.title_horizontal_padding,
             self.subtitle_item.width + 2 * self.SUBTITLE_MARGIN,
+            *(plug.preferred_width() for plug in self._plugs.values()),
         )
         # Right aligned: the subtitle ends where the node does, the title starts at it
         self.subtitle_item.setPos(

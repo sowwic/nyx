@@ -257,17 +257,17 @@ def test_flow_plug_is_painted_as_pentagon_with_the_component_color(plugs):
     flow_plug, value_plug = plugs
     image, _ = paint_plug(flow_plug)
     left = -flow_plug.boundingRect().left()
-    tip_x = int(left + flow_plug.gr_node.width + 3)  # inside the output pentagon
+    output_x = left + flow_plug.gr_node.width - flow_plug.SOCKET_INSET
+    tip_x = int(output_x + 3)  # inside the output pentagon
     # Not linked: only the outline is drawn, white and not the circle's orange.
-    on_outline = QtGui.QColor(
-        image.pixelColor(int(left + flow_plug.gr_node.width - 5), 10)
-    )
+    on_outline = QtGui.QColor(image.pixelColor(int(output_x - 5), 10))
     assert on_outline.alpha() > 0
     assert (on_outline.red(), on_outline.green(), on_outline.blue()) == (255, 255, 255)
     assert tip_x < image.width()
 
     image, _ = paint_plug(value_plug)
-    circle_ring = image.pixelColor(int(-value_plug.boundingRect().left() + 4), 10)
+    input_x = -value_plug.boundingRect().left() + value_plug.SOCKET_INSET
+    circle_ring = image.pixelColor(int(input_x + 4), 10)
     # Anti-aliased against the outline, so only check that it is the default blue.
     assert circle_ring.alpha() > 0
     assert circle_ring.blue() > circle_ring.green() > circle_ring.red()
@@ -316,3 +316,84 @@ def test_plug_tooltip_follows_the_component(plugs, monkeypatch):
     hover(value_plug)
 
     assert "core:int" in value_plug.toolTip()
+
+
+def test_node_is_wide_enough_for_the_labels_of_its_plugs(stage_editor, create_node):
+    from nyx.editor.graphics.graphics_plug import GraphicsPlug  # noqa: F401
+
+    node = create_node(stage_editor.stage, "branch", type_id=CoreNodes.BRANCH)
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+
+    assert gr_node.plugs
+    for plug in gr_node.plugs:
+        assert plug.preferred_width() <= gr_node.width
+
+
+def test_long_component_name_widens_the_node(stage_editor, create_node):
+    node = create_node(stage_editor.stage, "action", type_id=CoreNodes.ACTION)
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+    plain_width = gr_node.width
+
+    stage_editor.stage.push_command(
+        commands.RenameNodeComponentCommand(
+            stage=stage_editor.stage,
+            node_component=node["flow"],
+            new_name="a_really_long_component_name_for_a_flow",
+        )
+    )
+
+    assert gr_node.width > plain_width
+    assert gr_node.plugs[0].preferred_width() <= gr_node.width
+
+
+def test_label_keeps_clear_of_the_sockets(plugs):
+    flow_plug, value_plug = plugs
+    shape_room = flow_plug.SOCKET_INSET + flow_plug._shape.RADIUS * 2
+    left, right = flow_plug._label_margins()  # in and out socket
+    assert left > shape_room and right > shape_room
+
+    left, right = value_plug._label_margins()  # input socket only
+    assert left > shape_room
+    assert right == value_plug.SOCKET_INSET
+
+
+def test_sockets_are_inside_of_the_node(plugs):
+    flow_plug, value_plug = plugs
+    node_width = flow_plug.gr_node.width
+
+    assert flow_plug.mapFromScene(flow_plug.input_anchor()).x() == flow_plug.SOCKET_INSET
+    assert (
+        flow_plug.mapFromScene(flow_plug.output_anchor()).x()
+        == node_width - flow_plug.SOCKET_INSET
+    )
+    assert flow_plug.boundingRect().left() == 0.0
+    assert flow_plug.boundingRect().right() == node_width
+
+
+def test_socket_is_grabbed_at_its_inset_position_only(plugs):
+    flow_plug, _value_plug = plugs
+    on_edge = flow_plug.mapToScene(0.0, flow_plug.ROW_HEIGHT / 2)
+    inset_right = flow_plug.output_anchor()
+
+    assert flow_plug.socket_at(inset_right) is GraphicsPlug.Socket.OUTPUT
+    assert flow_plug.socket_at(on_edge) is None  # 10 units away from the socket
+
+
+def test_linked_socket_gets_a_stub_to_the_side_of_the_node(stage_editor, create_node):
+    stage = stage_editor.stage
+    start = create_node(stage, "start", type_id=CoreNodes.FLOW_START)
+    action = create_node(stage, "action", type_id=CoreNodes.ACTION)
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=start["flow"], target=action["flow"]
+        )
+    )
+    plug = stage_editor.gr_stage.get_gr_node(start).get_plug(start["flow"])
+
+    image, _ = paint_plug(plug)
+    left = -plug.boundingRect().left()
+    stub_x = int(left + plug.gr_node.width - 3)  # between the socket and the side
+    stub = image.pixelColor(stub_x, int(plug.ROW_HEIGHT / 2))
+
+    assert stub.alpha() > 0
+    assert (stub.red(), stub.green(), stub.blue()) == (255, 255, 255)
