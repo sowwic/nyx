@@ -1,5 +1,5 @@
 import logging
-from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
+from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents, CoreDatatypes
 
 
 class LogNode(Node):
@@ -42,12 +42,14 @@ class LogNode(Node):
         self.message.name = "message"
         self.message.is_editable = True
         self.message.accepts_input = True
+        self.message.set_datatype(CoreDatatypes.STRING)
         self.message.push_value("")
 
         self.level = self.components_model.create_component(
             type_id=CoreNodeComponents.VALUE
         )
         self.level.name = "level"
+        self.level.set_datatype(CoreDatatypes.INT)
         self.level.push_value(10)
         self.level.is_editable = True
         self.level.accepts_input = True
