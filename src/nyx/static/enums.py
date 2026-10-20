@@ -24,6 +24,18 @@ class CoreNodeComponents(enum.StrEnum):
     STAGE_REFERENCE = "core:stage_reference"
 
 
+class CoreDatatypes(enum.StrEnum):
+    """Type ids of the datatypes provided by the core plugin."""
+
+    OBJECT = "core:object"
+    TYPE = "core:type"
+    BOOL = "core:bool"
+    STRING = "core:string"
+    INT = "core:int"
+    FLOAT = "core:float"
+    PATH = "core:path"
+
+
 class RestoreUuidOption(enum.IntEnum):
     """How uuids stored in serialized data are used when deserializing.
 

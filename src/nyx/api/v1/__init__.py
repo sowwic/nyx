@@ -1,5 +1,6 @@
 from nyx.core.node import Node, NodeLike
 from nyx.core.stage import Stage
+from nyx.core.datatype import Datatype
 from nyx.core.link import Link, LinkLike
 from nyx.core.stage_object import StageObject
 from nyx.core import commands
@@ -15,6 +16,7 @@ from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
 from nyx.static.enums import (
     CoreNodes,
     CoreNodeComponents,
+    CoreDatatypes,
     NodeExecutionStatus,
     RestoreUuidOption,
     NodeComponentFlag,
@@ -44,6 +46,8 @@ __all__ = [
     "NyxPlugin",
     "CoreNodes",
     "CoreNodeComponents",
+    "CoreDatatypes",
+    "Datatype",
     "NodeExecutionStatus",
     "RestoreUuidOption",
     "NYX_REGISTRY",
