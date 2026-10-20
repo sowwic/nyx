@@ -33,6 +33,8 @@ class ExecutionChain:
             tuple[FlowComponent, Node]: flow component and the node its link leads to,
                 wherever that node is in the stage.
         """
+        if not node.is_active():
+            return
         for flow_component in node.components_model.find_readable_flow_components():
             next_node = flow_component.get_next_node()
             if next_node is not None:

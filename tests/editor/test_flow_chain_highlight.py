@@ -350,3 +350,16 @@ def test_flow_link_of_an_inactive_component_does_not_pulse(stage_editor, create_
 
     stage.undo_stack.undo()
     assert len(pulsing_links(stage_editor)) == 3
+
+
+def test_pulse_stops_at_an_inactive_node(chain):
+    editor, _start, a, b, _loose = chain
+    stage = editor.stage
+    assert len(pulsing_links(editor)) == 2
+
+    stage.push_command(commands.SetNodeActiveStateCommand(stage=stage, node=a, state=False))
+
+    # start -> a still pulses, the link leaving the inactive node does not.
+    sources = [gr_link.source_plug.component for gr_link in pulsing_links(editor)]
+    assert all(source.node is not a for source in sources)
+    assert len(sources) == 1

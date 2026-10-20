@@ -98,5 +98,6 @@ OBJECT_DATATYPE = Datatype(
     display_name="Object",
     color="#0096FF",
     is_wildcard=True,
+    plug_shape=GraphicsPlugShape.SQUARE_MATRIX,
 )
 """Datatype of values without a type hint, used wherever no datatype is set."""

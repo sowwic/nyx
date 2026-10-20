@@ -119,8 +119,8 @@ class LinkNodeComponentsCommand(NyxCommand):
         if self.target_component is self.source_component:
             raise NyxCommandValidationError("Can't connect component to itself")
 
-        if not isinstance(self.target_component, type(self.source_component)):
+        if not self.target_component.datatype.accepts(self.source_component.datatype):
             raise NyxCommandValidationError(
-                "Can't connect components of different type: "
+                "Can't connect components of different datatype: "
                 f"{self.source_component} -> {self.target_component}"
             )

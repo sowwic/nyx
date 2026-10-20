@@ -7,6 +7,7 @@ class CoreNodes(enum.StrEnum):
     EMPTY = "core:node"
     GET = "core:get"
     SET = "core:set"
+    VALUE = "core:value"
     ACTION = "core:action"
     FLOW_START = "core:flow_start"
     BRANCH = "core:branch"

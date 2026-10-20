@@ -173,3 +173,27 @@ def test_setter_uses_the_datatype_default_for_a_missing_value():
     setter_node.execute()
 
     assert log_node["level"].cached_value == 0
+
+
+def test_setter_title_follows_linked_value_node_path():
+    stage = Stage()
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    value_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.VALUE)
+    stage.push_command(value_command)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    log_node = log_command.result_node
+    value_node = value_command.result_node
+    setter_node: SetterNode = setter_command.result_node
+
+    value_node["value"].push_value(f"{log_node.path}.message")
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=value_node["value"], target=setter_node["component"]
+        )
+    )
+
+    assert setter_node["component"].resolve_component() is log_node["message"]
+    assert setter_node.subtitle == f"{log_node.name}.message"
+    assert setter_node["component"].get_display_value() != f"{log_node.path}.message"

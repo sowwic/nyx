@@ -224,16 +224,53 @@ class Node(QtGui.QStandardItem, StageObject):
             bottom_right (QtCore.QModelIndex): last changed index.
             roles (list[int]): changed roles, empty for all.
         """
-        binding = self._subtitle_binding
-        if binding is None:
-            return
-        if roles and not set(roles) & set(NodeComponentsModel.VALUE_ROLES):
-            return
+        changed_roles = set(roles)
         for row in range(top_left.row(), bottom_right.row() + 1):
             component = self._components_model.item(row, 0)
-            if component is not None and component.name == binding.component_name:
-                self.emitDataChanged()
-                return
+            if component is None:
+                continue
+            if not changed_roles or changed_roles & NodeComponentsModel.EDIT_ROLES:
+                self.on_component_edited(component)
+            if not changed_roles or NodeComponentsModel.VALUE_CHANGED_ROLE in changed_roles:
+                self._notify_linked_targets(component)
+            self._update_subtitle_for(component, changed_roles)
+
+    @staticmethod
+    def _notify_linked_targets(component: NodeComponent) -> None:
+        """Tell the nodes fed by a component that the value they get has changed.
+
+        Args:
+            component (NodeComponent): component whose value changed.
+        """
+        for link in component.output_links:
+            target = link.target_component
+            if target.node is not component.node:
+                target.node.on_component_edited(target)
+
+    def _update_subtitle_for(self, component: NodeComponent, roles: set[int]) -> None:
+        """Tell the views the subtitle changed if it follows the changed component.
+
+        Args:
+            component (NodeComponent): changed component.
+            roles (set[int]): changed roles, empty for all.
+        """
+        binding = self._subtitle_binding
+        if binding is None or component.name != binding.component_name:
+            return
+        if roles and not roles & set(NodeComponentsModel.VALUE_ROLES):
+            return
+        self.emitDataChanged()
+
+    def on_component_edited(self, component: NodeComponent) -> None:
+        """React to the value or the input links of a component changing.
+
+        Runs for edits from the UI, undo and redo alike, and when execution
+        updates the value. Override in subclasses to
+        evaluate the node again.
+
+        Args:
+            component (NodeComponent): component that changed.
+        """
 
     @property
     def name(self) -> str:

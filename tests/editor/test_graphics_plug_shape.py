@@ -142,7 +142,7 @@ def test_components_describe_their_plug(qapp):
 
     assert flow.get_plug_shape() is GraphicsPlugShape.PENTAGON
     assert flow.get_plug_color() == FLOW
-    assert value.get_plug_shape() is GraphicsPlugShape.CIRCLE
+    assert value.get_plug_shape() is GraphicsPlugShape.SQUARE_MATRIX
     assert value.get_plug_color() == DEFAULT  # no value yet, so no type to go by
     assert isinstance(value.get_plug_color(), QtGui.QColor)
 

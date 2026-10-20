@@ -59,9 +59,15 @@ class BranchNode(Node):
         self.components_model.add_component(self.flow_out_true)
         self.components_model.add_component(self.flow_out_false)
         self.components_model.add_component(self.value_cpnt)
+        self.evaluate()
 
     def evaluate(self):
         """Activate the flow output matching the pulled value."""
         pulled_value = bool(self.value_cpnt.pull_value())
         self.flow_out_true.is_active = pulled_value
         self.flow_out_false.is_active = not pulled_value
+
+    def on_component_edited(self, component):
+        """Evaluate again when the condition is edited or linked."""
+        if component is self.value_cpnt:
+            self.evaluate()
