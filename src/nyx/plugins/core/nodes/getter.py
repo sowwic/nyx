@@ -94,13 +94,14 @@ class GetterNode(Node):
             dependent=self.value_cpnt, on=self.in_component_path
         )
 
-    def get_pulled_plug_color(self):
+    def get_pulled_plug_color(self) -> QtGui.QColor:
+        """Get the plug color of the component the node points at.
+
+        Returns:
+            QtGui.QColor: color of the pointed at component, the default one if the
+                component doesn't exist.
+        """
         try:
-            value_type = type(self.get_pull_value_from_path())
-        except Exception:
-            value_type = type(object)
-        return QtGui.QColor(
-            self.value_cpnt.VALUE_TYPE_COLOR_MAP.get(
-                value_type, NodeComponent.DEFAULT_PLUG_COLOR
-            )
-        )
+            return self.in_component_path.resolve_component().get_plug_color()
+        except exceptions.StageObjectQueryError:
+            return QtGui.QColor(NodeComponent.DEFAULT_PLUG_COLOR)

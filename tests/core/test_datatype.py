@@ -46,3 +46,34 @@ def test_wildcards_accept_everything():
 def test_concrete_datatypes_accept_only_themselves():
     assert get(CoreDatatypes.BOOL).accepts(get(CoreDatatypes.BOOL))
     assert not get(CoreDatatypes.BOOL).accepts(get(CoreDatatypes.STRING))
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (True, CoreDatatypes.BOOL),
+        (1, CoreDatatypes.INT),
+        (1.5, CoreDatatypes.FLOAT),
+        ("text", CoreDatatypes.STRING),
+        ([1], CoreDatatypes.OBJECT),
+    ],
+)
+def test_infer_datatype_uses_the_exact_python_type(value, expected):
+    assert NYX_REGISTRY.infer_datatype(value).type_id == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (CoreDatatypes.BOOL, CoreDatatypes.BOOL),  # a registered datatype id
+        (float, CoreDatatypes.FLOAT),  # a python type
+        (3, CoreDatatypes.INT),  # any other value gives its own type
+        (dict, CoreDatatypes.OBJECT),
+    ],
+)
+def test_type_datatype_gets_the_type_from_any_input(value, expected):
+    assert get(CoreDatatypes.TYPE).cast(value) == expected
+
+
+def test_type_datatype_accepts_a_datatype():
+    assert get(CoreDatatypes.TYPE).cast(get(CoreDatatypes.INT)) == CoreDatatypes.INT

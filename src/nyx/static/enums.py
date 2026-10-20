@@ -34,6 +34,7 @@ class CoreDatatypes(enum.StrEnum):
     INT = "core:int"
     FLOAT = "core:float"
     PATH = "core:path"
+    FLOW = "core:flow"
 
 
 class RestoreUuidOption(enum.IntEnum):
@@ -132,9 +133,3 @@ class GraphicsPlugShape(enum.IntEnum):
     PENTAGON = enum.auto()
     SQUARE = enum.auto()
     SQUARE_MATRIX = enum.auto()
-
-
-class DatatypeColor(enum.StrEnum):
-    BOOL = "#FF0000"
-    STRING = "#FFA637"
-    FLOW = "#FFFFFF"

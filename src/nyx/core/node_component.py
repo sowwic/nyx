@@ -685,7 +685,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             QtGui.QColor: plug color.
         """
-        return QtGui.QColor(self.DEFAULT_PLUG_COLOR)
+        return QtGui.QColor(self.datatype.color)
 
     @classmethod
     def get_plug_shape(cls) -> GraphicsPlugShape:

@@ -7,6 +7,7 @@ from nyx.api.v1 import (
     commands,
     exceptions,
     CoreNodes,
+    CoreNodeComponents,
     CoreDatatypes,
 )
 
@@ -125,3 +126,17 @@ def test_linking_wildcard_to_concrete_datatype_is_allowed():
     target.set_datatype(CoreDatatypes.BOOL)
 
     assert stage.link_components(source, target) is not None
+
+
+def test_flow_and_comment_have_their_own_datatypes():
+    stage = Stage()
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.ACTION)
+    stage.push_command(command)
+    node = command.result_node
+    add = commands.AddNodeComponentCommand(
+        node=node, type_id=CoreNodeComponents.COMMENT, name="note"
+    )
+    stage.push_command(add)
+
+    assert node["flow"].datatype_id == CoreDatatypes.FLOW
+    assert add.result_component.datatype_id == CoreDatatypes.STRING

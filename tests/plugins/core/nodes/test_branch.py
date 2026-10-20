@@ -51,3 +51,16 @@ def test_execute_activates_correct_flow_out():
     assert branch_node["flow"].is_active is True
     assert branch_node["true"].is_active is False
     assert branch_node["false"].is_active is True
+
+
+def test_condition_is_hinted_as_bool():
+    from nyx.api.v1 import CoreDatatypes
+
+    stage = Stage()
+    command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.BRANCH)
+    stage.push_command(command)
+    condition = command.result_node["condition"]
+
+    condition.push_value("0")
+    assert condition.datatype_id == CoreDatatypes.BOOL
+    assert condition.cached_value is False

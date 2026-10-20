@@ -4,7 +4,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from nyx.api.v1 import (
     CoreNodeComponents,
     CoreNodes,
-    DatatypeColor,
     GraphicsPlugShape,
     NodeComponent,
     commands,
@@ -20,7 +19,7 @@ from nyx.editor.graphics.graphics_plug_shape import (
 
 SAMPLE = QtGui.QColor("#FFA637")  # any color, the shapes draw what they are given
 WHITE = QtGui.QColor("#ffffff")
-FLOW = QtGui.QColor(DatatypeColor.FLOW)
+FLOW = QtGui.QColor("#FFFFFF")
 DEFAULT = QtGui.QColor(NodeComponent.DEFAULT_PLUG_COLOR)
 CENTER = QtCore.QPointF(20.0, 15.0)
 
@@ -161,10 +160,12 @@ def test_value_plug_color_follows_the_type_of_the_value(qapp):
     value = add_command.result_component
 
     value.push_value(True, evaluate=False)
-    assert value.get_plug_color() == QtGui.QColor(DatatypeColor.BOOL)
+    assert value.get_plug_color() == QtGui.QColor("#FF0000")
     value.push_value("text", evaluate=False)
-    assert value.get_plug_color() == QtGui.QColor(DatatypeColor.STRING)
-    value.push_value(12, evaluate=False)  # a type without a color of its own
+    assert value.get_plug_color() == QtGui.QColor("#FFA637")
+    value.push_value(12, evaluate=False)
+    assert value.get_plug_color() == QtGui.QColor("#38D6A4")
+    value.push_value([1], evaluate=False)  # a type without a datatype of its own
     assert value.get_plug_color() == DEFAULT
 
 
@@ -178,9 +179,7 @@ def test_comment_plug_color(qapp):
         node=node_command.result_node, type_id=CoreNodeComponents.COMMENT, name="note"
     )
     stage.push_command(add_command)
-    assert add_command.result_component.get_plug_color() == QtGui.QColor(
-        DatatypeColor.STRING
-    )
+    assert add_command.result_component.get_plug_color() == QtGui.QColor("#FFA637")
 
 
 # ======== Plug ========= #

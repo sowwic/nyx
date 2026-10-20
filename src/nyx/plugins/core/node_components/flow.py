@@ -1,5 +1,4 @@
 import pathlib
-from PySide6 import QtGui
 
 from nyx.api.v1 import (
     Node,
@@ -7,7 +6,7 @@ from nyx.api.v1 import (
     CoreNodeComponents,
     NodeComponentFlag,
     GraphicsPlugShape,
-    DatatypeColor,
+    CoreDatatypes,
 )
 
 
@@ -52,9 +51,10 @@ class FlowComponent(NodeComponent):
         """NodeComponentFlag: the single output link is a rule of the type."""
         return NodeComponentFlag.SINGLE_OUTPUT
 
-    def get_plug_color(self) -> QtGui.QColor:
-        """QtGui.QColor: flow plugs are white."""
-        return QtGui.QColor(DatatypeColor.FLOW)
+    @classmethod
+    def get_type_default_datatype(cls) -> str:
+        """str: flow datatype, only compatible with flow and wildcards."""
+        return CoreDatatypes.FLOW
 
     @classmethod
     def get_plug_shape(cls) -> GraphicsPlugShape:

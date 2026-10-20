@@ -1,10 +1,10 @@
 import pytest
 from PySide6 import QtGui
 
-from nyx.api.v1 import CoreNodes, DatatypeColor, NodeComponent, commands
+from nyx.api.v1 import CoreNodes, NodeComponent, commands
 from nyx.editor.graphics.graphics_link import GraphicsLink
 
-FLOW = QtGui.QColor(DatatypeColor.FLOW)
+FLOW = QtGui.QColor("#FFFFFF")
 DEFAULT = QtGui.QColor(NodeComponent.DEFAULT_PLUG_COLOR)
 
 
@@ -82,7 +82,7 @@ def test_value_link_color_follows_the_type_of_the_source_value(value_link):
     link(stage, text, setter_value)  # replaces the link into the setter's value
 
     colors = {link_.pen().color().name() for link_ in editor.gr_stage.gr_links()}
-    assert colors == {QtGui.QColor(DatatypeColor.STRING).name()}
+    assert colors == {QtGui.QColor("#FFA637").name()}
 
 
 def test_link_width_is_scaled_by_its_source(flow_link):

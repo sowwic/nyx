@@ -17,6 +17,8 @@ class Datatype:
         display_name: name shown in the UI
         color: plug color as a hex string
         caster: converts an evaluated value, raises on failure
+        python_type: python type of values of this datatype, used to infer the
+            datatype of a value
         is_wildcard: compatible with every datatype
     """
 
@@ -24,6 +26,7 @@ class Datatype:
     display_name: str
     color: str
     caster: typing.Callable[[typing.Any], typing.Any] = lambda value: value
+    python_type: type | None = None
     is_wildcard: bool = False
 
     def cast(self, value: typing.Any) -> typing.Any:
@@ -44,6 +47,17 @@ class Datatype:
             raise DatatypeCastError(
                 f"Can't cast {value!r} to {self.display_name}: {err}"
             ) from err
+
+    def matches(self, value: typing.Any) -> bool:
+        """Check whether a value is exactly of the python type of this datatype.
+
+        Args:
+            value (typing.Any): value to check.
+
+        Returns:
+            bool: value matches. Exact types are compared so `bool` isn't an `int`.
+        """
+        return self.python_type is not None and type(value) is self.python_type
 
     def accepts(self, other: Datatype) -> bool:
         """Check whether a value of another datatype can be given to this one.

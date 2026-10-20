@@ -258,6 +258,23 @@ class NyxRegistry:
             return OBJECT_DATATYPE
         return datatype
 
+    def infer_datatype(self, value: typing.Any) -> Datatype:
+        """Get the datatype of a value.
+
+        Args:
+            value (typing.Any): value to find the datatype of.
+
+        Returns:
+            Datatype: first registered datatype matching the value,
+                `OBJECT_DATATYPE` if there is none.
+        """
+        from ..datatype import OBJECT_DATATYPE
+
+        for datatype in self.datatypes.values():
+            if datatype.matches(value):
+                return datatype
+        return OBJECT_DATATYPE
+
     def iter_datatypes(self) -> Iterator[Datatype]:
         """Iterate registered datatypes.
 

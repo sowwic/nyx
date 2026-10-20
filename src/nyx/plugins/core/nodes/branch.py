@@ -1,4 +1,4 @@
-from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents
+from nyx.api.v1 import Node, CoreNodes, CoreNodeComponents, CoreDatatypes
 
 
 class BranchNode(Node):
@@ -52,6 +52,7 @@ class BranchNode(Node):
         self.value_cpnt.name = "condition"
         self.value_cpnt.accepts_input = True
         self.value_cpnt.is_editable = True
+        self.value_cpnt.set_datatype(CoreDatatypes.BOOL)
         self.value_cpnt.push_value(True)
 
         self.components_model.add_component(self.flow_in)

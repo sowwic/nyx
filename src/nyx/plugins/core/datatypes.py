@@ -1,6 +1,30 @@
 import pathlib
+import typing
 
-from nyx.api.v1 import CoreDatatypes, Datatype, DatatypeColor, OBJECT_DATATYPE
+from nyx.api.v1 import NYX_REGISTRY, CoreDatatypes, Datatype, OBJECT_DATATYPE
+
+
+def cast_to_type_id(value: typing.Any) -> str:
+    """Get the id of the datatype a value stands for.
+
+    Args:
+        value (typing.Any): a registered datatype id, a datatype, a python type, or
+            any value to get the datatype of.
+
+    Returns:
+        str: datatype type id.
+    """
+    if isinstance(value, Datatype):
+        return value.type_id
+    if isinstance(value, str) and NYX_REGISTRY.get_datatype(value):
+        return value
+    if isinstance(value, type):
+        for datatype in NYX_REGISTRY.iter_datatypes():
+            if datatype.python_type is value:
+                return datatype.type_id
+        return OBJECT_DATATYPE.type_id
+    return NYX_REGISTRY.infer_datatype(value).type_id
+
 
 CORE_DATATYPES: tuple[Datatype, ...] = (
     OBJECT_DATATYPE,
@@ -8,36 +32,47 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         type_id=CoreDatatypes.TYPE,
         display_name="Type",
         color="#B04BFF",
+        caster=cast_to_type_id,
         is_wildcard=True,
     ),
     Datatype(
         type_id=CoreDatatypes.BOOL,
         display_name="Boolean",
-        color=DatatypeColor.BOOL,
+        color="#FF0000",
         caster=bool,
+        python_type=bool,
     ),
     Datatype(
         type_id=CoreDatatypes.STRING,
         display_name="String",
-        color=DatatypeColor.STRING,
+        color="#FFA637",
         caster=str,
+        python_type=str,
     ),
     Datatype(
         type_id=CoreDatatypes.INT,
         display_name="Integer",
         color="#38D6A4",
         caster=int,
+        python_type=int,
     ),
     Datatype(
         type_id=CoreDatatypes.FLOAT,
         display_name="Float",
         color="#9BE04B",
         caster=float,
+        python_type=float,
     ),
     Datatype(
         type_id=CoreDatatypes.PATH,
         display_name="Path",
         color="#4BB8FF",
         caster=pathlib.PurePosixPath,
+        python_type=pathlib.PurePosixPath,
+    ),
+    Datatype(
+        type_id=CoreDatatypes.FLOW,
+        display_name="Flow",
+        color="#FFFFFF",
     ),
 )
