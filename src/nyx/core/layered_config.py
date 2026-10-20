@@ -102,9 +102,12 @@ class NyxEditorBehaviourConfigValues(ConfigValues):
 
     Attributes:
         new_stage_on_launch: create an empty stage at startup
+        highlight_flow_chain: animate the flow links that are part of the execution
+            chain of the drawn scope
     """
 
     new_stage_on_launch: bool = Field(default=False)
+    highlight_flow_chain: bool = Field(default=True)
 
 
 class NyxEditorSessionConfigValues(ConfigValues):

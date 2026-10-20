@@ -19,11 +19,21 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     The link is drawn like the component it comes from: its color, and a width that
     the component scales. A link between plugs of different colors fades from the
     color of the source to the one of the target.
+
+    A link on the execution chain can pulse: a dot with a short tail travels from the
+    source to the target. The link only draws what it is told to, `LinkPulseAnimator`
+    decides when and how far the pulse is.
     """
 
     WIDTH = 2.0
     PREVIEW_OPACITY = 0.8
     MIN_TANGENT = 40.0
+
+    PULSE_COLOR = QtGui.QColor("#4BE3FF")
+    PULSE_SPEED = 160.0  # scene units per second
+    PULSE_RADIUS = 3.5
+    PULSE_TAIL_SAMPLES = 6
+    PULSE_TAIL_STEP = 6.0
 
     def __init__(
         self,
@@ -44,6 +54,9 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         self._uuid = link_uuid
         self._floating_pos = QtCore.QPointF()
         self._attached = False
+        self._pulsing = False
+        self._pulse_offset: float | None = None
+        self._path_length = 0.0
 
         # Links are drawn behind nodes, previews above everything.
         self.setZValue(1 if self.is_preview else -1)
@@ -80,6 +93,94 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         it is dragged from.
         """
         return self._source_plug if self._source_plug is not None else self._target_plug
+
+    @property
+    def is_pulsing(self) -> bool:
+        """bool: the link is part of the execution chain and can show a pulse."""
+        return self._pulsing
+
+    @property
+    def pulse_offset(self) -> float | None:
+        """float | None: distance of the pulse along the link, None if not shown."""
+        return self._pulse_offset
+
+    def set_pulsing(self, state: bool):
+        """Mark the link as pulsing or not.
+
+        Args:
+            state (bool): the link is part of the execution chain.
+        """
+        if state == self._pulsing:
+            return
+        # The pulse is bigger than the stroke, so the bounds change with it.
+        self.prepareGeometryChange()
+        self._pulsing = state
+        if not state:
+            self._pulse_offset = None
+        self.update()
+
+    def set_pulse_offset(self, offset: float | None):
+        """Move the pulse.
+
+        Args:
+            offset (float | None): distance from the source along the curve, wrapped
+                around the length of the link. None hides the pulse.
+        """
+        if not self._pulsing:
+            return
+        self._pulse_offset = offset
+        self.update()
+
+    def boundingRect(self) -> QtCore.QRectF:
+        """QtCore.QRectF: bounds of the stroke, with room for the pulse."""
+        rect = super().boundingRect()
+        if not self._pulsing:
+            return rect
+        margin = self.PULSE_RADIUS
+        return rect.adjusted(-margin, -margin, margin, margin)
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget | None = None,
+    ) -> None:
+        """Paint the link, then the pulse on top of it.
+
+        Args:
+            painter (QtGui.QPainter): painter.
+            option (QtWidgets.QStyleOptionGraphicsItem): style option.
+            widget (QtWidgets.QWidget | None): widget being painted on.
+        """
+        super().paint(painter, option, widget)
+        self._paint_pulse(painter)
+
+    def _paint_pulse(self, painter: QtGui.QPainter):
+        """Draw the pulse: a dot at the offset followed by a fading tail.
+
+        Args:
+            painter (QtGui.QPainter): painter.
+        """
+        if self._pulse_offset is None or self.is_preview or self._path_length <= 0:
+            return
+
+        path = self.path()
+        head = self._pulse_offset % self._path_length
+        color = QtGui.QColor(self.PULSE_COLOR)
+        painter.save()
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
+        for sample in range(self.PULSE_TAIL_SAMPLES):
+            distance = head - sample * self.PULSE_TAIL_STEP
+            if distance < 0:
+                break
+            fade = sample / self.PULSE_TAIL_SAMPLES
+            color.setAlphaF(1.0 - fade)
+            painter.setBrush(color)
+            radius = self.PULSE_RADIUS * (1.0 - 0.5 * fade)
+            point = path.pointAtPercent(path.percentAtLength(distance))
+            painter.drawEllipse(point, radius, radius)
+        painter.restore()
 
     def update_style(self):
         """Take color and width from the plug the link comes from.
@@ -162,5 +263,6 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
             end,
         )
         self.setPath(path)
+        self._path_length = path.length()
         # The gradient runs between the anchors, so it follows them.
         self.update_style()
