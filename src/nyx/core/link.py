@@ -93,6 +93,11 @@ class Link(StageObject):
         return f"{self.source_path} -> {self.target_path}"
 
     @property
+    def is_datatype_compatible(self) -> bool:
+        """bool: the target accepts the datatype of the source."""
+        return self.target_component.accepts_datatype_of(self.source_component)
+
+    @property
     def is_valid(self) -> bool:
         """bool: both ends of the link exist in the stage."""
         try:

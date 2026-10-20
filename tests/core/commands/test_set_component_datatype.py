@@ -54,3 +54,101 @@ def test_built_in_component_datatype_is_locked():
             )
         )
     assert condition.datatype_id == CoreDatatypes.BOOL
+
+
+def make_linked_values(stage: Stage, datatype=CoreDatatypes.BOOL):
+    source = make_user_value(stage)
+    target = make_user_value(stage)
+    source.produces_output = True
+    target.accepts_input = True
+    source.set_datatype(datatype)
+    target.set_datatype(datatype)
+    link_command = commands.LinkNodeComponentsCommand(
+        stage=stage, source=source, target=target
+    )
+    stage.push_command(link_command)
+    return source, target, link_command
+
+
+def change_datatype(stage, component, datatype_id):
+    command = commands.SetNodeComponentDatatypeCommand(
+        stage=stage, node_component=component, datatype_id=datatype_id
+    )
+    stage.push_command(command)
+    return command
+
+
+def test_incompatible_source_datatype_unlinks_components():
+    stage = Stage()
+    source, target, link_command = make_linked_values(stage)
+
+    command = change_datatype(stage, source, CoreDatatypes.STRING)
+
+    assert not source.links
+    assert not target.links
+    assert command.removed_link_uuids == [link_command.result_link_uuid]
+
+
+def test_incompatible_target_datatype_unlinks_components():
+    stage = Stage()
+    source, target, _ = make_linked_values(stage)
+
+    change_datatype(stage, target, CoreDatatypes.STRING)
+
+    assert not source.links
+    assert not target.links
+
+
+def test_compatible_datatype_change_keeps_the_link():
+    stage = Stage()
+    source, target, _ = make_linked_values(stage)
+
+    command = change_datatype(stage, source, CoreDatatypes.OBJECT)
+
+    assert len(source.links) == 1
+    assert command.removed_link_uuids == []
+
+
+def test_undo_restores_datatype_and_link_with_the_same_uuid():
+    stage = Stage()
+    source, target, link_command = make_linked_values(stage)
+    link_uuid = link_command.result_link_uuid
+
+    change_datatype(stage, source, CoreDatatypes.STRING)
+    stage.undo_stack.undo()
+
+    assert source.datatype_id == CoreDatatypes.BOOL
+    assert [link.uuid for link in source.links] == [link_uuid]
+
+    stage.undo_stack.redo()
+    assert source.datatype_id == CoreDatatypes.STRING
+    assert not source.links
+
+
+def test_links_of_components_inheriting_the_datatype_are_checked_too():
+    stage = Stage()
+    source = make_user_value(stage)
+    source.produces_output = True
+    source.set_datatype(CoreDatatypes.BOOL)
+    setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
+    stage.push_command(setter_command)
+    middle = setter_command.result_node["value"]
+    middle.produces_output = True
+    end = make_user_value(stage)
+    end.accepts_input = True
+    end.set_datatype(CoreDatatypes.BOOL)
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(stage=stage, source=source, target=middle)
+    )
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(stage=stage, source=middle, target=end)
+    )
+
+    change_datatype(stage, source, CoreDatatypes.STRING)
+
+    assert middle.datatype.type_id == CoreDatatypes.STRING
+    assert len(source.links) == 1  # still compatible with the setter value
+    assert not end.links  # the setter value is now a string, the end is a bool
+
+    stage.undo_stack.undo()
+    assert len(end.links) == 1

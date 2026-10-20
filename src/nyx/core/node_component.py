@@ -281,6 +281,17 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             return True
         return self.is_built_in and not self.inherits_datatype
 
+    def accepts_datatype_of(self, source: NodeComponent) -> bool:
+        """Check whether the datatype of another component is compatible with this one.
+
+        Args:
+            source (NodeComponent): component providing the value.
+
+        Returns:
+            bool: this component accepts the value of the source.
+        """
+        return self.datatype.accepts(source.datatype)
+
     def get_datatype_source(self) -> NodeComponent | None:
         """Get the component the datatype is taken from, like the value is pulled.
 

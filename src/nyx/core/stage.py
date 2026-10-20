@@ -366,7 +366,7 @@ class Stage(QtGui.QStandardItemModel):
         if not target_component.accepts_input:
             raise NodeComponentLinkError(f"Not writable component: {target_component}")
 
-        if not target_component.datatype.accepts(source_component.datatype):
+        if not target_component.accepts_datatype_of(source_component):
             raise NodeComponentLinkError(
                 f"Incompatible datatypes: {source_component.datatype.display_name} "
                 f"to {target_component.datatype.display_name}"
