@@ -4,7 +4,6 @@ from uuid import UUID
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_plug_shape import PlugShape, plug_shape_for
 from nyx.editor.utils.common import (
     are_hover_diagnostics_enabled,
@@ -309,30 +308,13 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
             return
         super().mouseReleaseEvent(event)
 
-    def _paint_link_stub(
-        self, painter: QtGui.QPainter, center: QtCore.QPointF, side_x: float
-    ):
-        """Draw the piece of a link between a socket and the side of the node.
-
-        Links run behind the node, so without this the socket would look detached.
-
-        Args:
-            painter (QtGui.QPainter): painter.
-            center (QtCore.QPointF): center of the socket.
-            side_x (float): x of the side of the node the link leaves through.
-        """
-        pen = QtGui.QPen(self._color, GraphicsLink.WIDTH * self._link_width_multiplier)
-        pen.setCapStyle(QtCore.Qt.PenCapStyle.FlatCap)
-        painter.setPen(pen)
-        painter.drawLine(center, QtCore.QPointF(side_x, center.y()))
-
     def paint(
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget | None = None,
     ) -> None:
-        """Draw sockets, the stubs of their links and the component name.
+        """Draw sockets and the component name.
 
         Args:
             painter (QtGui.QPainter): painter.
@@ -342,24 +324,15 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         center_y = self.ROW_HEIGHT / 2
         # (center, is linked) per visible socket
-        # (center, is linked, x of the side of the node it is closest to)
         sockets = []
         if self._writable:
-            sockets.append(
-                (QtCore.QPointF(self._input_x, center_y), self._input_linked, 0.0)
-            )
+            sockets.append((QtCore.QPointF(self._input_x, center_y), self._input_linked))
         if self._readable:
             sockets.append(
-                (
-                    QtCore.QPointF(self._output_x, center_y),
-                    self._output_linked,
-                    self._width,
-                )
+                (QtCore.QPointF(self._output_x, center_y), self._output_linked)
             )
 
-        for center, linked, side_x in sockets:
-            if linked:
-                self._paint_link_stub(painter, center, side_x)
+        for center, linked in sockets:
             self._shape.paint(painter, center, self._color, linked)
 
         painter.setFont(self.LABEL_FONT)

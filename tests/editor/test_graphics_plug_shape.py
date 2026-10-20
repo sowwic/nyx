@@ -377,23 +377,3 @@ def test_socket_is_grabbed_at_its_inset_position_only(plugs):
 
     assert flow_plug.socket_at(inset_right) is GraphicsPlug.Socket.OUTPUT
     assert flow_plug.socket_at(on_edge) is None  # 10 units away from the socket
-
-
-def test_linked_socket_gets_a_stub_to_the_side_of_the_node(stage_editor, create_node):
-    stage = stage_editor.stage
-    start = create_node(stage, "start", type_id=CoreNodes.FLOW_START)
-    action = create_node(stage, "action", type_id=CoreNodes.ACTION)
-    stage.push_command(
-        commands.LinkNodeComponentsCommand(
-            stage=stage, source=start["flow"], target=action["flow"]
-        )
-    )
-    plug = stage_editor.gr_stage.get_gr_node(start).get_plug(start["flow"])
-
-    image, _ = paint_plug(plug)
-    left = -plug.boundingRect().left()
-    stub_x = int(left + plug.gr_node.width - 3)  # between the socket and the side
-    stub = image.pixelColor(stub_x, int(plug.ROW_HEIGHT / 2))
-
-    assert stub.alpha() > 0
-    assert (stub.red(), stub.green(), stub.blue()) == (255, 255, 255)
