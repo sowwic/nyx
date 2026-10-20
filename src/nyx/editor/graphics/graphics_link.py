@@ -17,7 +17,8 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     complete links are (see `attach`).
 
     The link is drawn like the component it comes from: its color, and a width that
-    the component scales.
+    the component scales. A link between plugs of different colors fades from the
+    color of the source to the one of the target.
     """
 
     WIDTH = 2.0
@@ -81,7 +82,10 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         return self._source_plug if self._source_plug is not None else self._target_plug
 
     def update_style(self):
-        """Take color and width from the plug the link comes from."""
+        """Take color and width from the plug the link comes from.
+
+        A complete link whose plugs differ in color is stroked with a gradient.
+        """
         plug = self.style_plug
         color = (
             plug.color
@@ -91,9 +95,29 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         width = self.WIDTH * (plug.link_width_multiplier if plug is not None else 1.0)
         if self.is_preview:
             color.setAlphaF(color.alphaF() * self.PREVIEW_OPACITY)
-        pen = QtGui.QPen(color, width)
+        pen = QtGui.QPen(self._build_stroke_brush(color), width)
         pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
         self.setPen(pen)
+
+    def _build_stroke_brush(self, color: QtGui.QColor) -> QtGui.QBrush:
+        """Build the brush the link is stroked with.
+
+        Args:
+            color (QtGui.QColor): color of the plug the link comes from.
+
+        Returns:
+            QtGui.QBrush: solid brush, or a gradient from the source to the target
+                color for a complete link between plugs of different colors.
+        """
+        if self.is_preview or self._target_plug.color == color:
+            return QtGui.QBrush(color)
+
+        gradient = QtGui.QLinearGradient(
+            self._source_plug.output_anchor(), self._target_plug.input_anchor()
+        )
+        gradient.setColorAt(0.0, color)
+        gradient.setColorAt(1.0, self._target_plug.color)
+        return QtGui.QBrush(gradient)
 
     def set_floating_pos(self, scene_pos: QtCore.QPointF):
         """Move the open end of a preview.
@@ -138,3 +162,5 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
             end,
         )
         self.setPath(path)
+        # The gradient runs between the anchors, so it follows them.
+        self.update_style()
