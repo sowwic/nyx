@@ -10,6 +10,7 @@ from uuid import UUID
 from .stage_object import StageObject
 from .link import Link
 from .datatype import Datatype
+from .exceptions import DatatypeCastError
 from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
@@ -560,10 +561,24 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         Returns:
             typing.Any: the default value of the component type, or the default of
-                the datatype if the type has none.
+                the datatype if the type has none or its one can't be cast to it.
         """
         value = self.get_type_default_value()
-        return self.datatype.create_default() if value is None else value
+        datatype = self.datatype
+        if value is None:
+            return datatype.create_default()
+        try:
+            datatype.cast(value)
+        except DatatypeCastError as err:
+            LOGGER.warning(
+                "Default value of %s is not valid for datatype %s, using the "
+                "default of the datatype: %s",
+                self.get_type_id(),
+                datatype.display_name,
+                err,
+            )
+            return datatype.create_default()
+        return value
 
     def add_link(self, link_uuid: UUID | str):
         """Register a link as connected to this component.

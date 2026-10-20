@@ -175,3 +175,40 @@ def test_flow_and_comment_have_their_own_datatypes():
 
     assert node["flow"].datatype_id == CoreDatatypes.FLOW
     assert add.result_component.datatype_id == CoreDatatypes.STRING
+
+
+class BadDefaultComponent(NodeComponent):
+    @classmethod
+    def get_type_id(cls) -> str:
+        return "test:bad_default"
+
+    @classmethod
+    def get_type_default_datatype(cls) -> str:
+        return CoreDatatypes.INT
+
+    @classmethod
+    def get_type_default_value(cls):
+        return "not a number"
+
+
+class GoodDefaultComponent(BadDefaultComponent):
+    @classmethod
+    def get_type_default_value(cls):
+        return 7
+
+
+def test_invalid_type_default_falls_back_to_the_datatype_default(caplog):
+    with caplog.at_level("WARNING"):
+        component = BadDefaultComponent()
+
+    assert component.cached_value == 0
+    assert component.is_valid
+    assert "not valid for datatype Integer" in caplog.text
+
+
+def test_valid_type_default_is_used(caplog):
+    with caplog.at_level("WARNING"):
+        component = GoodDefaultComponent()
+
+    assert component.cached_value == 7
+    assert "not valid for datatype" not in caplog.text
