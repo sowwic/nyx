@@ -109,3 +109,32 @@ def test_module_uses_node_ref(
     assert node[test_value_cpnt_name].pull_value() != test_expected_value
     stage.crawler.start(start_node=node)
     assert node[test_value_cpnt_name].pull_value() == test_expected_value
+
+
+def make_script_component():
+    stage = Stage()
+    node_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.ACTION)
+    stage.push_command(node_command)
+    add_command = commands.AddNodeComponentCommand(
+        node=node_command.result_node, type_id=CoreNodeComponents.SCRIPT, name="s"
+    )
+    stage.push_command(add_command)
+    return add_command.result_component
+
+
+def test_script_value_is_a_string_with_an_empty_default():
+    from nyx.api.v1 import CoreDatatypes
+
+    script = make_script_component()
+
+    assert script.datatype_id == CoreDatatypes.STRING
+    assert script.cached_value == ""
+    assert script.is_valid
+
+
+def test_script_path_object_is_cast_to_a_string(make_script: typing.Callable):
+    script = make_script_component()
+    script.push_value(make_script("pass"))  # a pathlib.Path
+
+    assert isinstance(script.cached_value, str)
+    script.execute()  # runs the file
