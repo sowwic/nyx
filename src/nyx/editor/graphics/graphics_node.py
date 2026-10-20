@@ -21,7 +21,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     """
 
     MIN_WIDTH = 100
-    MIN_HEIGHT = 100
+    MIN_PLUG_ROWS = 1  # a node is tall enough for this many plugs, even with fewer
     TITLE_COLOR = QtGui.QColor("#FF313131")
     BACKGROUND_COLOR = QtGui.QColor("#E3212121")
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
@@ -58,7 +58,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     def _init_sizes(self):
         """Initialize size and padding values."""
         self.width = self.MIN_WIDTH
-        self.height = self.MIN_HEIGHT
+        self.height = 0.0  # set by update_layout
         self.edge_roundness = 10.0
         self.title_horizontal_padding = 4.0
         self.plugs_top_padding = 4.0
@@ -175,10 +175,10 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             plug.set_width(self.width)
             plug.setPos(0.0, plugs_top + row * GraphicsPlug.ROW_HEIGHT)
             plug.update_links()
-        plugs_bottom = (
-            plugs_top + len(self._plugs) * GraphicsPlug.ROW_HEIGHT + self.lower_padding
+        plug_rows = max(len(self._plugs), self.MIN_PLUG_ROWS)
+        self.height = (
+            plugs_top + plug_rows * GraphicsPlug.ROW_HEIGHT + self.lower_padding
         )
-        self.height = max(self.MIN_HEIGHT, plugs_bottom)
         self._rebuild_paths()
 
     def _rebuild_paths(self):
