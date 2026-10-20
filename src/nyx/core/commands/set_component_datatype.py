@@ -2,6 +2,7 @@ import logging
 
 from PySide6 import QtGui
 
+from nyx.core.exceptions import NyxCommandValidationError
 from ._base_nyx_command import NyxCommand
 from ..node_component import NodeComponent, NodeComponentLike
 from ..stage import Stage
@@ -38,6 +39,13 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
     def component(self) -> NodeComponent:
         """NodeComponent: component the command operates on."""
         return self.stage.get_object(self.component_uuid, expected_type=NodeComponent)
+
+    def validate(self) -> None:
+        """Check the datatype of the component can be changed."""
+        if self.component.is_datatype_locked:
+            raise NyxCommandValidationError(
+                f"Datatype of {self.component.path} is locked"
+            )
 
     def redo(self) -> None:
         """Apply the new datatype."""

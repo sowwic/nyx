@@ -253,6 +253,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """Datatype: datatype hint, the object datatype if unset or unknown."""
         return NYX_REGISTRY.resolve_datatype(self.datatype_id)
 
+    @property
+    def is_datatype_locked(self) -> bool:
+        """bool: the datatype hint can't be changed by the user, true for built-ins."""
+        return self.is_built_in
+
     def set_datatype(self, type_id: str) -> None:
         """Set the datatype hint and re-evaluate the value against it.
 

@@ -518,3 +518,15 @@ def test_picking_a_datatype_goes_through_the_controller(make_editor):
         QtCore.Q_ARG(int, 1),
     )
     assert editor.controller.datatype_calls == [(3, "core:bool")]
+
+
+def test_datatype_selector_is_disabled_for_built_in_components(make_editor):
+    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isBuiltIn=True)
+    selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
+    assert selector.property("enabled") is False
+
+
+def test_datatype_selector_is_enabled_for_other_components(make_editor):
+    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isBuiltIn=False)
+    selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
+    assert selector.property("enabled") is True
