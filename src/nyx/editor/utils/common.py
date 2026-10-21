@@ -1,12 +1,13 @@
+import re
 import typing
 import contextlib
 import html
 
-from PySide6 import QtCore, QtWidgets, QtQml
+from PySide6 import QtCore, QtGui, QtWidgets, QtQml
 
 from ...core.datatypes.datatype import value_to_class_name
 from ...core.layered_config import NyxConfig
-from ...static.enums import CoreDatatypes
+from ...static.enums import CoreDatatypes, NoteFormat
 from ...static.vars import DEBUG
 
 if typing.TYPE_CHECKING:
@@ -137,17 +138,40 @@ def build_role_tooltip_html(
     return "<table>" + "".join(table_row_html_fragments) + "</table>"
 
 
+def note_to_html(text: str, note_format: NoteFormat | str) -> str:
+    """Convert a note to HTML that Qt rich text, like a tooltip, can show.
+
+    Args:
+        text (str): the note.
+        note_format (NoteFormat | str): how the note is written.
+
+    Returns:
+        str: HTML. Plain text is escaped, Markdown is converted, HTML is used as it is.
+    """
+    note_format = NoteFormat(note_format)
+    if note_format is NoteFormat.HTML:
+        return text
+    if note_format is NoteFormat.MARKDOWN:
+        document = QtGui.QTextDocument()
+        document.setMarkdown(text)
+        # Only what is in the body: the rest is the page around it
+        match = re.search(r"<body[^>]*>(.*)</body>", document.toHtml(), re.DOTALL)
+        return match.group(1).strip() if match else html.escape(text)
+    return html.escape(text).replace("\n", "<br>")
+
+
 def build_component_tooltip_html(
     component: NodeComponent, maximum_value_length: int = 200
 ) -> str:
-    """Build the tooltip of a component: a description section, then a value section.
+    """Build the tooltip of a component: description, note and value sections.
 
     Args:
         component (NodeComponent): component to describe.
         maximum_value_length (int): values are truncated to this length.
 
     Returns:
-        str: HTML. Components that hold no value, like a flow, only get the description.
+        str: HTML. A section is left out when there is nothing for it: no note, or no
+            value, like for a flow.
     """
 
     def format_value(value: typing.Any) -> str:
@@ -164,6 +188,12 @@ def build_component_tooltip_html(
         heading("Description"),
         f"<tr><td>{html.escape(component.description)}</td></tr>",
     ]
+    if component.note.strip():
+        rows += [
+            "<tr><td height='6'></td></tr>",
+            heading("Note"),
+            f"<tr><td>{note_to_html(component.note, component.note_format)}</td></tr>",
+        ]
     if component.datatype_id != CoreDatatypes.FLOW:
         rows += [
             "<tr><td height='6'></td></tr>",

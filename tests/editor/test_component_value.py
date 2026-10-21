@@ -216,7 +216,8 @@ def test_comment_is_multiline_and_sets_value_without_evaluating(make_editor):
     editor = make_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="a\nb", displayValue="a\nb"
     )
-    assert editor.field.metaObject().className().startswith("TextArea")
+    # Shown rendered, as Markdown
+    assert editor.field.metaObject().className().startswith("QQuickText")
     assert editor.text == "a\nb"
 
     editor.run("requestEdit()")
@@ -727,3 +728,106 @@ def test_component_items_have_the_description_tooltip(
     texts = {tooltip.property("text") for tooltip in tooltips}
     assert "Flow that continues when the condition is true." in texts
     assert any(text.startswith("Value that chooses the output") for text in texts)
+
+
+def _comment_walk(item):
+    yield item
+    for child in item.childItems():
+        yield from _comment_walk(child)
+
+
+def _text_format(editor):
+    value, failed = QtQml.QQmlExpression(
+        editor.context, editor.field, "textFormat + 0"
+    ).evaluate()
+    assert not failed
+    return value
+
+
+def test_comment_is_shown_as_markdown(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "CommentComponentItem.qml", rawValue="**a**", displayValue="**a**"
+    )
+
+    assert _text_format(editor) == QtCore.Qt.TextFormat.MarkdownText.value
+    assert editor.field.property("text") == "**a**"
+
+
+def test_empty_comment_shows_a_hint_instead_of_markdown(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "CommentComponentItem.qml", rawValue="", displayValue=""
+    )
+
+    assert editor.field.property("text") == "Empty comment"
+    assert _text_format(editor) == QtCore.Qt.TextFormat.PlainText.value
+
+
+def test_comment_editor_has_a_tall_text_area_and_the_three_buttons(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
+    )
+    editor.run("requestEdit()")
+
+    items = list(_comment_walk(editor.field))
+    area = next(
+        item
+        for item in items
+        if item.property("placeholderText") == "Write a comment..."
+    )
+    assert area.property("text") == "hello"
+    assert area.property("height") >= 100
+    assert any(
+        item.metaObject().className().startswith("EditActionButtons") for item in items
+    )
+    assert editor.field.property("text") == "hello"
+
+
+def test_comment_editor_clear_and_apply(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
+    )
+    editor.run("requestEdit()")
+    buttons = next(
+        item
+        for item in _comment_walk(editor.field)
+        if item.metaObject().className().startswith("EditActionButtons")
+    )
+
+    buttons.clearRequested.emit()
+    assert editor.field.property("text") == ""
+    assert editor.prop("editing") is True
+
+    buttons.applyRequested.emit()
+    assert editor.prop("editing") is False
+    assert editor.controller.calls == [(3, "", True)]
+
+
+def test_comment_editor_cancel_changes_nothing(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
+    )
+    editor.run("requestEdit()")
+    buttons = next(
+        item
+        for item in _comment_walk(editor.field)
+        if item.metaObject().className().startswith("EditActionButtons")
+    )
+    editor.field.setProperty("text", "typed")
+
+    buttons.cancelRequested.emit()
+
+    assert editor.prop("editing") is False
+    assert editor.controller.calls == []
+
+
+def test_comment_edit_button_gives_way_to_the_editor_buttons(make_editor):
+    editor = make_editor(
+        CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
+    )
+    button = find_edit_button(editor)
+
+    assert button.property("visible") is True
+    editor.run("requestEdit()")
+    assert button.property("visible") is False
+    editor.run("cancelEdit()")
+    assert button.property("visible") is True

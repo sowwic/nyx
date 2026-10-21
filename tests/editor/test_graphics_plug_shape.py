@@ -466,3 +466,51 @@ def test_socket_is_grabbed_at_its_inset_position_only(plugs):
 
     assert flow_plug.socket_at(inset_right) is GraphicsPlug.Socket.OUTPUT
     assert flow_plug.socket_at(on_edge) is None  # 10 units away from the socket
+
+
+@pytest.fixture
+def tooltip_for(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+
+    def _tooltip(note="", note_format="plain"):
+        value_plug.component.note_format = note_format
+        value_plug.component.note = note
+        hover(value_plug)
+        return value_plug.toolTip()
+
+    return _tooltip
+
+
+def test_plug_tooltip_has_no_note_section_without_a_note(tooltip_for):
+    assert "Note" not in tooltip_for("")
+    assert "Note" not in tooltip_for("   ")
+
+
+def test_plug_tooltip_shows_the_note_between_description_and_value(tooltip_for):
+    tooltip = tooltip_for("Remember this")
+
+    assert "Remember this" in tooltip
+    assert tooltip.index(">Description<") < tooltip.index(">Note<")
+    assert tooltip.index(">Note<") < tooltip.index(">Value<")
+
+
+def test_plain_note_is_escaped_and_keeps_its_lines(tooltip_for):
+    tooltip = tooltip_for("a <b> & c\nsecond line", "plain")
+
+    assert "a &lt;b&gt; &amp; c<br>second line" in tooltip
+
+
+def test_markdown_note_is_rendered(tooltip_for):
+    tooltip = tooltip_for("**bold** and *italic*", "markdown")
+
+    assert "**" not in tooltip
+    assert "bold" in tooltip and "italic" in tooltip
+    assert "<html" not in tooltip.lower()
+    assert "<!doctype" not in tooltip.lower()
+
+
+def test_html_note_is_used_as_it_is(tooltip_for):
+    assert "<i>slanted</i>" in tooltip_for("<i>slanted</i>", "html")

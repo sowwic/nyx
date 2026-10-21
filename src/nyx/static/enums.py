@@ -129,6 +129,20 @@ class NodeComponentValueMask(enum.IntEnum):
     DISPLAY = enum.auto()
 
 
+class NoteFormat(enum.StrEnum):
+    """How the text of a note is written, and so how it is rendered.
+
+    Attributes:
+        PLAIN: text as it is
+        MARKDOWN: Markdown, as understood by Qt (CommonMark with GitHub extensions)
+        HTML: the subset of HTML that Qt rich text supports
+    """
+
+    PLAIN = "plain"
+    MARKDOWN = "markdown"
+    HTML = "html"
+
+
 class ItemSelectionMode(enum.IntEnum):
     """How a clicked item changes the selection.
 

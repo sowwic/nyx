@@ -23,6 +23,7 @@ from nyx.static.enums import (
     NodeComponentFlag,
     NodeComponentValueMask,
     GraphicsPlugShape,
+    NoteFormat,
 )
 from nyx.static import vars as static_vars
 from nyx.static import paths as static_paths
@@ -42,6 +43,7 @@ __all__ = [
     "NodeSerializationContext",
     "NodeDeserializationContext",
     "GraphicsPlugShape",
+    "NoteFormat",
     "NyxPluginManager",
     "NyxPlugin",
     "CoreNodes",

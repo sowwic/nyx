@@ -319,10 +319,6 @@ class NyxRegistry:
         """
         resolved_import_root_directory = import_root_directory.resolve()
         if not resolved_import_root_directory.is_dir():
-            LOGGER.warning(
-                "QML import root is not a directory: %s",
-                resolved_import_root_directory.as_posix(),
-            )
             return False
 
         if resolved_import_root_directory in self.qml_import_root_directories:
