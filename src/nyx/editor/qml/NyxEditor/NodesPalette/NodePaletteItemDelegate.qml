@@ -35,9 +35,8 @@ ItemDelegate {
         spawnRequested(String(model.typeId));
     }
 
-    Drag.active: dragHandler.active
     Drag.imageSource: icon.source            // drag pixmap is just the type icon
-    Drag.dragType: Drag.Automatic            // starts a native QDrag, so widgets can accept it
+    Drag.dragType: Drag.Automatic            // activating starts a native QDrag, so widgets can accept it
     Drag.supportedActions: Qt.CopyAction
     Drag.proposedAction: Qt.CopyAction
     Drag.mimeData: {
@@ -51,5 +50,21 @@ ItemDelegate {
         enabled: itemRoot.dragEnabled
         target: null                         // the row stays put; only the drag image moves
         acceptedButtons: Qt.LeftButton
+        // QQuickWidget accepts touch events, so a macOS trackpad feeds raw touch
+        // points into the scene; starting a QDrag from one of those crashes Qt.
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus
+
+        // Activate the drag once pointer delivery has unwound, rather than from
+        // inside this handler's activation. On macOS the QDrag blocks until the
+        // drop, after which the attached Drag is reset for the next one.
+        onActiveChanged: {
+            if (active)
+                Qt.callLater(() => {
+                    if (!dragHandler.active)
+                        return;
+                    itemRoot.Drag.active = true;
+                    itemRoot.Drag.active = false;
+                });
+        }
     }
 }
