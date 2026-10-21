@@ -41,6 +41,11 @@ class NyxCore(NyxPlugin):
         return "NyxCore"
 
     @classmethod
+    def get_palette_name(cls) -> str:
+        """str: name of the palette section."""
+        return "Core"
+
+    @classmethod
     def initialize(cls) -> typing.Self:
         """Create the plugin and list its nodes and components.
 

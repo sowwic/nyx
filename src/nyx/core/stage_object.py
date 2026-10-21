@@ -195,3 +195,10 @@ class StageObject:
         if cls.SOURCE_PLUGIN is None:
             return ""
         return cls.SOURCE_PLUGIN.plugin_cls.get_type_display_name()
+
+    @classmethod
+    def get_source_plugin_palette_name(cls) -> str:
+        """str: palette section of the plugin that provides the type, empty if none."""
+        if cls.SOURCE_PLUGIN is None:
+            return ""
+        return cls.SOURCE_PLUGIN.plugin_cls.get_palette_name()

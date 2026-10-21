@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from uuid import UUID
 
 from ..node_component import NodeComponent
-from ..datatypes.datatype import value_to_text
+from ..datatypes.datatype import value_to_view_text
 from ..contexts.serialization import NodeDeserializationContext
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import CoreNodeComponents, RestoreUuidOption
@@ -233,8 +233,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             NodeComponent.Roles.CACHED_VALUE,
             NodeComponent.Roles.DEFAULT_VALUE,
         ):
-            # The views can't show a class, they get its name
-            return value_to_text(value)
+            # The views can't show classes or collections, they get text
+            return value_to_view_text(value)
         if role == NodeComponent.Roles.LINKS:
             return [str(uuid) for uuid in (value or ())]
         if role == NodeComponent.Roles.TAGS:

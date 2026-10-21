@@ -66,7 +66,7 @@ Rectangle {
                     }
                 }
 
-                section.property: "sourcePlugin"
+                section.property: "paletteSection"
                 section.criteria: ViewSection.FullString
                 section.delegate: PaletteSectionHeader {}
 

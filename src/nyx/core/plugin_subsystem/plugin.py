@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import dataclasses
+import types
 import typing
 import pathlib
 import inspect
@@ -29,7 +30,10 @@ class NyxPluginContents:
     datatypes: list[Datatype] = dataclasses.field(init=False, default_factory=list)
 
     def register_function_node(
-        self, func: typing.Callable, type_id: str | None = None
+        self,
+        func: typing.Callable,
+        type_id: str | None = None,
+        tags: typing.Iterable[str] = (),
     ) -> type[Node]:
         """Add a node calling a function.
 
@@ -40,6 +44,7 @@ class NyxPluginContents:
             func (typing.Callable): function to call.
             type_id (str | None): node type id. Derived from the module and name of
                 the function if omitted.
+            tags (typing.Iterable[str]): tags of the node besides "function".
 
         Raises:
             TypeError: func is not a named function.
@@ -50,11 +55,36 @@ class NyxPluginContents:
         """
         from ..function_node import create_function_node_class
 
-        node_cls = create_function_node_class(func, type_id=type_id)
+        node_cls = create_function_node_class(func, type_id=type_id, tags=tags)
         if any(node.get_type_id() == node_cls.get_type_id() for node in self.nodes):
             raise ValueError(f"Node {node_cls.get_type_id()} is already registered")
         self.nodes.append(node_cls)
         return node_cls
+
+    def register_function_module(
+        self, module: types.ModuleType, namespace: str
+    ) -> list[type[Node]]:
+        """Add a node for every public function of a module.
+
+        Args:
+            module (types.ModuleType): module defining the functions.
+            namespace (str): prefix of the node type ids, `function:<namespace>.<name>`.
+                Keeps the nodes of a plugin apart from functions with the same name in
+                other plugins. Also a tag of the nodes.
+
+        Returns:
+            list[type[Node]]: generated node classes.
+        """
+        from ..function_node import find_public_functions
+
+        return [
+            self.register_function_node(
+                function,
+                type_id=f"function:{namespace}.{function.__name__}",
+                tags=(namespace,),
+            )
+            for function in find_public_functions(module)
+        ]
 
 
 class NyxPlugin(ABC):
@@ -132,6 +162,11 @@ class NyxPlugin(ABC):
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI."""
         return cls.get_type_id()
+
+    @classmethod
+    def get_palette_name(cls) -> str:
+        """str: name of the palette section holding the types of the plugin."""
+        return cls.get_type_display_name()
 
     @classmethod
     def get_tags(cls) -> set[str]:

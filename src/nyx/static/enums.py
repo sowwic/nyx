@@ -55,6 +55,8 @@ class CoreDatatypes(enum.StrEnum):
     INT = "core:int"
     FLOAT = "core:float"
     PATH = "core:path"
+    LIST = "core:list"
+    DICT = "core:dict"
     FLOW = "core:flow"
     REFERENCE = "core:reference"
 
@@ -158,3 +160,5 @@ class GraphicsPlugShape(enum.IntEnum):
     PENTAGON = enum.auto()
     SQUARE = enum.auto()
     SQUARE_MATRIX = enum.auto()
+    BARS = enum.auto()
+    DIAMOND = enum.auto()

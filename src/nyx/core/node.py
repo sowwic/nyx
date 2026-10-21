@@ -888,7 +888,7 @@ class Node(QtGui.QStandardItem, StageObject):
             self.execute()
             self.post_execution_hook()
         except Exception as err:
-            LOGGER.exception(f"{self} | Execution error.")
+            LOGGER.exception(f"{self} | Execution error: {err}")
             self.raised_exception = err
             self.execution_status = NodeExecutionStatus.ERROR
             self.stage.execution_failed.emit(self)

@@ -174,3 +174,41 @@ def test_string_result_is_not_evaluated_as_an_expression(register):
     stage.crawler.start()
 
     assert node["return"].pull_value() == "5"
+
+
+def test_collection_hints_give_list_and_dict_datatypes(register):
+    import typing
+
+    def collect(
+        items: list,
+        typed_items: list[int],
+        mapping: dict,
+        typed_mapping: dict[str, int],
+        legacy: typing.Dict[str, int],  # noqa: UP006
+        maybe: typing.Optional[list[str]] = None,  # noqa: UP045
+    ) -> list[str]:
+        return [str(len(items))]
+
+    node = make_node(Stage(), register(collect).get_type_id())
+
+    for name in ("items", "typed_items", "maybe"):
+        assert node[name].datatype_id == CoreDatatypes.LIST
+    for name in ("mapping", "typed_mapping", "legacy"):
+        assert node[name].datatype_id == CoreDatatypes.DICT
+    assert node["return"].datatype_id == CoreDatatypes.LIST
+
+
+def test_function_with_a_list_and_a_dict_runs(register):
+    def lookup(keys: list, table: dict) -> list:
+        return [table[key] for key in keys]
+
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    node = make_node(stage, register(lookup).get_type_id(), name="lookup")
+    start["flow"] >> node["flow"]
+    node["keys"].push_value(["a", "b"])
+    node["table"].push_value({"a": 1, "b": 2})
+
+    stage.crawler.start()
+
+    assert node["return"].pull_value() == [1, 2]

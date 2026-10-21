@@ -260,3 +260,106 @@ def test_linked_value_that_cant_be_converted_is_passed_on():
     stage.link_components(source, target)
 
     assert target.pull_value() == "abc"
+
+
+def test_list_and_dict_components_evaluate_typed_text():
+    stage = Stage()
+    node = make_branch(stage)
+    cases = (
+        (CoreDatatypes.LIST, "[1, 2]", [1, 2]),
+        (CoreDatatypes.LIST, "(1, 2)", [1, 2]),
+        (CoreDatatypes.DICT, "{'a': 1}", {"a": 1}),
+    )
+    for datatype, text, expected in cases:
+        component = node["condition"]
+        component.set_datatype(datatype)
+        component.push_value(text)
+
+        assert component.cached_value == expected
+        assert component.is_valid
+
+
+def test_list_and_dict_components_start_empty():
+    node = make_branch(Stage())
+    component = node["condition"]
+
+    component.set_datatype(CoreDatatypes.LIST)
+    component.push_value(None)
+    assert component.cached_value == []
+    component.set_datatype(CoreDatatypes.DICT)
+    component.push_value(None)
+    assert component.cached_value == {}
+
+
+def test_object_component_shows_the_shape_of_its_collection():
+    node = make_branch(Stage())
+    component = node["condition"]
+    component.set_datatype(CoreDatatypes.OBJECT)
+
+    component.push_value([1])
+    assert component.get_shown_datatype().type_id == CoreDatatypes.LIST
+    component.push_value({"a": 1})
+    assert component.get_shown_datatype().type_id == CoreDatatypes.DICT
+
+
+def test_list_and_dict_links_follow_the_datatype_rules():
+    stage = Stage()
+    list_source = make_branch(stage)["condition"]
+    list_target = make_branch(stage)["condition"]
+    dict_target = make_branch(stage)["condition"]
+    int_target = make_branch(stage)["condition"]
+    list_source.readable = True
+    list_source.set_datatype(CoreDatatypes.LIST)
+    list_target.set_datatype(CoreDatatypes.LIST)
+    dict_target.set_datatype(CoreDatatypes.DICT)
+    int_target.set_datatype(CoreDatatypes.INT)
+
+    assert stage.link_components(list_source, list_target) is not None
+    for target in (dict_target, int_target):
+        with pytest.raises(exceptions.NodeComponentLinkError, match="Incompatible"):
+            stage.link_components(list_source, target)
+
+
+def test_list_and_dict_values_survive_saving(tmp_path):
+    from nyx.api.v1 import Node
+
+    stage = Stage()
+    node = make_branch(stage)
+    node["condition"].set_datatype(CoreDatatypes.LIST)
+    node["condition"].push_value([1, "two", [3]])
+    file_path = tmp_path / "list.nyx"
+    node.export_to_json(file_path)
+
+    holder = make_branch(Stage())
+    from nyx.utils import file_fn
+
+    restored = Node.deserialize(file_fn.load_json(file_path), parent_node=holder)
+
+    assert restored["condition"].datatype_id == CoreDatatypes.LIST
+    assert restored["condition"].cached_value == [1, "two", [3]]
+
+
+def test_views_get_collections_as_editable_text():
+    node = make_branch(Stage())
+    component = node["condition"]
+    model = node.components_model
+    index = component.index()
+    roles = (
+        NodeComponent.Roles.RAW_VALUE,
+        NodeComponent.Roles.CACHED_VALUE,
+    )
+
+    for datatype, value in (
+        (CoreDatatypes.LIST, [1, "two", [3]]),
+        (CoreDatatypes.DICT, {"a": 1, "b": [2]}),
+    ):
+        component.set_datatype(datatype)
+        component.push_value(value)
+        for role in roles:
+            text = model.data(index, role)
+            assert isinstance(text, str)
+            assert eval(text) == value  # what the user sees can be edited and set back
+        assert component.raw_value == value  # the component keeps the real value
+
+    component.push_value(model.data(index, NodeComponent.Roles.RAW_VALUE))
+    assert component.cached_value == {"a": 1, "b": [2]}

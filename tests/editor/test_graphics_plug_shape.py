@@ -11,7 +11,9 @@ from nyx.api.v1 import (
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.graphics.graphics_plug_shape import (
     PLUG_SHAPES,
+    BarsPlugShape,
     CirclePlugShape,
+    DiamondPlugShape,
     SquareMatrixPlugShape,
     PlugShape,
     TrianglePlugShape,
@@ -76,6 +78,34 @@ def test_circle_uses_the_given_color():
     assert pixel(image, 20, 15) == "#ff12ab34"
 
 
+def test_bars_miss_the_middle_bar_until_linked():
+    sample = SAMPLE.name(QtGui.QColor.NameFormat.HexArgb)
+    unlinked = paint_shape(BarsPlugShape(), linked=False)
+    assert pixel(unlinked, 20, 11) == sample  # top bar
+    assert pixel(unlinked, 20, 15) == TRANSPARENT  # no middle bar
+    assert pixel(unlinked, 20, 19) == sample  # bottom bar
+
+    linked = paint_shape(BarsPlugShape(), linked=True)
+    assert pixel(linked, 20, 11) == sample
+    assert pixel(linked, 20, 15) == sample
+    assert pixel(linked, 20, 19) == sample
+    assert pixel(linked, 12, 15) == TRANSPARENT  # left of the bars
+    assert pixel(linked, 28, 15) == TRANSPARENT  # right of the bars
+
+
+def test_diamond_has_a_hole_until_linked():
+    sample = SAMPLE.name(QtGui.QColor.NameFormat.HexArgb)
+    black = QtGui.QColor("black").name(QtGui.QColor.NameFormat.HexArgb)
+    unlinked = paint_shape(DiamondPlugShape(), linked=False)
+    assert pixel(unlinked, 20, 15) == black  # the hole
+    assert pixel(unlinked, 20, 11) == sample
+    assert pixel(unlinked, 25, 11) == TRANSPARENT  # empty corner of the box
+
+    linked = paint_shape(DiamondPlugShape(), linked=True)
+    assert pixel(linked, 20, 15) == sample
+    assert pixel(linked, 25, 11) == TRANSPARENT
+
+
 def test_triangle_is_outlined_until_linked():
     white = WHITE.name(QtGui.QColor.NameFormat.HexArgb)
     unlinked = paint_shape(TrianglePlugShape(), color=WHITE, linked=False)
@@ -105,7 +135,10 @@ def test_triangle_corners():
     assert points == [(16.0, 10.0), (16.0, 20.0), (25.0, 15.0)]
 
 
-@pytest.mark.parametrize("shape", [CirclePlugShape(), TrianglePlugShape()])
+@pytest.mark.parametrize(
+    "shape",
+    [CirclePlugShape(), TrianglePlugShape(), BarsPlugShape(), DiamondPlugShape()],
+)
 def test_shapes_grab_the_socket_within_reach(shape):
     assert shape.contains(QtCore.QPointF(0.0, 0.0))
     assert shape.contains(QtCore.QPointF(shape.HIT_RADIUS - 0.5, 0.0))
@@ -118,6 +151,8 @@ def test_every_shape_kind_has_a_drawing():
         assert isinstance(PLUG_SHAPES[kind], PlugShape)
     assert isinstance(plug_shape_for(GraphicsPlugShape.CIRCLE), CirclePlugShape)
     assert isinstance(plug_shape_for(GraphicsPlugShape.TRIANGLE), TrianglePlugShape)
+    assert isinstance(plug_shape_for(GraphicsPlugShape.BARS), BarsPlugShape)
+    assert isinstance(plug_shape_for(GraphicsPlugShape.DIAMOND), DiamondPlugShape)
 
 
 def test_unknown_shape_kind_falls_back_to_the_circle():
@@ -166,7 +201,11 @@ def test_value_plug_color_follows_the_type_of_the_value(qapp):
     assert value.get_plug_color() == QtGui.QColor("#FFA637")
     value.push_value(12, evaluate=False)
     assert value.get_plug_color() == QtGui.QColor("#38D6A4")
-    value.push_value([1], evaluate=False)  # a type without a datatype of its own
+    value.push_value([1], evaluate=False)
+    assert value.get_plug_color() == QtGui.QColor("#FF5FB0")
+    value.push_value({"a": 1}, evaluate=False)
+    assert value.get_plug_color() == QtGui.QColor("#FFD84B")
+    value.push_value({1}, evaluate=False)  # a type without a datatype of its own
     assert value.get_plug_color() == DEFAULT
 
 

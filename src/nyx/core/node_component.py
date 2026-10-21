@@ -9,7 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
-from .datatypes.datatype import Datatype, value_to_text
+from .datatypes.datatype import Datatype, value_to_class_name
 from .exceptions import DatatypeCastError
 from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
@@ -698,7 +698,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def serialize_value(self) -> typing.Any:
         """typing.Any: value to store when serializing, classes as their name."""
-        return value_to_text(self.raw_value)
+        return value_to_class_name(self.raw_value)
 
     def deserialize_value(self, value: typing.Any) -> typing.Any:
         """Convert a serialized value back to a value.
@@ -713,7 +713,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
     def serialize_default_value(self) -> typing.Any:
         """typing.Any: default value to store when serializing, classes as their name."""
-        return value_to_text(self.default_value)
+        return value_to_class_name(self.default_value)
 
     def deserialize_default_value(self, value: typing.Any) -> typing.Any:
         """Convert a serialized default value back to a value.

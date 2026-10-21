@@ -1,7 +1,7 @@
 import pytest
 
-from nyx.plugins.functions import logic_operations as logic
-from nyx.plugins.functions import math_operations as ops
+from nyx.plugins.functions.logic_operations import operations as logic
+from nyx.plugins.functions.math_operations import operations as ops
 
 
 @pytest.mark.parametrize(

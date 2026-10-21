@@ -30,6 +30,7 @@ class FunctionNode(Node):
     FUNCTION_TYPE_ID = ""
     PARAMETERS: tuple[inspect.Parameter, ...] = ()
     RETURN_ANNOTATION: typing.Any = inspect.Signature.empty
+    FUNCTION_TAGS: typing.ClassVar[frozenset[str]] = frozenset()
     PARAMETER_HINTS: typing.ClassVar[dict[str, typing.Any]] = {}
 
     @classmethod
@@ -55,7 +56,7 @@ class FunctionNode(Node):
     @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
-        return {"function"}
+        return {"function", *cls.FUNCTION_TAGS}
 
     def setup(self):
         """Add the flow, parameter and return components."""
@@ -85,6 +86,7 @@ class FunctionNode(Node):
         )
         self.return_cpnt.name = RETURN_COMPONENT_NAME
         self.return_cpnt.readable = True
+        self.return_cpnt.is_editable = False
         self.return_cpnt.set_datatype(find_datatype_id(self.RETURN_ANNOTATION))
         self.components_model.add_component(self.return_cpnt)
 
@@ -106,12 +108,14 @@ def find_datatype_id(annotation: typing.Any) -> str:
     """Find the datatype for a type hint.
 
     Args:
-        annotation (typing.Any): type hint. `X | None` counts as `X`.
+        annotation (typing.Any): type hint. `X | None` counts as `X`, and a generic like
+            `list[int]` as the class it is made from, `list`.
 
     Returns:
         str: type id of the registered datatype of the type, object if there is none.
     """
     annotation = _strip_optional(annotation)
+    annotation = typing.get_origin(annotation) or annotation
     if isinstance(annotation, type):
         datatype = NYX_REGISTRY.find_datatype_for_type(annotation)
         if datatype is not None:
@@ -154,7 +158,9 @@ def find_public_functions(module: types.ModuleType) -> list[typing.Callable]:
 
 
 def create_function_node_class(
-    func: typing.Callable, type_id: str | None = None
+    func: typing.Callable,
+    type_id: str | None = None,
+    tags: typing.Iterable[str] = (),
 ) -> type[FunctionNode]:
     """Generate a node type that calls a function.
 
@@ -162,6 +168,7 @@ def create_function_node_class(
         func (typing.Callable): function to call. Its type hints choose the datatypes.
         type_id (str | None): node type id. Derived from the module and name of the
             function if omitted.
+        tags (typing.Iterable[str]): tags of the node besides "function".
 
     Raises:
         TypeError: func is not a function with a name.
@@ -201,6 +208,7 @@ def create_function_node_class(
                 "DEFAULT_NAME": name,
                 "FUNCTION": staticmethod(func),
                 "FUNCTION_TYPE_ID": type_id or f"function:{module}.{qualname}",
+                "FUNCTION_TAGS": frozenset(tags),
                 "PARAMETERS": tuple(parameters),
                 "PARAMETER_HINTS": {
                     parameter.name: hints.get(parameter.name) for parameter in parameters

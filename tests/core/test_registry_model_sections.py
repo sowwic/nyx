@@ -55,3 +55,29 @@ def test_registry_model_provides_tags_as_a_sorted_list():
         tags = index.data(RegistryListModel.Roles.TYPE_TAGS)
         assert isinstance(tags, list)
         assert tags == sorted(cls.get_tags())
+
+
+def test_registry_model_exposes_the_palette_section_role():
+    model = RegistryListModel(lambda: NYX_REGISTRY.nodes)
+
+    assert model.roleNames()[RegistryListModel.Roles.PALETTE_SECTION] == b"paletteSection"
+    sections = {
+        model.index(row).data(RegistryListModel.Roles.PALETTE_SECTION)
+        for row in range(model.rowCount())
+    }
+    assert "Core" in sections
+
+
+def test_plugin_palette_name_defaults_to_display_name():
+    from nyx.api.v1 import NyxPlugin
+
+    class Plain(NyxPlugin):
+        @classmethod
+        def get_type_id(cls):
+            return "Plain"
+
+        @classmethod
+        def initialize(cls):
+            return cls()
+
+    assert Plain.get_palette_name() == "Plain"

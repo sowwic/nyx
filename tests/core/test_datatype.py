@@ -71,7 +71,9 @@ def test_bool_is_a_wildcard():
         (1, CoreDatatypes.INT),
         (1.5, CoreDatatypes.FLOAT),
         ("text", CoreDatatypes.STRING),
-        ([1], CoreDatatypes.OBJECT),
+        ([1], CoreDatatypes.LIST),
+        ({"a": 1}, CoreDatatypes.DICT),
+        ({1}, CoreDatatypes.OBJECT),
     ],
 )
 def test_infer_datatype_uses_the_exact_python_type(value, expected):
@@ -143,3 +145,57 @@ def test_only_flow_is_not_selectable():
         if not datatype.selectable
     }
     assert not_selectable == {CoreDatatypes.FLOW}
+
+
+# ======== List and dictionary ========= #
+
+
+@pytest.mark.parametrize(
+    "type_id, value, expected",
+    [
+        (CoreDatatypes.LIST, [1, 2], [1, 2]),
+        (CoreDatatypes.LIST, (1, 2), [1, 2]),
+        (CoreDatatypes.LIST, range(3), [0, 1, 2]),
+        (CoreDatatypes.DICT, {"a": 1}, {"a": 1}),
+        (CoreDatatypes.DICT, [("a", 1), ("b", 2)], {"a": 1, "b": 2}),
+    ],
+)
+def test_list_and_dict_casts(type_id, value, expected):
+    result = get(type_id).cast(value)
+
+    assert result == expected
+    assert type(result) is type(expected)
+
+
+@pytest.mark.parametrize(
+    "type_id, value", [(CoreDatatypes.LIST, 5), (CoreDatatypes.DICT, 5)]
+)
+def test_list_and_dict_reject_values_that_are_not_collections(type_id, value):
+    with pytest.raises(DatatypeCastError):
+        get(type_id).cast(value)
+
+
+@pytest.mark.parametrize("type_id", [CoreDatatypes.LIST, CoreDatatypes.DICT])
+def test_list_and_dict_defaults_are_new_empty_collections(type_id):
+    first = get(type_id).create_default()
+    second = get(type_id).create_default()
+
+    assert first == second == get(type_id).python_type()
+    assert first is not second
+
+
+def test_list_and_dict_are_concrete_with_own_plug_shapes():
+    from nyx.api.v1 import GraphicsPlugShape
+
+    list_type, dict_type = get(CoreDatatypes.LIST), get(CoreDatatypes.DICT)
+
+    assert not list_type.is_wildcard and not dict_type.is_wildcard
+    assert list_type.plug_shape is GraphicsPlugShape.BARS
+    assert dict_type.plug_shape is GraphicsPlugShape.DIAMOND
+    assert list_type.accepts(list_type) and dict_type.accepts(dict_type)
+    assert list_type.accepts(get(CoreDatatypes.OBJECT))
+    assert dict_type.accepts(get(CoreDatatypes.OBJECT))
+    assert not list_type.accepts(dict_type)
+    assert not dict_type.accepts(list_type)
+    assert not list_type.accepts(get(CoreDatatypes.INT))
+    assert not get(CoreDatatypes.INT).accepts(dict_type)

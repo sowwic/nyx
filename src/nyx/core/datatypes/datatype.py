@@ -104,7 +104,7 @@ OBJECT_DATATYPE = Datatype(
 """Datatype of values without a type hint, used wherever no datatype is set."""
 
 
-def value_to_text(value: typing.Any) -> typing.Any:
+def value_to_class_name(value: typing.Any) -> typing.Any:
     """Turn a class into text that can be shown, edited and saved.
 
     Classes can't be written to a file or shown by the QML views, other values are
@@ -122,3 +122,22 @@ def value_to_text(value: typing.Any) -> typing.Any:
     if getattr(builtins, value.__name__, None) is value:
         return value.__name__
     return f"{value.__module__}.{value.__qualname__}"
+
+
+def value_to_view_text(value: typing.Any) -> typing.Any:
+    """Turn a value into text the views can show and the user can edit.
+
+    The QML views get lists and dictionaries as JavaScript objects, which they can only
+    show as "[object Object]". As text they can be edited, text typed for a component
+    is evaluated as a python expression when it is set.
+
+    Args:
+        value (typing.Any): value of a component.
+
+    Returns:
+        typing.Any: classes as their name, collections as python literals, anything
+            else as it is.
+    """
+    if isinstance(value, (list, dict, tuple, set, frozenset)):
+        return repr(value)
+    return value_to_class_name(value)
