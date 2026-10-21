@@ -9,6 +9,7 @@ from .graphics_plug import GraphicsPlug
 from .level_of_detail import LevelOfDetail
 from ..utils.common import build_role_tooltip_html, are_hover_diagnostics_enabled
 from ...core import commands
+from ...static.enums import NodeExecutionStatus
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -28,6 +29,11 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     BACKGROUND_COLOR = QtGui.QColor("#E3212121")
     REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
     ICON_RECT = QtCore.QRect(8, 6, 16, 16)
+    STATUS_ICON_RECT = QtCore.QRect(-7, -7, 14, 14)  # straddles the top right corner
+    STATUS_ICONS = {
+        NodeExecutionStatus.SUCCESS: (":/icons/green_check.png"),
+        NodeExecutionStatus.ERROR: (":/icons/red_error.png"),
+    }
     TITLE_OFFSET_X = 28.0
     SUBTITLE_MARGIN = 8.0  # space between the subtitle and the sides of the node
 
@@ -47,6 +53,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._node = node
         self._plugs: dict[UUID, GraphicsPlug] = {}
         self._icon = QtGui.QIcon()
+        self._status_pixmap: QtGui.QPixmap | None = None
         self._path_title = QtGui.QPainterPath()
         self._path_content = QtGui.QPainterPath()
         self._path_outline = QtGui.QPainterPath()
@@ -124,6 +131,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.title_item.refresh()
         self.subtitle_item.refresh(self._node.subtitle)
         self._icon = QtGui.QIcon(self._node.get_type_icon())
+        self._status_pixmap = self._build_status_pixmap(self._node.execution_status)
         self._brush_background = QtGui.QBrush(
             self.REFERENCE_NODE_BACKGROUND
             if self._node.is_referenced
@@ -132,6 +140,27 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._sync_plugs()
         self.update_layout()
         self.update()
+
+    @classmethod
+    def _build_status_pixmap(cls, status: NodeExecutionStatus) -> QtGui.QPixmap | None:
+        """Load the icon of an execution status.
+
+        Args:
+            status (NodeExecutionStatus): execution status.
+
+        Returns:
+            QtGui.QPixmap | None: tinted icon, None if the status has no icon.
+        """
+        qrc_path = cls.STATUS_ICONS.get(status)
+        if qrc_path is None:
+            return None
+        pixmap = QtGui.QPixmap(qrc_path)
+        if pixmap.isNull():
+            return None
+        painter = QtGui.QPainter(pixmap)
+        painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn)
+        painter.end()
+        return pixmap
 
     def _sync_plugs(self):
         """Create, drop and refresh plugs so they match the node components."""
@@ -220,7 +249,10 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     def boundingRect(self) -> QtCore.QRectF:
         """QtCore.QRectF: bounds of the node, including the outline."""
-        return QtCore.QRectF(-1, -1, self.width + 2, self.height + 2)
+        margin = -self.STATUS_ICON_RECT.x()
+        return QtCore.QRectF(
+            -margin, -margin, self.width + 2 * margin, self.height + 2 * margin
+        )
 
     def paint(
         self,
@@ -254,6 +286,9 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         )
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.drawPath(self._path_outline)
+
+        if self._status_pixmap is not None:
+            painter.drawPixmap(self.STATUS_ICON_RECT, self._status_pixmap)
 
     def _paint_placeholder(self, painter: QtGui.QPainter):
         """Draw the node as a flat rect, for when it is too small to see details.
@@ -316,6 +351,8 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
             for plug in self._plugs.values():
                 plug.update_links()
+        elif change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
+            self.update()
         return super().itemChange(change, value)
 
     def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
