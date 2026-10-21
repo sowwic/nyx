@@ -145,6 +145,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.stage.undo_stack.indexChanged.connect(self.update_title)
         self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope)
         self.stage.execution_finished.connect(self.gr_stage.rebuild_current_scope)
+        self.stage.execution_failed.connect(self.select_and_focus_node)
         self.stage.node_deleted.connect(self._handle_scope_path_at_node_deletion)
         # Selection model connections
         self.selection_model.selectionChanged.connect(
@@ -424,6 +425,29 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
+
+    def select_nodes(self, nodes: list[Node]) -> None:
+        """Replace the selection, so the graph shows it even if it was unchanged.
+
+        Args:
+            nodes (list[Node]): nodes to select.
+        """
+        self.selection_model.clearSelection()
+        selection = QtCore.QItemSelection()
+        for node in nodes:
+            selection.select(node.index(), node.index())
+        self.selection_model.select(
+            selection, QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+        )
+
+    def select_and_focus_node(self, node: Node) -> None:
+        """Select the node and focus on it.
+
+        Args:
+            node (Node): node that failed to execute.
+        """
+        self.select_nodes([node])
+        self.gr_view.edit_actions.focus_on_selected_nodes()
 
     def _refresh_actions(self, *_) -> None:
         """Refresh the enabled state of the actions."""

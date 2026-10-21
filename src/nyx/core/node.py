@@ -876,6 +876,7 @@ class Node(QtGui.QStandardItem, StageObject):
             LOGGER.exception(f"{self} | Execution error.")
             self.raised_exception = err
             self.execution_status = NodeExecutionStatus.ERROR
+            self.stage.execution_failed.emit(self)
             raise err
         else:
             self.execution_status = NodeExecutionStatus.SUCCESS
