@@ -20,8 +20,8 @@ ItemDelegate {
         anchors.right: parent.right
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        // Leaves room for the name of the item
-        maximumWidth: itemRoot.width * 0.5
+        // Leaves room for the icon and name of the item, the tags scroll if they don't fit
+        maximumWidth: Math.max(0, itemRoot.width - itemRoot.leftPadding - itemRoot.contentItem.implicitWidth - 2 * anchors.rightMargin)
         tags: itemRoot.model.typeTags
     }
 
