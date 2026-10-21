@@ -96,6 +96,16 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         """list[GraphicsLink]: links attached to the plug."""
         return list(self._links)
 
+    @property
+    def is_writable(self) -> bool:
+        """bool: plug accepts links (writable component)."""
+        return self._writable
+
+    @property
+    def is_readable(self) -> bool:
+        """bool: plug produces links (readable component)."""
+        return self._readable
+
     @staticmethod
     def is_plug_component(component: NodeComponent) -> bool:
         """Check if the component should be shown as a plug.

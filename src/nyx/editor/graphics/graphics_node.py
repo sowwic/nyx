@@ -13,6 +13,7 @@ from ...static.enums import NodeExecutionStatus
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
+    from nyx.core.node_render_options import NodeRenderOptions
     from nyx.editor.graphics.graphics_stage import GraphicsStage
 
 
@@ -22,20 +23,6 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     The item is a view of its node: `refresh` re-reads everything from the node
     and `update_layout` recomputes the geometry. Geometry is only changed there.
     """
-
-    MIN_WIDTH = 100
-    MIN_PLUG_ROWS = 1  # a node is tall enough for this many plugs, even with fewer
-    TITLE_COLOR = QtGui.QColor("#FF313131")
-    BACKGROUND_COLOR = QtGui.QColor("#E3212121")
-    REFERENCE_NODE_BACKGROUND = QtGui.QColor("#2182CF")
-    ICON_RECT = QtCore.QRect(8, 6, 16, 16)
-    STATUS_ICON_RECT = QtCore.QRect(-7, -7, 14, 14)  # straddles the top right corner
-    STATUS_ICONS = {
-        NodeExecutionStatus.SUCCESS: (":/icons/green_check.png"),
-        NodeExecutionStatus.ERROR: (":/icons/red_error.png"),
-    }
-    TITLE_OFFSET_X = 28.0
-    SUBTITLE_MARGIN = 8.0  # space between the subtitle and the sides of the node
 
     def __init__(self, node: Node, parent=None):
         """Initialize GraphicsNode.
@@ -51,6 +38,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.setAcceptHoverEvents(True)
 
         self._node = node
+        self.options: NodeRenderOptions = node.get_render_options()
         self._plugs: dict[UUID, GraphicsPlug] = {}
         self._icon = QtGui.QIcon()
         self._status_pixmap: QtGui.QPixmap | None = None
@@ -61,26 +49,22 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._init_sizes()
         self._init_assets()
         self.title_item = GraphicsNodeTitle(self)
-        self.title_item.setPos(self.TITLE_OFFSET_X, 0)
+        self.title_item.setPos(self.options.title_offset_x, 0)
         self.subtitle_item = GraphicsNodeSubtitle(self)
 
         self.refresh()
 
     def _init_sizes(self):
-        """Initialize size and padding values."""
-        self.width = self.MIN_WIDTH
+        """Initialize size values."""
+        self.width = self.options.min_width
         self.height = 0.0  # set by update_layout
-        self.edge_roundness = 10.0
-        self.title_horizontal_padding = 4.0
-        self.plugs_top_padding = 4.0
-        self.lower_padding = 8.0
 
     def _init_assets(self):
         """Create the pens and brushes."""
-        self._pen_default = QtGui.QPen(QtGui.QColor("#7F000000"))
-        self._pen_selected = QtGui.QPen(QtGui.QColor("#FFA637"))
-        self._brush_title = QtGui.QBrush(self.TITLE_COLOR)
-        self._brush_background = QtGui.QBrush(self.BACKGROUND_COLOR)
+        self._pen_default = QtGui.QPen(self.options.outline_color)
+        self._pen_selected = QtGui.QPen(self.options.selected_outline_color)
+        self._brush_title = QtGui.QBrush(self.options.title_color)
+        self._brush_background = QtGui.QBrush(self.options.background_color)
 
     # ======== Properties ========= #
 
@@ -133,16 +117,15 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self._icon = QtGui.QIcon(self._node.get_type_icon())
         self._status_pixmap = self._build_status_pixmap(self._node.execution_status)
         self._brush_background = QtGui.QBrush(
-            self.REFERENCE_NODE_BACKGROUND
+            self.options.reference_background_color
             if self._node.is_referenced
-            else self.BACKGROUND_COLOR
+            else self.options.background_color
         )
         self._sync_plugs()
         self.update_layout()
         self.update()
 
-    @classmethod
-    def _build_status_pixmap(cls, status: NodeExecutionStatus) -> QtGui.QPixmap | None:
+    def _build_status_pixmap(self, status: NodeExecutionStatus) -> QtGui.QPixmap | None:
         """Load the icon of an execution status.
 
         Args:
@@ -151,7 +134,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         Returns:
             QtGui.QPixmap | None: tinted icon, None if the status has no icon.
         """
-        qrc_path = cls.STATUS_ICONS.get(status)
+        qrc_path = self.options.status_icons.get(status)
         if qrc_path is None:
             return None
         pixmap = QtGui.QPixmap(qrc_path)
@@ -197,34 +180,107 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             gr_stage.removeItem(plug)
         plug.setParentItem(None)
 
+    def _arrange_plug_rows(
+        self,
+    ) -> list[tuple[GraphicsPlug | None, GraphicsPlug | None]]:
+        """Distribute the plugs over rows, input sockets left and output sockets right.
+
+        A plug takes only the sides it has a socket for. An input only plug and an
+        output only plug share a row, a plug with both sockets has a row to itself.
+
+        Returns:
+            list[tuple[GraphicsPlug | None, GraphicsPlug | None]]: left (input) and
+                right (output) plug of every row, in display order.
+        """
+        left_plugs: dict[int, GraphicsPlug] = {}
+        right_plugs: dict[int, GraphicsPlug] = {}
+        full_rows: set[int] = set()
+        row_count = 0
+        for plug in self._plugs.values():
+            if plug.is_writable and plug.is_readable:
+                full_rows.add(row_count)
+                left_plugs[row_count] = plug
+                row_count += 1
+                continue
+            slots = left_plugs if plug.is_writable else right_plugs
+            row = next(
+                (
+                    row
+                    for row in range(row_count)
+                    if row not in full_rows and row not in slots
+                ),
+                row_count,
+            )
+            slots[row] = plug
+            row_count = max(row_count, row + 1)
+        return [(left_plugs.get(row), right_plugs.get(row)) for row in range(row_count)]
+
+    def _row_width(self, row: tuple[GraphicsPlug | None, GraphicsPlug | None]) -> float:
+        """Get the width a row of plugs needs.
+
+        Args:
+            row (tuple[GraphicsPlug | None, GraphicsPlug | None]): left and right plug.
+
+        Returns:
+            float: sum of the preferred widths, less the trim when two plugs share
+                the row.
+        """
+        plugs = [plug for plug in row if plug is not None]
+        width = sum(plug.preferred_width() for plug in plugs)
+        return width - self.options.shared_row_gap_trim if len(plugs) == 2 else width
+
     def update_layout(self):
         """Recompute size from the title and plugs, place children, rebuild paths."""
         self.prepareGeometryChange()
+        plug_rows = self._arrange_plug_rows()
         self.width = max(
-            self.MIN_WIDTH,
-            self.TITLE_OFFSET_X + self.title_width + self.title_horizontal_padding,
-            self.subtitle_item.width + 2 * self.SUBTITLE_MARGIN,
-            *(plug.preferred_width() for plug in self._plugs.values()),
+            self.options.min_width,
+            self.options.title_offset_x
+            + self.title_width
+            + self.options.title_horizontal_padding,
+            self.subtitle_item.width + 2 * self.options.subtitle_margin,
+            *(self._row_width(row) for row in plug_rows),
         )
         # Right aligned: the subtitle ends where the node does, the title starts at it
         self.subtitle_item.setPos(
-            self.width - self.SUBTITLE_MARGIN - self.subtitle_item.width,
+            self.width - self.options.subtitle_margin - self.subtitle_item.width,
             self.title_item.height - self.subtitle_item.TITLE_OVERLAP,
         )
-        plugs_top = self.title_height + self.plugs_top_padding
-        for row, plug in enumerate(self._plugs.values()):
-            plug.set_width(self.width)
-            plug.setPos(0.0, plugs_top + row * GraphicsPlug.ROW_HEIGHT)
-            plug.update_links()
-        plug_rows = max(len(self._plugs), self.MIN_PLUG_ROWS)
+        plugs_top = self.title_height + self.options.plugs_top_padding
+        for row, (left, right) in enumerate(plug_rows):
+            y = plugs_top + row * GraphicsPlug.ROW_HEIGHT
+            if left is not None and right is not None:
+                # Gap between the two labels: the padding every plug keeps on its inner
+                # side (see `GraphicsPlug.preferred_width`) plus the spare room of the
+                # row, split evenly. The trim takes some of the padding away so the
+                # labels sit closer, `_row_width` leaves out the same amount.
+                spare = self.width - self._row_width((left, right))
+                left_width = (
+                    left.preferred_width()
+                    - self.options.shared_row_gap_trim / 2
+                    + spare / 2
+                )
+                left.set_width(left_width)
+                left.setPos(0.0, y)
+                right.set_width(self.width - left_width)
+                right.setPos(left_width, y)
+            else:
+                plug = left or right
+                plug.set_width(self.width)
+                plug.setPos(0.0, y)
+            for plug in (left, right):
+                if plug is not None:
+                    plug.update_links()
         self.height = (
-            plugs_top + plug_rows * GraphicsPlug.ROW_HEIGHT + self.lower_padding
+            plugs_top
+            + max(len(plug_rows), self.options.min_plug_rows) * GraphicsPlug.ROW_HEIGHT
+            + self.options.lower_padding
         )
         self._rebuild_paths()
 
     def _rebuild_paths(self):
         """Rebuild the cached title, content and outline paths."""
-        w, h, r = self.width, self.height, self.edge_roundness
+        w, h, r = self.width, self.height, self.options.edge_roundness
         title_h = self.title_height
 
         title = QtGui.QPainterPath()
@@ -249,7 +305,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
     def boundingRect(self) -> QtCore.QRectF:
         """QtCore.QRectF: bounds of the node, including the outline."""
-        margin = -self.STATUS_ICON_RECT.x()
+        margin = -self.options.status_icon_rect.x()
         return QtCore.QRectF(
             -margin, -margin, self.width + 2 * margin, self.height + 2 * margin
         )
@@ -275,7 +331,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
 
         painter.setBrush(self._brush_title)
         painter.drawPath(self._path_title)
-        self._icon.paint(painter, self.ICON_RECT)
+        self._icon.paint(painter, self.options.icon_rect)
 
         painter.setBrush(self._brush_background)
         painter.drawPath(self._path_content)
@@ -288,7 +344,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         painter.drawPath(self._path_outline)
 
         if self._status_pixmap is not None:
-            painter.drawPixmap(self.STATUS_ICON_RECT, self._status_pixmap)
+            painter.drawPixmap(self.options.status_icon_rect, self._status_pixmap)
 
     def _paint_placeholder(self, painter: QtGui.QPainter):
         """Draw the node as a flat rect, for when it is too small to see details.

@@ -17,6 +17,7 @@ from .models.components_model import NodeComponentsModel
 from .contexts.serialization import NodeSerializationContext, NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
+from .node_render_options import NodeRenderOptions
 from ..static.vars import NYX_FILE_EXTENSION
 from ..static.enums import (
     CoreNodes,
@@ -910,6 +911,18 @@ class Node(QtGui.QStandardItem, StageObject):
     def get_type_execution_order(cls) -> NodeExecutionOrderFlag:
         """NodeExecutionOrderFlag: default execution order of the node type."""
         return NodeExecutionOrderFlag.BEFORE_CHILDREN
+
+    @classmethod
+    def get_render_options(cls) -> NodeRenderOptions:
+        """Get the options the editor draws nodes of this type with.
+
+        Subclasses can take the options of their parent class, change what they want
+        and return them.
+
+        Returns:
+            NodeRenderOptions: new options with the default values.
+        """
+        return NodeRenderOptions()
 
     @classmethod
     def get_tags(cls) -> set[str]:
