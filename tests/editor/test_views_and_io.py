@@ -1085,7 +1085,9 @@ def test_input_and_output_only_plugs_share_rows(stage_editor, create_node):
     for output_plug in (true, false):
         assert output_plug.is_readable and not output_plug.is_writable
         assert output_plug.pos().x() > 0.0
-        assert output_plug.pos().x() + output_plug.boundingRect().width() == gr_node.width
+        assert (
+            output_plug.pos().x() + output_plug.boundingRect().width() == gr_node.width
+        )
 
 
 def test_plug_with_both_sockets_takes_a_row_alone(stage_editor, create_node):

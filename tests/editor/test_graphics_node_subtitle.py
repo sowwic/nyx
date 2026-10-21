@@ -92,7 +92,10 @@ def test_node_grows_to_fit_a_wide_subtitle(make_gr_node):
     node.subtitle = "a rather wide subtitle text that needs more room than the title"
 
     assert gr_node.width > plain_width
-    assert gr_node.width >= gr_node.subtitle_item.width + 2 * gr_node.options.subtitle_margin
+    assert (
+        gr_node.width
+        >= gr_node.subtitle_item.width + 2 * gr_node.options.subtitle_margin
+    )
 
 
 def test_subtitle_can_not_be_clicked_or_edited(make_gr_node):
