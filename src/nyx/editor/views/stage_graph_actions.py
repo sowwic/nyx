@@ -141,11 +141,19 @@ class StageGraphActions:
         LOGGER.info(f"Copied node path: {path}")
 
     def focus_on_selected_nodes(self):
-        """Center on the selected nodes, zooming so they fit in the view."""
+        """Center on the selected nodes, zooming so they fit in the view.
+
+        If none of the selected nodes is in the current scope, the scope moves to
+        the parent of the last selected one first.
+        """
         view = self._view
         graph_editor = view.gr_stage.graph_editor
         selected_nodes = graph_editor.list_selected_nodes()
         nodes_in_scope = graph_editor.filter_nodes_by_scope(selected_nodes)
+        if not nodes_in_scope and selected_nodes:
+            graph_editor.set_scope_path(selected_nodes[-1].path.parent)
+            graph_editor.select_nodes(selected_nodes)
+            nodes_in_scope = graph_editor.filter_nodes_by_scope(selected_nodes)
 
         nodes_rect = QtCore.QRectF()
         for node in nodes_in_scope:

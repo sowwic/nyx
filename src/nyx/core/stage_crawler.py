@@ -118,6 +118,7 @@ class StageCrawler:
         self.stage.execution_started.emit()
         start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
         self._traverse_children(start_node)  # kicks off the descent
+        self.stage.execution_succeeded.emit()
         self.stage.execution_finished.emit()
 
     # -- NodeVisitor -----------------------------------------------------

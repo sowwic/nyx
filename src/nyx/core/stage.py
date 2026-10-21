@@ -49,6 +49,8 @@ class Stage(QtGui.QStandardItemModel):
     node_deleted = QtCore.Signal(UUID)
     execution_started = QtCore.Signal()
     execution_finished = QtCore.Signal()
+    execution_succeeded = QtCore.Signal()
+    execution_failed = QtCore.Signal(Node)
 
     def __repr__(self) -> str:
         """str: node count and file path."""
