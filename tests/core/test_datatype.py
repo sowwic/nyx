@@ -43,13 +43,12 @@ def test_wildcards_accept_everything():
         assert other.accepts(get(wildcard))
 
 
-def test_type_is_a_concrete_datatype():
+def test_type_datatype_is_for_classes():
     type_datatype = get(CoreDatatypes.TYPE)
-    assert not type_datatype.is_wildcard
+    assert type_datatype.python_type is type
+    assert NYX_REGISTRY.infer_datatype(int) is type_datatype
     assert type_datatype.accepts(type_datatype)
     assert type_datatype.accepts(get(CoreDatatypes.OBJECT))
-    assert not type_datatype.accepts(get(CoreDatatypes.INT))
-    assert not get(CoreDatatypes.INT).accepts(type_datatype)
 
 
 def test_concrete_datatypes_accept_only_themselves():
@@ -82,18 +81,20 @@ def test_infer_datatype_uses_the_exact_python_type(value, expected):
 @pytest.mark.parametrize(
     "value, expected",
     [
-        (CoreDatatypes.BOOL, CoreDatatypes.BOOL),  # a registered datatype id
-        (float, CoreDatatypes.FLOAT),  # a python type
-        (3, CoreDatatypes.INT),  # any other value gives its own type
-        (dict, CoreDatatypes.OBJECT),
+        (CoreDatatypes.BOOL, bool),  # a registered datatype id
+        (CoreDatatypes.OBJECT, object),  # a datatype without a python type
+        (float, float),  # a class stays as it is
+        (dict, dict),
+        (3, int),  # any other value gives its own type
+        ("text", str),
     ],
 )
-def test_type_datatype_gets_the_type_from_any_input(value, expected):
+def test_type_datatype_gets_the_class_from_any_input(value, expected):
     assert get(CoreDatatypes.TYPE).cast(value) == expected
 
 
 def test_type_datatype_accepts_a_datatype():
-    assert get(CoreDatatypes.TYPE).cast(get(CoreDatatypes.INT)) == CoreDatatypes.INT
+    assert get(CoreDatatypes.TYPE).cast(get(CoreDatatypes.INT)) is int
 
 
 @pytest.mark.parametrize(
@@ -103,7 +104,7 @@ def test_type_datatype_accepts_a_datatype():
         (CoreDatatypes.STRING, ""),
         (CoreDatatypes.INT, 0),
         (CoreDatatypes.FLOAT, 0.0),
-        (CoreDatatypes.TYPE, "core:object"),
+        (CoreDatatypes.TYPE, object),
         (CoreDatatypes.OBJECT, None),
         (CoreDatatypes.PATH, None),
         (CoreDatatypes.FLOW, None),

@@ -1,3 +1,4 @@
+import builtins
 import dataclasses
 import typing
 
@@ -101,3 +102,23 @@ OBJECT_DATATYPE = Datatype(
     plug_shape=GraphicsPlugShape.SQUARE_MATRIX,
 )
 """Datatype of values without a type hint, used wherever no datatype is set."""
+
+
+def value_to_text(value: typing.Any) -> typing.Any:
+    """Turn a class into text that can be shown, edited and saved.
+
+    Classes can't be written to a file or shown by the QML views, other values are
+    fine as they are.
+
+    Args:
+        value (typing.Any): value of a component.
+
+    Returns:
+        typing.Any: the name of the class, qualified with its module unless it is a
+            builtin one. Anything that isn't a class as it is.
+    """
+    if not isinstance(value, type):
+        return value
+    if getattr(builtins, value.__name__, None) is value:
+        return value.__name__
+    return f"{value.__module__}.{value.__qualname__}"

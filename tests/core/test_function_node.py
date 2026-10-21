@@ -159,3 +159,18 @@ def test_var_arguments_get_no_components(register):
     for name in ("args", "kwargs"):
         with pytest.raises(ValueError, match="no component"):
             node[name]
+
+
+def test_string_result_is_not_evaluated_as_an_expression(register):
+    def number_text(value: int) -> str:
+        return str(value)
+
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    node = make_node(stage, register(number_text).get_type_id(), name="text")
+    start["flow"] >> node["flow"]
+    node["value"].push_value(5)
+
+    stage.crawler.start()
+
+    assert node["return"].pull_value() == "5"

@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from nyx.api.v1 import Stage, Node, CoreNodes, commands
+from nyx.api.v1 import Stage, Node, CoreNodes, Link, commands
 
 
 LOGGER = logging.getLogger(__name__)
@@ -248,7 +248,8 @@ def test_cycle_ends_instead_of_running_forever():
     second = make_node(stage, name="second")
     start["flow"] >> first["flow"]
     first["flow"] >> second["flow"]
-    second["flow"] >> first["flow"]
+    # Linking components refuses cycles, a stage loaded from a file may still have one
+    stage.register_link(Link(stage, second["flow"].uuid, first["flow"].uuid))
 
     stage.crawler.start()
 

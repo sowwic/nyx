@@ -16,6 +16,8 @@ class CoreNodes(enum.StrEnum):
     FOR_EACH_LOOP = "core:for_each_loop"
     WHILE_LOOP = "core:while_loop"
     LOG = "core:log"
+    TYPE_CAST = "core:type_cast"
+    GET_TYPE = "core:get_type"
 
 
 class LinkAnimationStyle(enum.StrEnum):

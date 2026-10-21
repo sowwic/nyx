@@ -92,10 +92,10 @@ def test_setter_value_datatype_is_unlocked_until_linked():
 
     stage.push_command(
         commands.SetNodeComponentDatatypeCommand(
-            stage=stage, node_component=value, datatype_id=CoreDatatypes.FLOAT
+            stage=stage, node_component=value, datatype_id=CoreDatatypes.PATH
         )
     )
-    assert value.datatype.type_id == CoreDatatypes.FLOAT
+    assert value.datatype.type_id == CoreDatatypes.PATH
 
     source = log_command.result_node["level"]
     source.readable = True

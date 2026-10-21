@@ -1,4 +1,4 @@
-from nyx.api.v1 import Stage, CoreNodes, commands
+from nyx.api.v1 import Stage, CoreNodes, Link, commands
 from nyx.core.execution_chain import ExecutionChain
 
 
@@ -88,9 +88,10 @@ def test_cycle_does_not_loop_forever():
     start = make_node(stage, CoreNodes.FLOW_START)
     first = make_node(stage, CoreNodes.ACTION)
     second = make_node(stage, CoreNodes.ACTION)
-    # A flow input takes one link, so a cycle can't be entered from the start
+    # A flow input takes one link, so a cycle can't be entered from the start.
+    # Linking components refuses cycles, a stage loaded from a file may still have one.
     connect(stage, first, second)
-    connect(stage, second, first)
+    stage.register_link(Link(stage, second["flow"].uuid, first["flow"].uuid))
 
     assert chain_of(stage) == {start.uuid}
 

@@ -4,6 +4,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import "../Common"
+
 Rectangle {
     id: root
     color: palette.window
@@ -66,6 +68,10 @@ Rectangle {
                         left: nodesPaletteListView.right
                     }
                 }
+
+                section.property: "sourcePlugin"
+                section.criteria: ViewSection.FullString
+                section.delegate: PaletteSectionHeader {}
 
                 delegate: NodePaletteItemDelegate {
                     dragEnabled: root.dragEnabled

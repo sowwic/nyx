@@ -4,6 +4,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import "../Common"
+
 Rectangle {
     id: root
     signal spawnRequested(string typeId)
@@ -63,6 +65,10 @@ Rectangle {
                         left: nodesPaletteListView.right
                     }
                 }
+
+                section.property: "sourcePlugin"
+                section.criteria: ViewSection.FullString
+                section.delegate: PaletteSectionHeader {}
 
                 delegate: ComponentPaletteItemDelegate {
                     onSpawnRequested: typeId => root.spawnRequested(typeId)

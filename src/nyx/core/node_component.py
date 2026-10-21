@@ -9,7 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
-from .datatypes.datatype import Datatype
+from .datatypes.datatype import Datatype, value_to_text
 from .exceptions import DatatypeCastError
 from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
@@ -519,7 +519,12 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             str: display value.
         """
         if self.input_links:
-            return self.input_links[0].source_component.get_display_value()
+            source = self.input_links[0].source_component
+            source_value = source.pull_value()
+            value = self._cast_linked_value(source_value)
+            if type(value) is type(source_value) and value == source_value:
+                return source.get_display_value()
+            return str(value)
         return self.data(role=self.Roles.DISPLAY_VALUE)
 
     def clear_cached_value(self):
@@ -535,6 +540,21 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         self.value_storage.push(value, evaluate=evaluate)
 
+    def _cast_linked_value(self, value: typing.Any) -> typing.Any:
+        """Convert a value that came through an input link to the component datatype.
+
+        Args:
+            value (typing.Any): value of the source component.
+
+        Returns:
+            typing.Any: the converted value, the value as it is if it can't be converted.
+        """
+        try:
+            return self.value_storage.cast_value(value)
+        except DatatypeCastError as err:
+            LOGGER.warning("%s: %s", self.path, err)
+            return value
+
     def pull_value(
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ) -> typing.Any:
@@ -548,7 +568,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         input_links = self.input_links
         if input_links:
-            return input_links[0].source_component.pull_value(value_mask=value_mask)
+            value = input_links[0].source_component.pull_value(value_mask=value_mask)
+            if value_mask is NodeComponentValueMask.CACHE:
+                return self._cast_linked_value(value)
+            return value
 
         return self.value_storage.pull(value_mask)
 
@@ -674,8 +697,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.push_value(self.deserialize_value(value=serialized_value))
 
     def serialize_value(self) -> typing.Any:
-        """typing.Any: value to store when serializing."""
-        return self.raw_value
+        """typing.Any: value to store when serializing, classes as their name."""
+        return value_to_text(self.raw_value)
 
     def deserialize_value(self, value: typing.Any) -> typing.Any:
         """Convert a serialized value back to a value.
@@ -689,8 +712,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return value
 
     def serialize_default_value(self) -> typing.Any:
-        """typing.Any: default value to store when serializing."""
-        return self.default_value
+        """typing.Any: default value to store when serializing, classes as their name."""
+        return value_to_text(self.default_value)
 
     def deserialize_default_value(self, value: typing.Any) -> typing.Any:
         """Convert a serialized default value back to a value.

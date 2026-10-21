@@ -32,7 +32,10 @@ class ValueComponent(NodeComponent):
     @classmethod
     def get_description(cls) -> str:
         """str: what the component type does, shown in the palette."""
-        return "Holds a typed value that can be edited, linked to other components or pulled by them."
+        return (
+            "Holds a typed value that can be edited, linked to other components or "
+            "pulled by them."
+        )
 
     @classmethod
     def get_tags(cls) -> set[str]:

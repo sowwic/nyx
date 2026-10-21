@@ -379,6 +379,12 @@ class Stage(QtGui.QStandardItemModel):
                 f"Component allows a single output link: {source_component}"
             )
 
+        if self.would_link_create_cycle(source_component, target_component):
+            raise NodeComponentLinkError(
+                f"Link would create a cycle between nodes: {source_component} "
+                f"to {target_component}"
+            )
+
         new_link = Link(
             stage=self,
             source=source_component.uuid,
@@ -387,6 +393,75 @@ class Stage(QtGui.QStandardItemModel):
         )
         self.register_link(link=new_link)
         return new_link
+
+    def would_link_create_cycle(
+        self, source_component: NodeComponent, target_component: NodeComponent
+    ) -> bool:
+        """Check whether a link would make values depend on themselves.
+
+        Between two nodes the nodes are looked at, not the components: nodes can't take
+        values from each other in both directions, whatever components the links are
+        between. Inside of a node only the components count, they can be linked to
+        each other as long as the values don't loop back. Flow links count too, loops
+        are made with loop nodes that run their body, not with circular links.
+
+        Args:
+            source_component (NodeComponent): component providing output.
+            target_component (NodeComponent): component accepting input.
+
+        Returns:
+            bool: the source already depends on the target (the node of the source on
+                the node of the target), or both are the same component.
+        """
+        if source_component is target_component:
+            return True
+
+        if source_component.node is target_component.node:
+            start, goal = target_component, source_component
+            next_of = self._find_dependent_components
+        else:
+            start, goal = target_component.node, source_component.node
+            next_of = self._find_dependent_nodes
+
+        pending = [start]
+        reached = {start.uuid}
+        while pending:
+            item = pending.pop()
+            if item is goal:
+                return True
+            for next_item in next_of(item):
+                if next_item.uuid not in reached:
+                    reached.add(next_item.uuid)
+                    pending.append(next_item)
+        return False
+
+    @staticmethod
+    def _find_dependent_components(component: NodeComponent) -> list[NodeComponent]:
+        """Find the components that take their value from a component.
+
+        Args:
+            component (NodeComponent): component providing the value.
+
+        Returns:
+            list[NodeComponent]: targets of its output links.
+        """
+        return [link.target_component for link in component.output_links]
+
+    @staticmethod
+    def _find_dependent_nodes(node: Node) -> list[Node]:
+        """Find the nodes that take values from a node.
+
+        Args:
+            node (Node): node providing the values.
+
+        Returns:
+            list[Node]: nodes with a component linked to a component of the node.
+        """
+        return [
+            link.target_component.node
+            for component in node.components_model.list_components()
+            for link in component.output_links
+        ]
 
     def register_link(self, link: Link):
         """Register a link and attach it to both of its components.

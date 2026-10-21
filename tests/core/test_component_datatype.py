@@ -224,3 +224,39 @@ def test_plug_shape_follows_the_datatype(value):
     assert value.get_plug_shape() is GraphicsPlugShape.SQUARE_MATRIX
     value.set_datatype(CoreDatatypes.FLOW)
     assert value.get_plug_shape() is GraphicsPlugShape.PENTAGON
+
+
+def test_linked_value_is_converted_to_the_datatype_of_the_component():
+    stage = Stage()
+    source_node = make_branch(stage)
+    middle_node = make_branch(stage)
+    target_node = make_branch(stage)
+    source = source_node["condition"]
+    middle = middle_node["condition"]
+    target = target_node["condition"]
+    source.readable = True
+    source.set_datatype(CoreDatatypes.OBJECT)
+    source.push_value(1.5)
+    middle.readable = True
+    middle.set_datatype(CoreDatatypes.TYPE)
+    target.set_datatype(CoreDatatypes.OBJECT)
+    stage.link_components(source, middle)
+    stage.link_components(middle, target)
+
+    assert middle.pull_value() is float
+    assert target.pull_value() is float
+    assert middle.get_display_value() == str(float)
+    assert source.pull_value() == 1.5  # the source keeps its own value
+
+
+def test_linked_value_that_cant_be_converted_is_passed_on():
+    stage = Stage()
+    source = make_branch(stage)["condition"]
+    target = make_branch(stage)["condition"]
+    source.readable = True
+    source.set_datatype(CoreDatatypes.OBJECT)
+    source.push_value("abc")
+    target.set_datatype(CoreDatatypes.INT)
+    stage.link_components(source, target)
+
+    assert target.pull_value() == "abc"

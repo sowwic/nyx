@@ -1,5 +1,3 @@
-import pytest
-
 from nyx.api.v1 import NYX_REGISTRY, Node, NodeComponent, Stage, StageObject, commands
 from nyx.core.models.registry_model import RegistryListModel
 
@@ -10,14 +8,28 @@ def test_description_is_empty_by_default():
     assert NodeComponent.get_description() == ""
 
 
-@pytest.mark.parametrize("type_id", sorted(NYX_REGISTRY.nodes))
-def test_every_registered_node_has_a_description(type_id):
-    assert NYX_REGISTRY.nodes[type_id].get_description().strip()
+# The registry is filled when the plugins are initialized, after the tests are
+# collected, so the types are looked at while the tests run.
 
 
-@pytest.mark.parametrize("type_id", sorted(NYX_REGISTRY.node_components))
-def test_every_registered_component_has_a_description(type_id):
-    assert NYX_REGISTRY.node_components[type_id].get_description().strip()
+def test_every_registered_node_has_a_description():
+    assert NYX_REGISTRY.nodes
+    missing = [
+        type_id
+        for type_id, node_cls in NYX_REGISTRY.nodes.items()
+        if not node_cls.get_description().strip()
+    ]
+    assert not missing
+
+
+def test_every_registered_component_has_a_description():
+    assert NYX_REGISTRY.node_components
+    missing = [
+        type_id
+        for type_id, cpnt_cls in NYX_REGISTRY.node_components.items()
+        if not cpnt_cls.get_description().strip()
+    ]
+    assert not missing
 
 
 def test_node_and_component_expose_the_description_role():

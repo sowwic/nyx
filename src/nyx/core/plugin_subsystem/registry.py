@@ -207,7 +207,7 @@ class NyxRegistry:
             )
 
     def register_core_datatypes(self):
-        """Register the built-in datatypes, they are there whatever plugins are enabled."""
+        """Register the built-in datatypes, which exist whatever plugins are enabled."""
         from ..datatypes.core_types import CORE_DATATYPES
 
         for datatype in CORE_DATATYPES:

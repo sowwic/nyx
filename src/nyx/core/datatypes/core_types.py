@@ -1,31 +1,34 @@
 import pathlib
 import typing
 
-from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
-from nyx.static.enums import CoreDatatypes, GraphicsPlugShape
-from .datatype import Datatype, OBJECT_DATATYPE
+from nyx.api.v1 import (
+    NYX_REGISTRY,
+    CoreDatatypes,
+    Datatype,
+    GraphicsPlugShape,
+    OBJECT_DATATYPE,
+)
 
 
-def cast_to_type_id(value: typing.Any) -> str:
-    """Get the id of the datatype a value stands for.
+def cast_to_type(value: typing.Any) -> type:
+    """Get the python type a value stands for.
 
     Args:
-        value (typing.Any): a registered datatype id, a datatype, a python type, or
-            any value to get the datatype of.
+        value (typing.Any): a python type, a datatype, the id of a registered datatype,
+            or any value to get the type of.
 
     Returns:
-        str: datatype type id.
+        type: the class. Datatypes without a python type (e.g. object) give `object`.
     """
-    if isinstance(value, Datatype):
-        return value.type_id
-    if isinstance(value, str) and NYX_REGISTRY.get_datatype(value):
-        return value
     if isinstance(value, type):
-        for datatype in NYX_REGISTRY.iter_datatypes():
-            if datatype.python_type is value:
-                return datatype.type_id
-        return OBJECT_DATATYPE.type_id
-    return NYX_REGISTRY.infer_datatype(value).type_id
+        return value
+    if isinstance(value, Datatype):
+        return value.python_type or object
+    if isinstance(value, str):
+        datatype = NYX_REGISTRY.get_datatype(value)
+        if datatype is not None:
+            return datatype.python_type or object
+    return type(value)
 
 
 CORE_DATATYPES: tuple[Datatype, ...] = (
@@ -34,8 +37,10 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         type_id=CoreDatatypes.TYPE,
         display_name="Type",
         color="#B04BFF",
-        caster=cast_to_type_id,
-        default_factory=lambda: CoreDatatypes.OBJECT.value,
+        caster=cast_to_type,
+        python_type=type,
+        default_factory=lambda: object,
+        is_wildcard=True,
     ),
     Datatype(
         type_id=CoreDatatypes.BOOL,
@@ -62,6 +67,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         caster=int,
         python_type=int,
         default_factory=int,
+        compatible_with=frozenset({CoreDatatypes.FLOAT}),
     ),
     Datatype(
         type_id=CoreDatatypes.FLOAT,
@@ -70,6 +76,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         caster=float,
         python_type=float,
         default_factory=float,
+        compatible_with=frozenset({CoreDatatypes.INT}),
     ),
     Datatype(
         type_id=CoreDatatypes.PATH,

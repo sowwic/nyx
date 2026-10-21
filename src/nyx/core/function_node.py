@@ -98,7 +98,8 @@ class FunctionNode(Node):
                 args.append(value)
             else:
                 kwargs[parameter.name] = value
-        self.return_cpnt.push_value(self.FUNCTION(*args, **kwargs))
+        # Not evaluated: a string result would be run as an expression otherwise
+        self.return_cpnt.push_value(self.FUNCTION(*args, **kwargs), evaluate=False)
 
 
 def find_datatype_id(annotation: typing.Any) -> str:

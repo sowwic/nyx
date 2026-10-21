@@ -778,14 +778,14 @@ class Node(QtGui.QStandardItem, StageObject):
         file_fn.write_json(file_path, data)
 
     def load_from_json(self, file_path: pathlib.Path):
-        """Load node from json file.
+        """Load the contents of a json file into this node.
 
         Args:
             file_path (pathlib.Path): json file path.
 
         """
         json_data = file_fn.load_json(file_path, object_pairs_hook=OrderedDict)
-        self.deserialize(json_data)
+        self.deserialize(json_data, node=self)
 
     def find_child_by_name(self, name) -> Node | None:
         """Find a direct child by name.

@@ -8,3 +8,5 @@ DraggableDelegate 1.0 DraggableDelegate.qml
 ReorderState 1.0 ReorderState.qml
 RowDragHandler 1.0 RowDragHandler.qml
 DescriptionToolTip 1.0 DescriptionToolTip.qml
+PaletteSectionHeader 1.0 PaletteSectionHeader.qml
+TagsList 1.0 TagsList.qml

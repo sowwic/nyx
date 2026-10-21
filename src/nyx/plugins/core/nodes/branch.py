@@ -24,7 +24,10 @@ class BranchNode(Node):
     @classmethod
     def get_description(cls) -> str:
         """str: what the node type does, shown in the palette."""
-        return "Continues through the true or false flow output depending on the condition value."
+        return (
+            "Continues through the true or false flow output depending on the "
+            "condition value."
+        )
 
     @classmethod
     def get_tags(cls) -> set[str]:

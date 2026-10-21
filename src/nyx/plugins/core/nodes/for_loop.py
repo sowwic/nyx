@@ -29,7 +29,10 @@ class ForLoopNode(Node):
     @classmethod
     def get_description(cls) -> str:
         """str: what the node type does, shown in the palette."""
-        return "Runs the loop body for every index from the first to the last index, then continues with completed."
+        return (
+            "Runs the loop body for every index from the first to the last index, "
+            "then continues with completed."
+        )
 
     @classmethod
     def get_tags(cls) -> set[str]:

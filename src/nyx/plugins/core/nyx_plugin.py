@@ -22,6 +22,8 @@ from .nodes.while_loop import WhileLoopNode
 from .nodes.action import ActionNode
 from .nodes.sequence import SequenceNode
 from .nodes.log import LogNode
+from .nodes.type_cast import TypeCastNode
+from .nodes.get_type import GetTypeNode
 
 
 LOGGER = logging.getLogger(__name__)
@@ -66,6 +68,8 @@ class NyxCore(NyxPlugin):
             FlowStartNode,
             SequenceNode,
             LogNode,
+            TypeCastNode,
+            GetTypeNode,
         ]
 
         return plugin
