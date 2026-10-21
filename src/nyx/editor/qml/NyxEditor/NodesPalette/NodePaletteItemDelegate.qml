@@ -50,9 +50,6 @@ ItemDelegate {
         enabled: itemRoot.dragEnabled
         target: null                         // the row stays put; only the drag image moves
         acceptedButtons: Qt.LeftButton
-        // QQuickWidget accepts touch events, so a macOS trackpad feeds raw touch
-        // points into the scene; starting a QDrag from one of those crashes Qt.
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus
 
         // Activate the drag once pointer delivery has unwound, rather than from
         // inside this handler's activation. On macOS the QDrag blocks until the
@@ -61,6 +58,13 @@ ItemDelegate {
             if (active)
                 Qt.callLater(() => {
                     if (!dragHandler.active)
+                        return;
+                    // QQuickWidget accepts touch events, so a macOS trackpad feeds raw
+                    // touch points into the scene, and starting a QDrag from one of
+                    // those crashes Qt. Those have no button down. Filtering by device
+                    // type would not do: after a scroll, Qt reports the clicks of a
+                    // mouse as coming from the trackpad device.
+                    if (!(dragHandler.centroid.pressedButtons & Qt.LeftButton))
                         return;
                     itemRoot.Drag.active = true;
                     itemRoot.Drag.active = false;
