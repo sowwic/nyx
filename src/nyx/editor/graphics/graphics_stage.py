@@ -5,7 +5,6 @@ nodes and edges in the graph editor.
 """
 
 import logging
-import math
 import pathlib
 import typing
 from collections import deque
@@ -20,6 +19,7 @@ from nyx.core.execution_chain import ExecutionChain
 from nyx.core.link import Link
 from nyx.core.stage_object import StageObject
 from nyx.core.stage_render_options import StageRenderOptions
+from nyx.editor.graphics.background.styles import create_background
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_link_drag_handler import GraphicsLinkDragHandler
 from nyx.editor.graphics.graphics_node import GraphicsNode
@@ -132,7 +132,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             return StageBackGroundStyle.GRID
 
     def apply_render_options(self):
-        """Rebuilds the background brush, pens and style from the options and config."""
+        """Rebuilds the background brush and pattern from the options and config."""
         stage_config = get_app_config().values.editor_widgets.graphics_stage
         color = QtGui.QColor(stage_config.background_color)
         if color.isValid():
@@ -142,78 +142,14 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                 f"Invalid background color {stage_config.background_color!r}, "
                 f"using {self.options.background_color.name()!r}"
             )
-        self._background_style = self.get_background_style()
-        self._pen_light = QtGui.QPen(self.options.grid_light_color)
-        self._pen_light.setWidth(self.options.grid_light_width)
-        self._pen_dark = QtGui.QPen(self.options.grid_dark_color)
-        self._pen_dark.setWidth(self.options.grid_dark_width)
+        self._background = create_background(self.get_background_style(), self.options)
         self.setBackgroundBrush(self.options.background_color)
         self.update()
 
     def drawBackground(self, painter, rect):
         """Draws the background pattern of the scene."""
         super().drawBackground(painter, rect)
-        if self._background_style == StageBackGroundStyle.DOTS:
-            self._draw_dots(painter, rect)
-        else:
-            self._draw_grid(painter, rect)
-
-    def _draw_grid(self, painter, rect):
-        """Draws minor and major grid lines over the rect."""
-        grid_size = self.options.grid_size
-        major_size = grid_size * self.options.grid_squares
-        left = int(math.floor(rect.left()))
-        right = int(math.ceil(rect.right()))
-        top = int(math.floor(rect.top()))
-        bottom = int(math.ceil(rect.bottom()))
-
-        first_left = left - (left % grid_size)
-        first_top = top - (top % grid_size)
-
-        # Compute line drawing
-        lines_light, lines_dark = [], []
-        for x in range(first_left, right, grid_size):
-            if x % major_size:
-                lines_light.append(QtCore.QLine(x, top, x, bottom))
-            else:
-                lines_dark.append(QtCore.QLine(x, top, x, bottom))
-
-        for y in range(first_top, bottom, grid_size):
-            if y % major_size:
-                lines_light.append(QtCore.QLine(left, y, right, y))
-            else:
-                lines_dark.append(QtCore.QLine(left, y, right, y))
-
-        # Draw lines
-        painter.setPen(self._pen_light)
-        painter.drawLines(lines_light)
-        painter.setPen(self._pen_dark)
-        painter.drawLines(lines_dark)
-
-    def _draw_dots(self, painter, rect):
-        """Draws a dot on every grid intersection over the rect.
-
-        Dots keep their size on screen, and are left out once they get too close.
-        """
-        grid_size = self.options.grid_size
-        scale = painter.worldTransform().m11()
-        if scale <= 0 or grid_size * scale < self.options.dots_min_spacing:
-            return
-        left = int(math.floor(rect.left()))
-        top = int(math.floor(rect.top()))
-        first_left = left - (left % grid_size)
-        first_top = top - (top % grid_size)
-
-        points = [
-            QtCore.QPointF(x, y)
-            for x in range(first_left, int(math.ceil(rect.right())) + 1, grid_size)
-            for y in range(first_top, int(math.ceil(rect.bottom())) + 1, grid_size)
-        ]
-        pen = QtGui.QPen(self.options.dot_color)
-        pen.setWidthF(self.options.dot_size / scale)
-        pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
-        painter.setPen(pen)
-        painter.drawPoints(points)
+        self._background.draw(painter, rect)
 
     # ======== Nodes ========= #
 

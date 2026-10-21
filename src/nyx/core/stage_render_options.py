@@ -18,7 +18,8 @@ class StageRenderOptions:
         grid_light_width: width of the minor grid lines
         grid_dark_width: width of the major grid lines
         dot_color: color of the dots
-        dot_size: size of the dots on screen, it doesn't change with the zoom
+        dot_size: size of the dots on screen in whole pixels, it doesn't change
+            with the zoom
         dots_min_spacing: dots are not drawn when they are closer than this on screen
     """
 
@@ -40,5 +41,5 @@ class StageRenderOptions:
     dot_color: QtGui.QColor = dataclasses.field(
         default_factory=lambda: QtGui.QColor("#4a4a4a")
     )
-    dot_size: float = 1.5
-    dots_min_spacing: float = 6.0
+    dot_size: float = 2.0
+    dots_min_spacing: float = 10.0
