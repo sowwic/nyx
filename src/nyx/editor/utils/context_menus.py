@@ -1,9 +1,19 @@
 """Context menus shared between editor views."""
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
+
+
+def show_menu(menu: QtWidgets.QMenu, global_pos: QtCore.QPoint) -> None:
+    """Show a menu at a position and wait until it is closed.
+
+    Args:
+        menu (QtWidgets.QMenu): menu to show.
+        global_pos (QtCore.QPoint): position in screen coordinates.
+    """
+    menu.exec(global_pos)
 
 
 def build_nodes_context_menu(

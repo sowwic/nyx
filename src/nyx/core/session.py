@@ -4,7 +4,7 @@ import typing
 
 import shiboken6
 
-from .layered_config import MAX_RECENT_FILES, NyxConfig
+from .layered_config import NyxConfig
 from ..api.v1 import Stage
 
 
@@ -84,7 +84,7 @@ class NyxSession:
         if file_path in recent_files:
             return
         recent_files.insert(0, file_path)
-        del recent_files[MAX_RECENT_FILES:]
+        del recent_files[max(self._config.values.editor_session.max_recent_files, 0) :]
         self._config.save()
 
     def remove_recent_file(self, file_path: str) -> None:

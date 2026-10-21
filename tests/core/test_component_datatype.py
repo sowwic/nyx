@@ -20,9 +20,10 @@ def make_branch(stage: Stage):
 
 @pytest.fixture
 def value():
-    component = make_branch(Stage())["condition"]
+    stage = Stage()  # owns the component, it must outlive the test
+    component = make_branch(stage)["condition"]
     component.set_datatype(CoreDatatypes.OBJECT)
-    return component
+    yield component
 
 
 def test_default_datatype_is_object(value):
@@ -80,7 +81,8 @@ def test_none_stays_none_for_datatypes_without_a_default(value):
 
 
 def test_setting_a_datatype_on_an_empty_value_pushes_its_default():
-    component = make_branch(Stage())["condition"]
+    stage = Stage()  # owns the component, it must outlive the test
+    component = make_branch(stage)["condition"]
     component.push_value(None)
 
     component.set_datatype(CoreDatatypes.STRING)
@@ -90,7 +92,8 @@ def test_setting_a_datatype_on_an_empty_value_pushes_its_default():
 
 
 def test_setting_a_datatype_keeps_an_existing_value():
-    component = make_branch(Stage())["condition"]
+    stage = Stage()  # owns the component, it must outlive the test
+    component = make_branch(stage)["condition"]
     component.push_value("5")
 
     component.set_datatype(CoreDatatypes.INT)
@@ -100,7 +103,8 @@ def test_setting_a_datatype_keeps_an_existing_value():
 
 
 def test_reset_to_type_default_uses_the_datatype_default():
-    component = make_branch(Stage())["condition"]
+    stage = Stage()  # owns the component, it must outlive the test
+    component = make_branch(stage)["condition"]
     component.set_datatype(CoreDatatypes.INT)
     component.push_value(9)
 

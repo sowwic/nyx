@@ -6,6 +6,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from .graphics_node_subtitle import GraphicsNodeSubtitle
 from .graphics_node_title import GraphicsNodeTitle
 from .graphics_plug import GraphicsPlug
+from .level_of_detail import LevelOfDetail
 from ..utils.common import build_role_tooltip_html, are_hover_diagnostics_enabled
 from ...core import commands
 
@@ -234,8 +235,12 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             option (QtWidgets.QStyleOptionGraphicsItem): style options.
             widget (QtWidgets.QWidget | None): painted widget.
         """
-        # TODO: Adjust title visibility based on scale
+        lod = LevelOfDetail.from_painter(painter, shape_size=GraphicsPlug.ROW_HEIGHT)
         painter.setPen(QtCore.Qt.NoPen)
+        if not lod.shows_shapes:
+            self._paint_placeholder(painter)
+            return
+
         painter.setBrush(self._brush_title)
         painter.drawPath(self._path_title)
         self._icon.paint(painter, self.ICON_RECT)
@@ -249,6 +254,19 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         )
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.drawPath(self._path_outline)
+
+    def _paint_placeholder(self, painter: QtGui.QPainter):
+        """Draw the node as a flat rect, for when it is too small to see details.
+
+        Args:
+            painter (QtGui.QPainter): painter, without a pen.
+        """
+        painter.setBrush(self._brush_background)
+        painter.drawRect(QtCore.QRectF(0.0, 0.0, self.width, self.height))
+        if self.isSelected():
+            painter.setPen(self._pen_selected)
+            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.drawRect(self.boundingRect())
 
     def _refresh_tooltip(self):
         """Show node role diagnostics as tooltip if enabled in config or debug mode."""

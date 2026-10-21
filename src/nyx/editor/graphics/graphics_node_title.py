@@ -4,6 +4,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
 from nyx.core.name_validator import NameValidator
+from nyx.editor.graphics.level_of_detail import LevelOfDetail
 
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_node import GraphicsNode
@@ -24,6 +25,23 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         self.gr_node = gr_node
         self._editor_proxy: QtWidgets.QGraphicsProxyWidget | None = None
         self.setFont(self.TITLE_FONT)
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget | None = None,
+    ) -> None:
+        """Draw the text unless it is too small to read.
+
+        Args:
+            painter (QtGui.QPainter): painter.
+            option (QtWidgets.QStyleOptionGraphicsItem): style options.
+            widget (QtWidgets.QWidget | None): painted widget.
+        """
+        lod = LevelOfDetail.from_painter(painter, text_size=self.TITLE_FONT.pointSizeF())
+        if lod.shows_text:
+            super().paint(painter, option, widget)
 
     @property
     def height(self) -> float:

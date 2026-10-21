@@ -17,15 +17,16 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from nyx.core import commands
 from nyx.core.exceptions import StageObjectQueryError
 from nyx.core.execution_chain import ExecutionChain
-from nyx.core.layered_config import NyxConfig
 from nyx.core.link import Link
 from nyx.core.stage_object import StageObject
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_link_drag_handler import GraphicsLinkDragHandler
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
-from nyx.editor.graphics.link_pulse_animator import LinkPulseAnimator
-from nyx.static.enums import CoreNodeComponents
+from nyx.editor.graphics.animation.link_animator import LinkAnimator, ViewArea
+from nyx.editor.graphics.animation.styles import ANIMATION_CLASSES, create_animation
+from nyx.editor.utils.common import get_app_config
+from nyx.static.enums import CoreNodeComponents, LinkAnimationStyle
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import Node
@@ -59,10 +60,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self._gr_links: dict[UUID, GraphicsLink] = {}
         self._link_drag_handler = GraphicsLinkDragHandler(self)
         self._link_drag_handler.drag_changed.connect(self.link_drag_changed)
-        self._pulse_animator = LinkPulseAnimator(
-            is_visible=self._is_shown_in_a_view, parent=self
-        )
-        self.link_drag_changed.connect(self._pulse_animator.set_paused)
+        self._link_animator = LinkAnimator(visible_areas=self._view_areas, parent=self)
+        self.link_drag_changed.connect(self._link_animator.set_paused)
         self._scope_path: pathlib.PurePosixPath | None = None
 
         # Settings
@@ -320,7 +319,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         gr_link = link if isinstance(link, GraphicsLink) else self.get_gr_link(link)
         if gr_link is None:
             return
-        self._pulse_animator.unregister(gr_link)
+        self._link_animator.unregister(gr_link)
         self._gr_links.pop(gr_link.uuid, None)
         gr_link.detach()
         if gr_link.scene() is self:
@@ -362,17 +361,41 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                 if target_plug is not None:
                     self.add_link(link, source_plug, target_plug)
 
-    @staticmethod
-    def is_flow_chain_highlight_enabled() -> bool:
+    @property
+    def link_animator(self) -> LinkAnimator:
+        """LinkAnimator: animator of the link animations, such as the chain pulses."""
+        return self._link_animator
+
+    @classmethod
+    def is_flow_chain_highlight_enabled(cls) -> bool:
         """Check whether links on the execution chain are animated.
 
         Returns:
-            bool: enabled in the editor behaviour config.
+            bool: enabled in the graphics stage config.
         """
-        return NyxConfig().values.editor_behaviour.highlight_flow_chain
+        return get_app_config().values.editor_widgets.graphics_stage.highlight_flow_chain
+
+    @classmethod
+    def get_flow_chain_highlight_style(cls) -> LinkAnimationStyle:
+        """Get the animation that highlights the execution chain.
+
+        Returns:
+            LinkAnimationStyle: style from the graphics stage config, the default one
+                if the configured value is not a style.
+        """
+        stage_config = get_app_config().values.editor_widgets.graphics_stage
+        value = stage_config.highlight_flow_chain_style
+        try:
+            return LinkAnimationStyle(value)
+        except ValueError:
+            LOGGER.warning(
+                f"Unknown flow chain highlight style {value!r}, "
+                f"using {LinkAnimationStyle.PULSE.value!r}"
+            )
+            return LinkAnimationStyle.PULSE
 
     def update_flow_chain_highlight(self, scope_node: Node):
-        """Make the flow links on the execution chain of the scope pulse.
+        """Highlight the flow links on the execution chain of the scope.
 
         Nothing is resolved or animated when the highlight is disabled. Must run after
         `build_links`.
@@ -380,17 +403,16 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         Args:
             scope_node (Node): node being drawn.
         """
-        self._pulse_animator.clear()
-        for gr_link in self.gr_links():
-            gr_link.set_pulsing(False)
+        for animation_class in ANIMATION_CLASSES.values():
+            self._link_animator.clear(animation_class)
         if not self.is_flow_chain_highlight_enabled():
             return
 
+        style = self.get_flow_chain_highlight_style()
         chain = ExecutionChain.find_node_uuids(scope_node)
         for gr_link in self.gr_links():
             if self._is_flow_link_on_chain(gr_link, chain):
-                gr_link.set_pulsing(True)
-                self._pulse_animator.register(gr_link)
+                self._link_animator.register(gr_link, create_animation(style))
 
     @staticmethod
     def _is_flow_link_on_chain(gr_link: GraphicsLink, chain: frozenset[UUID]) -> bool:
@@ -412,9 +434,20 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             and source.node.uuid in chain
         )
 
-    def _is_shown_in_a_view(self) -> bool:
-        """bool: a view showing the scene is visible."""
-        return any(view.isVisible() for view in self.views())
+    def _view_areas(self) -> list[ViewArea]:
+        """Get the parts of the scene that visible views show.
+
+        Returns:
+            list[ViewArea]: area and scale of every visible view.
+        """
+        return [
+            ViewArea(
+                view.mapToScene(view.viewport().rect()).boundingRect(),
+                view.transform().m11(),
+            )
+            for view in self.views()
+            if view.isVisible()
+        ]
 
     def find_links_along(self, scene_points: list[QtCore.QPointF]) -> list[GraphicsLink]:
         """Find the links crossed by a polyline.
@@ -613,12 +646,22 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             gr_node.refresh()
 
     def on_selection_changed(self):
-        """Updates the selection model to match the scene selection."""
-        gr_nodes = self.selected_gr_nodes()
-        nodes = [gr_node.node for gr_node in gr_nodes]
-        self.selection_model.clearSelection()
-        for node in nodes:
-            self.selection_model.select(node.index(), QtCore.QItemSelectionModel.Select)
+        """Updates the selection model to match the scene selection.
+
+        The model reports the change once, however many nodes are selected. Nothing is
+        done while a rubber band is being dragged: the scene selection changes for every
+        node that enters the band, so the view syncs it when the band is released.
+        """
+        view = self.graph_editor.gr_view
+        if view is not None and view.is_rubber_banding:
+            return
+        selection = QtCore.QItemSelection()
+        for gr_node in self.selected_gr_nodes():
+            index = gr_node.node.index()
+            selection.select(index, index)
+        self.selection_model.select(
+            selection, QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+        )
 
     def start_selected_node_rename(self):
         """Starts editing the title of the last selected GraphicsNode item."""

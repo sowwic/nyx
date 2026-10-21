@@ -69,3 +69,19 @@ def test_tooltip_html_truncates_long_values(qapp):
 def test_application_helpers(main_window, stage_editor, qapp):
     assert common.get_application_qml_engine() is qapp.qml_engine
     assert common.get_current_stage_graph() is stage_editor
+
+
+def test_show_menu_executes_the_menu_at_the_position(qapp):
+    from PySide6 import QtCore, QtWidgets
+
+    shown = []
+
+    class RecordingMenu(QtWidgets.QMenu):
+        def exec(self, *args):
+            shown.append(args)
+
+    from nyx.editor.utils import context_menus
+
+    context_menus.show_menu(RecordingMenu(), QtCore.QPoint(3, 4))
+
+    assert shown == [(QtCore.QPoint(3, 4),)]

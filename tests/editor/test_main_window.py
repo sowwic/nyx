@@ -5,7 +5,6 @@ from PySide6 import QtGui, QtWidgets
 
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
-from nyx.core.layered_config import MAX_RECENT_FILES
 from nyx.static.enums import EditorUIObject
 
 
@@ -236,10 +235,11 @@ def test_save_as_adds_recent_file_once(
 
 
 def test_recent_files_capped(main_window, recent_files, tmp_path):
-    for i in range(MAX_RECENT_FILES + 3):
+    max_recent_files = main_window.config.values.editor_session.max_recent_files
+    for i in range(max_recent_files + 3):
         main_window.add_recent_file(str(tmp_path / f"{i}.nyx"))
-    assert len(recent_files) == MAX_RECENT_FILES
-    assert recent_files[0] == str(tmp_path / f"{MAX_RECENT_FILES + 2}.nyx")
+    assert len(recent_files) == max_recent_files
+    assert recent_files[0] == str(tmp_path / f"{max_recent_files + 2}.nyx")
 
 
 def test_recent_menu_placeholder_when_empty(main_window, recent_files):

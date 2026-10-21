@@ -1,25 +1,24 @@
 import dataclasses
 import enum
 import logging
-import functools
-import math
+import time
 import typing
 
 # import pathlib
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from nyx.core import commands
 from nyx.editor.core.action_condition import CallableCondition
 from nyx.editor.core.action_router import ACTION_ROUTER
-from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
-from nyx.editor.utils import clipboard, context_menus
+from nyx.editor.utils import context_menus
+from nyx.editor.views.stage_graph_actions import StageGraphActions
+from nyx.editor.views.stage_graph_zoom import StageGraphZoom
 from nyx.static.vars import NODE_TYPE_MIME
 
 if typing.TYPE_CHECKING:
-    from nyx.core import Node
     from nyx.editor.graphics.graphics_stage import GraphicsStage
+    from nyx.editor.views.stage_graph_debug_overlay import StageGraphDebugOverlay
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 
@@ -59,8 +58,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
     """Emitted when the interaction mode or the selection changed."""
 
     # Constants
-    HIGH_QUALITY_ZOOM = 4
-    DEFAULT_ZOOM = 10  # zoom level at 100% scale
+    HIGH_QUALITY_ZOOM = StageGraphZoom.HIGH_QUALITY_ZOOM
+    DEFAULT_ZOOM = StageGraphZoom.DEFAULT_ZOOM
     FOCUS_MARGIN = 40  # scene units kept around nodes when fitting
 
     class InteractionMode(enum.Enum):
@@ -69,6 +68,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         NOOP = enum.auto()
         LINK_DRAG = enum.auto()
         LINK_CUT = enum.auto()
+        RUBBER_BAND = enum.auto()
 
     def __init__(
         self, graph_editor: StageGraphEditor, parent: QtWidgets.QWidget | None = None
@@ -85,37 +85,52 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self._interaction_mode = StageGraphView.InteractionMode.NOOP
         self._undo_suspended = False
         self._create_conditions()
+        self.edit_actions = StageGraphActions(self)
+        self.debug_overlay: StageGraphDebugOverlay | None = None
         self.cutline = GraphCutLine()
         self.scene().addItem(self.cutline)
 
         # Zoom
-        self.zoom_in_factor = 1.25
-        self.zoom_clamp = True
-        self.zoom = self.DEFAULT_ZOOM
-        self.zoom_step = 1
-        self.zoom_range = (-5.0, 10.0)
+        self.zoom_controller = StageGraphZoom()
         # Positions
         self.last_lmb_click_pos = QtCore.QPointF(0.0, 0.0)
         self.last_scene_mouse_pos = QtCore.QPointF(0.0, 0.0)
-        # Toggles
-        self.rubberband_dragging_rect = False
 
         self._setup_view()
         self.update_render_hints()
         self.create_actions()
-        self.create_widgets()
-        self.create_layouts()
         self.create_connections()
 
     def _setup_view(self):
         """Configure view flags, scrollbars and drag mode."""
         self.setInteractive(True)
-        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
+        self.setViewportUpdateMode(
+            QtWidgets.QGraphicsView.ViewportUpdateMode.FullViewportUpdate
+        )
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.setAcceptDrops(True)
+
+    @property
+    def zoom(self) -> float:
+        """float: current zoom level."""
+        return self.zoom_controller.zoom
+
+    @zoom.setter
+    def zoom(self, value: float):
+        self.zoom_controller.zoom = value
+
+    @property
+    def zoom_range(self) -> tuple[float, float]:
+        """tuple[float, float]: lowest and highest zoom level."""
+        return self.zoom_controller.zoom_range
+
+    @property
+    def zoom_in_factor(self) -> float:
+        """float: scale factor of one zoom step."""
+        return self.zoom_controller.zoom_in_factor
 
     def get_view_state(self) -> dict:
         """Zoom level and the scene point at the viewport center."""
@@ -129,18 +144,15 @@ class StageGraphView(QtWidgets.QGraphicsView):
             state (dict): state from `get_view_state`. The zoom is clamped to the zoom
                 range.
         """
-        zoom = float(state.get("zoom", self.DEFAULT_ZOOM))
-        zoom = max(self.zoom_range[0], min(self.zoom_range[1], zoom))
-        scale = self.zoom_in_factor ** (zoom - self.DEFAULT_ZOOM)
-        self.zoom = zoom
-        self.setTransform(QtGui.QTransform.fromScale(scale, scale))
+        self.zoom_controller.set_zoom(float(state.get("zoom", self.DEFAULT_ZOOM)))
+        self.setTransform(self.zoom_controller.transform)
         x, y = state.get("center", [0.0, 0.0])
         self.centerOn(float(x), float(y))
         self.update_render_hints()
 
     def update_render_hints(self):
         """Enable text antialiasing only at higher zoom levels."""
-        if self.zoom > self.HIGH_QUALITY_ZOOM:
+        if self.zoom_controller.wants_text_antialiasing:
             self.setRenderHints(
                 QtGui.QPainter.RenderHint.Antialiasing
                 | QtGui.QPainter.RenderHint.TextAntialiasing
@@ -154,46 +166,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
 
     def create_actions(self):
         """Register handlers of the editing actions for this view."""
-
-        register = functools.partial(ACTION_ROUTER.register_handler, scope=self)
-        register(
-            ActionId.CREATE_NODE, self.create_new_node, condition=self.idle_condition
-        )
-        register(
-            ActionId.PASTE,
-            self.paste_nodes_from_clipboard,
-            condition=self.idle_condition,
-        )
-        register(
-            ActionId.COPY,
-            self.copy_selected_nodes,
-            condition=self.selection_editable_condition,
-        )
-        register(
-            ActionId.CUT,
-            self.cut_selected_nodes,
-            condition=self.selection_editable_condition,
-        )
-        register(
-            ActionId.DELETE,
-            self.delete_selected,
-            condition=self.selection_editable_condition,
-        )
-        register(
-            ActionId.DELETE_NODE,
-            self.delete_selected,
-            condition=self.selection_editable_condition,
-        )
-        register(
-            ActionId.COPY_NODE_PATH,
-            self.copy_selected_node_path,
-            condition=self.selection_editable_condition,
-        )
-        register(
-            ActionId.FOCUS_SELECTED,
-            self.focus_on_selected_nodes,
-            condition=self.selection_editable_condition,
-        )
+        self.edit_actions.register()
 
     def _create_conditions(self):
         """Create the conditions of the actions, following `state_changed`."""
@@ -218,22 +191,10 @@ class StageGraphView(QtWidgets.QGraphicsView):
             has_selection=not self.gr_stage.is_gr_node_selection_empty(),
         )
 
-    def create_widgets(self):
-        """Create widgets. The view has none."""
-        pass
-
-    def create_layouts(self):
-        """Create layouts. The view has none."""
-        pass
-
     def create_connections(self):
         """Connect signals."""
         self.customContextMenuRequested.connect(self.show_context_menu)
         self.gr_stage.link_drag_changed.connect(self._on_link_drag_changed)
-
-    def update_actions(self):
-        """Refresh the enabled state of the actions."""
-        ACTION_ROUTER.refresh_enabled()
 
     @property
     def stage(self):
@@ -249,6 +210,11 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def is_idle(self) -> bool:
         """bool: no mouse interaction (link drag, link cut) is running."""
         return self._interaction_mode is StageGraphView.InteractionMode.NOOP
+
+    @property
+    def is_rubber_banding(self) -> bool:
+        """bool: a rubber band selection is being dragged."""
+        return self._interaction_mode is StageGraphView.InteractionMode.RUBBER_BAND
 
     @property
     def interaction_mode(self):
@@ -314,6 +280,22 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """QtCore.QPointF: scene point at the center of the viewport."""
         return self.mapToScene(self.viewport().rect().center())
 
+    def paintEvent(self, event: QtGui.QPaintEvent):
+        """Paint the scene, then the debug overlay if it is on.
+
+        Args:
+            event (QtGui.QPaintEvent): event.
+        """
+        overlay = self.debug_overlay
+        started = time.perf_counter()
+        super().paintEvent(event)
+        if overlay is None:
+            return
+        overlay.record_paint(time.perf_counter() - started)
+        painter = QtGui.QPainter(self.viewport())
+        overlay.paint(painter)
+        painter.end()
+
     # Mouse
     def wheelEvent(self, event: QtGui.QWheelEvent):
         """Zoom in or out around the cursor, within the zoom range.
@@ -321,23 +303,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QWheelEvent): event.
         """
-        zoom_out_factor = 1.0 / self.zoom_in_factor
-
-        if event.angleDelta().y() > 0:
-            zoom_factor = self.zoom_in_factor
-            self.zoom += self.zoom_step
-        else:
-            zoom_factor = zoom_out_factor
-            self.zoom -= self.zoom_step
-
-        clamped = False
-        if self.zoom < self.zoom_range[0]:
-            self.zoom, clamped = self.zoom_range[0], True
-        if self.zoom > self.zoom_range[1]:
-            self.zoom, clamped = self.zoom_range[1], True
-
-        # Set actual scale
-        if not clamped or not self.zoom_clamp:
+        zoom_factor = self.zoom_controller.step(event.angleDelta().y() > 0)
+        if zoom_factor is not None:
             self.scale(zoom_factor, zoom_factor)
             self.update_render_hints()
 
@@ -361,7 +328,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QMouseEvent): event.
         """
-        gr_item = self.itemAt(event.pos())
+        gr_item = self.itemAt(event.position().toPoint())
         if not gr_item:
             event.ignore()
             return
@@ -409,7 +376,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QMouseEvent): event.
         """
-        scene_pos = self.mapToScene(event.pos())
+        scene_pos = self.mapToScene(event.position().toPoint())
 
         try:
             if self.interaction_mode is self.InteractionMode.LINK_CUT and self.cutline:
@@ -426,17 +393,20 @@ class StageGraphView(QtWidgets.QGraphicsView):
         Args:
             event (QtGui.QMouseEvent): event.
         """
-        item = self.get_item_at_click(event)
+        item = self.itemAt(event.position().toPoint())
+        # A band whose release never came must not hold back the selection.
+        if self.interaction_mode is self.InteractionMode.RUBBER_BAND:
+            self.set_interaction_mode(self.InteractionMode.NOOP)
         # Store click position for future use
-        self.last_lmb_click_pos = self.mapToScene(event.pos())
+        self.last_lmb_click_pos = self.mapToScene(event.position().toPoint())
 
         if not item:
             if event.modifiers() & QtCore.Qt.ControlModifier:
                 self.set_interaction_mode(self.InteractionMode.LINK_CUT)
                 fake_event = QtGui.QMouseEvent(
                     QtCore.QEvent.MouseButtonRelease,
-                    event.localPos(),
-                    event.screenPos(),
+                    event.position(),
+                    event.globalPosition(),
                     QtCore.Qt.LeftButton,
                     QtCore.Qt.NoButton,
                     event.modifiers(),
@@ -447,7 +417,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             else:
                 if not self.is_dragging:
                     self.gr_stage.selection_model.clearSelection()
-                self.rubberband_dragging_rect = True
+                self.set_interaction_mode(self.InteractionMode.RUBBER_BAND)
 
         super().mousePressEvent(event)
 
@@ -466,10 +436,14 @@ class StageGraphView(QtWidgets.QGraphicsView):
                 event.accept()
                 return
 
-            if self.rubberband_dragging_rect:
-                self.rubberband_dragging_rect = False
+            if self.interaction_mode is self.InteractionMode.RUBBER_BAND:
+                # Qt ends the band and hides its rectangle. The selection is still held
+                # back while it does, and synced once the band is over.
+                try:
+                    super().mouseReleaseEvent(event)
+                finally:
+                    self.set_interaction_mode(self.InteractionMode.NOOP)
                 self.gr_stage.on_selection_changed()
-                event.accept()
                 return
         except Exception:
             LOGGER.exception("Left mouse release exception")
@@ -493,13 +467,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """
         super().mouseReleaseEvent(event)
 
-    def get_item_at_click(
-        self, event: QtGui.QMouseEvent
-    ) -> QtWidgets.QGraphicsItem | None:
-        """Object at click event position"""
-        item = self.itemAt(event.pos())
-        return item
-
     # Middle mouse
     def middle_mouse_press(self, event: QtGui.QMouseEvent):
         """Start panning the view with the middle button.
@@ -509,8 +476,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """
         release_event = QtGui.QMouseEvent(
             QtCore.QEvent.MouseButtonRelease,
-            event.localPos(),
-            event.screenPos(),
+            event.position(),
+            event.globalPosition(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.NoButton,
             event.modifiers(),
@@ -520,8 +487,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
         fake_event = QtGui.QMouseEvent(
             event.type(),
-            event.localPos(),
-            event.screenPos(),
+            event.position(),
+            event.globalPosition(),
             QtCore.Qt.LeftButton,
             event.buttons() | QtCore.Qt.LeftButton,
             event.modifiers(),
@@ -536,8 +503,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """
         fake_event = QtGui.QMouseEvent(
             event.type(),
-            event.localPos(),
-            event.screenPos(),
+            event.position(),
+            event.globalPosition(),
             QtGui.Qt.LeftButton,
             event.buttons() & ~QtGui.Qt.LeftButton,
             event.modifiers(),
@@ -547,7 +514,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.setInteractive(True)
 
     # Dragging
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> bool:
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         """Accept node type drags, forward others.
 
         Args:
@@ -604,11 +571,11 @@ class StageGraphView(QtWidgets.QGraphicsView):
         state = self.get_current_state()
         if not state.is_idle:
             return
-        self.update_actions()
+        ACTION_ROUTER.refresh_enabled()
         menu = context_menus.build_nodes_context_menu(
             self, has_selection=state.has_selection
         )
-        menu.exec_(self.mapToGlobal(point))
+        context_menus.show_menu(menu, self.mapToGlobal(point))
 
     def cut_intersecting_links(self) -> bool:
         """Unlink the links crossed by the cutline.
@@ -621,80 +588,6 @@ class StageGraphView(QtWidgets.QGraphicsView):
     def create_new_node(self):
         """Show the nodes palette at the last mouse position."""
         self.graph_editor.show_nodes_palette_centered(self.last_scene_mouse_pos)
-
-    def delete_selected(self):
-        """Delete the selected nodes through an undoable command."""
-        if not self.stage:
-            return
-
-        if self.gr_stage.is_gr_node_selection_empty():
-            LOGGER.warning("No nodes selected to delete!")
-            return
-
-        selected_gr_nodes = self.scene().selected_gr_nodes()
-        nodes_to_delete: list[Node] = [gr_node.node for gr_node in selected_gr_nodes]
-        del_cmd = commands.DeleteNodeCommand(stage=self.stage, nodes=nodes_to_delete)
-        self.stage.push_command(del_cmd)
-        self.scene().rebuild_current_scope()
-
-    def copy_selected_nodes(self):
-        """Copy the selected nodes to the clipboard."""
-        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
-        if not selected_nodes:
-            return
-
-        clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=False)
-        LOGGER.info("Copied selected nodes")
-
-    def cut_selected_nodes(self):
-        """Cut the selected nodes to the clipboard."""
-        selected_nodes = [gr_node.node for gr_node in self.gr_stage.selected_gr_nodes()]
-        if not selected_nodes:
-            return
-
-        clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=True)
-        LOGGER.info("Cut selected nodes")
-
-    def paste_nodes_from_clipboard(self):
-        """Paste nodes from the clipboard into the current scope."""
-        serialized_nodes = clipboard.get_serialized_nodes_from_clipboard()
-        if not serialized_nodes:
-            LOGGER.warning("No nodes found in the clipboard!")
-            return
-
-        parent_node = self.stage.get_object(self.graph_editor.get_scope_path())
-        position = self.last_scene_mouse_pos
-        paste_cmd = commands.PasteNodesCommand(
-            stage=self.stage,
-            serialize_nodes=serialized_nodes,
-            position=position,
-            parent_node=parent_node,
-        )
-        self.stage.push_command(paste_cmd)
-
-    def copy_selected_node_path(self):
-        """Copy the path of the last selected node to the clipboard."""
-        gr_node = self.gr_stage.get_last_selected_gr_node()
-        if gr_node is None:
-            return
-        path = gr_node.node.path.as_posix()
-        QtWidgets.QApplication.clipboard().setText(path)
-        LOGGER.info(f"Copied node path: {path}")
-
-    def focus_on_selected_nodes(self):
-        """Center on the selected nodes, zooming so they fit in the view."""
-        selected_nodes = self.gr_stage.graph_editor.list_selected_nodes()
-        nodes_in_scope = self.gr_stage.graph_editor.filter_nodes_by_scope(selected_nodes)
-
-        nodes_rect = QtCore.QRectF()
-        for node in nodes_in_scope:
-            gr_node = self.gr_stage.get_gr_node(node)
-            if gr_node is not None:
-                nodes_rect = nodes_rect.united(gr_node.sceneBoundingRect())
-
-        if nodes_rect.isNull():
-            return
-        self.fit_scene_rect(nodes_rect)
 
     def fit_scene_rect(self, scene_rect: QtCore.QRectF) -> None:
         """Center on `scene_rect` and zoom to fit it (plus margin) in the viewport.
@@ -709,16 +602,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             self.centerOn(padded_rect.center())
             return
 
-        fit_scale = min(
-            viewport_rect.width() / padded_rect.width(),
-            viewport_rect.height() / padded_rect.height(),
-        )
-        zoom = self.DEFAULT_ZOOM + math.log(fit_scale, self.zoom_in_factor)
-        if self.zoom_clamp:
-            zoom = max(self.zoom_range[0], min(self.zoom_range[1], zoom))
-
-        scale = self.zoom_in_factor ** (zoom - self.DEFAULT_ZOOM)
-        self.zoom = zoom
-        self.setTransform(QtGui.QTransform.fromScale(scale, scale))
+        self.zoom = self.zoom_controller.zoom_to_fit(viewport_rect.size(), padded_rect)
+        self.setTransform(self.zoom_controller.transform)
         self.centerOn(padded_rect.center())
         self.update_render_hints()

@@ -165,7 +165,7 @@ class StageTreeView(QtWidgets.QTreeView):
             event (QtGui.QMouseEvent): event.
         """
         if event.button() == QtCore.Qt.LeftButton:
-            if not self.indexAt(event.pos()).isValid():
+            if not self.indexAt(event.position().toPoint()).isValid():
                 self.selectionModel().clear()
 
         return super().mousePressEvent(event)
@@ -223,7 +223,7 @@ class StageTreeView(QtWidgets.QTreeView):
         """Center the graph view on the nodes selected in the tree."""
         if self.current_stage_graph is None:
             return
-        self.current_stage_graph.gr_view.focus_on_selected_nodes()
+        self.current_stage_graph.gr_view.edit_actions.focus_on_selected_nodes()
 
     def copy_selected_node_path(self):
         """Copy the path of the current node to the clipboard."""
@@ -242,4 +242,4 @@ class StageTreeView(QtWidgets.QTreeView):
         menu = context_menus.build_nodes_context_menu(
             self, has_selection=bool(self.current_node())
         )
-        menu.exec_(self.mapToGlobal(point))
+        context_menus.show_menu(menu, self.mapToGlobal(point))

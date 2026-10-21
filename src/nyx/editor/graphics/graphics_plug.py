@@ -5,6 +5,7 @@ from uuid import UUID
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.graphics.graphics_plug_shape import PlugShape, plug_shape_for
+from nyx.editor.graphics.level_of_detail import LevelOfDetail
 from nyx.editor.utils.common import (
     are_hover_diagnostics_enabled,
     build_role_tooltip_html,
@@ -56,6 +57,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._color = QtGui.QColor()
         self._link_width_multiplier = 1.0
         self._links: set[GraphicsLink] = set()
+        self._level_of_detail = LevelOfDetail.FULL  # as of the last paint
         self.setAcceptHoverEvents(True)
         self.refresh()
 
@@ -226,6 +228,8 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         Returns:
             GraphicsPlug.Socket | None: socket hit, None if there is none.
         """
+        if not self._level_of_detail.shows_shapes:
+            return None
         local = self.mapFromScene(scene_pos)
         center_y = self.ROW_HEIGHT / 2
         if self._writable and self._shape.contains(
@@ -314,13 +318,21 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget | None = None,
     ) -> None:
-        """Draw sockets and the component name.
+        """Draw sockets and the component name, as far as they are big enough to see.
 
         Args:
             painter (QtGui.QPainter): painter.
             option (QtWidgets.QStyleOptionGraphicsItem): style options.
             widget (QtWidgets.QWidget | None): painted widget.
         """
+        self._level_of_detail = LevelOfDetail.from_painter(
+            painter,
+            text_size=self.LABEL_FONT.pointSizeF(),
+            shape_size=self.ROW_HEIGHT,
+        )
+        if not self._level_of_detail.shows_shapes:
+            return
+
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         center_y = self.ROW_HEIGHT / 2
         # (center, is linked) per visible socket
@@ -334,6 +346,9 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
 
         for center, linked in sockets:
             self._shape.paint(painter, center, self._color, linked)
+
+        if not self._level_of_detail.shows_text:
+            return
 
         painter.setFont(self.LABEL_FONT)
         painter.setPen(self.LABEL_COLOR)
