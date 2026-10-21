@@ -1,3 +1,6 @@
+import os
+import pathlib
+
 import pytest
 
 from nyx.plugins.functions.dict_operations import operations as dicts
@@ -52,11 +55,11 @@ from nyx.plugins.functions.system_operations import operations as system
         (js.is_valid_json, ("{",), False),
         (js.get_json_value, ({"a": [{"b": 5}]}, "a.0.b"), 5),
         (js.get_json_value, ({"a": 1}, "x.y", "none"), "none"),
-        (paths.join_path, ("a", "b"), "a/b"),
+        (paths.join_path, ("a", "b"), os.path.join("a", "b")),
         (paths.file_name, ("/x/y.txt",), "y.txt"),
         (paths.file_stem, ("/x/y.txt",), "y"),
         (paths.file_extension, ("/x/y.txt",), ".txt"),
-        (paths.parent_folder, ("/x/y.txt",), "/x"),
+        (paths.parent_folder, ("/x/y.txt",), str(pathlib.Path("/x"))),
         (system.get_env, ("NYX_SURELY_NOT_SET", "d"), "d"),
         (rx.replace, ("a1b22", r"\d+", "#"), "a#b#"),
         (rx.replace, ("Ab", "a", "x", True), "xb"),
@@ -75,10 +78,10 @@ from nyx.plugins.functions.system_operations import operations as system
         (rx.escape, ("a.b",), r"a\.b"),
         (rx.is_valid_pattern, ("(",), False),
         (rx.is_valid_pattern, ("a+",), True),
-        (paths.with_name, ("/x/y.txt", "z.md"), "/x/z.md"),
-        (paths.with_extension, ("/x/y.txt", ".md"), "/x/y.md"),
-        (paths.relative_to, ("/x/y/z", "/x"), "y/z"),
-        (paths.path_parts, ("/x/y",), ["/", "x", "y"]),
+        (paths.with_name, ("/x/y.txt", "z.md"), str(pathlib.Path("/x/z.md"))),
+        (paths.with_extension, ("/x/y.txt", ".md"), str(pathlib.Path("/x/y.md"))),
+        (paths.relative_to, ("/x/y/z", "/x"), str(pathlib.Path("y/z"))),
+        (paths.path_parts, ("/x/y",), list(pathlib.Path("/x/y").parts)),
         (paths.is_absolute, ("x",), False),
         (paths.matches_pattern, ("/x/y.py", "*.py"), True),
         (dt.format_datetime, ("2026-10-21T18:15:00", "%d.%m.%Y"), "21.10.2026"),

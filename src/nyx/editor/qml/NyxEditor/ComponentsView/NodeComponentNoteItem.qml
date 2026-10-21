@@ -108,15 +108,13 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 2
 
-            Label {
-                text: qsTr("Format:")
-            }
-
             ComboBox {
                 id: formatSelector
 
                 // As wide as the longest format and no wider
                 implicitContentWidthPolicy: ComboBox.WidestText
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Format of the note")
                 textRole: "name"
                 valueRole: "id"
                 model: noteRoot.noteFormats
