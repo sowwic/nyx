@@ -35,6 +35,13 @@ class LinkStyle(enum.StrEnum):
     SQUARE = "square"
 
 
+class StageBackGroundStyle(enum.StrEnum):
+    """Patterns the graphics stage background can be drawn with."""
+
+    GRID = "grid"
+    DOTS = "dots"
+
+
 class CoreNodeComponents(enum.StrEnum):
     """Type ids of the node components provided by the core plugin."""
 

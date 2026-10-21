@@ -1,6 +1,7 @@
 from nyx.core.node import Node, NodeLike
 from nyx.core.stage import Stage
 from nyx.core.node_render_options import NodeRenderOptions
+from nyx.core.stage_render_options import StageRenderOptions
 from nyx.core.datatypes.datatype import Datatype, OBJECT_DATATYPE
 from nyx.core.link import Link, LinkLike
 from nyx.core.stage_object import StageObject
@@ -33,6 +34,7 @@ __all__ = [
     "Node",
     "NodeLike",
     "NodeRenderOptions",
+    "StageRenderOptions",
     "Stage",
     "Link",
     "LinkLike",

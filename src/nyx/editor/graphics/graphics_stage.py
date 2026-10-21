@@ -19,6 +19,7 @@ from nyx.core.exceptions import StageObjectQueryError
 from nyx.core.execution_chain import ExecutionChain
 from nyx.core.link import Link
 from nyx.core.stage_object import StageObject
+from nyx.core.stage_render_options import StageRenderOptions
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_link_drag_handler import GraphicsLinkDragHandler
 from nyx.editor.graphics.graphics_node import GraphicsNode
@@ -26,7 +27,7 @@ from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.graphics.animation.link_animator import LinkAnimator, ViewArea
 from nyx.editor.graphics.animation.styles import ANIMATION_CLASSES, create_animation
 from nyx.editor.utils.common import get_app_config
-from nyx.static.enums import CoreNodeComponents, LinkAnimationStyle
+from nyx.static.enums import CoreNodeComponents, LinkAnimationStyle, StageBackGroundStyle
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import Node
@@ -64,21 +65,10 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.link_drag_changed.connect(self._link_animator.set_paused)
         self._scope_path: pathlib.PurePosixPath | None = None
 
-        # Settings
-        self.grid_size = 20
-        self.grid_squares = 5
-        self.scene_width = self.scene_height = 64000
+        self.options = StageRenderOptions()
         # NOTE: calling self.setSceneRect(QtCore.QRect) again disables view scrolling
-        self.set_scene_size(self.scene_width, self.scene_height)
-        # Colors
-        self._color_background = QtGui.QColor("#393939")
-        self._color_light = QtGui.QColor("#2f2f2f")
-        self._color_dark = QtGui.QColor("#292929")
-        self._pen_light = QtGui.QPen(self._color_light)
-        self._pen_light.setWidth(1)
-        self._pen_dark = QtGui.QPen(self._color_dark)
-        self._pen_dark.setWidth(2)
-        self.setBackgroundBrush(self._color_background)
+        self.set_scene_size(self.options.scene_width, self.options.scene_height)
+        self.apply_render_options()
 
         self.create_connections()
 
@@ -124,27 +114,72 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """
         self.setSceneRect(-width // 2, -height // 2, width, height)
 
+    def get_background_style(self) -> StageBackGroundStyle:
+        """Get the pattern the background is drawn with.
+
+        Returns:
+            StageBackGroundStyle: style from the graphics stage config, the default one
+                if the configured value is not a style.
+        """
+        value = get_app_config().values.editor_widgets.graphics_stage.background_style
+        try:
+            return StageBackGroundStyle(value)
+        except ValueError:
+            LOGGER.warning(
+                f"Unknown background style {value!r}, "
+                f"using {StageBackGroundStyle.GRID.value!r}"
+            )
+            return StageBackGroundStyle.GRID
+
+    def apply_render_options(self):
+        """Rebuilds the background brush, pens and style from the options and config."""
+        stage_config = get_app_config().values.editor_widgets.graphics_stage
+        color = QtGui.QColor(stage_config.background_color)
+        if color.isValid():
+            self.options.background_color = color
+        else:
+            LOGGER.warning(
+                f"Invalid background color {stage_config.background_color!r}, "
+                f"using {self.options.background_color.name()!r}"
+            )
+        self._background_style = self.get_background_style()
+        self._pen_light = QtGui.QPen(self.options.grid_light_color)
+        self._pen_light.setWidth(self.options.grid_light_width)
+        self._pen_dark = QtGui.QPen(self.options.grid_dark_color)
+        self._pen_dark.setWidth(self.options.grid_dark_width)
+        self.setBackgroundBrush(self.options.background_color)
+        self.update()
+
     def drawBackground(self, painter, rect):
-        """Draws a grid background for the scene."""
+        """Draws the background pattern of the scene."""
         super().drawBackground(painter, rect)
+        if self._background_style == StageBackGroundStyle.DOTS:
+            self._draw_dots(painter, rect)
+        else:
+            self._draw_grid(painter, rect)
+
+    def _draw_grid(self, painter, rect):
+        """Draws minor and major grid lines over the rect."""
+        grid_size = self.options.grid_size
+        major_size = grid_size * self.options.grid_squares
         left = int(math.floor(rect.left()))
         right = int(math.ceil(rect.right()))
         top = int(math.floor(rect.top()))
         bottom = int(math.ceil(rect.bottom()))
 
-        first_left = left - (left % self.grid_size)
-        first_top = top - (top % self.grid_size)
+        first_left = left - (left % grid_size)
+        first_top = top - (top % grid_size)
 
         # Compute line drawing
         lines_light, lines_dark = [], []
-        for x in range(first_left, right, self.grid_size):
-            if x % (self.grid_size * self.grid_squares):
+        for x in range(first_left, right, grid_size):
+            if x % major_size:
                 lines_light.append(QtCore.QLine(x, top, x, bottom))
             else:
                 lines_dark.append(QtCore.QLine(x, top, x, bottom))
 
-        for y in range(first_top, bottom, self.grid_size):
-            if y % (self.grid_size * self.grid_squares):
+        for y in range(first_top, bottom, grid_size):
+            if y % major_size:
                 lines_light.append(QtCore.QLine(left, y, right, y))
             else:
                 lines_dark.append(QtCore.QLine(left, y, right, y))
@@ -154,6 +189,31 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         painter.drawLines(lines_light)
         painter.setPen(self._pen_dark)
         painter.drawLines(lines_dark)
+
+    def _draw_dots(self, painter, rect):
+        """Draws a dot on every grid intersection over the rect.
+
+        Dots keep their size on screen, and are left out once they get too close.
+        """
+        grid_size = self.options.grid_size
+        scale = painter.worldTransform().m11()
+        if scale <= 0 or grid_size * scale < self.options.dots_min_spacing:
+            return
+        left = int(math.floor(rect.left()))
+        top = int(math.floor(rect.top()))
+        first_left = left - (left % grid_size)
+        first_top = top - (top % grid_size)
+
+        points = [
+            QtCore.QPointF(x, y)
+            for x in range(first_left, int(math.ceil(rect.right())) + 1, grid_size)
+            for y in range(first_top, int(math.ceil(rect.bottom())) + 1, grid_size)
+        ]
+        pen = QtGui.QPen(self.options.dot_color)
+        pen.setWidthF(self.options.dot_size / scale)
+        pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        painter.drawPoints(points)
 
     # ======== Nodes ========= #
 
