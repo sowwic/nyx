@@ -92,6 +92,8 @@ def stage_config(main_window, restore_config):
         "highlight_flow_chain_style",
         "link_style",
         "viewport_debug_overlay",
+        "background_style",
+        "background_color",
     )
 
 

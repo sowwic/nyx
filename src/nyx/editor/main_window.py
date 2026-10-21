@@ -374,12 +374,25 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # self.toggle_always_on_top(self.config.window_always_on_top)
         LOGGER.setLevel(self.config.values.logging_level)
         self._apply_viewport_debug_overlay()
+        self._apply_stage_render_options()
 
         # The log dock's expansion state and size constraints must be in place
         # BEFORE the layout is built or restored. Otherwise Qt clamps the dock
         # to its collapsed/default size while placing it.
         self.logger_dock.apply_config_values(self.config)
         self._load_layout_from_config()
+
+    def _apply_stage_render_options(self):
+        """Redraw the open stages with the render options of the config.
+
+        The background is refreshed in place. Links read their style when they are
+        created and the chain highlight is chosen when the scope is built, so the
+        scope is rebuilt for those.
+        """
+        for sub_window in self.mdi_area.subWindowList():
+            graph_editor: StageGraphEditor = sub_window.widget()
+            graph_editor.gr_stage.apply_render_options()
+            graph_editor.gr_stage.rebuild_current_scope()
 
     def _load_layout_from_config(self):
         """Restore the dock layout from the config.

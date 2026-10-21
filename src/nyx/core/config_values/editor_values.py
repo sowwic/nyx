@@ -8,7 +8,7 @@ from nyx.core.config_values.base_values import NyxBaseConfigValues
 class NyxEditorBehaviourConfigValues(NyxBaseConfigValues):
     """Editor behaviour config values."""
 
-    new_stage_on_launch: bool = Field(default=False)
+    new_stage_on_launch: bool = Field(default=True)
     """Create an empty stage at startup."""
 
 

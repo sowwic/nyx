@@ -1,7 +1,7 @@
 from pydantic.dataclasses import Field
 
 from nyx.core.config_values.base_values import NyxBaseConfigValues
-from nyx.static.enums import LinkAnimationStyle, LinkStyle
+from nyx.static.enums import LinkAnimationStyle, LinkStyle, StageBackGroundStyle
 
 
 class NyxEditorGraphicsNodeConfigValues(NyxBaseConfigValues):
@@ -26,3 +26,7 @@ class NyxEditorGraphicsStageConfigValues(NyxBaseConfigValues):
     """Shape the links are drawn with, one of: bezier, direct, square."""
     highlight_flow_chain_style: str = Field(default=LinkAnimationStyle.PULSE.value)
     """Animation that highlights the execution chain, one of: pulse, glow."""
+    background_style: str = Field(default=StageBackGroundStyle.GRID.value)
+    """Pattern the stage background is drawn with, one of: grid, dots."""
+    background_color: str = Field(default="#393939")
+    """Color the stage background is filled with, as a hex color such as #393939."""
