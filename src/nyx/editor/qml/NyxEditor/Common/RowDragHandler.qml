@@ -22,6 +22,7 @@ Item {
         id: dragHandler
         enabled: rowDragHandlerRoot.row.dragEnabled
         target: null                               // we position the item ourselves
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus  // ignore raw trackpad touches
         grabPermissions: PointerHandler.CanTakeOverFromAnything
         xAxis.enabled: false
 
