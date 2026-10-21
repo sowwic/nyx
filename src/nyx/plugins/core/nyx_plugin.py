@@ -20,6 +20,7 @@ from .nodes.branch import BranchNode
 from .nodes.for_loop import ForLoopNode
 from .nodes.for_each_loop import ForEachLoopNode
 from .nodes.flow_start import FlowStartNode
+from .nodes.while_loop import WhileLoopNode
 from .nodes.action import ActionNode
 from .nodes.sequence import SequenceNode
 from .nodes.log import LogNode
@@ -64,6 +65,7 @@ class NyxCore(NyxPlugin):
             BranchNode,
             ForLoopNode,
             ForEachLoopNode,
+            WhileLoopNode,
             FlowStartNode,
             SequenceNode,
             LogNode,

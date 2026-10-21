@@ -56,7 +56,7 @@ def test_built_in_component_datatype_is_locked():
     assert condition.datatype_id == CoreDatatypes.BOOL
 
 
-def make_linked_values(stage: Stage, datatype=CoreDatatypes.BOOL):
+def make_linked_values(stage: Stage, datatype=CoreDatatypes.INT):
     source = make_user_value(stage)
     target = make_user_value(stage)
     source.readable = True
@@ -117,7 +117,7 @@ def test_undo_restores_datatype_and_link_with_the_same_uuid():
     change_datatype(stage, source, CoreDatatypes.PATH)
     stage.undo_stack.undo()
 
-    assert source.datatype_id == CoreDatatypes.BOOL
+    assert source.datatype_id == CoreDatatypes.INT
     assert [link.uuid for link in source.links] == [link_uuid]
 
     stage.undo_stack.redo()
@@ -129,14 +129,14 @@ def test_links_of_components_inheriting_the_datatype_are_checked_too():
     stage = Stage()
     source = make_user_value(stage)
     source.readable = True
-    source.set_datatype(CoreDatatypes.BOOL)
+    source.set_datatype(CoreDatatypes.INT)
     setter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.SET)
     stage.push_command(setter_command)
     middle = setter_command.result_node["value"]
     middle.readable = True
     end = make_user_value(stage)
     end.writable = True
-    end.set_datatype(CoreDatatypes.BOOL)
+    end.set_datatype(CoreDatatypes.INT)
     stage.push_command(
         commands.LinkNodeComponentsCommand(stage=stage, source=source, target=middle)
     )
@@ -148,7 +148,7 @@ def test_links_of_components_inheriting_the_datatype_are_checked_too():
 
     assert middle.datatype.type_id == CoreDatatypes.PATH
     assert len(source.links) == 1  # still compatible with the setter value
-    assert not end.links  # the setter value is now a string, the end is a bool
+    assert not end.links  # the setter value is now a string, the end is an int
 
     stage.undo_stack.undo()
     assert len(end.links) == 1
@@ -196,19 +196,19 @@ def test_undo_restores_the_replaced_value():
 def test_links_of_a_getter_pointing_at_the_changed_component_are_checked_too():
     stage = Stage()
     target = make_user_value(stage)
-    target.set_datatype(CoreDatatypes.BOOL)
+    target.set_datatype(CoreDatatypes.INT)
     getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
     stage.push_command(getter_command)
     getter = getter_command.result_node
     getter["component"].push_value(target.path.as_posix())
-    branch_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.BRANCH)
-    stage.push_command(branch_command)
-    condition = branch_command.result_node["condition"]
+    condition = make_user_value(stage)
+    condition.writable = True
+    condition.set_datatype(CoreDatatypes.INT)
     link_command = commands.LinkNodeComponentsCommand(
         stage=stage, source=getter["value"], target=condition
     )
     stage.push_command(link_command)
-    assert getter["value"].datatype.type_id == CoreDatatypes.BOOL
+    assert getter["value"].datatype.type_id == CoreDatatypes.INT
     assert len(condition.links) == 1
 
     command = change_datatype(stage, target, CoreDatatypes.PATH)
@@ -218,7 +218,7 @@ def test_links_of_a_getter_pointing_at_the_changed_component_are_checked_too():
     assert command.removed_link_uuids == [link_command.result_link_uuid]
 
     stage.undo_stack.undo()
-    assert getter["value"].datatype.type_id == CoreDatatypes.BOOL
+    assert getter["value"].datatype.type_id == CoreDatatypes.INT
     assert len(condition.links) == 1
 
 

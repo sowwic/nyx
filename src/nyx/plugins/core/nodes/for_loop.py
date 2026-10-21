@@ -3,7 +3,6 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
     CoreDatatypes,
-    NodeComponentFlag,
 )
 
 
