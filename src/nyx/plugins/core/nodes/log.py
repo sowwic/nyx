@@ -83,8 +83,9 @@ class LogNode(Node):
 
     def execute(self) -> None:
         """Log message"""
-        if not self.message.pull_value():
+        value = self.message.pull_value()
+        if value is None or value == "":
             return
 
-        message = f"({self.name}): {self.message.pull_value()}"
+        message = f"({self.name}): {value}"
         self.logger.log(level=int(self.level.pull_value()), msg=message)

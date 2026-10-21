@@ -17,6 +17,7 @@ from .nodes.setter import SetterNode
 from .nodes.getter import GetterNode
 from .nodes.value import ValueNode
 from .nodes.branch import BranchNode
+from .nodes.for_loop import ForLoopNode
 from .nodes.flow_start import FlowStartNode
 from .nodes.action import ActionNode
 from .nodes.sequence import SequenceNode
@@ -60,6 +61,7 @@ class NyxCore(NyxPlugin):
             ActionNode,
             ValueNode,
             BranchNode,
+            ForLoopNode,
             FlowStartNode,
             SequenceNode,
             LogNode,

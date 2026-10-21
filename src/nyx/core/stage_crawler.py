@@ -11,6 +11,7 @@ from ..static.enums import NodeExecutionOrderFlag
 if typing.TYPE_CHECKING:
     from ..core import Node, Stage
     from nyx.plugins.core.nodes.flow_start import FlowStartNode
+    from nyx.plugins.core.node_components.flow import FlowComponent
 
 LOGGER = logging.getLogger(__name__)
 
@@ -120,6 +121,43 @@ class StageCrawler:
         self._traverse_children(start_node)  # kicks off the descent
         self.stage.execution_succeeded.emit()
         self.stage.execution_finished.emit()
+
+    def run_flow_branch(self, flow_component: FlowComponent) -> None:
+        """Run the chain a flow component leads to, now, before returning.
+
+        Meant for nodes that run a chain more than once, like a loop. The nodes of
+        the chain count as not visited again afterwards, so the same chain can be
+        run again.
+
+        Args:
+            flow_component (FlowComponent): flow component whose chain to run.
+        """
+        next_node = flow_component.get_next_node()
+        if next_node is None:
+            return
+        if next_node.parent() != flow_component.node.parent():
+            raise RuntimeError(
+                f"{flow_component.path} points to "
+                f"{next_node.path}, which is not a sibling node.",
+            )
+
+        visited_paths = list(self._visited_node_paths)
+        visited_path_set = set(self._visited_node_path_set)
+        followed_paths = set(self._followed_node_paths)
+        pending_steps = self._pending_steps
+        was_running_steps = self._is_running_steps
+        self._pending_steps = []
+        self._is_running_steps = False
+        try:
+            self._traverse_children(next_node)
+        finally:
+            self._pending_steps = pending_steps
+            self._is_running_steps = was_running_steps
+            self._visited_node_paths[:] = visited_paths
+            self._visited_node_path_set.clear()
+            self._visited_node_path_set.update(visited_path_set)
+            self._followed_node_paths.clear()
+            self._followed_node_paths.update(followed_paths)
 
     # -- NodeVisitor -----------------------------------------------------
 
@@ -239,7 +277,10 @@ class StageCrawler:
             RuntimeError: if a flow component points at a node that is not a sibling.
         """
         next_nodes: list[Node] = []
+        self_driven = node.get_self_driven_flow_components()
         for flow_component, next_node in ExecutionChain.find_flow_hops(node):
+            if flow_component in self_driven:
+                continue
             if next_node.parent() != node.parent():
                 raise RuntimeError(
                     f"{flow_component.path} points to "

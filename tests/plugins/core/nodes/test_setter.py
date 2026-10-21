@@ -97,7 +97,7 @@ def test_setter_value_datatype_is_unlocked_until_linked():
     )
     assert value.datatype.type_id == CoreDatatypes.FLOAT
 
-    source = log_command.result_node["message"]
+    source = log_command.result_node["level"]
     source.readable = True
     with pytest.raises(exceptions.NyxCommandValidationError, match="different datatype"):
         stage.push_command(

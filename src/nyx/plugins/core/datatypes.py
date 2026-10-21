@@ -51,12 +51,12 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
     ),
     Datatype(
         type_id=CoreDatatypes.STRING,
+        is_wildcard=True,
         display_name="String",
         color="#FFA637",
         caster=str,
         python_type=str,
         default_factory=str,
-        compatible_with=frozenset({CoreDatatypes.REFERENCE}),
     ),
     Datatype(
         type_id=CoreDatatypes.INT,

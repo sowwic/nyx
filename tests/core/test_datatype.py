@@ -54,7 +54,7 @@ def test_type_is_a_concrete_datatype():
 
 def test_concrete_datatypes_accept_only_themselves():
     assert get(CoreDatatypes.BOOL).accepts(get(CoreDatatypes.BOOL))
-    assert not get(CoreDatatypes.BOOL).accepts(get(CoreDatatypes.STRING))
+    assert not get(CoreDatatypes.BOOL).accepts(get(CoreDatatypes.PATH))
 
 
 @pytest.mark.parametrize(

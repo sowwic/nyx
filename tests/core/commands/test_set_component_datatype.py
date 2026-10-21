@@ -82,7 +82,7 @@ def test_incompatible_source_datatype_unlinks_components():
     stage = Stage()
     source, target, link_command = make_linked_values(stage)
 
-    command = change_datatype(stage, source, CoreDatatypes.STRING)
+    command = change_datatype(stage, source, CoreDatatypes.PATH)
 
     assert not source.links
     assert not target.links
@@ -93,7 +93,7 @@ def test_incompatible_target_datatype_unlinks_components():
     stage = Stage()
     source, target, _ = make_linked_values(stage)
 
-    change_datatype(stage, target, CoreDatatypes.STRING)
+    change_datatype(stage, target, CoreDatatypes.PATH)
 
     assert not source.links
     assert not target.links
@@ -114,14 +114,14 @@ def test_undo_restores_datatype_and_link_with_the_same_uuid():
     source, target, link_command = make_linked_values(stage)
     link_uuid = link_command.result_link_uuid
 
-    change_datatype(stage, source, CoreDatatypes.STRING)
+    change_datatype(stage, source, CoreDatatypes.PATH)
     stage.undo_stack.undo()
 
     assert source.datatype_id == CoreDatatypes.BOOL
     assert [link.uuid for link in source.links] == [link_uuid]
 
     stage.undo_stack.redo()
-    assert source.datatype_id == CoreDatatypes.STRING
+    assert source.datatype_id == CoreDatatypes.PATH
     assert not source.links
 
 
@@ -144,9 +144,9 @@ def test_links_of_components_inheriting_the_datatype_are_checked_too():
         commands.LinkNodeComponentsCommand(stage=stage, source=middle, target=end)
     )
 
-    change_datatype(stage, source, CoreDatatypes.STRING)
+    change_datatype(stage, source, CoreDatatypes.PATH)
 
-    assert middle.datatype.type_id == CoreDatatypes.STRING
+    assert middle.datatype.type_id == CoreDatatypes.PATH
     assert len(source.links) == 1  # still compatible with the setter value
     assert not end.links  # the setter value is now a string, the end is a bool
 
@@ -211,9 +211,9 @@ def test_links_of_a_getter_pointing_at_the_changed_component_are_checked_too():
     assert getter["value"].datatype.type_id == CoreDatatypes.BOOL
     assert len(condition.links) == 1
 
-    command = change_datatype(stage, target, CoreDatatypes.STRING)
+    command = change_datatype(stage, target, CoreDatatypes.PATH)
 
-    assert getter["value"].datatype.type_id == CoreDatatypes.STRING
+    assert getter["value"].datatype.type_id == CoreDatatypes.PATH
     assert not condition.links
     assert command.removed_link_uuids == [link_command.result_link_uuid]
 
