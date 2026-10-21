@@ -30,7 +30,7 @@ class ForLoopNode(Node):
     @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
-        return {"common", "logiccycle"}
+        return {"common", "logic", "cycle"}
 
     def setup(self):
         """Add the flow component."""
