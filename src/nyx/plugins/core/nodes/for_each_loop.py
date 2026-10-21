@@ -47,6 +47,14 @@ class ForEachLoopNode(Node):
         self.iterable_in_cpnt.writable = True
         self.iterable_in_cpnt.set_datatype(CoreDatatypes.OBJECT)
 
+        self.reversed_toggle_in_cpnt = self.components_model.create_component(
+            CoreNodeComponents.VALUE
+        )
+        self.reversed_toggle_in_cpnt.name = "reverse"
+        self.reversed_toggle_in_cpnt.writable = True
+        self.reversed_toggle_in_cpnt.set_datatype(CoreDatatypes.BOOL)
+        self.reversed_toggle_in_cpnt.default_value = False
+
         # OUTPUTS
         self.loop_body_cpnt = self.components_model.create_component(
             CoreNodeComponents.FLOW
@@ -76,6 +84,7 @@ class ForEachLoopNode(Node):
 
         self.components_model.add_component(self.flow_in_cpnt)
         self.components_model.add_component(self.iterable_in_cpnt)
+        self.components_model.add_component(self.reversed_toggle_in_cpnt)
         self.components_model.add_component(self.loop_body_cpnt)
         self.components_model.add_component(self.current_element_out_cpnt)
         self.components_model.add_component(self.current_index_cpnt)
@@ -94,6 +103,8 @@ class ForEachLoopNode(Node):
             raise err
 
         crawler = self.stage.crawler
+        if self.reversed_toggle_in_cpnt.pull_value():
+            iterable = reversed(iterable)
 
         for index, element in enumerate(iterable):
             self.current_index_cpnt.push_value(index)

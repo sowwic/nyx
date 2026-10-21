@@ -37,7 +37,15 @@ def test_for_each_loop_node_creation():
     loop = make_node(stage, CoreNodes.FOR_EACH_LOOP)
 
     assert loop.get_type_id() == CoreNodes.FOR_EACH_LOOP
-    for name in ("flow", "iterable", "loop_body", "element", "index", "completed"):
+    for name in (
+        "flow",
+        "iterable",
+        "reverse",
+        "loop_body",
+        "element",
+        "index",
+        "completed",
+    ):
         assert loop[name] is not None
     assert loop.get_self_driven_flow_components() == (loop["loop_body"],)
 
@@ -72,6 +80,52 @@ def test_body_sees_every_element_in_order():
     stage.crawler.start()
 
     assert seen == [(0, 5), (1, 6), (2, 7)]
+
+
+def record_iterations(stage, loop):
+    """Record (index, element) for every run of the loop body."""
+    seen = []
+    loop["loop_body"].get_next_node().execute = lambda: seen.append(
+        (loop["index"].pull_value(), loop["element"].pull_value())
+    )
+    stage.crawler.start()
+    return seen
+
+
+def test_reverse_is_off_by_default():
+    stage, loop = make_loop_stage([1, 2, 3])
+
+    assert not loop["reverse"].pull_value()
+    assert record_iterations(stage, loop) == [(0, 1), (1, 2), (2, 3)]
+
+
+def test_reverse_iterates_elements_backwards_with_counting_index():
+    stage, loop = make_loop_stage([1, 2, 3])
+    loop["reverse"].push_value(True)
+
+    assert record_iterations(stage, loop) == [(0, 3), (1, 2), (2, 1)]
+    assert loop["element"].pull_value() == 1
+
+
+@pytest.mark.parametrize(
+    "iterable, expected",
+    [((1, 2, 3), [3, 2, 1]), ("abc", ["c", "b", "a"]), (range(3), [2, 1, 0])],
+)
+def test_reverse_works_for_other_sequences(iterable, expected):
+    stage, loop = make_loop_stage(iterable)
+    loop["reverse"].push_value(True)
+
+    assert [element for _, element in record_iterations(stage, loop)] == expected
+
+
+def test_reverse_with_empty_iterable_still_completes():
+    stage, loop = make_loop_stage([])
+    loop["reverse"].push_value(True)
+
+    stage.crawler.start()
+
+    assert "body" not in executed_names(stage)
+    assert executed_names(stage)[-2:] == ["loop", "done"]
 
 
 def test_empty_iterable_skips_body_but_runs_completed():
