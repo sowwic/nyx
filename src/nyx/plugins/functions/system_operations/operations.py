@@ -9,18 +9,32 @@ import time
 
 
 def get_env(name: str, default: str = "") -> str:
-    """Get an environment variable, the default if it isn't set."""
+    """Get an environment variable, the default if it isn't set.
+
+    Args:
+        name: Name of the variable or program.
+        default: Value to get if the variable isn't set.
+    """
     return os.environ.get(name, default)
 
 
 def set_env(name: str, value: str) -> str:
-    """Set an environment variable for this program. Get the value."""
+    """Set an environment variable for this program. Get the value.
+
+    Args:
+        name: Name of the variable.
+        value: Value to set.
+    """
     os.environ[name] = value
     return value
 
 
 def has_env(name: str) -> bool:
-    """Check if an environment variable is set."""
+    """Check if an environment variable is set.
+
+    Args:
+        name: Name of the variable or program.
+    """
     return name in os.environ
 
 
@@ -60,7 +74,11 @@ def timestamp() -> float:
 
 
 def sleep(seconds: float) -> float:
-    """Wait for a number of seconds. Get how long it was."""
+    """Wait for a number of seconds. Get how long it was.
+
+    Args:
+        seconds: How long to wait, in seconds.
+    """
     time.sleep(seconds)
     return seconds
 
@@ -69,6 +87,10 @@ def run_command(command: list, timeout: float = 60.0) -> str:
     """Run a program with its arguments, no shell. Get what it printed.
 
     Raises when the program fails or takes longer than the timeout.
+
+    Args:
+        command: Program followed by its arguments.
+        timeout: Seconds to wait before giving up.
     """
     result = subprocess.run(
         [str(part) for part in command],
@@ -81,7 +103,11 @@ def run_command(command: list, timeout: float = 60.0) -> str:
 
 
 def executable_path(name: str) -> str:
-    """Get the path of a program found in PATH, empty if there is none."""
+    """Get the path of a program found in PATH, empty if there is none.
+
+    Args:
+        name: Name of the program.
+    """
     return shutil.which(name) or ""
 
 

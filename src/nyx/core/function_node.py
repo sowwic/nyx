@@ -1,5 +1,6 @@
 import inspect
 import logging
+import re
 import types
 import typing
 
@@ -24,12 +25,18 @@ class FunctionNode(Node):
         FUNCTION_TYPE_ID: type id of the generated node type
         PARAMETERS: parameters of the function that get a component
         RETURN_ANNOTATION: type hint of the return value
+        PARAMETER_DESCRIPTIONS: descriptions of the parameters, from the `Args:` section
+            of the docstring of the function
+        RETURN_DESCRIPTION: description of the return value, from the `Returns:` section
+            of the docstring or else its first line
     """
 
     FUNCTION: typing.Callable | None = None
     FUNCTION_TYPE_ID = ""
     PARAMETERS: tuple[inspect.Parameter, ...] = ()
     RETURN_ANNOTATION: typing.Any = inspect.Signature.empty
+    PARAMETER_DESCRIPTIONS: typing.ClassVar[dict[str, str]] = {}
+    RETURN_DESCRIPTION = ""
     FUNCTION_TAGS: typing.ClassVar[frozenset[str]] = frozenset()
     PARAMETER_HINTS: typing.ClassVar[dict[str, typing.Any]] = {}
 
@@ -72,6 +79,8 @@ class FunctionNode(Node):
             component.name = parameter.name
             component.writable = True
             component.is_editable = True
+            if description := self.PARAMETER_DESCRIPTIONS.get(parameter.name):
+                component.description = description
             component.set_datatype(
                 find_datatype_id(self.PARAMETER_HINTS.get(parameter.name))
             )
@@ -87,6 +96,8 @@ class FunctionNode(Node):
         self.return_cpnt.name = RETURN_COMPONENT_NAME
         self.return_cpnt.readable = True
         self.return_cpnt.is_editable = False
+        if self.RETURN_DESCRIPTION:
+            self.return_cpnt.description = self.RETURN_DESCRIPTION
         self.return_cpnt.set_datatype(find_datatype_id(self.RETURN_ANNOTATION))
         self.components_model.add_component(self.return_cpnt)
 
@@ -102,6 +113,47 @@ class FunctionNode(Node):
                 kwargs[parameter.name] = value
         # Not evaluated: a string result would be run as an expression otherwise
         self.return_cpnt.push_value(self.FUNCTION(*args, **kwargs), evaluate=False)
+
+
+def parse_docstring(docstring: str | None) -> tuple[dict[str, str], str]:
+    """Read the parameter and return descriptions of a Google style docstring.
+
+    Args:
+        docstring (str | None): docstring of a function.
+
+    Returns:
+        tuple[dict[str, str], str]: descriptions of the parameters by name, and the
+            description of the return value: the `Returns:` section if there is one,
+            else the first line of the docstring.
+    """
+    text = inspect.cleandoc(docstring or "")
+    summary = text.split("\n", 1)[0].strip()
+    arguments: dict[str, str] = {}
+    returns = ""
+    section = ""
+    name = ""
+    for line in text.splitlines()[1:]:
+        stripped = line.strip()
+        header = re.fullmatch(r"(Args|Arguments|Returns|Raises|Yields):", stripped)
+        if header and not line.startswith(" "):
+            section, name = header.group(1), ""
+            continue
+        if not stripped:
+            continue
+        if not line.startswith(" "):
+            section, name = "", ""
+        elif section in ("Args", "Arguments"):
+            match = re.match(r"\s+(\w+)\s*(?:\([^)]*\))?:\s*(.*)", line)
+            if match and len(line) - len(line.lstrip()) <= 4:
+                name = match.group(1)
+                arguments[name] = match.group(2).strip()
+            elif name:
+                arguments[name] += " " + stripped
+        elif section == "Returns":
+            returns = f"{returns} {stripped}".strip()
+    # A type before the text, like "str: the result"
+    returns = re.sub(r"^[\w.\[\]]+(?: \| [\w.\[\]]+)*:\s+", "", returns)
+    return arguments, returns or summary
 
 
 def find_datatype_id(annotation: typing.Any) -> str:
@@ -197,6 +249,7 @@ def create_function_node_class(
             continue
         parameters.append(parameter)
 
+    argument_descriptions, return_description = parse_docstring(inspect.getdoc(func))
     module = getattr(func, "__module__", "")
     qualname = getattr(func, "__qualname__", name)
     return typing.cast(
@@ -209,6 +262,8 @@ def create_function_node_class(
                 "FUNCTION": staticmethod(func),
                 "FUNCTION_TYPE_ID": type_id or f"function:{module}.{qualname}",
                 "FUNCTION_TAGS": frozenset(tags),
+                "PARAMETER_DESCRIPTIONS": argument_descriptions,
+                "RETURN_DESCRIPTION": return_description,
                 "PARAMETERS": tuple(parameters),
                 "PARAMETER_HINTS": {
                     parameter.name: hints.get(parameter.name) for parameter in parameters

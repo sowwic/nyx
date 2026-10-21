@@ -475,12 +475,25 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def is_expanded(self, state: bool) -> None:
         self.setData(state, role=self.Roles.IS_EXPANDED)
 
+    @property
+    def description(self) -> str:
+        """str: what the component is for, shown as its tooltip. The type description
+        by default, or the type display name if the type has none."""
+        return self.data(self.Roles.DESCRIPTION) or ""
+
+    @description.setter
+    def description(self, text: str) -> None:
+        self.setData(text, role=self.Roles.DESCRIPTION)
+
     def init_default_data_values(self):
         """Initialize item data roles with the defaults of the component type."""
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
-        self.setData(self.get_description(), role=self.Roles.DESCRIPTION)
+        self.setData(
+            self.get_description() or self.get_type_display_name(),
+            role=self.Roles.DESCRIPTION,
+        )
         self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
         self.setData(False, role=self.Roles.LINKS_EXPANDED)

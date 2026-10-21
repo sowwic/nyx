@@ -183,12 +183,14 @@ DraggableDelegate {
                         // or lowering its opacity would also affect the TextField child.)
                         color: itemRoot.isRenaming ? "transparent" : palette.windowText
 
-                        ToolTip.visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming
-                        ToolTip.delay: 600
-                        ToolTip.text: itemRoot.typeDisplayName
-
                         HoverHandler {
                             id: componentNameHoverHandler
+                        }
+
+                        // The same tooltip as the items of the palettes
+                        DescriptionToolTip {
+                            visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming && text.length > 0
+                            text: itemRoot.model.description || itemRoot.typeDisplayName
                         }
 
                         // Inline rename editor, drawn over the title.

@@ -50,14 +50,25 @@ class BranchNode(Node):
         )
 
         self.flow_in.name = "flow"
+        self.flow_in.description = "Execution flow into the node."
         self.flow_in.writable = True
 
         self.flow_out_true.name = "true"
+        self.flow_out_true.description = (
+            "Flow that continues when the condition is true."
+        )
         self.flow_out_true.readable = True
         self.flow_out_false.name = "false"
+        self.flow_out_false.description = (
+            "Flow that continues when the condition is false."
+        )
         self.flow_out_false.readable = True
 
         self.value_cpnt.name = "condition"
+        self.value_cpnt.description = (
+            "Value that chooses the output. Anything that isn't false, zero or "
+            "empty counts as true."
+        )
         self.value_cpnt.writable = True
         self.value_cpnt.is_editable = True
         self.value_cpnt.set_datatype(CoreDatatypes.BOOL)

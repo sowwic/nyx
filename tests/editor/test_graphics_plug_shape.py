@@ -334,15 +334,64 @@ def test_plug_shows_the_roles_of_its_component_when_diagnostics_are_on(
     assert "isValid" in tooltip
 
 
-def test_plug_has_no_tooltip_when_diagnostics_are_off(plugs, monkeypatch):
+def test_plug_shows_the_description_when_diagnostics_are_off(plugs, monkeypatch):
+    flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+    value_plug.component.description = "Number to use."
+
+    hover(value_plug)
+    hover(flow_plug)
+
+    assert "<td>Number to use.</td>" in value_plug.toolTip()
+    assert "isValid" not in value_plug.toolTip()
+    # A flow holds no value
+    assert flow_plug.component.description in flow_plug.toolTip()
+    assert "Value" not in flow_plug.toolTip()
+
+
+def test_plug_tooltip_follows_a_changed_description(plugs, monkeypatch):
     _flow_plug, value_plug = plugs
     monkeypatch.setattr(
         "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
     )
+    hover(value_plug)
+    value_plug.component.description = "New text."
 
     hover(value_plug)
 
-    assert value_plug.toolTip() == ""
+    assert "New text." in value_plug.toolTip()
+
+
+def test_plug_tooltip_shows_the_raw_and_cached_value(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+    value_plug.component.push_value("1+1")
+
+    hover(value_plug)
+
+    tooltip = value_plug.toolTip()
+    assert "<b>Raw:</b> 1+1<br><b>Cache:</b> 2" in tooltip
+    assert tooltip.index("Description") < tooltip.index("Value")
+    assert tooltip.index("Raw:") < tooltip.index("Cache:")
+
+
+def test_plug_tooltip_escapes_and_shortens_values(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+    value_plug.component.push_value("'<b>" + "x" * 500 + "'")
+
+    hover(value_plug)
+
+    tooltip = value_plug.toolTip()
+    assert "<b>x" not in tooltip
+    assert "&lt;b&gt;" in tooltip
+    assert "…" in tooltip
 
 
 def test_plug_tooltip_follows_the_component(plugs, monkeypatch):

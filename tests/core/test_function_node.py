@@ -231,3 +231,68 @@ def test_display_survives_a_link_from_a_getter_pointing_at_nothing():
     # Pulling the value fails, drawing the node and its tooltip must not
     assert cast["type"].get_display_value() is not None
     assert isinstance(cast.subtitle, str)
+
+
+def test_parse_docstring_reads_args_and_returns():
+    from nyx.core.function_node import parse_docstring
+
+    arguments, returns = parse_docstring(
+        """Do a thing.
+
+        Longer text.
+
+        Args:
+            text (str): The text
+                that wraps.
+            count: How many.
+
+        Returns:
+            str: The result.
+        """
+    )
+
+    assert arguments == {"text": "The text that wraps.", "count": "How many."}
+    assert returns == "The result."
+
+
+def test_parse_docstring_without_sections():
+    from nyx.core.function_node import parse_docstring
+
+    assert parse_docstring("Add two numbers.") == ({}, "Add two numbers.")
+    assert parse_docstring(None) == ({}, "")
+
+
+def test_function_node_components_get_descriptions_from_the_docstring():
+    from nyx.api.v1 import Stage, commands
+    from nyx.core.function_node import create_function_node_class
+    from nyx.api.v1 import NYX_REGISTRY
+
+    def shout(text: str, times: int = 2, plain: str = "") -> str:
+        """Repeat a text loudly.
+
+        Args:
+            text: Text to shout.
+            times: How often.
+
+        Returns:
+            The shouted text.
+        """
+        return text * times
+
+    node_cls = create_function_node_class(shout, type_id="function:test.shout")
+    NYX_REGISTRY.nodes["function:test.shout"] = node_cls
+    try:
+        stage = Stage()
+        command = commands.CreateNodeCommand(stage=stage, type_id="function:test.shout")
+        stage.push_command(command)
+        node = command.result_node
+    finally:
+        del NYX_REGISTRY.nodes["function:test.shout"]
+
+    assert node["text"].description == "Text to shout."
+    assert node["times"].description == "How often."
+    # Not documented: the one of the component type
+    assert node["plain"].description == type(node["plain"]).get_description() or (
+        node["plain"].description == type(node["plain"]).get_type_display_name()
+    )
+    assert node["return"].description == "The shouted text."

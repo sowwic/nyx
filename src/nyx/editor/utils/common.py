@@ -4,12 +4,15 @@ import html
 
 from PySide6 import QtCore, QtWidgets, QtQml
 
+from ...core.datatypes.datatype import value_to_class_name
 from ...core.layered_config import NyxConfig
+from ...static.enums import CoreDatatypes
 from ...static.vars import DEBUG
 
 if typing.TYPE_CHECKING:
     from ..widgets.stage_graph_editor import StageGraphEditor
     from ...application import NyxEditorApplication
+    from ...core.node_component import NodeComponent
 
 
 def get_application_qml_engine() -> QtQml.QQmlEngine:
@@ -132,3 +135,46 @@ def build_role_tooltip_html(
         )
 
     return "<table>" + "".join(table_row_html_fragments) + "</table>"
+
+
+def build_component_tooltip_html(
+    component: NodeComponent, maximum_value_length: int = 200
+) -> str:
+    """Build the tooltip of a component: a description section, then a value section.
+
+    Args:
+        component (NodeComponent): component to describe.
+        maximum_value_length (int): values are truncated to this length.
+
+    Returns:
+        str: HTML. Components that hold no value, like a flow, only get the description.
+    """
+
+    def format_value(value: typing.Any) -> str:
+        text = str(value_to_class_name(value))
+        if len(text) > maximum_value_length:
+            text = text[:maximum_value_length] + "…"
+        return html.escape(text)
+
+    def heading(title: str) -> str:
+        style = "border-bottom: 1px solid gray"
+        return f"<tr><th align='left' style='{style}'>{title}</th></tr>"
+
+    rows = [
+        heading("Description"),
+        f"<tr><td>{html.escape(component.description)}</td></tr>",
+    ]
+    if component.datatype_id != CoreDatatypes.FLOW:
+        rows += [
+            "<tr><td height='6'></td></tr>",
+            heading("Value"),
+            "<tr><td>"
+            f"<b>Raw:</b> {format_value(component.raw_value)}<br>"
+            f"<b>Cache:</b> {format_value(component.cached_value)}"
+            "</td></tr>",
+        ]
+    return (
+        "<table width='100%' cellspacing='0' cellpadding='0'>"
+        + "".join(rows)
+        + "</table>"
+    )

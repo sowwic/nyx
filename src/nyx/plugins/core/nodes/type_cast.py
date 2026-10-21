@@ -48,6 +48,7 @@ class TypeCastNode(Node):
 
         self.type_cpnt = self.components_model.create_component(CoreNodeComponents.VALUE)
         self.type_cpnt.name = "type"
+        self.type_cpnt.description = "Class to convert the object to."
         self.type_cpnt.default_value = "core:object"
         self.type_cpnt.writable = True
         self.type_cpnt.is_editable = True
@@ -57,6 +58,7 @@ class TypeCastNode(Node):
             CoreNodeComponents.VALUE
         )
         self.object_cpnt.name = "object"
+        self.object_cpnt.description = "Object to convert."
         self.object_cpnt.writable = True
         self.object_cpnt.is_editable = True
         self.object_cpnt.set_datatype(CoreDatatypes.OBJECT)
@@ -65,6 +67,7 @@ class TypeCastNode(Node):
             CoreNodeComponents.VALUE
         )
         self.result_cpnt.name = "result"
+        self.result_cpnt.description = "The object converted to the type."
         self.result_cpnt.readable = True
         self.result_cpnt.set_datatype(CoreDatatypes.OBJECT)
 

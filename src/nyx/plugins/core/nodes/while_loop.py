@@ -46,12 +46,16 @@ class WhileLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.flow_in_cpnt.name = "flow"
+        self.flow_in_cpnt.description = "Execution flow into the node."
         self.flow_in_cpnt.writable = True
 
         self.condition_in_cpnt = self.components_model.create_component(
             CoreNodeComponents.VALUE
         )
         self.condition_in_cpnt.name = "condition"
+        self.condition_in_cpnt.description = (
+            "The loop body keeps running as long as this is true."
+        )
         self.condition_in_cpnt.writable = True
         self.condition_in_cpnt.set_datatype(CoreDatatypes.BOOL)
 
@@ -60,12 +64,16 @@ class WhileLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.loop_body_cpnt.name = "loop_body"
+        self.loop_body_cpnt.description = "Flow that runs while the condition is true."
         self.loop_body_cpnt.readable = True
 
         self.flow_out_cpnt = self.components_model.create_component(
             CoreNodeComponents.FLOW
         )
         self.flow_out_cpnt.name = "completed"
+        self.flow_out_cpnt.description = (
+            "Flow that continues once the condition is false."
+        )
         self.flow_out_cpnt.readable = True
 
         self.components_model.add_component(self.flow_in_cpnt)

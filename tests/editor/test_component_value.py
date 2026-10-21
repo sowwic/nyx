@@ -695,3 +695,35 @@ def test_clicking_empty_space_in_components_view_deselects(
 
     qtbot.waitUntil(lambda: not controller.selection_model.hasSelection(), timeout=2000)
     assert palette.property("opened") is False
+
+
+def test_component_items_have_the_description_tooltip(
+    main_window, stage_editor, create_node, qtbot
+):
+    stage = stage_editor.stage
+    node = create_node(stage, "a", type_id=CoreNodes.BRANCH)
+    main_window.inspector.show()
+    stage_editor.selection_model.select(
+        node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
+    )
+    view = main_window.inspector.findChild(NodeComponentsView)
+    qtbot.waitUntil(lambda: view.rootObject() is not None, timeout=3000)
+    root = view.rootObject()
+    list_view = root.findChild(QtCore.QObject, "componentsListView")
+    qtbot.waitUntil(lambda: list_view.property("count") > 0, timeout=3000)
+
+    delegates = [
+        item
+        for item in list_view.property("contentItem").childItems()
+        if item.property("showExpanded") is not None
+    ]
+    tooltips = [
+        child
+        for delegate in delegates
+        for child in delegate.findChildren(QtCore.QObject)
+        if child.metaObject().className().startswith("DescriptionToolTip")
+    ]
+    assert len(tooltips) == len(delegates) > 0
+    texts = {tooltip.property("text") for tooltip in tooltips}
+    assert "Flow that continues when the condition is true." in texts
+    assert any(text.startswith("Value that chooses the output") for text in texts)

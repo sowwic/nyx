@@ -196,11 +196,22 @@ class PasteNodesCommand(NyxCommand):
         first_run = context is not None
         candidates = context.resolved_links() if first_run else self._link_pairs
 
+        created = set(context.uuid_map.values()) if first_run else set()
         accepted: list[tuple[UUID, UUID]] = []
         for src_uuid, tgt_uuid in candidates:
             source = self.stage.get_object(src_uuid)
             target = self.stage.get_object(tgt_uuid)
             if source is None or target is None:
+                continue
+
+            # A link to something that wasn't pasted only makes sense within one scope.
+            # Pasting somewhere else leaves the copy unlinked.
+            if (
+                first_run
+                and src_uuid not in created
+                and source.node.parent() is not target.node.parent()
+            ):
+                LOGGER.info(f"Skipping paste link across scopes {source} -> {target}")
                 continue
 
             # A paste never steals the only output link of a component.

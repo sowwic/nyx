@@ -37,6 +37,11 @@ class SequenceNode(Node):
         for output_index in range(4):
             flow_cpnt = self.components_model.create_component(CoreNodeComponents.FLOW)
             flow_cpnt.name = f"flow_{output_index}"
+            flow_cpnt.description = (
+                "Execution flow into the node."
+                if output_index == 0
+                else f"Flow that continues as step {output_index}."
+            )
             flow_cpnt.writable = output_index == 0
             flow_cpnt.readable = True
             self.components_model.add_component(flow_cpnt)

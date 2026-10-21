@@ -42,12 +42,14 @@ class GetTypeNode(Node):
             CoreNodeComponents.VALUE
         )
         self.object_cpnt.name = "object"
+        self.object_cpnt.description = "Object to get the type of."
         self.object_cpnt.writable = True
         self.object_cpnt.is_editable = True
         self.object_cpnt.set_datatype(CoreDatatypes.OBJECT)
 
         self.type_cpnt = self.components_model.create_component(CoreNodeComponents.VALUE)
         self.type_cpnt.name = "type"
+        self.type_cpnt.description = "Class of the object."
         self.type_cpnt.readable = True
         self.type_cpnt.set_datatype(CoreDatatypes.TYPE)
 

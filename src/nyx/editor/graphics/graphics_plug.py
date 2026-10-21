@@ -8,6 +8,7 @@ from nyx.editor.graphics.graphics_plug_shape import PlugShape, plug_shape_for
 from nyx.editor.graphics.level_of_detail import LevelOfDetail
 from nyx.editor.utils.common import (
     are_hover_diagnostics_enabled,
+    build_component_tooltip_html,
     build_role_tooltip_html,
 )
 from nyx.static.enums import GraphicsPlugShape
@@ -259,13 +260,16 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     # ======== Events ========= #
 
     def _refresh_tooltip(self):
-        """Show the roles of the component as tooltip if diagnostics are enabled."""
+        """Show the roles of the component as tooltip if diagnostics are enabled, its
+        description and values otherwise."""
         index = self._component.index()
         if not index.isValid():
             return
 
         if are_hover_diagnostics_enabled():
             self.setToolTip(build_role_tooltip_html(index))
+        else:
+            self.setToolTip(build_component_tooltip_html(self._component))
 
     def hoverEnterEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
         """Refresh the tooltip when the cursor enters.

@@ -271,3 +271,81 @@ def test_paste_into_own_child():
     )
     stage.push_command(paste_command)
     pasted_child1, pasted_child2 = paste_command.pasted_nodes
+
+
+def _build_scoped_flow():
+    """/stage/model/{first, second} with first.flow linked to second.flow."""
+    stage = Stage()
+
+    def create(name, parent=None):
+        command = commands.CreateNodeCommand(
+            stage=stage, type_id=CoreNodes.ACTION, name=name, parent_node=parent
+        )
+        stage.push_command(command)
+        return command.result_node
+
+    model = create("model")
+    first = create("first", parent=model)
+    second = create("second", parent=model)
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=first["flow"], target=second["flow"]
+        )
+    )
+    return stage, model, first, second
+
+
+def test_cut_node_pasted_into_another_scope_loses_its_link():
+    stage, model, first, second = _build_scoped_flow()
+
+    clipboard.serialize_nodes_to_clipboard(nodes=[second], delete=True)
+    serialized = clipboard.get_serialized_nodes_from_clipboard()
+    assert not first["flow"].output_links
+
+    paste_command = commands.PasteNodesCommand(
+        stage=stage,
+        serialize_nodes=serialized,
+        position=QtCore.QPointF(),
+        parent_node=stage.root_node,
+    )
+    stage.push_command(paste_command)
+
+    pasted = paste_command.pasted_nodes[0]
+    assert pasted.parent() is stage.root_node
+    assert not pasted["flow"].links_uuids
+    assert not first["flow"].output_links
+
+
+def test_cut_node_pasted_back_into_its_scope_keeps_its_link():
+    stage, model, first, second = _build_scoped_flow()
+
+    clipboard.serialize_nodes_to_clipboard(nodes=[second], delete=True)
+    serialized = clipboard.get_serialized_nodes_from_clipboard()
+    paste_command = commands.PasteNodesCommand(
+        stage=stage,
+        serialize_nodes=serialized,
+        position=QtCore.QPointF(),
+        parent_node=model,
+    )
+    stage.push_command(paste_command)
+
+    pasted = paste_command.pasted_nodes[0]
+    assert first["flow"].is_linked_to(pasted["flow"], as_source=True)
+
+
+def test_paste_into_another_scope_undo_redo_keeps_it_unlinked():
+    stage, model, first, second = _build_scoped_flow()
+    clipboard.serialize_nodes_to_clipboard(nodes=[second], delete=True)
+    paste_command = commands.PasteNodesCommand(
+        stage=stage,
+        serialize_nodes=clipboard.get_serialized_nodes_from_clipboard(),
+        position=QtCore.QPointF(),
+        parent_node=stage.root_node,
+    )
+    stage.push_command(paste_command)
+
+    stage.undo_stack.undo()
+    stage.undo_stack.redo()
+
+    assert not paste_command.pasted_nodes[0]["flow"].links_uuids
+    assert not first["flow"].output_links

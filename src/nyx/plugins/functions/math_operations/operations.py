@@ -2,67 +2,131 @@
 
 
 def add(a: float, b: float) -> float:
-    """Add two numbers."""
+    """Add two numbers.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return a + b
 
 
 def subtract(a: float, b: float) -> float:
-    """Subtract b from a."""
+    """Subtract b from a.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return a - b
 
 
 def multiply(a: float, b: float) -> float:
-    """Multiply two numbers."""
+    """Multiply two numbers.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return a * b
 
 
 def divide(a: float, b: float) -> float:
-    """Divide a by b."""
+    """Divide a by b.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return a / b
 
 
 def floor_divide(a: float, b: float) -> float:
-    """Divide a by b, rounding down."""
+    """Divide a by b, rounding down.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return a // b
 
 
 def modulo(a: float, b: float) -> float:
-    """Get the remainder of dividing a by b."""
+    """Get the remainder of dividing a by b.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return a % b
 
 
 def negate(value: float) -> float:
-    """Flip the sign of a number."""
+    """Flip the sign of a number.
+
+    Args:
+        value: Number to use.
+    """
     return -value
 
 
 def absolute(value: float) -> float:
-    """Get the distance of a number from zero."""
+    """Get the distance of a number from zero.
+
+    Args:
+        value: Number to use.
+    """
     return abs(value)
 
 
 def sign(value: float) -> int:
-    """Get -1, 0 or 1 for a negative, zero or positive number."""
+    """Get -1, 0 or 1 for a negative, zero or positive number.
+
+    Args:
+        value: Number to use.
+    """
     return (value > 0) - (value < 0)
 
 
 def minimum(a: float, b: float) -> float:
-    """Get the smaller of two numbers."""
+    """Get the smaller of two numbers.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return min(a, b)
 
 
 def maximum(a: float, b: float) -> float:
-    """Get the bigger of two numbers."""
+    """Get the bigger of two numbers.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return max(a, b)
 
 
 def clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
-    """Limit a number to the range from low to high."""
+    """Limit a number to the range from low to high.
+
+    Args:
+        value: Number to use.
+        low: Smallest allowed number.
+        high: Biggest allowed number.
+    """
     return max(low, min(value, high))
 
 
 def lerp(a: float, b: float, t: float = 0.5) -> float:
-    """Interpolate linearly from a to b, t=0 gives a and t=1 gives b."""
+    """Interpolate linearly from a to b, t=0 gives a and t=1 gives b.
+
+    Args:
+        a: First number.
+        b: Second number.
+        t: How far to go from the first number to the second, 0 to 1.
+    """
     return a + (b - a) * t
 
 
@@ -73,15 +137,32 @@ def remap(
     to_low: float = 0.0,
     to_high: float = 1.0,
 ) -> float:
-    """Move a number from one range to another."""
+    """Move a number from one range to another.
+
+    Args:
+        value: Number to use.
+        from_low: Start of the range the value is in.
+        from_high: End of the range the value is in.
+        to_low: Start of the range to move the value to.
+        to_high: End of the range to move the value to.
+    """
     return to_low + (value - from_low) * (to_high - to_low) / (from_high - from_low)
 
 
 def average(a: float, b: float) -> float:
-    """Get the mean of two numbers."""
+    """Get the mean of two numbers.
+
+    Args:
+        a: First number.
+        b: Second number.
+    """
     return (a + b) / 2
 
 
 def is_even(value: int) -> bool:
-    """Check if a whole number is even."""
+    """Check if a whole number is even.
+
+    Args:
+        value: Number to use.
+    """
     return value % 2 == 0

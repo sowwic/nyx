@@ -39,8 +39,11 @@ def test_node_and_component_expose_the_description_role():
     node = command.result_node
 
     assert node.data(Node.Roles.DESCRIPTION) == type(node).get_description()
+    # The condition describes itself, a component without a description of its own
+    # has the one of its type
+    assert node["condition"].description.startswith("Value that chooses the output")
     assert node["condition"].data(NodeComponent.Roles.DESCRIPTION) == (
-        type(node["condition"]).get_description()
+        node["condition"].description
     )
 
 
@@ -53,3 +56,44 @@ def test_registry_model_provides_the_description():
         index = model.index(row)
         cls = index.data(RegistryListModel.Roles.TYPE_CLASS)
         assert index.data(RegistryListModel.Roles.DESCRIPTION) == cls.get_description()
+
+
+def make_node(stage, type_id):
+    command = commands.CreateNodeCommand(stage=stage, type_id=type_id)
+    stage.push_command(command)
+    return command.result_node
+
+
+def test_component_description_defaults_to_the_type_description():
+    stage = Stage()
+    node = make_node(stage, "core:node")
+    command = commands.AddNodeComponentCommand(node=node, type_id="core:flow")
+    stage.push_command(command)
+
+    component = command.result_component
+    assert component.description == type(component).get_description()
+
+
+def test_component_description_can_be_changed():
+    stage = Stage()
+    node = make_node(stage, "core:branch")
+    node["condition"].description = "Something else."
+
+    assert node["condition"].description == "Something else."
+    assert node.components_model.data(
+        node["condition"].index(), NodeComponent.Roles.DESCRIPTION
+    ) == ("Something else.")
+
+
+def test_every_component_of_a_predefined_node_describes_itself():
+    stage = Stage()
+    for type_id, node_cls in NYX_REGISTRY.nodes.items():
+        if type_id.startswith("function:"):
+            continue
+        node = make_node(stage, type_id)
+        for component in node.components_model.list_components():
+            assert component.description.strip(), f"{type_id}.{component.name}"
+            # More than the name of the component type
+            assert component.description != type(component).get_type_display_name(), (
+                f"{type_id}.{component.name}"
+            )

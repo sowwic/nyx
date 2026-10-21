@@ -148,3 +148,19 @@ def test_title_stays_on_the_left(make_gr_node):
 
     assert gr_node.title_item.pos().x() == gr_node.options.title_offset_x
     assert gr_node.subtitle_item.pos().x() > gr_node.title_item.pos().x()
+
+
+def test_node_shows_its_description_unless_diagnostics_are_on(make_gr_node, monkeypatch):
+    node, gr_node = make_gr_node(CoreNodes.BRANCH)
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_node.are_hover_diagnostics_enabled", lambda: False
+    )
+
+    gr_node._refresh_tooltip()
+    assert gr_node.toolTip() == type(node).get_description() != ""
+
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_node.are_hover_diagnostics_enabled", lambda: True
+    )
+    gr_node._refresh_tooltip()
+    assert "typeId" in gr_node.toolTip()

@@ -37,6 +37,7 @@ class ValueNode(Node):
             CoreNodeComponents.VALUE
         )
         self.value_cpnt.name = "value"
+        self.value_cpnt.description = "Value of the node, it can be edited or linked."
         self.value_cpnt.readable = True
         self.value_cpnt.is_editable = True
         self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE
