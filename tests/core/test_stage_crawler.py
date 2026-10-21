@@ -293,3 +293,47 @@ def test_crawler_can_run_again_after_an_error():
     stage.crawler.start()
 
     assert executed_names(stage) == ["stage", "start", "first"]
+
+
+def make_loop(stage, first, last):
+    loop = make_node(stage, CoreNodes.FOR_LOOP, name="loop")
+    loop["first_index"].push_value(first)
+    loop["last_index"].push_value(last)
+    return loop
+
+
+def test_for_loop_runs_body_for_every_index_then_completed():
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    loop = make_loop(stage, 0, 3)
+    body1 = make_node(stage, name="body1")
+    body2 = make_node(stage, name="body2")
+    done = make_node(stage, name="done")
+    start["flow"] >> loop["flow"]
+    loop["loop_body"] >> body1["flow"]
+    body1["flow"] >> body2["flow"]
+    loop["completed"] >> done["flow"]
+
+    stage.crawler.start()
+
+    assert executed_names(stage) == (
+        ["stage", "start"] + ["body1", "body2"] * 4 + ["loop", "done"]
+    )
+    assert loop["index"].pull_value() == 3
+
+
+@pytest.mark.parametrize(("first", "last", "runs"), [(2, 2, 1), (3, 1, 0)])
+def test_for_loop_edge_ranges(first, last, runs):
+    stage = Stage()
+    start = make_node(stage, CoreNodes.FLOW_START, name="start")
+    loop = make_loop(stage, first, last)
+    body = make_node(stage, name="body")
+    done = make_node(stage, name="done")
+    start["flow"] >> loop["flow"]
+    loop["loop_body"] >> body["flow"]
+    loop["completed"] >> done["flow"]
+
+    stage.crawler.start()
+
+    assert executed_names(stage).count("body") == runs
+    assert executed_names(stage)[-1] == "done"

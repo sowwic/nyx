@@ -48,6 +48,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         caster=bool,
         python_type=bool,
         default_factory=bool,
+        is_wildcard=True,
     ),
     Datatype(
         type_id=CoreDatatypes.STRING,
@@ -56,7 +57,7 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         caster=str,
         python_type=str,
         default_factory=str,
-        compatible_with=frozenset({CoreDatatypes.REFERENCE}),
+        is_wildcard=True,
     ),
     Datatype(
         type_id=CoreDatatypes.INT,

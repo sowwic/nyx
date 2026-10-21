@@ -92,7 +92,10 @@ def test_node_grows_to_fit_a_wide_subtitle(make_gr_node):
     node.subtitle = "a rather wide subtitle text that needs more room than the title"
 
     assert gr_node.width > plain_width
-    assert gr_node.width >= gr_node.subtitle_item.width + 2 * gr_node.SUBTITLE_MARGIN
+    assert (
+        gr_node.width
+        >= gr_node.subtitle_item.width + 2 * gr_node.options.subtitle_margin
+    )
 
 
 def test_subtitle_can_not_be_clicked_or_edited(make_gr_node):
@@ -123,7 +126,7 @@ def test_subtitle_is_right_aligned(make_gr_node):
 
     subtitle = gr_node.subtitle_item
     right_edge = subtitle.pos().x() + subtitle.width
-    assert right_edge == gr_node.width - gr_node.SUBTITLE_MARGIN
+    assert right_edge == gr_node.width - gr_node.options.subtitle_margin
 
 
 def test_subtitle_stays_right_aligned_when_the_node_grows(make_gr_node):
@@ -134,14 +137,14 @@ def test_subtitle_stays_right_aligned_when_the_node_grows(make_gr_node):
 
     subtitle = gr_node.subtitle_item
     assert subtitle.pos().x() + subtitle.width == (
-        gr_node.width - gr_node.SUBTITLE_MARGIN
+        gr_node.width - gr_node.options.subtitle_margin
     )
-    assert subtitle.pos().x() >= gr_node.SUBTITLE_MARGIN
+    assert subtitle.pos().x() >= gr_node.options.subtitle_margin
 
 
 def test_title_stays_on_the_left(make_gr_node):
     node, gr_node = make_gr_node()
     node.subtitle = "short"
 
-    assert gr_node.title_item.pos().x() == gr_node.TITLE_OFFSET_X
+    assert gr_node.title_item.pos().x() == gr_node.options.title_offset_x
     assert gr_node.subtitle_item.pos().x() > gr_node.title_item.pos().x()

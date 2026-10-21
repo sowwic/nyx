@@ -149,8 +149,8 @@ def test_linking_incompatible_datatypes_is_rejected():
     source = make_branch(stage)["condition"]
     target = make_branch(stage)["condition"]
     source.readable = True
-    source.set_datatype(CoreDatatypes.STRING)
-    target.set_datatype(CoreDatatypes.BOOL)
+    source.set_datatype(CoreDatatypes.PATH)
+    target.set_datatype(CoreDatatypes.INT)
 
     with pytest.raises(exceptions.NodeComponentLinkError, match="Incompatible"):
         stage.link_components(source, target)

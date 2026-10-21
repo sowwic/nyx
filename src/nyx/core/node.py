@@ -17,6 +17,7 @@ from .models.components_model import NodeComponentsModel
 from .contexts.serialization import NodeSerializationContext, NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
+from .node_render_options import NodeRenderOptions
 from ..static.vars import NYX_FILE_EXTENSION
 from ..static.enums import (
     CoreNodes,
@@ -30,6 +31,7 @@ if typing.TYPE_CHECKING:
     from .node_component import NodeComponent
     from .stage_crawler import NodeVisitor
     from nyx.plugins.core.nodes.flow_start import FlowStartNode
+    from nyx.plugins.core.node_components.flow import FlowComponent
 
 
 LOGGER = logging.getLogger(__name__)
@@ -388,6 +390,17 @@ class Node(QtGui.QStandardItem, StageObject):
     def reset_execution_status(self):
         """Set the execution status back to not ran."""
         self.execution_status = NodeExecutionStatus.NOT_RAN
+
+    def get_self_driven_flow_components(self) -> tuple[FlowComponent, ...]:
+        """Get the flow components the node runs itself while it executes.
+
+        The crawler does not follow them after the node, the node runs their chains
+        through `StageCrawler.run_flow_branch` instead.
+
+        Returns:
+            tuple[FlowComponent, ...]: self driven flow components, none by default.
+        """
+        return ()
 
     def is_active(self) -> bool:
         """Query if node's active state.
@@ -898,6 +911,18 @@ class Node(QtGui.QStandardItem, StageObject):
     def get_type_execution_order(cls) -> NodeExecutionOrderFlag:
         """NodeExecutionOrderFlag: default execution order of the node type."""
         return NodeExecutionOrderFlag.BEFORE_CHILDREN
+
+    @classmethod
+    def get_render_options(cls) -> NodeRenderOptions:
+        """Get the options the editor draws nodes of this type with.
+
+        Subclasses can take the options of their parent class, change what they want
+        and return them.
+
+        Returns:
+            NodeRenderOptions: new options with the default values.
+        """
+        return NodeRenderOptions()
 
     @classmethod
     def get_tags(cls) -> set[str]:

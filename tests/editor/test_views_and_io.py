@@ -555,14 +555,14 @@ def test_graphics_node_follows_position_and_undo(stage_editor, create_node):
 def test_graphics_node_title_follows_rename_and_grows(stage_editor, create_node):
     a = create_node(stage_editor.stage, "a")
     gr_a = stage_editor.gr_stage.get_gr_node(a)
-    assert gr_a.width == gr_a.MIN_WIDTH
+    assert gr_a.width == gr_a.options.min_width
     stage_editor.stage.push_command(
         commands.RenameNodeCommand(
             stage=stage_editor.stage, node=a, new_name="a_very_long_node_name_indeed"
         )
     )
     assert gr_a.title_item.toPlainText() == "a_very_long_node_name_indeed"
-    assert gr_a.width > gr_a.MIN_WIDTH
+    assert gr_a.width > gr_a.options.min_width
 
 
 def test_graphics_node_creates_plugs_for_linkable_components(stage_editor, create_node):
@@ -629,7 +629,7 @@ def test_double_click_anywhere_on_node_steps_in(
 
 def _node_body_point(gr_node):
     """Scene point inside the node that is neither on a plug row nor on a socket."""
-    return gr_node.mapToScene(50, gr_node.height - gr_node.lower_padding / 2)
+    return gr_node.mapToScene(50, gr_node.height - gr_node.options.lower_padding / 2)
 
 
 def _flow_plug(stage_editor, node):
@@ -1045,14 +1045,14 @@ def test_node_without_plugs_is_as_tall_as_a_single_plug_row(stage_editor, create
     assert not gr_node.plugs
     assert gr_node.height == (
         gr_node.title_height
-        + gr_node.plugs_top_padding
+        + gr_node.options.plugs_top_padding
         + GraphicsPlug.ROW_HEIGHT
-        + gr_node.lower_padding
+        + gr_node.options.lower_padding
     )
     assert gr_node.height < 100
 
 
-def test_node_grows_by_a_row_per_plug_beyond_the_first(stage_editor, create_node):
+def test_node_grows_by_a_row_per_plug_row_beyond_the_first(stage_editor, create_node):
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
 
     stage = stage_editor.stage
@@ -1065,4 +1065,42 @@ def test_node_grows_by_a_row_per_plug_beyond_the_first(stage_editor, create_node
 
     assert len(single.plugs) == 1
     assert len(branch.plugs) == 4
-    assert branch.height - single.height == 3 * GraphicsPlug.ROW_HEIGHT
+    # inputs and outputs share rows: flow | true and condition | false
+    assert branch.height - single.height == 1 * GraphicsPlug.ROW_HEIGHT
+
+
+def test_input_and_output_only_plugs_share_rows(stage_editor, create_node):
+    stage = stage_editor.stage
+    gr_node = stage_editor.gr_stage.get_gr_node(
+        create_node(stage, "branch", type_id=CoreNodes.BRANCH)
+    )
+    flow, true, false, condition = gr_node.plugs
+
+    assert flow.pos().y() == true.pos().y()
+    assert condition.pos().y() == false.pos().y()
+    assert condition.pos().y() > flow.pos().y()
+    for input_plug in (flow, condition):
+        assert input_plug.is_writable and not input_plug.is_readable
+        assert input_plug.pos().x() == 0.0
+    for output_plug in (true, false):
+        assert output_plug.is_readable and not output_plug.is_writable
+        assert output_plug.pos().x() > 0.0
+        assert (
+            output_plug.pos().x() + output_plug.boundingRect().width() == gr_node.width
+        )
+
+
+def test_plug_with_both_sockets_takes_a_row_alone(stage_editor, create_node):
+    stage = stage_editor.stage
+    gr_node = stage_editor.gr_stage.get_gr_node(
+        create_node(stage, "branch", type_id=CoreNodes.BRANCH)
+    )
+    flow, true, false, condition = gr_node.plugs
+    condition.component.readable = True
+    gr_node.refresh()
+
+    assert condition.is_writable and condition.is_readable
+    others = {flow.pos().y(), true.pos().y(), false.pos().y()}
+    assert condition.pos().y() not in others
+    assert condition.pos().x() == 0.0
+    assert condition.boundingRect().width() == gr_node.width

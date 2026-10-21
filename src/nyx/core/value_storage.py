@@ -169,11 +169,11 @@ class ValueStorage:
             typing.Any: evaluated value, the raw value if evaluation fails.
         """
         out_value = self.raw_value
-        if isinstance(self.raw_value, str):
+        if isinstance(self.raw_value, str) and self.raw_value:
             try:
                 out_value = eval(self.raw_value)
             except Exception:
-                LOGGER.warning(f"Failed to eval {self.raw_value}, defaulting to str")
+                pass
         return out_value
 
     def clear_cache(self) -> None:

@@ -48,13 +48,21 @@ def test_type_is_a_concrete_datatype():
     assert not type_datatype.is_wildcard
     assert type_datatype.accepts(type_datatype)
     assert type_datatype.accepts(get(CoreDatatypes.OBJECT))
-    assert not type_datatype.accepts(get(CoreDatatypes.BOOL))
-    assert not get(CoreDatatypes.BOOL).accepts(type_datatype)
+    assert not type_datatype.accepts(get(CoreDatatypes.INT))
+    assert not get(CoreDatatypes.INT).accepts(type_datatype)
 
 
 def test_concrete_datatypes_accept_only_themselves():
-    assert get(CoreDatatypes.BOOL).accepts(get(CoreDatatypes.BOOL))
-    assert not get(CoreDatatypes.BOOL).accepts(get(CoreDatatypes.STRING))
+    assert get(CoreDatatypes.INT).accepts(get(CoreDatatypes.INT))
+    assert not get(CoreDatatypes.INT).accepts(get(CoreDatatypes.PATH))
+
+
+def test_bool_is_a_wildcard():
+    boolean = get(CoreDatatypes.BOOL)
+    assert boolean.is_wildcard
+    assert boolean.accepts(get(CoreDatatypes.PATH))
+    assert boolean.cast([]) is False
+    assert boolean.cast("text") is True
 
 
 @pytest.mark.parametrize(
@@ -124,7 +132,7 @@ def test_reference_is_a_square_that_exchanges_paths_with_strings():
     assert reference.plug_shape is GraphicsPlugShape.SQUARE
     assert reference.accepts(get(CoreDatatypes.STRING))
     assert get(CoreDatatypes.STRING).accepts(reference)
-    assert not reference.accepts(get(CoreDatatypes.BOOL))
+    assert not reference.accepts(get(CoreDatatypes.INT))
 
 
 def test_only_flow_is_not_selectable():
