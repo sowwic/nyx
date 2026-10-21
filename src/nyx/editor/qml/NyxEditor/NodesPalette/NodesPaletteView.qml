@@ -15,25 +15,21 @@ Rectangle {
     property bool dragEnabled: false
     property string nodeMimeType: ""
 
-    // Current text in the search field (hook this up to your filtering, see TODO below)
-    property alias searchText: searchField.text
+    property alias searchText: searchBar.queryText
 
     ColumnLayout {
         id: mainLayout
         anchors.fill: parent
         spacing: 0
 
-        // ---- Search field ----
-        // TODO: Replace with common search bar component
-        TextField {
-            id: searchField
+        SearchBar {
+            id: searchBar
             Layout.fillWidth: true
             Layout.topMargin: 6
             Layout.leftMargin: 6
             Layout.rightMargin: 6
-            placeholderText: qsTr("Search...")
-            selectByMouse: true
-            onTextChanged: root.nodesRegistryFilterModel.setFilterFixedString(text)
+            tokenKeys: root.nodesRegistryFilterModel.tokenKeys
+            onQueryChanged: (text, tokens) => root.nodesRegistryFilterModel.setQuery(text, tokens)
         }
 
         // ---- List area ----
@@ -84,7 +80,7 @@ Rectangle {
             Label {
                 anchors.centerIn: parent
                 visible: nodesPaletteListView.count === 0
-                text: root.searchText.length > 0 ? qsTr("No Matching Nodes") : qsTr("No Nodes Available")
+                text: searchBar.isActive ? qsTr("No Matching Nodes") : qsTr("No Nodes Available")
                 opacity: 0.5
             }
         }

@@ -10,3 +10,4 @@ RowDragHandler 1.0 RowDragHandler.qml
 DescriptionToolTip 1.0 DescriptionToolTip.qml
 PaletteSectionHeader 1.0 PaletteSectionHeader.qml
 TagsList 1.0 TagsList.qml
+SearchBar 1.0 SearchBar.qml

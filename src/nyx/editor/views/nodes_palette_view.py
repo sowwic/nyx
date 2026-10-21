@@ -6,6 +6,7 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from ..controllers.node_spawner import NodeSpawner
 from ..widgets.nyx_qml_widget import NyxQuickWidget
 from ...core.plugin_subsystem.registry import NYX_REGISTRY
+from ...core.models.registry_filter_model import RegistryFilterModel
 from ...core.models.registry_model import RegistryListModel
 from ...static.paths import QML_DIR
 from ...static.vars import NODE_TYPE_MIME
@@ -41,12 +42,8 @@ class NodesPaletteView(NyxQuickWidget):
         self._nodes_registry_model = RegistryListModel(
             get_items=lambda: NYX_REGISTRY.nodes, parent=self
         )
-        self._filter_proxy_model = QtCore.QSortFilterProxyModel()
-        self._filter_proxy_model.setFilterRole(QtCore.Qt.ItemDataRole.DisplayRole)
+        self._filter_proxy_model = RegistryFilterModel(self)
         self._filter_proxy_model.setSourceModel(self._nodes_registry_model)
-        self._filter_proxy_model.setFilterCaseSensitivity(
-            QtCore.Qt.CaseSensitivity.CaseInsensitive
-        )
 
         self._node_spawner = NodeSpawner(self)
 

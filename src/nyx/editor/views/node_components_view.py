@@ -8,6 +8,7 @@ from ..controllers.components_spawner import NodeComponentSpawner
 from ..widgets.nyx_qml_widget import NyxQuickWidget
 from ...core.node_component import NodeComponent
 from ...core.models.components_filter_model import NodeComponentsFilterModel
+from ...core.models.registry_filter_model import RegistryFilterModel
 from ...core.models.registry_model import RegistryListModel
 from ...core.plugin_subsystem.registry import NYX_REGISTRY
 from ...static.paths import QML_DIR
@@ -42,15 +43,9 @@ class NodeComponentsView(NyxQuickWidget):
         self._filter_proxy_model.setFilterCaseSensitivity(
             QtCore.Qt.CaseSensitivity.CaseInsensitive
         )
-        self._components_registry_filter_model = QtCore.QSortFilterProxyModel()
+        self._components_registry_filter_model = RegistryFilterModel()
         self._components_registry_filter_model.setSourceModel(
             self._components_registry_model
-        )
-        self._components_registry_filter_model.setFilterRole(
-            RegistryListModel.Roles.TYPE_DISPLAY_NAME
-        )
-        self._components_registry_filter_model.setFilterCaseSensitivity(
-            QtCore.Qt.CaseSensitivity.CaseInsensitive
         )
 
         # Controllers
