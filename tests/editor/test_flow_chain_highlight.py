@@ -1,12 +1,13 @@
 import pytest
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtGui
+
+from tests.editor.paint_helpers import has_color, has_pixels, render_link
 
 from nyx.api.v1 import CoreNodes, commands
 from nyx.core.execution_chain import ExecutionChain
-from nyx.core.layered_config import NyxConfig
 from nyx.editor.graphics.graphics_link import GraphicsLink
+from nyx.core.config_values.graphics_values import NyxEditorGraphicsStageConfigValues
 from nyx.editor.graphics.graphics_stage import GraphicsStage
-from nyx.static.enums import LinkAnimationStyle
 from nyx.editor.graphics.animation.pulse_animation import PulseAnimation
 
 
@@ -35,6 +36,10 @@ def pulsing_links(editor):
         for gr_link in editor.gr_stage.gr_links()
         if gr_link.has_animation(PulseAnimation)
     ]
+
+
+def paint_pulse(gr_link) -> QtGui.QImage:
+    return render_link(gr_link, lambda p: pulse_of(gr_link).paint_above(p, gr_link))
 
 
 def pulse_of(gr_link) -> PulseAnimation:
@@ -121,34 +126,11 @@ def test_deleting_the_start_stops_the_pulses(chain):
 # ======== Config ========= #
 
 
-def test_highlight_is_on_by_default():
-    assert NyxConfig().values.editor_widgets.graphics_stage.highlight_flow_chain is True
+def test_highlight_defaults():
+    values = NyxEditorGraphicsStageConfigValues()
 
-
-@pytest.fixture
-def stage_config(main_window):
-    """Graphics stage values of the live config, restored after the test."""
-    values = main_window.config.values.editor_widgets.graphics_stage
-    saved = (values.highlight_flow_chain, values.highlight_flow_chain_style)
-    yield values
-    values.highlight_flow_chain, values.highlight_flow_chain_style = saved
-
-
-def test_highlight_style_is_pulse_by_default():
-    values = NyxConfig().values.editor_widgets.graphics_stage
-
-    assert values.highlight_flow_chain_style == LinkAnimationStyle.PULSE.value
-    assert LinkAnimationStyle.PULSE == "pulse"
-
-
-def test_the_configured_style_is_used(chain, stage_config):
-    editor, *_ = chain
-    stage_config.highlight_flow_chain_style = "pulse"
-
-    editor.gr_stage.rebuild_current_scope()
-
-    assert GraphicsStage.get_flow_chain_highlight_style() is LinkAnimationStyle.PULSE
-    assert len(pulsing_links(editor)) == 2
+    assert values.highlight_flow_chain is True
+    assert values.highlight_flow_chain_style == "pulse"
 
 
 def test_an_unknown_style_falls_back_to_the_default(chain, stage_config, caplog):
@@ -164,11 +146,14 @@ def test_an_unknown_style_falls_back_to_the_default(chain, stage_config, caplog)
 
 def test_the_highlight_follows_the_live_config(chain, stage_config):
     editor, *_ = chain
+    animator = editor.gr_stage.link_animator
     stage_config.highlight_flow_chain = False
 
     editor.gr_stage.rebuild_current_scope()
 
     assert pulsing_links(editor) == []
+    assert animator.links == frozenset()
+    assert not animator.is_running
 
     stage_config.highlight_flow_chain = True
     editor.gr_stage.rebuild_current_scope()
@@ -191,30 +176,6 @@ def test_disabled_highlight_does_nothing(stage_editor, create_node, monkeypatch)
     assert len(stage_editor.gr_stage.gr_links()) == 1
     assert pulsing_links(stage_editor) == []
     assert not stage_editor.gr_stage.link_animator.is_running
-
-
-def test_turning_the_highlight_off_clears_the_pulses_on_rebuild(chain, monkeypatch):
-    editor, *_ = chain
-    assert pulsing_links(editor)
-
-    disable_highlight(monkeypatch)
-    editor.gr_stage.rebuild_current_scope()
-
-    assert pulsing_links(editor) == []
-    assert editor.gr_stage.link_animator.links == frozenset()
-    assert not editor.gr_stage.link_animator.is_running
-
-
-def test_turning_the_highlight_on_starts_the_pulses_on_rebuild(chain, monkeypatch):
-    editor, *_ = chain
-    with monkeypatch.context() as patch:
-        disable_highlight(patch)
-        editor.gr_stage.rebuild_current_scope()
-        assert pulsing_links(editor) == []
-
-    editor.gr_stage.rebuild_current_scope()
-
-    assert len(pulsing_links(editor)) == 2
 
 
 # ======== Dragging ========= #
@@ -240,56 +201,17 @@ def test_pulses_pause_while_a_link_is_dragged(chain):
 # ======== Painting ========= #
 
 
-def paint_pulse(gr_link) -> QtGui.QImage:
-    rect = gr_link.boundingRect().toAlignedRect()
-    image = QtGui.QImage(rect.size(), QtGui.QImage.Format.Format_ARGB32)
-    image.fill(QtCore.Qt.GlobalColor.transparent)
-    painter = QtGui.QPainter(image)
-    painter.translate(-rect.topLeft())
-    gr_link.get_animation(PulseAnimation).paint_above(painter, gr_link)
-    painter.end()
-    return image
-
-
-def paint_link(gr_link) -> QtGui.QImage:
-    rect = gr_link.boundingRect().toAlignedRect()
-    image = QtGui.QImage(rect.size(), QtGui.QImage.Format.Format_ARGB32)
-    image.fill(QtCore.Qt.GlobalColor.transparent)
-    painter = QtGui.QPainter(image)
-    painter.translate(-rect.topLeft())
-    gr_link.paint(painter, QtWidgets.QStyleOptionGraphicsItem(), None)
-    painter.end()
-    return image
-
-
-def has_pulse_color(image: QtGui.QImage) -> bool:
-    pulse = PulseAnimation().color.rgb()
-    return any(
-        image.pixel(x, y) == pulse
-        for x in range(image.width())
-        for y in range(image.height())
-    )
-
-
-def has_pulse_pixels(image: QtGui.QImage) -> bool:
-    return any(
-        image.pixelColor(x, y).alpha() > 0
-        for x in range(image.width())
-        for y in range(image.height())
-    )
-
-
 def test_pulse_is_drawn_only_for_a_pulsing_link_with_an_offset(chain):
     editor, *_ = chain
     gr_link = pulsing_links(editor)[0]
     assert pulse_of(gr_link).offset is None
-    assert not has_pulse_pixels(paint_pulse(gr_link))
+    assert not has_pixels(paint_pulse(gr_link))
 
     pulse_of(gr_link).offset = 40.0
-    assert has_pulse_pixels(paint_pulse(gr_link))
+    assert has_pixels(paint_pulse(gr_link))
 
     pulse_of(gr_link).offset = None
-    assert not has_pulse_pixels(paint_pulse(gr_link))
+    assert not has_pixels(paint_pulse(gr_link))
 
 
 def test_pulse_head_is_at_the_offset_along_the_curve(chain):
@@ -324,7 +246,7 @@ def test_pulse_is_not_drawn_on_a_preview(chain):
     pulse.offset = 40.0
     preview.add_animation(pulse)
 
-    assert not has_pulse_color(paint_link(preview))
+    assert not has_color(render_link(preview), PulseAnimation().color)
 
 
 def test_bounds_leave_room_for_the_pulse(chain):

@@ -145,7 +145,7 @@ def drag_band(view, start: QtCore.QPoint, end: QtCore.QPoint, steps=6):
     yield "released"
 
 
-def test_view_is_in_band_mode_from_press_to_release(three_nodes, qtbot):
+def test_dragging_a_band_over_nodes(three_nodes, selection_changes, qtbot):
     editor, _nodes = three_nodes
     view = editor.gr_view
     editor.show()
@@ -155,24 +155,26 @@ def test_view_is_in_band_mode_from_press_to_release(three_nodes, qtbot):
     start = view.mapFromScene(QtCore.QPointF(-200, -150))
     end = view.mapFromScene(QtCore.QPointF(700, 250))
     band = view.InteractionMode.RUBBER_BAND
+    rects = []
+    view.rubberBandChanged.connect(lambda rect, *_: rects.append(rect))
+    modes, reported = [], []
 
-    modes = []
-    for _stage in drag_band(view, start, end):
-        modes.append((view.interaction_mode, editor.gr_view.is_rubber_banding))
+    for stage in drag_band(view, start, end):
+        modes.append((view.interaction_mode, view.is_rubber_banding))
+        if stage == "moved":
+            reported.append(len(selection_changes))
+            assert not view.rubberBandRect().isNull()  # the band is drawn
 
+    # In band mode from the press until the release.
     assert all(mode is band and active for mode, active in modes[:-1])
     assert modes[-1] == (view.InteractionMode.NOOP, False)
-
-
-def test_view_reports_the_band_mode(three_nodes):
-    editor, _nodes = three_nodes
-    view = editor.gr_view
-
-    view.set_interaction_mode(view.InteractionMode.RUBBER_BAND)
-    assert editor.gr_view.is_rubber_banding
-
-    view.set_interaction_mode(view.InteractionMode.NOOP)
-    assert not editor.gr_view.is_rubber_banding
+    # Nothing was reported while dragging, whatever the band had picked up.
+    assert len(set(reported)) == 1
+    assert sorted(n.name for n in editor.list_selected_nodes()) == ["a", "b", "c"]
+    assert selection_changes[-1] == ["a", "b", "c"]
+    # The band is gone at the release, with no further mouse move.
+    assert view.rubberBandRect().isNull()
+    assert rects[-1].isNull()
 
 
 def test_other_modes_do_not_hold_back_the_selection(three_nodes):
@@ -200,29 +202,6 @@ def test_the_view_is_busy_while_a_band_is_dragged(three_nodes):
     assert states == [False, True]
 
 
-def test_dragging_a_band_over_nodes_syncs_only_at_the_end(
-    three_nodes, selection_changes, qtbot
-):
-    editor, _nodes = three_nodes
-    view = editor.gr_view
-    editor.show()
-    qtbot.waitExposed(editor)
-    view.resize(900, 400)
-    view.centerOn(250, 50)
-    start = view.mapFromScene(QtCore.QPointF(-200, -150))
-    end = view.mapFromScene(QtCore.QPointF(700, 250))
-    during = []
-
-    for stage in drag_band(view, start, end):
-        if stage == "moved":
-            during.append(len(selection_changes))
-
-    assert sorted(n.name for n in editor.list_selected_nodes()) == ["a", "b", "c"]
-    # Nothing was reported while dragging, whatever the band had picked up.
-    assert len(set(during)) == 1
-    assert selection_changes[-1] == ["a", "b", "c"]
-
-
 def test_a_new_press_ends_a_band_that_was_never_released(three_nodes, qtbot):
     editor, nodes = three_nodes
     gr_stage = editor.gr_stage
@@ -243,26 +222,3 @@ def test_a_new_press_ends_a_band_that_was_never_released(three_nodes, qtbot):
     assert view.interaction_mode is view.InteractionMode.NOOP
     assert not editor.gr_view.is_rubber_banding
     assert [n.name for n in editor.list_selected_nodes()] == ["a"]
-
-
-def test_the_band_rectangle_is_gone_after_the_release(three_nodes, qtbot):
-    editor, _nodes = three_nodes
-    view = editor.gr_view
-    editor.show()
-    qtbot.waitExposed(editor)
-    view.resize(900, 400)
-    view.centerOn(250, 50)
-    start = view.mapFromScene(QtCore.QPointF(-200, -150))
-    end = view.mapFromScene(QtCore.QPointF(700, 250))
-    rects = []
-    view.rubberBandChanged.connect(lambda rect, *_: rects.append(rect))
-
-    stages = []
-    for stage in drag_band(view, start, end):
-        stages.append(stage)
-        if stage == "moved":
-            assert not view.rubberBandRect().isNull()  # the band is drawn while dragging
-
-    # No mouse move after the release.
-    assert view.rubberBandRect().isNull()
-    assert rects[-1].isNull()

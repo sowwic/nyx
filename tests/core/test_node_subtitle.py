@@ -24,12 +24,14 @@ def changed_nodes():
 
 
 def test_node_has_no_subtitle_by_default():
-    node = make_node(Stage())
+    stage = Stage()  # owns the node, it must outlive the test
+    node = make_node(stage)
     assert node.subtitle == ""
 
 
 def test_subtitle_can_be_set_by_a_node():
-    node = make_node(Stage())
+    stage = Stage()  # owns the node, it must outlive the test
+    node = make_node(stage)
 
     node.subtitle = "extra text"
 
@@ -37,7 +39,8 @@ def test_subtitle_can_be_set_by_a_node():
 
 
 def test_setting_none_clears_the_subtitle():
-    node = make_node(Stage())
+    stage = Stage()  # owns the node, it must outlive the test
+    node = make_node(stage)
     node.subtitle = "text"
 
     node.subtitle = None
@@ -56,7 +59,8 @@ def test_setting_the_subtitle_reports_the_node_as_changed(changed_nodes):
 
 
 def test_subtitle_is_not_serialized():
-    node = make_node(Stage())
+    stage = Stage()  # owns the node, it must outlive the test
+    node = make_node(stage)
     node.subtitle = "extra text"
 
     assert "extra text" not in str(node.serialize())
@@ -116,7 +120,8 @@ def test_setting_a_text_ends_the_binding():
 
 
 def test_binding_to_a_missing_component_gives_no_subtitle():
-    node = make_node(Stage())
+    stage = Stage()  # owns the node, it must outlive the test
+    node = make_node(stage)
     node.bind_subtitle_to_component("missing")
 
     assert node.subtitle == ""

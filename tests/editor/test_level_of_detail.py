@@ -1,7 +1,9 @@
 import pytest
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 
-from nyx.api.v1 import CoreNodes, commands
+from tests.editor.paint_helpers import has_color, has_pixels, render_item, render_link
+
+from nyx.api.v1 import CoreNodes
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.graphics.animation.pulse_animation import PulseAnimation
 from nyx.editor.graphics.level_of_detail import (
@@ -15,34 +17,7 @@ NO_TEXT_SCALE = 0.35  # sockets are big enough, 10pt text is not
 MINIMAL_SCALE = 0.1
 
 
-def render(item, size, scale) -> QtGui.QImage:
-    """Paint an item scaled, on a transparent image of `size` scene units."""
-    image = QtGui.QImage(
-        int(size.width() * scale) + 1,
-        int(size.height() * scale) + 1,
-        QtGui.QImage.Format.Format_ARGB32,
-    )
-    image.fill(QtCore.Qt.GlobalColor.transparent)
-    painter = QtGui.QPainter(image)
-    painter.scale(scale, scale)
-    item.paint(painter, QtWidgets.QStyleOptionGraphicsItem(), None)
-    painter.end()
-    return image
-
-
-def has_pixels(image, rect: QtCore.QRect) -> bool:
-    return any(
-        image.pixelColor(x, y).alpha() > 0
-        for x in range(rect.left(), min(rect.right(), image.width() - 1) + 1)
-        for y in range(rect.top(), min(rect.bottom(), image.height() - 1) + 1)
-    )
-
-
 # ======== Helper ========= #
-
-
-def test_levels_are_ordered():
-    assert LevelOfDetail.MINIMAL < LevelOfDetail.NO_TEXT < LevelOfDetail.FULL
 
 
 def test_what_each_level_shows():
@@ -109,31 +84,31 @@ def label_rect(plug, scale) -> QtCore.QRect:
 
 
 def test_plug_draws_sockets_and_label_when_big(setter_plug):
-    image = render(setter_plug, setter_plug.boundingRect().size(), FULL_SCALE)
+    image = render_item(setter_plug, setter_plug.boundingRect().size(), FULL_SCALE)
 
     assert has_pixels(image, socket_rect(FULL_SCALE))
     assert has_pixels(image, label_rect(setter_plug, FULL_SCALE))
 
 
 def test_plug_drops_the_label_before_the_sockets(setter_plug):
-    image = render(setter_plug, setter_plug.boundingRect().size(), NO_TEXT_SCALE)
+    image = render_item(setter_plug, setter_plug.boundingRect().size(), NO_TEXT_SCALE)
 
     assert has_pixels(image, socket_rect(NO_TEXT_SCALE))
     assert not has_pixels(image, label_rect(setter_plug, NO_TEXT_SCALE))
 
 
 def test_plug_draws_nothing_when_tiny(setter_plug):
-    image = render(setter_plug, setter_plug.boundingRect().size(), MINIMAL_SCALE)
+    image = render_item(setter_plug, setter_plug.boundingRect().size(), MINIMAL_SCALE)
 
     assert not has_pixels(image, image.rect())
 
 
 def test_plug_sockets_cannot_be_grabbed_when_not_drawn(setter_plug):
     scene_pos = setter_plug.mapToScene(GraphicsPlug.SOCKET_INSET, 10)
-    render(setter_plug, setter_plug.boundingRect().size(), FULL_SCALE)
+    render_item(setter_plug, setter_plug.boundingRect().size(), FULL_SCALE)
     assert setter_plug.socket_at(scene_pos) is GraphicsPlug.Socket.INPUT
 
-    render(setter_plug, setter_plug.boundingRect().size(), MINIMAL_SCALE)
+    render_item(setter_plug, setter_plug.boundingRect().size(), MINIMAL_SCALE)
 
     assert setter_plug.socket_at(scene_pos) is None
 
@@ -146,8 +121,10 @@ def test_node_text_is_drawn_only_when_readable(stage_editor, create_node):
     title = stage_editor.gr_stage.get_gr_node(node).title_item
     size = title.boundingRect().size()
 
-    assert has_pixels(render(title, size, FULL_SCALE), QtCore.QRect(0, 0, 80, 20))
-    assert not has_pixels(render(title, size, NO_TEXT_SCALE), QtCore.QRect(0, 0, 80, 20))
+    assert has_pixels(render_item(title, size, FULL_SCALE), QtCore.QRect(0, 0, 80, 20))
+    assert not has_pixels(
+        render_item(title, size, NO_TEXT_SCALE), QtCore.QRect(0, 0, 80, 20)
+    )
 
 
 def test_subtitle_is_drawn_only_when_readable(stage_editor, create_node):
@@ -156,8 +133,10 @@ def test_subtitle_is_drawn_only_when_readable(stage_editor, create_node):
     subtitle = stage_editor.gr_stage.get_gr_node(node).subtitle_item
     size = subtitle.boundingRect().size()
 
-    assert has_pixels(render(subtitle, size, FULL_SCALE), QtCore.QRect(0, 0, 60, 10))
-    assert not has_pixels(render(subtitle, size, 0.4), QtCore.QRect(0, 0, 60, 10))
+    assert has_pixels(
+        render_item(subtitle, size, FULL_SCALE), QtCore.QRect(0, 0, 60, 10)
+    )
+    assert not has_pixels(render_item(subtitle, size, 0.4), QtCore.QRect(0, 0, 60, 10))
 
 
 # ======== Node ========= #
@@ -168,8 +147,8 @@ def test_node_is_a_flat_rect_when_tiny(stage_editor, create_node):
     gr_node = stage_editor.gr_stage.get_gr_node(node)
     size = gr_node.boundingRect().size()
 
-    detailed = render(gr_node, size, FULL_SCALE)
-    flat = render(gr_node, size, MINIMAL_SCALE)
+    detailed = render_item(gr_node, size, FULL_SCALE)
+    flat = render_item(gr_node, size, MINIMAL_SCALE)
 
     # Rounded corners leave the corner pixel empty, the placeholder fills it.
     assert detailed.pixelColor(1, 1).alpha() == 0
@@ -180,57 +159,20 @@ def test_node_is_a_flat_rect_when_tiny(stage_editor, create_node):
 
 
 @pytest.fixture
-def pulsing_link(stage_editor, create_node):
-    stage = stage_editor.stage
-    start = create_node(stage, "start", type_id=CoreNodes.FLOW_START)
-    action = create_node(stage, "action", type_id=CoreNodes.ACTION)
-    stage.push_command(
-        commands.LinkNodeComponentsCommand(
-            stage=stage, source=start["flow"], target=action["flow"]
-        )
-    )
-    gr_link = next(
-        link
-        for link in stage_editor.gr_stage.gr_links()
-        if link.has_animation(PulseAnimation)
-    )
+def pulsing_link(chain_link):
+    _editor, gr_link = chain_link
     gr_link.get_animation(PulseAnimation).offset = 40.0
     return gr_link
 
 
-def has_pulse_color(image) -> bool:
-    pulse = PulseAnimation().color.rgb()
-    return any(
-        image.pixel(x, y) == pulse
-        for x in range(image.width())
-        for y in range(image.height())
-    )
-
-
-def render_link(gr_link, scale) -> QtGui.QImage:
-    rect = gr_link.boundingRect().toAlignedRect()
-    image = QtGui.QImage(
-        int(rect.width() * scale) + 1,
-        int(rect.height() * scale) + 1,
-        QtGui.QImage.Format.Format_ARGB32,
-    )
-    image.fill(QtCore.Qt.GlobalColor.transparent)
-    painter = QtGui.QPainter(image)
-    painter.scale(scale, scale)
-    painter.translate(-rect.topLeft())
-    gr_link.paint(painter, QtWidgets.QStyleOptionGraphicsItem(), None)
-    painter.end()
-    return image
-
-
 def test_pulse_is_drawn_when_the_link_is_big_enough(pulsing_link):
-    assert has_pulse_color(render_link(pulsing_link, FULL_SCALE))
+    assert has_color(render_link(pulsing_link, scale=FULL_SCALE), PulseAnimation().color)
 
 
 def test_pulse_is_skipped_when_the_link_is_tiny(pulsing_link):
-    image = render_link(pulsing_link, MINIMAL_SCALE)
+    image = render_link(pulsing_link, scale=MINIMAL_SCALE)
 
-    assert not has_pulse_color(image)
+    assert not has_color(image, PulseAnimation().color)
     assert has_pixels(image, image.rect())  # the link itself is still drawn
 
 

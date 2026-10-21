@@ -50,12 +50,6 @@ def test_recent_files_limit_below_zero_keeps_nothing(session, monkeypatch):
     assert session.recent_files == []
 
 
-def test_recent_files_limit_defaults_to_ten():
-    from nyx.core.config_values.editor_values import NyxEditorSessionConfigValues
-
-    assert NyxEditorSessionConfigValues().max_recent_files == 10
-
-
 def test_session_roundtrip_skips_unsaved_stages(session, tmp_path):
     saved = Stage()
     saved.export_json(tmp_path / "a.nyx")

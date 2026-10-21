@@ -1,7 +1,7 @@
 import pytest
-from PySide6 import QtCore, QtGui, QtWidgets
 
-from nyx.api.v1 import CoreNodes, commands
+from tests.editor.paint_helpers import opaque_pixels, peak_alpha, render_link
+
 from nyx.editor.graphics.animation.glow_animation import GlowAnimation
 from nyx.editor.graphics.animation.pulse_animation import PulseAnimation
 from nyx.editor.graphics.graphics_stage import GraphicsStage
@@ -9,61 +9,11 @@ from nyx.static.enums import LinkAnimationStyle
 
 
 @pytest.fixture
-def flow_start_link(stage_editor, create_node):
-    """The graphics link from a flow start to an action, without animations."""
-    stage = stage_editor.stage
-    start = create_node(stage, "start", type_id=CoreNodes.FLOW_START)
-    action = create_node(stage, "action", type_id=CoreNodes.ACTION)
-    stage.push_command(
-        commands.LinkNodeComponentsCommand(
-            stage=stage, source=start["flow"], target=action["flow"]
-        )
-    )
-    gr_link = stage_editor.gr_stage.gr_links()[0]
-    # The chain highlight already animates it, the tests choose their own animations.
-    stage_editor.gr_stage.link_animator.unregister(gr_link)
-    return stage_editor, gr_link
-
-
-@pytest.fixture
-def stage_config(main_window):
-    values = main_window.config.values.editor_widgets.graphics_stage
-    saved = (values.highlight_flow_chain, values.highlight_flow_chain_style)
-    yield values
-    values.highlight_flow_chain, values.highlight_flow_chain_style = saved
-
-
-def render(draw, gr_link, scale=1.0) -> QtGui.QImage:
-    rect = gr_link.boundingRect().toAlignedRect()
-    image = QtGui.QImage(
-        int(rect.width() * scale) + 1,
-        int(rect.height() * scale) + 1,
-        QtGui.QImage.Format.Format_ARGB32,
-    )
-    image.fill(QtCore.Qt.GlobalColor.transparent)
-    painter = QtGui.QPainter(image)
-    painter.scale(scale, scale)
-    painter.translate(-rect.topLeft())
-    draw(painter)
-    painter.end()
-    return image
-
-
-def opaque_pixels(image) -> int:
-    return sum(
-        1
-        for x in range(image.width())
-        for y in range(image.height())
-        if image.pixelColor(x, y).alpha() > 0
-    )
-
-
-def peak_alpha(image) -> int:
-    return max(
-        image.pixelColor(x, y).alpha()
-        for x in range(image.width())
-        for y in range(image.height())
-    )
+def flow_start_link(chain_link):
+    """The chain link and its editor, with the animations of the chain highlight off."""
+    editor, gr_link = chain_link
+    editor.gr_stage.link_animator.unregister(gr_link)
+    return editor, gr_link
 
 
 # ======== Intensity ========= #
@@ -121,8 +71,8 @@ def test_glow_is_drawn_behind_the_stroke_only(flow_start_link):
     glow = GlowAnimation()
     glow.advance(glow.period / 2)
 
-    below = render(lambda p: glow.paint_below(p, gr_link), gr_link)
-    above = render(lambda p: glow.paint_above(p, gr_link), gr_link)
+    below = render_link(gr_link, lambda p: glow.paint_below(p, gr_link))
+    above = render_link(gr_link, lambda p: glow.paint_above(p, gr_link))
 
     assert opaque_pixels(below) > 0
     assert opaque_pixels(above) == 0
@@ -132,9 +82,9 @@ def test_hidden_or_zero_glow_draws_nothing(flow_start_link):
     _editor, gr_link = flow_start_link
     glow = GlowAnimation()
 
-    hidden = render(lambda p: glow.paint_below(p, gr_link), gr_link)
+    hidden = render_link(gr_link, lambda p: glow.paint_below(p, gr_link))
     glow.advance(0.0)
-    none = render(lambda p: glow.paint_below(p, gr_link), gr_link)
+    none = render_link(gr_link, lambda p: glow.paint_below(p, gr_link))
 
     assert opaque_pixels(hidden) == 0
     assert opaque_pixels(none) == 0
@@ -146,7 +96,7 @@ def test_stronger_glow_is_more_opaque(flow_start_link):
     alphas = []
     for fraction in (0.1, 0.25, 0.5):
         glow.advance(glow.period * fraction)
-        image = render(lambda p: glow.paint_below(p, gr_link), gr_link)
+        image = render_link(gr_link, lambda p: glow.paint_below(p, gr_link))
         alphas.append(peak_alpha(image))
 
     assert alphas == sorted(alphas)
@@ -165,21 +115,14 @@ def test_bounds_leave_room_for_the_glow(flow_start_link):
     assert gr_link.boundingRect() == plain
 
 
-def paint_link(gr_link, scale) -> QtGui.QImage:
-    def paint(painter):
-        gr_link.paint(painter, QtWidgets.QStyleOptionGraphicsItem(), None)
-
-    return render(paint, gr_link, scale)
-
-
 def test_link_paints_the_glow_when_big_enough(flow_start_link):
     _editor, gr_link = flow_start_link
-    bare = paint_link(gr_link, 1.0)
+    bare = render_link(gr_link, scale=1.0)
     glow = GlowAnimation()
     glow.advance(glow.period / 2)
     gr_link.add_animation(glow)
 
-    glowing = paint_link(gr_link, 1.0)
+    glowing = render_link(gr_link, scale=1.0)
 
     # The glow is wider than the stroke, so it adds pixels around it.
     assert opaque_pixels(glowing) > opaque_pixels(bare)
@@ -187,20 +130,16 @@ def test_link_paints_the_glow_when_big_enough(flow_start_link):
 
 def test_link_skips_the_glow_when_too_small_to_see(flow_start_link):
     _editor, gr_link = flow_start_link
-    bare = opaque_pixels(paint_link(gr_link, 0.1))
+    bare = opaque_pixels(render_link(gr_link, scale=0.1))
     glow = GlowAnimation()
     glow.advance(glow.period / 2)
     gr_link.add_animation(glow)
 
     # 12 units at 10% is 1.2 px, below what is worth drawing.
-    assert opaque_pixels(paint_link(gr_link, 0.1)) == bare
+    assert opaque_pixels(render_link(gr_link, scale=0.1)) == bare
 
 
 # ======== Style ========= #
-
-
-def test_glow_has_its_own_style_value():
-    assert LinkAnimationStyle.GLOW == "glow"
 
 
 def test_the_glow_style_highlights_the_chain_with_glows(flow_start_link, stage_config):

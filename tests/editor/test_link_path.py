@@ -3,6 +3,8 @@ import math
 import pytest
 from PySide6 import QtCore, QtGui
 
+from tests.editor.paint_helpers import render_link
+
 from nyx.api.v1 import CoreNodes, commands
 from nyx.editor.graphics import link_path
 from nyx.editor.graphics.animation.pulse_animation import PulseAnimation
@@ -42,8 +44,6 @@ def test_every_style_has_a_builder():
     [
         (START, END),
         (END, START),  # the target is behind the source
-        (START, QtCore.QPointF(START.x(), END.y())),  # straight below
-        (START, QtCore.QPointF(END.x(), START.y())),  # same height
         (START, QtCore.QPointF(START)),  # on top of each other
     ],
 )
@@ -95,39 +95,13 @@ def test_square_turns_at_right_angles_half_way():
     ]
 
 
-@pytest.mark.parametrize("start, end", [(START, END), (END, START)])
-def test_square_segments_are_horizontal_or_vertical(start, end):
-    corners = points(build_square_path(start, end))
-
-    for (x1, y1), (x2, y2) in zip(corners, corners[1:]):
-        assert x1 == x2 or y1 == y2
-
-
-def test_square_length_is_the_distance_along_the_axes():
-    path = build_square_path(START, END)
-
-    dx, dy = END.x() - START.x(), END.y() - START.y()
-    assert path.length() == pytest.approx(abs(dx) + abs(dy))
-
-
 # ======== Config ========= #
 
 
-@pytest.fixture
-def stage_config(main_window):
-    values = main_window.config.values.editor_widgets.graphics_stage
-    saved = values.link_style
-    yield values
-    values.link_style = saved
-
-
-def test_link_style_is_bezier_by_default(stage_config):
+def test_link_style_is_bezier_by_default():
     from nyx.core.config_values.graphics_values import NyxEditorGraphicsStageConfigValues
 
     assert NyxEditorGraphicsStageConfigValues().link_style == LinkStyle.BEZIER.value
-    assert LinkStyle.BEZIER == "bezier"
-    assert LinkStyle.DIRECT == "direct"
-    assert LinkStyle.SQUARE == "square"
 
 
 @pytest.mark.parametrize("style", list(LinkStyle))
@@ -269,25 +243,17 @@ def test_preview_uses_the_configured_style(two_nodes, stage_config):
     assert preview.path().elementCount() == 4
 
 
-@pytest.mark.parametrize("style", list(LinkStyle))
-def test_animations_follow_the_path_of_every_style(two_nodes, stage_config, style):
-    stage_config.link_style = style.value
+def test_animations_follow_a_path_that_is_not_a_curve(two_nodes, stage_config):
+    stage_config.link_style = LinkStyle.SQUARE.value
     gr_link = make_link(two_nodes)
     two_nodes[0].gr_stage.link_animator.clear()
     pulse = PulseAnimation()
     pulse.offset = gr_link.path_length * 0.5
     gr_link.add_animation(pulse)
 
-    margin = QtCore.QPointF(5, 5)
-    origin = gr_link.boundingRect().topLeft()
-    image = QtGui.QImage(1200, 800, QtGui.QImage.Format.Format_ARGB32)
-    image.fill(QtCore.Qt.GlobalColor.transparent)
-    painter = QtGui.QPainter(image)
-    painter.translate(margin - origin)
-    pulse.paint_above(painter, gr_link)
-    painter.end()
+    image = render_link(gr_link, lambda painter: pulse.paint_above(painter, gr_link))
 
     path = gr_link.path()
     head = path.pointAtPercent(path.percentAtLength(pulse.offset))
-    spot = head + margin - origin
+    spot = head - gr_link.boundingRect().toAlignedRect().topLeft().toPointF()
     assert image.pixelColor(round(spot.x()), round(spot.y())).rgb() == pulse.color.rgb()

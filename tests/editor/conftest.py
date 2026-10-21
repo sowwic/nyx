@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 from PySide6 import QtCore, QtWidgets
 
@@ -59,3 +61,61 @@ def give_focus(qtbot):
         qtbot.waitUntil(widget.hasFocus, timeout=2000)
 
     return _give_focus
+
+
+@pytest.fixture
+def restore_config():
+    """Return a function that remembers config values and puts them back after the test.
+
+    The config outlives a test, so a value a test sets must not leak into the next one.
+    """
+    saved = []
+
+    def remember(values, *names):
+        saved.append(
+            (values, {name: copy.deepcopy(getattr(values, name)) for name in names})
+        )
+        return values
+
+    yield remember
+    for values, old in reversed(saved):
+        for name, value in old.items():
+            setattr(values, name, value)
+
+
+@pytest.fixture
+def stage_config(main_window, restore_config):
+    """Graphics stage values of the live config, restored after the test."""
+    return restore_config(
+        main_window.config.values.editor_widgets.graphics_stage,
+        "highlight_flow_chain",
+        "highlight_flow_chain_style",
+        "link_style",
+        "viewport_debug_overlay",
+    )
+
+
+@pytest.fixture
+def animation_config(main_window, restore_config):
+    """Animation values of the live config, restored after the test."""
+    return restore_config(
+        main_window.config.values.editor_style.animations, "link_pulse", "link_glow"
+    )
+
+
+@pytest.fixture
+def chain_link(stage_editor, create_node):
+    """The graphics link from a flow start to an action, as the chain highlight has it.
+
+    Returns:
+        tuple: the stage editor and the link. The link pulses, it is on the chain.
+    """
+    stage = stage_editor.stage
+    start = create_node(stage, "start", type_id=CoreNodes.FLOW_START)
+    action = create_node(stage, "action", type_id=CoreNodes.ACTION)
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=start["flow"], target=action["flow"]
+        )
+    )
+    return stage_editor, stage_editor.gr_stage.gr_links()[0]

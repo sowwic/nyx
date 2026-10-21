@@ -5,13 +5,18 @@ from nyx.api.v1 import CoreNodes
 from nyx.editor.views.stage_graph_debug_overlay import StageGraphDebugOverlay
 
 
+def reset_overlay(main_window, stage_config):
+    stage_config.viewport_debug_overlay = False
+    main_window.menubar_view_menu.set_debug_overlay_checked(False)
+    main_window.viewport_debug_overlay.attach(None)
+
+
 @pytest.fixture(autouse=True)
-def restore_overlay_config(main_window):
-    """The config outlives a test, so the toggle must not leak into the next one."""
+def clean_overlay(main_window, stage_config):
+    """Start and end with the overlay off, the config may have it on from the app."""
+    reset_overlay(main_window, stage_config)
     yield
-    main_window.config.values.editor_widgets.graphics_stage.viewport_debug_overlay = (
-        False
-    )
+    reset_overlay(main_window, stage_config)
 
 
 @pytest.fixture

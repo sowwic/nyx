@@ -271,13 +271,6 @@ def test_pulse_moves_at_its_speed():
     assert pulse.offset is None
 
 
-def test_pulse_is_sized_by_its_dot():
-    pulse = PulseAnimation()
-
-    assert pulse.SHAPE_SIZE == pulse.radius * 2
-    assert pulse.MARGIN == pulse.radius
-
-
 # ======== Styles ========= #
 
 

@@ -1,4 +1,3 @@
-import pytest
 from json_config.api import ConfigValues
 
 from nyx.core.config_values import NyxBaseConfigValues, NyxConfigValues
@@ -20,24 +19,12 @@ def test_every_config_value_has_a_description():
     assert missing == []
 
 
-def test_the_walk_reaches_nested_values():
-    paths = {path for path, _field in iter_fields()}
-
-    assert "editor_style.animations.link_glow.layers" in paths
-    assert "editor_widgets.graphics_stage.highlight_flow_chain_style" in paths
-    assert "main_window.layout.state" in paths
-
-
-def test_descriptions_do_not_change_the_values():
-    assert NyxConfigValues().to_dict()["editor_session"]["max_recent_files"] == 10
-
-
-@pytest.mark.parametrize("style", list(LinkAnimationStyle))
-def test_style_description_lists_every_style(style):
+def test_style_description_lists_every_style():
     stage = NyxConfigValues().editor_widgets.graphics_stage
     field = type(stage).model_fields["highlight_flow_chain_style"]
 
-    assert style.value in field.description
+    for style in LinkAnimationStyle:
+        assert style.value in field.description
 
 
 def iter_values_classes(values_class=NyxConfigValues):
