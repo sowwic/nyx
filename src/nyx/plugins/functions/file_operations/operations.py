@@ -1,112 +1,105 @@
 """Functions working with files and folders."""
 
-import os
+import pathlib
 import shutil
+
+
+def create_file(
+    path: str, mode: int = 0o666, exists_ok: bool = False, parent_dirs: bool = True
+) -> bool:
+    """Create an empty file.
+
+    Args:
+        path: file to create.
+        mode: permissions of the file.
+        exists_ok: leave the file as it is if it exists, instead of failing.
+        parent_dirs: create the folders leading to the file too.
+
+    Returns:
+        bool: file was created, false if it was there already.
+    """
+    file_path = pathlib.Path(path)
+    if file_path.exists() and not exists_ok:
+        raise ValueError(f"File already exists: {file_path}")
+
+    created = not file_path.exists()
+    file_path.parent.mkdir(parents=parent_dirs, exist_ok=True)
+    file_path.touch(mode=mode, exist_ok=True)
+    return created
 
 
 def file_exists(path: str) -> bool:
     """Check if a path is an existing file."""
-    return os.path.isfile(path)
+    return pathlib.Path(path).is_file()
 
 
 def folder_exists(path: str) -> bool:
     """Check if a path is an existing folder."""
-    return os.path.isdir(path)
+    return pathlib.Path(path).is_dir()
 
 
 def read_text(path: str, encoding: str = "utf-8") -> str:
     """Read the text of a file."""
-    with open(path, encoding=encoding) as file:
-        return file.read()
+    return pathlib.Path(path).read_text(encoding=encoding)
 
 
 def write_text(path: str, text: str, encoding: str = "utf-8") -> str:
     """Write text to a file, replacing its content. Get the path of the file."""
-    with open(path, "w", encoding=encoding) as file:
-        file.write(text)
+    pathlib.Path(path).write_text(text, encoding=encoding)
     return path
 
 
 def append_text(path: str, text: str, encoding: str = "utf-8") -> str:
     """Add text to the end of a file. Get the path of the file."""
-    with open(path, "a", encoding=encoding) as file:
+    with pathlib.Path(path).open("a", encoding=encoding) as file:
         file.write(text)
     return path
 
 
 def read_lines(path: str, encoding: str = "utf-8") -> list:
     """Read the lines of a file, without line endings."""
-    with open(path, encoding=encoding) as file:
-        return file.read().splitlines()
+    return pathlib.Path(path).read_text(encoding=encoding).splitlines()
 
 
 def list_folder(path: str) -> list:
     """Get the names of the files and folders in a folder, sorted."""
-    return sorted(os.listdir(path))
+    return sorted(child.name for child in pathlib.Path(path).iterdir())
 
 
 def make_folder(path: str) -> str:
     """Create a folder with the folders leading to it. Get its path."""
-    os.makedirs(path, exist_ok=True)
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
     return path
 
 
 def copy_file(source: str, destination: str) -> str:
     """Copy a file. Get the path of the copy."""
-    return shutil.copy2(source, destination)
+    return str(shutil.copy2(pathlib.Path(source), pathlib.Path(destination)))
 
 
 def move_path(source: str, destination: str) -> str:
     """Move a file or folder. Get its new path."""
-    return shutil.move(source, destination)
+    return str(shutil.move(pathlib.Path(source), pathlib.Path(destination)))
 
 
 def delete_file(path: str) -> bool:
     """Delete a file. Get if there was a file to delete."""
-    if not os.path.isfile(path):
+    file_path = pathlib.Path(path)
+    if not file_path.is_file():
         return False
-    os.remove(path)
+    file_path.unlink()
     return True
 
 
 def delete_folder(path: str) -> bool:
     """Delete a folder with everything in it. Get if there was a folder to delete."""
-    if not os.path.isdir(path):
+    folder_path = pathlib.Path(path)
+    if not folder_path.is_dir():
         return False
-    shutil.rmtree(path)
+    shutil.rmtree(folder_path)
     return True
 
 
 def file_size(path: str) -> int:
     """Get the size of a file in bytes."""
-    return os.path.getsize(path)
-
-
-def join_path(base: str, name: str) -> str:
-    """Add a name to the end of a path."""
-    return os.path.join(base, name)
-
-
-def file_name(path: str) -> str:
-    """Get the last part of a path."""
-    return os.path.basename(path)
-
-
-def file_stem(path: str) -> str:
-    """Get the file name without its extension."""
-    return os.path.splitext(os.path.basename(path))[0]
-
-
-def file_extension(path: str) -> str:
-    """Get the extension of a file with the dot, empty if there is none."""
-    return os.path.splitext(path)[1]
-
-
-def parent_folder(path: str) -> str:
-    """Get the folder a path is in."""
-    return os.path.dirname(path)
-
-
-def absolute_path(path: str) -> str:
-    """Get the full path from the root, with ~ expanded."""
-    return os.path.abspath(os.path.expanduser(path))
+    return pathlib.Path(path).stat().st_size

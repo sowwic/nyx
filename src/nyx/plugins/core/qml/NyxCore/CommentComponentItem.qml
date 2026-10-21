@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import NyxEditor.Common
@@ -38,5 +40,9 @@ ComponentValue {
             }
         }
         Keys.onEscapePressed: commentItemRoot.cancelEdit()
+    }
+
+    EditButton {
+        editor: commentItemRoot
     }
 }

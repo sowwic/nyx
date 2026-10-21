@@ -51,6 +51,16 @@ class PopupNodesPalette(QtWidgets.QDialog):
         """Close the popup when a node is spawned."""
         self._nodes_palette_view.nodes_spawner.nodeSpawned.connect(self.deleteLater)
 
+    def showEvent(self, event: QtGui.QShowEvent):
+        """Focus the search bar once the palette is shown.
+
+        Args:
+            event (QtGui.QShowEvent): show event.
+        """
+        super().showEvent(event)
+        # The QML scene is only ready to take focus after the dialog is up
+        QtCore.QTimer.singleShot(0, self, self._nodes_palette_view.focus_search)
+
     @staticmethod
     def clamp_to_bounds(
         top_left: QtCore.QPoint, size: QtCore.QSize, bounds: QtCore.QRect

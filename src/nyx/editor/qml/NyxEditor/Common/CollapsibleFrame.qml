@@ -12,6 +12,8 @@ Rectangle {
     property int contentSpacingPixels: 4
     property int expandCollapseAnimationDurationMilliseconds: 150
     property color backgroundColor: collapsibleFrameRoot.palette.base
+    // Color of a part of the title in parentheses at its end, shown like a subtitle
+    property color subtitleColor: collapsibleFrameRoot.palette.placeholderText
 
     // Emitted only when the user toggles the frame (header click or toggleExpandedState()),
     // never when isExpanded is changed from outside. Use it to write the state back to a model.
@@ -30,6 +32,15 @@ Rectangle {
     // ---- Sizing: derived from content so parent layouts allocate enough room ----
     implicitWidth: frameContentColumnLayout.implicitWidth + 2 * collapsibleFrameRoot.framePaddingPixels
     implicitHeight: frameContentColumnLayout.implicitHeight + 2 * collapsibleFrameRoot.framePaddingPixels
+
+    // Title as rich text, with the part in parentheses at the end dimmed
+    function styledTitle(title) {
+        const escape = text => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const match = /^(.*?)(\s*\(.*\))$/.exec(title);
+        if (match === null || match[1].length === 0)
+            return escape(title);
+        return escape(match[1]) + "<font color=\"" + collapsibleFrameRoot.subtitleColor + "\">" + escape(match[2]) + "</font>";
+    }
 
     function toggleExpandedState() {
         collapsibleFrameRoot.isExpanded = !collapsibleFrameRoot.isExpanded;
@@ -75,7 +86,8 @@ Rectangle {
                     id: titleLabel
 
                     Layout.fillWidth: true
-                    text: collapsibleFrameRoot.titleText
+                    textFormat: Text.StyledText
+                    text: collapsibleFrameRoot.styledTitle(collapsibleFrameRoot.titleText)
                     font.bold: true
                     elide: Text.ElideRight
                 }

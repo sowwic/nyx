@@ -1,9 +1,11 @@
 import pytest
-from PySide6 import QtCore, QtQml, QtTest
+from PySide6 import QtCore, QtQml
 
 from nyx.static.paths import PACKAGE_ROOT
 
-SEARCH_BAR_QML = PACKAGE_ROOT / "editor" / "qml" / "NyxEditor" / "Common" / "SearchBar.qml"
+SEARCH_BAR_QML = (
+    PACKAGE_ROOT / "editor" / "qml" / "NyxEditor" / "Common" / "SearchBar.qml"
+)
 
 _KEEP_ALIVE = []
 
@@ -25,7 +27,9 @@ def search_bar(qapp):
     item.setProperty("width", 300)
     item.setProperty("tokenKeys", ["tags", "section"])
     queries = []
-    item.queryChanged.connect(lambda text, tokens: queries.append((text, as_list(tokens))))
+    item.queryChanged.connect(
+        lambda text, tokens: queries.append((text, as_list(tokens)))
+    )
     item.queries = queries
     yield item
     item.deleteLater()
@@ -62,7 +66,7 @@ def test_commit_keeps_the_token_and_clears_the_field(search_bar):
     type_text(search_bar, "tags:logic")
     assert search_bar.property("pendingToken") == "tags:logic"
 
-    result = QtCore.QMetaObject.invokeMethod(
+    QtCore.QMetaObject.invokeMethod(
         search_bar, "commitToken", QtCore.Qt.ConnectionType.DirectConnection
     )
 
@@ -100,7 +104,9 @@ def test_remove_token_and_clear(search_bar):
         )
 
     QtCore.QMetaObject.invokeMethod(
-        search_bar, "removeToken", QtCore.Qt.ConnectionType.DirectConnection,
+        search_bar,
+        "removeToken",
+        QtCore.Qt.ConnectionType.DirectConnection,
         QtCore.Q_ARG("QVariant", 0),
     )
     assert as_list(search_bar.property("tokens")) == ["tags:b"]

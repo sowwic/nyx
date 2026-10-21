@@ -36,7 +36,9 @@ def write_json_file(path: str, value: typing.Any, indent: int = 4) -> str:
     return path
 
 
-def get_json_value(value: typing.Any, query: str, default: typing.Any = None) -> typing.Any:
+def get_json_value(
+    value: typing.Any, query: str, default: typing.Any = None
+) -> typing.Any:
     """Get a nested value by a dotted query like "user.items.0.name".
 
     Numbers in the query are list indices when the value there is a list.

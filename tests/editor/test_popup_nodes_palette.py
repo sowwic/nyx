@@ -109,3 +109,95 @@ def test_spawned_node_closes_palette(stage_editor, no_exec, qtbot):
 
     palette._nodes_palette_view.nodes_spawner.spawnNode(CoreNodes.EMPTY)
     qtbot.waitUntil(lambda: destroyed.called, timeout=2000)
+
+
+def palette_root(view, qtbot):
+    qtbot.waitUntil(lambda: view.rootObject() is not None, timeout=2000)
+    return view.rootObject()
+
+
+def invoke(root, name, *args):
+    QtCore.QMetaObject.invokeMethod(
+        root,
+        name,
+        QtCore.Qt.ConnectionType.DirectConnection,
+        *[QtCore.Q_ARG("QVariant", arg) for arg in args],
+    )
+
+
+def current_index(root):
+    return root.findChild(QtCore.QObject, "nodesPaletteListView").property(
+        "currentIndex"
+    )
+
+
+def test_arrow_keys_move_the_selection(stage_editor, qtbot):
+    palette = PopupNodesPalette(QtCore.QPointF())
+    qtbot.addWidget(palette)
+    palette.show()
+    root = palette_root(palette._nodes_palette_view, qtbot)
+
+    assert current_index(root) == 0
+    invoke(root, "moveSelection", 1)
+    invoke(root, "moveSelection", 1)
+    assert current_index(root) == 2
+    invoke(root, "moveSelection", -1)
+    assert current_index(root) == 1
+    invoke(root, "moveSelection", -50)
+    assert current_index(root) == 0
+    invoke(root, "moveSelection", 500)
+    assert current_index(root) > 2
+
+
+def test_enter_creates_the_selected_node(stage_editor, qtbot):
+    palette = PopupNodesPalette(QtCore.QPointF())
+    qtbot.addWidget(palette)
+    palette.show()
+    root = palette_root(palette._nodes_palette_view, qtbot)
+    invoke(root, "moveSelection", 1)
+
+    with qtbot.waitSignal(palette._nodes_palette_view.nodes_spawner.nodeSpawned):
+        invoke(root, "activateSelection")
+
+
+def test_search_bar_gets_the_focus_when_the_palette_shows(stage_editor, qtbot):
+    palette = PopupNodesPalette(QtCore.QPointF())
+    qtbot.addWidget(palette)
+    palette.show()
+    root = palette_root(palette._nodes_palette_view, qtbot)
+
+    search_bar = root.findChild(QtCore.QObject, "searchBar")
+    field = search_bar.findChild(QtCore.QObject, "searchField")
+    qtbot.waitUntil(lambda: bool(field.property("activeFocus")), timeout=2000)
+
+
+def test_docked_palette_has_no_keyboard_selection(stage_editor, qtbot):
+    from nyx.editor.views.nodes_palette_view import NodesPaletteView
+
+    view = NodesPaletteView(drag_enabled=True)
+    qtbot.addWidget(view)
+    view.show()
+    root = palette_root(view, qtbot)
+    spawned = []
+    view.nodes_spawner.nodeSpawned.connect(spawned.append)
+
+    assert current_index(root) == -1
+    invoke(root, "moveSelection", 1)
+    assert current_index(root) == -1
+    invoke(root, "activateSelection")
+    assert spawned == []
+
+
+def test_selection_follows_drag_enabled(stage_editor, qtbot):
+    from nyx.editor.views.nodes_palette_view import NodesPaletteView
+
+    view = NodesPaletteView(drag_enabled=False)
+    qtbot.addWidget(view)
+    view.show()
+    root = palette_root(view, qtbot)
+    assert current_index(root) == 0
+
+    view.drag_enabled = True
+    assert current_index(root) == -1
+    view.drag_enabled = False
+    assert current_index(root) == 0

@@ -483,7 +483,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(self.get_description(), role=self.Roles.DESCRIPTION)
         self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
-        self.setData(True, role=self.Roles.LINKS_EXPANDED)
+        self.setData(False, role=self.Roles.LINKS_EXPANDED)
         self.setData(set(), role=self.Roles.LINKS)
         self.component_flags = self.get_type_default_flags()
 
@@ -516,11 +516,16 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """Get the display value, following the input link if there is one.
 
         Returns:
-            str: display value.
+            str: display value, the one of the component itself if the linked value
+                can't be pulled, like when the source points at something missing.
         """
         if self.input_links:
             source = self.input_links[0].source_component
-            source_value = source.pull_value()
+            try:
+                source_value = source.pull_value()
+            except Exception as err:
+                LOGGER.debug("%s: can't show the linked value: %s", self.path, err)
+                return self.data(role=self.Roles.DISPLAY_VALUE)
             value = self._cast_linked_value(source_value)
             if type(value) is type(source_value) and value == source_value:
                 return source.get_display_value()

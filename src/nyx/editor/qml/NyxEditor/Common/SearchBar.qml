@@ -24,6 +24,15 @@ Rectangle {
     readonly property string pendingToken: tokenFromText(field.text)
 
     signal queryChanged(string text, var tokens)
+    // Arrow keys in the field, for views that move a selection along the search
+    signal navigateUp
+    signal navigateDown
+    // Enter in the field when it didn't make a token
+    signal submitted
+
+    function focusField() {
+        field.forceActiveFocus();
+    }
 
     implicitHeight: Math.max(field.implicitHeight, 28) + 4
     color: palette.base
@@ -125,6 +134,7 @@ Rectangle {
 
         TextField {
             id: field
+            objectName: "searchField"
 
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -134,7 +144,12 @@ Rectangle {
             // Valid token text is shown in the highlight color, so it is clear Enter keeps it
             color: searchRoot.pendingToken !== "" ? searchRoot.palette.highlight : searchRoot.palette.text
 
-            onAccepted: searchRoot.commitToken()
+            onAccepted: {
+                if (!searchRoot.commitToken())
+                    searchRoot.submitted();
+            }
+            Keys.onUpPressed: searchRoot.navigateUp()
+            Keys.onDownPressed: searchRoot.navigateDown()
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Backspace && text.length === 0 && searchRoot.tokens.length > 0) {
                     searchRoot.removeToken(searchRoot.tokens.length - 1);

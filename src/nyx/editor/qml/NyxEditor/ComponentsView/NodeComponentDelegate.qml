@@ -302,7 +302,7 @@ DraggableDelegate {
                 Layout.fillWidth: true
 
                 visible: !!(itemRoot.model.readable || itemRoot.model.writable) && itemRoot.showExpanded
-                titleText: "Links"
+                titleText: qsTr("Links (in: %1 | out: %2)").arg(itemRoot.model.inputLinks?.length ?? 0).arg(itemRoot.model.outputLinks?.length ?? 0)
                 isExpanded: itemRoot.model.linksExpanded
 
                 // A user toggle assigns isExpanded imperatively, which breaks the binding above.

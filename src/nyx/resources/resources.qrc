@@ -15,8 +15,11 @@
     <file>icons/stage_object.png</file>
     <file>icons/function.png</file>
     <file>icons/stage_reference.png</file>
+    <file>icons/check.png</file>
     <file>icons/green_check.png</file>
     <file>icons/red_error.png</file>
+    <file>icons/file_open.png</file>
+    <file>icons/folder_open.png</file>
     <file alias="fonts/zed-mono">fonts/zed-mono.ttf</file>
     <file alias="fonts/zed-mono-bold">fonts/zed-mono-bold.ttf</file>
     <file alias="fonts/zed-mono-italic">fonts/zed-mono-italic.ttf</file>

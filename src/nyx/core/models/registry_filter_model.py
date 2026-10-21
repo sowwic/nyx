@@ -88,7 +88,9 @@ class RegistryFilterModel(QtCore.QSortFilterProxyModel):
         self._tokens = tuple(token for token in parsed if token is not None)
         self.endFilterChange()
 
-    def filterAcceptsRow(self, source_row: int, source_parent: QtCore.QModelIndex) -> bool:
+    def filterAcceptsRow(
+        self, source_row: int, source_parent: QtCore.QModelIndex
+    ) -> bool:
         """Check if a row matches the text and all the tokens.
 
         Args:

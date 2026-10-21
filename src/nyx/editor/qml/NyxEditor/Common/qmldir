@@ -11,3 +11,4 @@ DescriptionToolTip 1.0 DescriptionToolTip.qml
 PaletteSectionHeader 1.0 PaletteSectionHeader.qml
 TagsList 1.0 TagsList.qml
 SearchBar 1.0 SearchBar.qml
+EditButton 1.0 EditButton.qml

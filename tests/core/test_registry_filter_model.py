@@ -45,7 +45,9 @@ def test_text_matches_display_name_ignoring_case(filter_model):
 
 def test_tag_token_matches_tags(filter_model):
     expected = {
-        type_id for type_id, cls in NYX_REGISTRY.nodes.items() if "function" in cls.get_tags()
+        type_id
+        for type_id, cls in NYX_REGISTRY.nodes.items()
+        if "function" in cls.get_tags()
     }
     filter_model.setQuery("", ["tags:function"])
 

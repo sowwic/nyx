@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import NyxEditor.Common
@@ -41,8 +43,12 @@ ComponentValue {
             finishEdit(path);
     }
 
+    EditButton {
+        editor: scriptItemRoot
+    }
+
     ToolButton {
-        text: "…"
+        icon.source: "qrc:/icons/folder_open"
         enabled: scriptItemRoot.editable
         ToolTip.visible: hovered
         ToolTip.text: qsTr("Select script file")

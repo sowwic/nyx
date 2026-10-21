@@ -15,9 +15,28 @@ pytestmark = pytest.mark.with_plugins(
     "NyxJSONFunctions",
     "NyxFileFunctions",
     "NyxSystemFunctions",
+    "NyxDateTimeFunctions",
+    "NyxRandomFunctions",
+    "NyxPathFunctions",
+    "NyxRegexFunctions",
+    "NyxEncodingFunctions",
 )
 
-FUNCTION_GROUPS = ("math", "logic", "string", "list", "dict", "json", "file", "system")
+FUNCTION_GROUPS = (
+    "math",
+    "logic",
+    "string",
+    "list",
+    "dict",
+    "json",
+    "file",
+    "system",
+    "datetime",
+    "random",
+    "path",
+    "regex",
+    "encoding",
+)
 
 
 def make_node(stage, type_id, name=None):
@@ -38,6 +57,11 @@ def test_plugin_registers_a_node_for_every_operation():
         "function:json.parse_json",
         "function:file.read_text",
         "function:system.get_env",
+        "function:datetime.format_datetime",
+        "function:random.random_int",
+        "function:path.join_path",
+        "function:regex.find_all",
+        "function:encoding.sha256",
     ):
         assert NYX_REGISTRY.get_node_cls(type_id) is not None
 
@@ -101,9 +125,9 @@ def test_every_plugin_has_a_palette_name():
 
 
 def test_nodes_know_the_palette_section_of_their_plugin():
-    assert NYX_REGISTRY.get_node_cls("function:list.sort").get_source_plugin_palette_name() == (
-        "List Operations"
-    )
+    assert NYX_REGISTRY.get_node_cls(
+        "function:list.sort"
+    ).get_source_plugin_palette_name() == ("List Operations")
     assert NYX_REGISTRY.nodes["core:branch"].get_source_plugin_palette_name() == "Core"
 
 

@@ -212,3 +212,22 @@ def test_function_with_a_list_and_a_dict_runs(register):
     stage.crawler.start()
 
     assert node["return"].pull_value() == [1, 2]
+
+
+def test_display_survives_a_link_from_a_getter_pointing_at_nothing():
+    from nyx.api.v1 import CoreNodes, Stage, commands
+
+    stage = Stage()
+
+    def make(type_id, name):
+        command = commands.CreateNodeCommand(stage=stage, type_id=type_id, name=name)
+        stage.push_command(command)
+        return command.result_node
+
+    getter = make(CoreNodes.GET, "get")
+    cast = make(CoreNodes.TYPE_CAST, "cast")
+    getter["value"] >> cast["type"]
+
+    # Pulling the value fails, drawing the node and its tooltip must not
+    assert cast["type"].get_display_value() is not None
+    assert isinstance(cast.subtitle, str)

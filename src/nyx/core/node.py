@@ -64,11 +64,16 @@ class _SubtitleBinding:
             component = node.components_model.get_component(self.component_name)
         except ValueError:
             return ""
-        text = (
-            self.formatter(component)
-            if self.formatter is not None
-            else component.display_value
-        )
+        try:
+            text = (
+                self.formatter(component)
+                if self.formatter is not None
+                else component.display_value
+            )
+        except Exception as err:
+            # A subtitle is for show, a broken link must not stop the node from drawing
+            LOGGER.debug("%s: can't work out the subtitle: %s", node.path, err)
+            return ""
         return "" if text is None else str(text)
 
 

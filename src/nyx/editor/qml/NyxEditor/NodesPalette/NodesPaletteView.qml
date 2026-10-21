@@ -17,6 +17,34 @@ Rectangle {
 
     property alias searchText: searchBar.queryText
 
+    // The popup palette is driven by the keyboard. The docked one, where nodes are
+    // dragged out, has no selection.
+    readonly property bool keyboardNavigation: !dragEnabled
+    onKeyboardNavigationChanged: nodesPaletteListView.currentIndex = keyboardNavigation ? 0 : -1
+
+    // Gives the search bar the keyboard focus
+    function focusSearch() {
+        searchBar.focusField();
+    }
+
+    // Moves the selection of the list, stays on the first or last item at the ends
+    function moveSelection(delta) {
+        if (!keyboardNavigation || nodesPaletteListView.count === 0)
+            return;
+        const index = Math.max(0, Math.min(nodesPaletteListView.count - 1, nodesPaletteListView.currentIndex + delta));
+        nodesPaletteListView.currentIndex = index;
+        nodesPaletteListView.positionViewAtIndex(index, ListView.Contain);
+    }
+
+    // Creates a node of the selected type
+    function activateSelection() {
+        if (!keyboardNavigation)
+            return;
+        const item = nodesPaletteListView.currentItem;
+        if (item !== null)
+            root.nodeSpawner.spawnNode(String(item.model.typeId));
+    }
+
     ColumnLayout {
         id: mainLayout
         anchors.fill: parent
@@ -24,12 +52,19 @@ Rectangle {
 
         SearchBar {
             id: searchBar
+            objectName: "searchBar"
             Layout.fillWidth: true
             Layout.topMargin: 6
             Layout.leftMargin: 6
             Layout.rightMargin: 6
             tokenKeys: root.nodesRegistryFilterModel.tokenKeys
-            onQueryChanged: (text, tokens) => root.nodesRegistryFilterModel.setQuery(text, tokens)
+            onQueryChanged: (text, tokens) => {
+                root.nodesRegistryFilterModel.setQuery(text, tokens);
+                nodesPaletteListView.currentIndex = root.keyboardNavigation ? 0 : -1;
+            }
+            onNavigateUp: root.moveSelection(-1)
+            onNavigateDown: root.moveSelection(1)
+            onSubmitted: root.activateSelection()
         }
 
         // ---- List area ----
@@ -42,12 +77,14 @@ Rectangle {
 
             ListView {
                 id: nodesPaletteListView
+                objectName: "nodesPaletteListView"
                 anchors {
                     fill: parent
                     rightMargin: verticalScrollBar.width
                 }
 
                 model: root.nodesRegistryFilterModel
+                currentIndex: root.keyboardNavigation ? 0 : -1
                 spacing: 4
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -70,6 +107,7 @@ Rectangle {
                 section.delegate: PaletteSectionHeader {}
 
                 delegate: NodePaletteItemDelegate {
+                    highlighted: root.keyboardNavigation && ListView.isCurrentItem
                     dragEnabled: root.dragEnabled
                     mimeType: root.nodeMimeType
                     onSpawnRequested: typeId => root.nodeSpawner.spawnNode(typeId)

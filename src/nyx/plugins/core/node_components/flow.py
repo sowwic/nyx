@@ -57,7 +57,7 @@ class FlowComponent(NodeComponent):
 
     @classmethod
     def get_type_default_datatype(cls) -> str:
-        """str: flow datatype, only compatible with flow and wildcards."""
+        """str: flow datatype, only compatible with flow."""
         return CoreDatatypes.FLOW
 
     @classmethod

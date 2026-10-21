@@ -11,7 +11,8 @@ class Datatype:
     """Describes the kind of value a node component holds.
 
     Datatypes are registered by plugins through `NyxPluginContents.datatypes`.
-    Wildcard datatypes (e.g. `object`) are compatible with every other datatype.
+    Wildcard datatypes (e.g. `object`) are compatible with every other datatype, except
+    the ones that ignore wildcards (e.g. `flow`).
 
     Attributes:
         type_id: unique id, namespaced by the providing plugin
@@ -23,6 +24,8 @@ class Datatype:
             datatype of a value
         default_factory: creates the value components of the datatype start with
         is_wildcard: compatible with every datatype
+        ignores_wildcards: compatible only with itself and `compatible_with`, wildcards
+            don't make a difference
         compatible_with: type ids of the other datatypes it is compatible with
         selectable: can be picked by the user as the datatype of a component, false
             for datatypes that belong to a specific component type
@@ -36,6 +39,7 @@ class Datatype:
     plug_shape: GraphicsPlugShape = GraphicsPlugShape.CIRCLE
     default_factory: typing.Callable[[], typing.Any] = lambda: None
     is_wildcard: bool = False
+    ignores_wildcards: bool = False
     compatible_with: frozenset[str] = frozenset()
     selectable: bool = True
 
@@ -86,12 +90,11 @@ class Datatype:
         Returns:
             bool: datatypes are compatible.
         """
-        return (
-            self.is_wildcard
-            or other.is_wildcard
-            or self.type_id == other.type_id
-            or other.type_id in self.compatible_with
-        )
+        if self.type_id == other.type_id or other.type_id in self.compatible_with:
+            return True
+        if self.ignores_wildcards or other.ignores_wildcards:
+            return False
+        return self.is_wildcard or other.is_wildcard
 
 
 OBJECT_DATATYPE = Datatype(

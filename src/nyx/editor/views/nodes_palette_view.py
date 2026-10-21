@@ -60,6 +60,12 @@ class NodesPaletteView(NyxQuickWidget):
 
         self.setSource(self.source_url)
 
+    def focus_search(self):
+        """Give the keyboard focus to the search bar."""
+        self.setFocus()
+        if root := self.rootObject():
+            QtCore.QMetaObject.invokeMethod(root, "focusSearch")
+
     def on_node_dropped(self, type_id: str, position: QtCore.QPointF):
         """Create a node of the dropped type at the drop position.
 

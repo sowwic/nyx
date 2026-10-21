@@ -60,7 +60,9 @@ def test_registry_model_provides_tags_as_a_sorted_list():
 def test_registry_model_exposes_the_palette_section_role():
     model = RegistryListModel(lambda: NYX_REGISTRY.nodes)
 
-    assert model.roleNames()[RegistryListModel.Roles.PALETTE_SECTION] == b"paletteSection"
+    assert (
+        model.roleNames()[RegistryListModel.Roles.PALETTE_SECTION] == b"paletteSection"
+    )
     sections = {
         model.index(row).data(RegistryListModel.Roles.PALETTE_SECTION)
         for row in range(model.rowCount())

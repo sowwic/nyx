@@ -39,8 +39,37 @@ def test_failed_cast_raises_cast_error():
 def test_wildcards_accept_everything():
     wildcard = CoreDatatypes.OBJECT
     for other in NYX_REGISTRY.iter_datatypes():
+        if other.ignores_wildcards:
+            continue
         assert get(wildcard).accepts(other)
         assert other.accepts(get(wildcard))
+
+
+def test_flow_ignores_wildcards():
+    flow = get(CoreDatatypes.FLOW)
+
+    assert flow.ignores_wildcards
+    assert flow.accepts(flow)
+    for other in NYX_REGISTRY.iter_datatypes():
+        if other.type_id == CoreDatatypes.FLOW:
+            continue
+        assert not flow.accepts(other)
+        assert not other.accepts(flow)
+
+
+def test_datatype_can_still_list_compatible_types_when_ignoring_wildcards():
+    from nyx.core.datatypes.datatype import Datatype
+
+    special = Datatype(
+        type_id="t:special",
+        display_name="Special",
+        color="#000000",
+        ignores_wildcards=True,
+        compatible_with=frozenset({CoreDatatypes.INT}),
+    )
+
+    assert special.accepts(get(CoreDatatypes.INT))
+    assert not special.accepts(get(CoreDatatypes.OBJECT))
 
 
 def test_type_datatype_is_for_classes():

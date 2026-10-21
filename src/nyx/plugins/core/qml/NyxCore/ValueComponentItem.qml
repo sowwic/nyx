@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import NyxEditor.Common
@@ -12,6 +14,10 @@ ComponentValue {
     evaluateOnFinish: true
     // A linked value comes from its source.
     editable: component ? component.isEditable && !hasInputConnection : false
+
+    EditButton {
+        editor: valueItemRoot
+    }
 
     DatatypeSelector {
         component: valueItemRoot.component

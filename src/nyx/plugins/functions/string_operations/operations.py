@@ -1,7 +1,5 @@
 """Text functions."""
 
-import re
-
 
 def concatenate(a: str, b: str) -> str:
     """Join two strings."""
@@ -21,21 +19,6 @@ def split(text: str, separator: str = " ") -> list:
 def replace(text: str, old: str, new: str) -> str:
     """Replace every occurrence of old with new."""
     return text.replace(old, new)
-
-
-def regex_replace(text: str, pattern: str, replacement: str) -> str:
-    """Replace every match of a regular expression."""
-    return re.sub(pattern, replacement, text)
-
-
-def regex_match(text: str, pattern: str) -> bool:
-    """Check if a regular expression matches anywhere in a string."""
-    return re.search(pattern, text) is not None
-
-
-def regex_find_all(text: str, pattern: str) -> list:
-    """Get all matches of a regular expression."""
-    return re.findall(pattern, text)
 
 
 def format_text(template: str, values: dict) -> str:
