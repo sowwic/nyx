@@ -183,3 +183,22 @@ class StageObject:
     def get_type_icon(cls) -> str:
         """str: resource path of the type icon."""
         return ":/icons/stage_object"
+
+    @classmethod
+    def get_description(cls) -> str:
+        """str: short text telling what the type does, empty for none."""
+        return ""
+
+    @classmethod
+    def get_source_plugin_name(cls) -> str:
+        """str: name of the plugin that provides the type, empty if it has none."""
+        if cls.SOURCE_PLUGIN is None:
+            return ""
+        return cls.SOURCE_PLUGIN.plugin_cls.get_type_display_name()
+
+    @classmethod
+    def get_source_plugin_palette_name(cls) -> str:
+        """str: palette section of the plugin that provides the type, empty if none."""
+        if cls.SOURCE_PLUGIN is None:
+            return ""
+        return cls.SOURCE_PLUGIN.plugin_cls.get_palette_name()

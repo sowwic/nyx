@@ -502,13 +502,16 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
         Returns:
             bool: components differ, are of the same type, can be linked in this
-                direction and are not linked already.
+                direction, don't make nodes depend on each other and are not linked
+                already.
         """
         if source is target:
             return False
         if not source.readable or not target.writable:
             return False
         if not target.datatype.accepts(source.datatype):
+            return False
+        if source.stage.would_link_create_cycle(source, target):
             return False
         return all(link.source != source.uuid for link in target.input_links)
 

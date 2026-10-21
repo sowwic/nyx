@@ -11,7 +11,7 @@ if typing.TYPE_CHECKING:
     from .plugin import NyxPlugin
     from ..node import Node
     from ..node_component import NodeComponent
-    from ..datatype import Datatype
+    from ..datatypes.datatype import Datatype
 
 
 logging.setLoggerClass(NyxLogger)
@@ -128,6 +128,7 @@ class NyxRegistry:
         self.nodes.clear()
         self.node_components.clear()
         self.datatypes.clear()
+        self.register_core_datatypes()
 
         for plugin_entry in self.iter_plugin_entries():
             if not plugin_entry.plugin_instance:
@@ -205,6 +206,13 @@ class NyxRegistry:
                 plugin_entry.plugin_cls.get_type_id(),
             )
 
+    def register_core_datatypes(self):
+        """Register the built-in datatypes, which exist whatever plugins are enabled."""
+        from ..datatypes.core_types import CORE_DATATYPES
+
+        for datatype in CORE_DATATYPES:
+            self.datatypes[datatype.type_id] = datatype
+
     def register_datatypes(self, plugin_entry: NyxPluginRegistryEntry):
         """Register the datatypes provided by a plugin. Duplicate type ids are skipped.
 
@@ -248,7 +256,7 @@ class NyxRegistry:
             Datatype: registered datatype, `OBJECT_DATATYPE` for missing or unknown
                 ids (e.g. provided by a plugin that isn't loaded).
         """
-        from ..datatype import OBJECT_DATATYPE
+        from ..datatypes.datatype import OBJECT_DATATYPE
 
         if not type_id:
             return OBJECT_DATATYPE
@@ -268,12 +276,27 @@ class NyxRegistry:
             Datatype: first registered datatype matching the value,
                 `OBJECT_DATATYPE` if there is none.
         """
-        from ..datatype import OBJECT_DATATYPE
+        from ..datatypes.datatype import OBJECT_DATATYPE
 
         for datatype in self.datatypes.values():
             if datatype.matches(value):
                 return datatype
         return OBJECT_DATATYPE
+
+    def find_datatype_for_type(self, python_type: type) -> Datatype | None:
+        """Find the datatype of a python type.
+
+        Args:
+            python_type (type): python type, e.g. from a type hint.
+
+        Returns:
+            Datatype | None: first registered datatype of exactly that type, None if
+                there is none.
+        """
+        for datatype in self.datatypes.values():
+            if datatype.python_type is python_type:
+                return datatype
+        return None
 
     def iter_datatypes(self) -> Iterator[Datatype]:
         """Iterate registered datatypes.
@@ -296,10 +319,6 @@ class NyxRegistry:
         """
         resolved_import_root_directory = import_root_directory.resolve()
         if not resolved_import_root_directory.is_dir():
-            LOGGER.warning(
-                "QML import root is not a directory: %s",
-                resolved_import_root_directory.as_posix(),
-            )
             return False
 
         if resolved_import_root_directory in self.qml_import_root_directories:

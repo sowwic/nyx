@@ -23,6 +23,11 @@ class LogNode(Node):
         return ":/core/icons/log_node"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Writes a message to the log with the chosen level."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"utils"}
@@ -40,6 +45,7 @@ class LogNode(Node):
             type_id=CoreNodeComponents.VALUE
         )
         self.message.name = "message"
+        self.message.description = "Text to write to the log."
         self.message.is_editable = True
         self.message.writable = True
         self.message.set_datatype(CoreDatatypes.STRING)
@@ -49,6 +55,10 @@ class LogNode(Node):
             type_id=CoreNodeComponents.VALUE
         )
         self.level.name = "level"
+        self.level.description = (
+            "Importance of the message as a logging level: 10 debug, 20 info, "
+            "30 warning, 40 error, 50 critical."
+        )
         self.level.set_datatype(CoreDatatypes.INT)
         self.level.push_value(10)
         self.level.is_editable = True

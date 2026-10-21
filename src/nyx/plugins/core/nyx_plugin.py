@@ -4,8 +4,6 @@ import logging
 from .resources import resources_rc  # noqa: F401
 from nyx.api.v1 import NyxPluginManager, NyxPlugin
 
-from .datatypes import CORE_DATATYPES
-
 from .node_components.comment import CommentComponent
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
@@ -24,6 +22,8 @@ from .nodes.while_loop import WhileLoopNode
 from .nodes.action import ActionNode
 from .nodes.sequence import SequenceNode
 from .nodes.log import LogNode
+from .nodes.type_cast import TypeCastNode
+from .nodes.get_type import GetTypeNode
 
 
 LOGGER = logging.getLogger(__name__)
@@ -41,6 +41,11 @@ class NyxCore(NyxPlugin):
         return "NyxCore"
 
     @classmethod
+    def get_palette_name(cls) -> str:
+        """str: name of the palette section."""
+        return "Core"
+
+    @classmethod
     def initialize(cls) -> typing.Self:
         """Create the plugin and list its nodes and components.
 
@@ -55,7 +60,6 @@ class NyxCore(NyxPlugin):
             ScriptComponent,
             StageReferenceComponent,
         ]
-        plugin.contents.datatypes = list(CORE_DATATYPES)
         plugin.contents.nodes = [
             BlankNode,
             SetterNode,
@@ -69,6 +73,8 @@ class NyxCore(NyxPlugin):
             FlowStartNode,
             SequenceNode,
             LogNode,
+            TypeCastNode,
+            GetTypeNode,
         ]
 
         return plugin

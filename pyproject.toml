@@ -65,6 +65,9 @@ invalid-method-override="ignore"
 addopts = "--cov=nyx"
 log_cli = true
 log_cli_level = "ERROR"
+markers = [
+    "with_plugins(*plugin_ids): initialize the given plugins for the test",
+]
 
 [tool.uv.sources]
 json-config = { git = "https://github.com/sowwic/json-config", tag="v1.0.4"}

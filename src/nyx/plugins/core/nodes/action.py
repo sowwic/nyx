@@ -22,6 +22,14 @@ class ActionNode(Node):
         return ":/core/icons/action_node"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return (
+            "Runs its components when the flow reaches it. A general purpose step "
+            "with a flow input and output."
+        )
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"common"}

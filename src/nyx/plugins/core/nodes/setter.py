@@ -24,6 +24,11 @@ class SetterNode(Node):
         return "Set"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Sets the value of a component of another node when the flow reaches it."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"logic", "value"}
@@ -44,6 +49,9 @@ class SetterNode(Node):
             CoreNodeComponents.STAGE_REFERENCE
         )
         self.component_path_cpnt.name = "component"
+        self.component_path_cpnt.description = (
+            "Path of the component to change, like /stage/node.component."
+        )
         # A node is no use here: the value of a component is needed.
         self.component_path_cpnt.target_types = (NodeComponent,)
         self.component_path_cpnt.writable = True
@@ -53,6 +61,7 @@ class SetterNode(Node):
             CoreNodeComponents.VALUE
         )
         self.value_cpnt.name = "value"
+        self.value_cpnt.description = "Value to set."
         self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE
         self.value_cpnt.is_editable = True
         self.value_cpnt.writable = True

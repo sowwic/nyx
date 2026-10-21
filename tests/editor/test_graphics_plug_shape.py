@@ -11,7 +11,9 @@ from nyx.api.v1 import (
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.graphics.graphics_plug_shape import (
     PLUG_SHAPES,
+    BarsPlugShape,
     CirclePlugShape,
+    DiamondPlugShape,
     SquareMatrixPlugShape,
     PlugShape,
     TrianglePlugShape,
@@ -76,6 +78,34 @@ def test_circle_uses_the_given_color():
     assert pixel(image, 20, 15) == "#ff12ab34"
 
 
+def test_bars_miss_the_middle_bar_until_linked():
+    sample = SAMPLE.name(QtGui.QColor.NameFormat.HexArgb)
+    unlinked = paint_shape(BarsPlugShape(), linked=False)
+    assert pixel(unlinked, 20, 11) == sample  # top bar
+    assert pixel(unlinked, 20, 15) == TRANSPARENT  # no middle bar
+    assert pixel(unlinked, 20, 19) == sample  # bottom bar
+
+    linked = paint_shape(BarsPlugShape(), linked=True)
+    assert pixel(linked, 20, 11) == sample
+    assert pixel(linked, 20, 15) == sample
+    assert pixel(linked, 20, 19) == sample
+    assert pixel(linked, 12, 15) == TRANSPARENT  # left of the bars
+    assert pixel(linked, 28, 15) == TRANSPARENT  # right of the bars
+
+
+def test_diamond_has_a_hole_until_linked():
+    sample = SAMPLE.name(QtGui.QColor.NameFormat.HexArgb)
+    black = QtGui.QColor("black").name(QtGui.QColor.NameFormat.HexArgb)
+    unlinked = paint_shape(DiamondPlugShape(), linked=False)
+    assert pixel(unlinked, 20, 15) == black  # the hole
+    assert pixel(unlinked, 20, 11) == sample
+    assert pixel(unlinked, 25, 11) == TRANSPARENT  # empty corner of the box
+
+    linked = paint_shape(DiamondPlugShape(), linked=True)
+    assert pixel(linked, 20, 15) == sample
+    assert pixel(linked, 25, 11) == TRANSPARENT
+
+
 def test_triangle_is_outlined_until_linked():
     white = WHITE.name(QtGui.QColor.NameFormat.HexArgb)
     unlinked = paint_shape(TrianglePlugShape(), color=WHITE, linked=False)
@@ -105,7 +135,10 @@ def test_triangle_corners():
     assert points == [(16.0, 10.0), (16.0, 20.0), (25.0, 15.0)]
 
 
-@pytest.mark.parametrize("shape", [CirclePlugShape(), TrianglePlugShape()])
+@pytest.mark.parametrize(
+    "shape",
+    [CirclePlugShape(), TrianglePlugShape(), BarsPlugShape(), DiamondPlugShape()],
+)
 def test_shapes_grab_the_socket_within_reach(shape):
     assert shape.contains(QtCore.QPointF(0.0, 0.0))
     assert shape.contains(QtCore.QPointF(shape.HIT_RADIUS - 0.5, 0.0))
@@ -118,6 +151,8 @@ def test_every_shape_kind_has_a_drawing():
         assert isinstance(PLUG_SHAPES[kind], PlugShape)
     assert isinstance(plug_shape_for(GraphicsPlugShape.CIRCLE), CirclePlugShape)
     assert isinstance(plug_shape_for(GraphicsPlugShape.TRIANGLE), TrianglePlugShape)
+    assert isinstance(plug_shape_for(GraphicsPlugShape.BARS), BarsPlugShape)
+    assert isinstance(plug_shape_for(GraphicsPlugShape.DIAMOND), DiamondPlugShape)
 
 
 def test_unknown_shape_kind_falls_back_to_the_circle():
@@ -166,7 +201,11 @@ def test_value_plug_color_follows_the_type_of_the_value(qapp):
     assert value.get_plug_color() == QtGui.QColor("#FFA637")
     value.push_value(12, evaluate=False)
     assert value.get_plug_color() == QtGui.QColor("#38D6A4")
-    value.push_value([1], evaluate=False)  # a type without a datatype of its own
+    value.push_value([1], evaluate=False)
+    assert value.get_plug_color() == QtGui.QColor("#FF5FB0")
+    value.push_value({"a": 1}, evaluate=False)
+    assert value.get_plug_color() == QtGui.QColor("#FFD84B")
+    value.push_value({1}, evaluate=False)  # a type without a datatype of its own
     assert value.get_plug_color() == DEFAULT
 
 
@@ -295,15 +334,64 @@ def test_plug_shows_the_roles_of_its_component_when_diagnostics_are_on(
     assert "isValid" in tooltip
 
 
-def test_plug_has_no_tooltip_when_diagnostics_are_off(plugs, monkeypatch):
+def test_plug_shows_the_description_when_diagnostics_are_off(plugs, monkeypatch):
+    flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+    value_plug.component.description = "Number to use."
+
+    hover(value_plug)
+    hover(flow_plug)
+
+    assert "<td>Number to use.</td>" in value_plug.toolTip()
+    assert "isValid" not in value_plug.toolTip()
+    # A flow holds no value
+    assert flow_plug.component.description in flow_plug.toolTip()
+    assert "Value" not in flow_plug.toolTip()
+
+
+def test_plug_tooltip_follows_a_changed_description(plugs, monkeypatch):
     _flow_plug, value_plug = plugs
     monkeypatch.setattr(
         "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
     )
+    hover(value_plug)
+    value_plug.component.description = "New text."
 
     hover(value_plug)
 
-    assert value_plug.toolTip() == ""
+    assert "New text." in value_plug.toolTip()
+
+
+def test_plug_tooltip_shows_the_raw_and_cached_value(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+    value_plug.component.push_value("1+1")
+
+    hover(value_plug)
+
+    tooltip = value_plug.toolTip()
+    assert "<b>Raw:</b> 1+1<br><b>Cache:</b> 2" in tooltip
+    assert tooltip.index("Description") < tooltip.index("Value")
+    assert tooltip.index("Raw:") < tooltip.index("Cache:")
+
+
+def test_plug_tooltip_escapes_and_shortens_values(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+    value_plug.component.push_value("'<b>" + "x" * 500 + "'")
+
+    hover(value_plug)
+
+    tooltip = value_plug.toolTip()
+    assert "<b>x" not in tooltip
+    assert "&lt;b&gt;" in tooltip
+    assert "…" in tooltip
 
 
 def test_plug_tooltip_follows_the_component(plugs, monkeypatch):
@@ -378,3 +466,51 @@ def test_socket_is_grabbed_at_its_inset_position_only(plugs):
 
     assert flow_plug.socket_at(inset_right) is GraphicsPlug.Socket.OUTPUT
     assert flow_plug.socket_at(on_edge) is None  # 10 units away from the socket
+
+
+@pytest.fixture
+def tooltip_for(plugs, monkeypatch):
+    _flow_plug, value_plug = plugs
+    monkeypatch.setattr(
+        "nyx.editor.graphics.graphics_plug.are_hover_diagnostics_enabled", lambda: False
+    )
+
+    def _tooltip(note="", note_format="plain"):
+        value_plug.component.note_format = note_format
+        value_plug.component.note = note
+        hover(value_plug)
+        return value_plug.toolTip()
+
+    return _tooltip
+
+
+def test_plug_tooltip_has_no_note_section_without_a_note(tooltip_for):
+    assert "Note" not in tooltip_for("")
+    assert "Note" not in tooltip_for("   ")
+
+
+def test_plug_tooltip_shows_the_note_between_description_and_value(tooltip_for):
+    tooltip = tooltip_for("Remember this")
+
+    assert "Remember this" in tooltip
+    assert tooltip.index(">Description<") < tooltip.index(">Note<")
+    assert tooltip.index(">Note<") < tooltip.index(">Value<")
+
+
+def test_plain_note_is_escaped_and_keeps_its_lines(tooltip_for):
+    tooltip = tooltip_for("a <b> & c\nsecond line", "plain")
+
+    assert "a &lt;b&gt; &amp; c<br>second line" in tooltip
+
+
+def test_markdown_note_is_rendered(tooltip_for):
+    tooltip = tooltip_for("**bold** and *italic*", "markdown")
+
+    assert "**" not in tooltip
+    assert "bold" in tooltip and "italic" in tooltip
+    assert "<html" not in tooltip.lower()
+    assert "<!doctype" not in tooltip.lower()
+
+
+def test_html_note_is_used_as_it_is(tooltip_for):
+    assert "<i>slanted</i>" in tooltip_for("<i>slanted</i>", "html")

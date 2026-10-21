@@ -105,14 +105,21 @@ class NyxPluginManager:
 
     @profile(text="Plugins initialized in {seconds:.4f}s")
     def initialize_plugins(self, include: list[str] | None = None):
-        """Iterate over registry and initialize each plugin."""
+        """Iterate over registry and initialize each plugin.
+
+        Args:
+            include (list[str] | None): type ids of the plugins to use. Only these are
+                enabled, whatever state an earlier call left them in. All enabled
+                plugins are initialized if omitted.
+        """
         self.loader.load_plugins_from_paths()
 
         initialization_counter = 0
         for plugin_entry in NYX_REGISTRY.iter_plugin_entries():
             type_id = plugin_entry.plugin_cls.get_type_id()
-            if include and type_id not in include:
-                plugin_entry.enabled = False
+            if include:
+                # Exactly these plugins, also the ones that an earlier call left disabled
+                plugin_entry.enabled = type_id in include
 
             if not plugin_entry.enabled:
                 continue

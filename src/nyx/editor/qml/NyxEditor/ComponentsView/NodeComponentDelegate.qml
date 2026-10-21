@@ -67,6 +67,15 @@ DraggableDelegate {
         isRenaming = false;
     }
 
+    // Edit the note, showing it first if it is hidden: the component and the note
+    // frame are opened, and the frame is shown even though there is no note yet.
+    function startNoteEdit() {
+        if (!isExpanded)
+            toggleExpanded();
+        model.noteExpanded = true;
+        noteItem.beginEdit();
+    }
+
     onIsDraggingChanged: animateHeight = true
     dragEnabled: !isBuiltIn && !filtersActive
     dropEnabled: !isBuiltIn && !filtersActive
@@ -183,12 +192,14 @@ DraggableDelegate {
                         // or lowering its opacity would also affect the TextField child.)
                         color: itemRoot.isRenaming ? "transparent" : palette.windowText
 
-                        ToolTip.visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming
-                        ToolTip.delay: 600
-                        ToolTip.text: itemRoot.typeDisplayName
-
                         HoverHandler {
                             id: componentNameHoverHandler
+                        }
+
+                        // The same tooltip as the items of the palettes
+                        DescriptionToolTip {
+                            visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming && text.length > 0
+                            text: itemRoot.model.description || itemRoot.typeDisplayName
                         }
 
                         // Inline rename editor, drawn over the title.
@@ -261,6 +272,11 @@ DraggableDelegate {
                             MenuSeparator {}
 
                             MenuItem {
+                                text: "Edit Note"
+                                onClicked: itemRoot.startNoteEdit()
+                            }
+
+                            MenuItem {
                                 text: "Help"
                                 onClicked: itemRoot.helpRequested()
                             }
@@ -302,7 +318,7 @@ DraggableDelegate {
                 Layout.fillWidth: true
 
                 visible: !!(itemRoot.model.readable || itemRoot.model.writable) && itemRoot.showExpanded
-                titleText: "Links"
+                titleText: qsTr("Links (in: %1 | out: %2)").arg(itemRoot.model.inputLinks?.length ?? 0).arg(itemRoot.model.outputLinks?.length ?? 0)
                 isExpanded: itemRoot.model.linksExpanded
 
                 // A user toggle assigns isExpanded imperatively, which breaks the binding above.
@@ -326,6 +342,43 @@ DraggableDelegate {
 
                     inputLinks: itemRoot.model.inputLinks
                     outputLinks: itemRoot.model.outputLinks
+                }
+            }
+
+            // Hidden while there is no note, unless it is being written. Like the links,
+            // it is also hidden while the component is dragged.
+            CollapsibleFrame {
+                id: noteFrame
+                objectName: "noteFrame"
+
+                Layout.fillWidth: true
+
+                visible: (noteItem.hasNote || noteItem.editing) && itemRoot.showExpanded
+                titleText: qsTr("Note")
+                isExpanded: itemRoot.model.noteExpanded
+
+                // Same as the links frame: the state is kept in the model so it survives
+                // the delegate being recreated, and the binding is restored after a toggle.
+                onExpandedStateToggledByUser: newExpandedState => {
+                    itemRoot.model.noteExpanded = newExpandedState;
+                }
+
+                Binding {
+                    target: noteFrame
+                    property: "isExpanded"
+                    value: itemRoot.model.noteExpanded
+                }
+
+                NodeComponentNoteItem {
+                    id: noteItem
+                    objectName: "noteItem"
+
+                    Layout.fillWidth: true
+
+                    note: itemRoot.model.note
+                    noteFormat: itemRoot.model.noteFormat
+                    noteFormats: root.componentsController.noteFormats()
+                    onNoteCommitted: (text, format) => root.componentsController.setComponentNote(itemRoot.model.index, text, format)
                 }
             }
             Label {

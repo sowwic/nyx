@@ -41,4 +41,8 @@ ComponentValue {
             stageReferenceRoot.finishEdit(text)
         Keys.onEscapePressed: stageReferenceRoot.cancelEdit()
     }
+
+    EditButton {
+        editor: stageReferenceRoot
+    }
 }

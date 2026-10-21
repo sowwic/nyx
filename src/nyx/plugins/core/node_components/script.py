@@ -54,6 +54,11 @@ class ScriptComponent(NodeComponent):
         return CoreDatatypes.STRING
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the component type does, shown in the palette."""
+        return "Runs a python file or a module entry point when the node executes."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: component tags."""
         return {"common", "script", "logic"}

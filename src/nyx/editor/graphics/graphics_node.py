@@ -360,12 +360,15 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             painter.drawRect(self.boundingRect())
 
     def _refresh_tooltip(self):
-        """Show node role diagnostics as tooltip if enabled in config or debug mode."""
+        """Show node role diagnostics as tooltip if enabled in config or debug mode, the
+        description of the node type otherwise."""
         if not self._node.index().isValid():
             return
 
         if are_hover_diagnostics_enabled():
             self.setToolTip(build_role_tooltip_html(self._node.index()))
+        else:
+            self.setToolTip(self._node.get_description())
 
     # ======== Events ========= #
 

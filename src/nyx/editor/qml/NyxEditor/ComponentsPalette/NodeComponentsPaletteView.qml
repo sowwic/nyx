@@ -4,13 +4,15 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import "../Common"
+
 Rectangle {
     id: root
     signal spawnRequested(string typeId)
 
     required property var componentsRegistryFilterModel
 
-    property alias searchText: searchField.text
+    property alias searchText: searchBar.queryText
 
     color: palette.window
 
@@ -19,16 +21,14 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // TODO: Replace with common search bar component
-        TextField {
-            id: searchField
+        SearchBar {
+            id: searchBar
             Layout.fillWidth: true
             Layout.topMargin: 6
             Layout.leftMargin: 6
             Layout.rightMargin: 6
-            placeholderText: qsTr("Search...")
-            selectByMouse: true
-            onTextChanged: root.componentsRegistryFilterModel.setFilterFixedString(text)
+            tokenKeys: root.componentsRegistryFilterModel.tokenKeys
+            onQueryChanged: (text, tokens) => root.componentsRegistryFilterModel.setQuery(text, tokens)
         }
 
         // ---- List area ----
@@ -64,6 +64,10 @@ Rectangle {
                     }
                 }
 
+                section.property: "paletteSection"
+                section.criteria: ViewSection.FullString
+                section.delegate: PaletteSectionHeader {}
+
                 delegate: ComponentPaletteItemDelegate {
                     onSpawnRequested: typeId => root.spawnRequested(typeId)
                     width: ListView.view.width
@@ -73,7 +77,7 @@ Rectangle {
             Label {
                 anchors.centerIn: parent
                 visible: nodesPaletteListView.count === 0
-                text: root.searchText.length > 0 ? qsTr("No Matching Components") : qsTr("No Components Available")
+                text: searchBar.isActive ? qsTr("No Matching Components") : qsTr("No Components Available")
                 opacity: 0.5
             }
         }

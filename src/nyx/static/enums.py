@@ -16,6 +16,8 @@ class CoreNodes(enum.StrEnum):
     FOR_EACH_LOOP = "core:for_each_loop"
     WHILE_LOOP = "core:while_loop"
     LOG = "core:log"
+    TYPE_CAST = "core:type_cast"
+    GET_TYPE = "core:get_type"
 
 
 class LinkAnimationStyle(enum.StrEnum):
@@ -53,6 +55,8 @@ class CoreDatatypes(enum.StrEnum):
     INT = "core:int"
     FLOAT = "core:float"
     PATH = "core:path"
+    LIST = "core:list"
+    DICT = "core:dict"
     FLOW = "core:flow"
     REFERENCE = "core:reference"
 
@@ -125,6 +129,20 @@ class NodeComponentValueMask(enum.IntEnum):
     DISPLAY = enum.auto()
 
 
+class NoteFormat(enum.StrEnum):
+    """How the text of a note is written, and so how it is rendered.
+
+    Attributes:
+        PLAIN: text as it is
+        MARKDOWN: Markdown, as understood by Qt (CommonMark with GitHub extensions)
+        HTML: the subset of HTML that Qt rich text supports
+    """
+
+    PLAIN = "plain"
+    MARKDOWN = "markdown"
+    HTML = "html"
+
+
 class ItemSelectionMode(enum.IntEnum):
     """How a clicked item changes the selection.
 
@@ -156,3 +174,5 @@ class GraphicsPlugShape(enum.IntEnum):
     PENTAGON = enum.auto()
     SQUARE = enum.auto()
     SQUARE_MATRIX = enum.auto()
+    BARS = enum.auto()
+    DIAMOND = enum.auto()

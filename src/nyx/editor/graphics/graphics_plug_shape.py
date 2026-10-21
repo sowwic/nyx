@@ -151,6 +151,95 @@ class SquareMatrixPlugShape(PlugShape):
                 )
 
 
+class BarsPlugShape(PlugShape):
+    """Three stacked bars, the middle one is missing if not linked."""
+
+    BARS = 3
+    GAP = 1.0
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        center: QtCore.QPointF,
+        color: QtGui.QColor,
+        linked: bool,
+    ) -> None:
+        """Draw the bars.
+
+        Args:
+            painter (QtGui.QPainter): painter, in the coordinates of the plug.
+            center (QtCore.QPointF): center of the socket.
+            color (QtGui.QColor): color of the bars.
+            linked (bool): middle bar is drawn when a link is attached.
+        """
+        height = (2 * self.RADIUS - (self.BARS - 1) * self.GAP) / self.BARS
+        middle = self.BARS // 2
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        for bar in range(self.BARS):
+            if not linked and bar == middle:
+                continue
+            painter.drawRect(
+                QtCore.QRectF(
+                    center.x() - self.RADIUS,
+                    center.y() - self.RADIUS + bar * (height + self.GAP),
+                    2 * self.RADIUS,
+                    height,
+                )
+            )
+
+
+class DiamondPlugShape(PlugShape):
+    """Filled diamond, with a dark hole while the socket is not linked."""
+
+    HOLE_COLOR = QtGui.QColor("black")
+    HOLE_SCALE = 0.45
+
+    @staticmethod
+    def polygon(center: QtCore.QPointF, radius: float) -> QtGui.QPolygonF:
+        """Get the corners of a diamond.
+
+        Args:
+            center (QtCore.QPointF): center of the diamond.
+            radius (float): distance of the corners from the center.
+
+        Returns:
+            QtGui.QPolygonF: top, right, bottom and left corner.
+        """
+        return QtGui.QPolygonF(
+            [
+                QtCore.QPointF(center.x(), center.y() - radius),
+                QtCore.QPointF(center.x() + radius, center.y()),
+                QtCore.QPointF(center.x(), center.y() + radius),
+                QtCore.QPointF(center.x() - radius, center.y()),
+            ]
+        )
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        center: QtCore.QPointF,
+        color: QtGui.QColor,
+        linked: bool,
+    ) -> None:
+        """Draw the diamond.
+
+        Args:
+            painter (QtGui.QPainter): painter, in the coordinates of the plug.
+            center (QtCore.QPointF): center of the socket.
+            color (QtGui.QColor): color of the diamond.
+            linked (bool): no hole when a link is attached.
+        """
+        radius = self.RADIUS * 1.25
+        painter.setPen(QtGui.QPen(self.OUTLINE_COLOR, 1.0))
+        painter.setBrush(color)
+        painter.drawPolygon(self.polygon(center, radius))
+        if not linked:
+            painter.setPen(QtCore.Qt.PenStyle.NoPen)
+            painter.setBrush(self.HOLE_COLOR)
+            painter.drawPolygon(self.polygon(center, radius * self.HOLE_SCALE))
+
+
 class TrianglePlugShape(PlugShape):
     """Triangle pointing along the flow, outlined until the socket is linked."""
 
@@ -224,6 +313,8 @@ PLUG_SHAPES: dict[GraphicsPlugShape, PlugShape] = {
     GraphicsPlugShape.CIRCLE: CirclePlugShape(),
     GraphicsPlugShape.SQUARE: SquarePlugShape(),
     GraphicsPlugShape.SQUARE_MATRIX: SquareMatrixPlugShape(),
+    GraphicsPlugShape.BARS: BarsPlugShape(),
+    GraphicsPlugShape.DIAMOND: DiamondPlugShape(),
     GraphicsPlugShape.TRIANGLE: TrianglePlugShape(),
     GraphicsPlugShape.PENTAGON: PentagonPlugShape(),
 }

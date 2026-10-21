@@ -27,6 +27,14 @@ class ForLoopNode(Node):
         return ":/core/icons/value_cpnt"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return (
+            "Runs the loop body for every index from the first to the last index, "
+            "then continues with completed."
+        )
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"common", "logic", "cycle"}
@@ -38,12 +46,14 @@ class ForLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.flow_in_cpnt.name = "flow"
+        self.flow_in_cpnt.description = "Execution flow into the node."
         self.flow_in_cpnt.writable = True
 
         self.first_index_cpnt = self.components_model.create_component(
             CoreNodeComponents.VALUE
         )
         self.first_index_cpnt.name = "first_index"
+        self.first_index_cpnt.description = "Index the loop starts with."
         self.first_index_cpnt.writable = True
         self.first_index_cpnt.is_editable = True
         self.first_index_cpnt.set_datatype(CoreDatatypes.INT)
@@ -52,6 +62,7 @@ class ForLoopNode(Node):
             CoreNodeComponents.VALUE
         )
         self.last_index_cpnt.name = "last_index"
+        self.last_index_cpnt.description = "Index the loop ends with, this one included."
         self.last_index_cpnt.writable = True
         self.last_index_cpnt.is_editable = True
         self.last_index_cpnt.set_datatype(CoreDatatypes.INT)
@@ -61,12 +72,16 @@ class ForLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.loop_body_cpnt.name = "loop_body"
+        self.loop_body_cpnt.description = "Flow that runs once for every index."
         self.loop_body_cpnt.readable = True
 
         self.current_index_cpnt = self.components_model.create_component(
             CoreNodeComponents.VALUE
         )
         self.current_index_cpnt.name = "index"
+        self.current_index_cpnt.description = (
+            "Index of the current run of the loop body."
+        )
         self.current_index_cpnt.readable = True
         self.current_index_cpnt.set_datatype(CoreDatatypes.INT)
 
@@ -74,6 +89,9 @@ class ForLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.flow_out_cpnt.name = "completed"
+        self.flow_out_cpnt.description = (
+            "Flow that continues after the last run of the loop body."
+        )
         self.flow_out_cpnt.readable = True
 
         self.components_model.add_component(self.flow_in_cpnt)

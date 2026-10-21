@@ -64,6 +64,14 @@ class StageReferenceComponent(NodeComponent):
         return ":/icons/stage_reference"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the component type does, shown in the palette."""
+        return (
+            "Holds the path of a node or component in the stage and resolves it to "
+            "the object."
+        )
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: component tags."""
         return {"common", "value"}

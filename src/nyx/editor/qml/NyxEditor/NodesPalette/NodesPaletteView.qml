@@ -4,6 +4,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import "../Common"
+
 Rectangle {
     id: root
     color: palette.window
@@ -13,25 +15,56 @@ Rectangle {
     property bool dragEnabled: false
     property string nodeMimeType: ""
 
-    // Current text in the search field (hook this up to your filtering, see TODO below)
-    property alias searchText: searchField.text
+    property alias searchText: searchBar.queryText
+
+    // The popup palette is driven by the keyboard. The docked one, where nodes are
+    // dragged out, has no selection.
+    readonly property bool keyboardNavigation: !dragEnabled
+    onKeyboardNavigationChanged: nodesPaletteListView.currentIndex = keyboardNavigation ? 0 : -1
+
+    // Gives the search bar the keyboard focus
+    function focusSearch() {
+        searchBar.focusField();
+    }
+
+    // Moves the selection of the list, stays on the first or last item at the ends
+    function moveSelection(delta) {
+        if (!keyboardNavigation || nodesPaletteListView.count === 0)
+            return;
+        const index = Math.max(0, Math.min(nodesPaletteListView.count - 1, nodesPaletteListView.currentIndex + delta));
+        nodesPaletteListView.currentIndex = index;
+        nodesPaletteListView.positionViewAtIndex(index, ListView.Contain);
+    }
+
+    // Creates a node of the selected type
+    function activateSelection() {
+        if (!keyboardNavigation)
+            return;
+        const item = nodesPaletteListView.currentItem;
+        if (item !== null)
+            root.nodeSpawner.spawnNode(String(item.model.typeId));
+    }
 
     ColumnLayout {
         id: mainLayout
         anchors.fill: parent
         spacing: 0
 
-        // ---- Search field ----
-        // TODO: Replace with common search bar component
-        TextField {
-            id: searchField
+        SearchBar {
+            id: searchBar
+            objectName: "searchBar"
             Layout.fillWidth: true
             Layout.topMargin: 6
             Layout.leftMargin: 6
             Layout.rightMargin: 6
-            placeholderText: qsTr("Search...")
-            selectByMouse: true
-            onTextChanged: root.nodesRegistryFilterModel.setFilterFixedString(text)
+            tokenKeys: root.nodesRegistryFilterModel.tokenKeys
+            onQueryChanged: (text, tokens) => {
+                root.nodesRegistryFilterModel.setQuery(text, tokens);
+                nodesPaletteListView.currentIndex = root.keyboardNavigation ? 0 : -1;
+            }
+            onNavigateUp: root.moveSelection(-1)
+            onNavigateDown: root.moveSelection(1)
+            onSubmitted: root.activateSelection()
         }
 
         // ---- List area ----
@@ -44,12 +77,14 @@ Rectangle {
 
             ListView {
                 id: nodesPaletteListView
+                objectName: "nodesPaletteListView"
                 anchors {
                     fill: parent
                     rightMargin: verticalScrollBar.width
                 }
 
                 model: root.nodesRegistryFilterModel
+                currentIndex: root.keyboardNavigation ? 0 : -1
                 spacing: 4
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -67,7 +102,12 @@ Rectangle {
                     }
                 }
 
+                section.property: "paletteSection"
+                section.criteria: ViewSection.FullString
+                section.delegate: PaletteSectionHeader {}
+
                 delegate: NodePaletteItemDelegate {
+                    highlighted: root.keyboardNavigation && ListView.isCurrentItem
                     dragEnabled: root.dragEnabled
                     mimeType: root.nodeMimeType
                     onSpawnRequested: typeId => root.nodeSpawner.spawnNode(typeId)
@@ -78,7 +118,7 @@ Rectangle {
             Label {
                 anchors.centerIn: parent
                 visible: nodesPaletteListView.count === 0
-                text: root.searchText.length > 0 ? qsTr("No Matching Nodes") : qsTr("No Nodes Available")
+                text: searchBar.isActive ? qsTr("No Matching Nodes") : qsTr("No Nodes Available")
                 opacity: 0.5
             }
         }

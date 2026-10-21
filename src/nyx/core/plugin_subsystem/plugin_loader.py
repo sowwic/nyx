@@ -89,6 +89,12 @@ class NyxPluginLoader:
         package_dir = plugin_file.parent
         package_name = package_dir.name
 
+        loaded_module = sys.modules.get(f"{package_name}.{plugin_file.stem}")
+        loaded_file = getattr(loaded_module, "__file__", None)
+        if loaded_file and pathlib.Path(loaded_file).resolve() == plugin_file.resolve():
+            LOGGER.debug("Plugin is already loaded: %s", plugin_file)
+            return
+
         module_spec: ModuleSpec = importlib.util.spec_from_file_location(
             name=f"{package_name}.{plugin_file.stem}",
             location=plugin_file,

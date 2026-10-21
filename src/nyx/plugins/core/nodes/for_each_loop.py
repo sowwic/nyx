@@ -27,6 +27,14 @@ class ForEachLoopNode(Node):
         return ":/core/icons/value_cpnt"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return (
+            "Runs the loop body for every element of an iterable, optionally in "
+            "reverse, then continues with completed."
+        )
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"common", "logic", "cycle"}
@@ -38,12 +46,16 @@ class ForEachLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.flow_in_cpnt.name = "flow"
+        self.flow_in_cpnt.description = "Execution flow into the node."
         self.flow_in_cpnt.writable = True
 
         self.iterable_in_cpnt = self.components_model.create_component(
             CoreNodeComponents.VALUE
         )
         self.iterable_in_cpnt.name = "iterable"
+        self.iterable_in_cpnt.description = (
+            "Collection to go through, like a list or a string."
+        )
         self.iterable_in_cpnt.writable = True
         self.iterable_in_cpnt.set_datatype(CoreDatatypes.OBJECT)
 
@@ -51,6 +63,9 @@ class ForEachLoopNode(Node):
             CoreNodeComponents.VALUE
         )
         self.reversed_toggle_in_cpnt.name = "reverse"
+        self.reversed_toggle_in_cpnt.description = (
+            "Go through the elements from the last to the first."
+        )
         self.reversed_toggle_in_cpnt.writable = True
         self.reversed_toggle_in_cpnt.set_datatype(CoreDatatypes.BOOL)
         self.reversed_toggle_in_cpnt.default_value = False
@@ -60,12 +75,16 @@ class ForEachLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.loop_body_cpnt.name = "loop_body"
+        self.loop_body_cpnt.description = "Flow that runs once for every element."
         self.loop_body_cpnt.readable = True
 
         self.current_element_out_cpnt = self.components_model.create_component(
             CoreNodeComponents.VALUE
         )
         self.current_element_out_cpnt.name = "element"
+        self.current_element_out_cpnt.description = (
+            "Element of the current run of the loop body."
+        )
         self.current_element_out_cpnt.readable = True
         self.current_element_out_cpnt.set_datatype(CoreDatatypes.OBJECT)
 
@@ -73,6 +92,7 @@ class ForEachLoopNode(Node):
             CoreNodeComponents.VALUE
         )
         self.current_index_cpnt.name = "index"
+        self.current_index_cpnt.description = "Position of the current element."
         self.current_index_cpnt.readable = True
         self.current_index_cpnt.set_datatype(CoreDatatypes.INT)
 
@@ -80,6 +100,9 @@ class ForEachLoopNode(Node):
             CoreNodeComponents.FLOW
         )
         self.flow_out_cpnt.name = "completed"
+        self.flow_out_cpnt.description = (
+            "Flow that continues after the last run of the loop body."
+        )
         self.flow_out_cpnt.readable = True
 
         self.components_model.add_component(self.flow_in_cpnt)

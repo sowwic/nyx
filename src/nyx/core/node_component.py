@@ -9,7 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
-from .datatype import Datatype
+from .datatypes.datatype import Datatype, value_to_class_name
 from .exceptions import DatatypeCastError
 from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
@@ -20,6 +20,7 @@ from ..static.enums import (
     NodeComponentValueMask,
     GraphicsPlugShape,
     CoreDatatypes,
+    NoteFormat,
 )
 from ..static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
 
@@ -57,6 +58,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
+        DESCRIPTION = enum.auto()
+        NOTE = enum.auto()
+        NOTE_FORMAT = enum.auto()
         RAW_VALUE = enum.auto()
         CACHED_VALUE = enum.auto()
         DATATYPE = enum.auto()
@@ -67,6 +71,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_ACTIVE = enum.auto()
         IS_EXPANDED = enum.auto()
         LINKS_EXPANDED = enum.auto()
+        NOTE_EXPANDED = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
@@ -474,14 +479,58 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def is_expanded(self, state: bool) -> None:
         self.setData(state, role=self.Roles.IS_EXPANDED)
 
+    @property
+    def description(self) -> str:
+        """str: what the component is for, shown as its tooltip. The type description
+        by default, or the type display name if the type has none."""
+        return self.data(self.Roles.DESCRIPTION) or ""
+
+    @description.setter
+    def description(self, text: str) -> None:
+        self.setData(text, role=self.Roles.DESCRIPTION)
+
+    @property
+    def note(self) -> str:
+        """str: note the user attached to the component, empty for none."""
+        return self.data(self.Roles.NOTE) or ""
+
+    @note.setter
+    def note(self, text: str) -> None:
+        self.setData(text, role=self.Roles.NOTE)
+
+    @property
+    def note_format(self) -> NoteFormat:
+        """NoteFormat: how the note is written."""
+        return NoteFormat(self.data(self.Roles.NOTE_FORMAT) or NoteFormat.PLAIN)
+
+    @note_format.setter
+    def note_format(self, note_format: NoteFormat | str) -> None:
+        self.setData(str(NoteFormat(note_format)), role=self.Roles.NOTE_FORMAT)
+
+    @property
+    def is_note_expanded(self) -> bool:
+        """bool: the note frame is open in the UI."""
+        return bool(self.data(self.Roles.NOTE_EXPANDED))
+
+    @is_note_expanded.setter
+    def is_note_expanded(self, state: bool) -> None:
+        self.setData(state, role=self.Roles.NOTE_EXPANDED)
+
     def init_default_data_values(self):
         """Initialize item data roles with the defaults of the component type."""
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
+        self.setData(
+            self.get_description() or self.get_type_display_name(),
+            role=self.Roles.DESCRIPTION,
+        )
+        self.setData("", role=self.Roles.NOTE)
+        self.setData(str(NoteFormat.PLAIN), role=self.Roles.NOTE_FORMAT)
         self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
-        self.setData(True, role=self.Roles.LINKS_EXPANDED)
+        self.setData(False, role=self.Roles.LINKS_EXPANDED)
+        self.setData(True, role=self.Roles.NOTE_EXPANDED)
         self.setData(set(), role=self.Roles.LINKS)
         self.component_flags = self.get_type_default_flags()
 
@@ -514,10 +563,20 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """Get the display value, following the input link if there is one.
 
         Returns:
-            str: display value.
+            str: display value, the one of the component itself if the linked value
+                can't be pulled, like when the source points at something missing.
         """
         if self.input_links:
-            return self.input_links[0].source_component.get_display_value()
+            source = self.input_links[0].source_component
+            try:
+                source_value = source.pull_value()
+            except Exception as err:
+                LOGGER.debug("%s: can't show the linked value: %s", self.path, err)
+                return self.data(role=self.Roles.DISPLAY_VALUE)
+            value = self._cast_linked_value(source_value)
+            if type(value) is type(source_value) and value == source_value:
+                return source.get_display_value()
+            return str(value)
         return self.data(role=self.Roles.DISPLAY_VALUE)
 
     def clear_cached_value(self):
@@ -533,6 +592,21 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         self.value_storage.push(value, evaluate=evaluate)
 
+    def _cast_linked_value(self, value: typing.Any) -> typing.Any:
+        """Convert a value that came through an input link to the component datatype.
+
+        Args:
+            value (typing.Any): value of the source component.
+
+        Returns:
+            typing.Any: the converted value, the value as it is if it can't be converted.
+        """
+        try:
+            return self.value_storage.cast_value(value)
+        except DatatypeCastError as err:
+            LOGGER.warning("%s: %s", self.path, err)
+            return value
+
     def pull_value(
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ) -> typing.Any:
@@ -546,7 +620,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         input_links = self.input_links
         if input_links:
-            return input_links[0].source_component.pull_value(value_mask=value_mask)
+            value = input_links[0].source_component.pull_value(value_mask=value_mask)
+            if value_mask is NodeComponentValueMask.CACHE:
+                return self._cast_linked_value(value)
+            return value
 
         return self.value_storage.pull(value_mask)
 
@@ -672,8 +749,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.push_value(self.deserialize_value(value=serialized_value))
 
     def serialize_value(self) -> typing.Any:
-        """typing.Any: value to store when serializing."""
-        return self.raw_value
+        """typing.Any: value to store when serializing, classes as their name."""
+        return value_to_class_name(self.raw_value)
 
     def deserialize_value(self, value: typing.Any) -> typing.Any:
         """Convert a serialized value back to a value.
@@ -687,8 +764,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return value
 
     def serialize_default_value(self) -> typing.Any:
-        """typing.Any: default value to store when serializing."""
-        return self.default_value
+        """typing.Any: default value to store when serializing, classes as their name."""
+        return value_to_class_name(self.default_value)
 
     def deserialize_default_value(self, value: typing.Any) -> typing.Any:
         """Convert a serialized default value back to a value.
@@ -715,6 +792,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         data["value"] = self.serialize_value()
         data["default_value"] = self.serialize_default_value()
         data["is_active"] = self.is_active
+        data["note"] = {"text": self.note, "format": str(self.note_format)}
         return data
 
     @classmethod
@@ -756,6 +834,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             value=data.get("default_value")
         )
         component.is_active = data["is_active"]
+        note = data.get("note") or {}
+        component.note = note.get("text", "")
+        component.note_format = note.get("format", NoteFormat.PLAIN)
         component.component_flags = (
             NodeComponentFlag(data["flags"]) | component.get_type_enforced_flags()
         )

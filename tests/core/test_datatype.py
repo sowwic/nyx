@@ -39,17 +39,45 @@ def test_failed_cast_raises_cast_error():
 def test_wildcards_accept_everything():
     wildcard = CoreDatatypes.OBJECT
     for other in NYX_REGISTRY.iter_datatypes():
+        if other.ignores_wildcards:
+            continue
         assert get(wildcard).accepts(other)
         assert other.accepts(get(wildcard))
 
 
-def test_type_is_a_concrete_datatype():
+def test_flow_ignores_wildcards():
+    flow = get(CoreDatatypes.FLOW)
+
+    assert flow.ignores_wildcards
+    assert flow.accepts(flow)
+    for other in NYX_REGISTRY.iter_datatypes():
+        if other.type_id == CoreDatatypes.FLOW:
+            continue
+        assert not flow.accepts(other)
+        assert not other.accepts(flow)
+
+
+def test_datatype_can_still_list_compatible_types_when_ignoring_wildcards():
+    from nyx.core.datatypes.datatype import Datatype
+
+    special = Datatype(
+        type_id="t:special",
+        display_name="Special",
+        color="#000000",
+        ignores_wildcards=True,
+        compatible_with=frozenset({CoreDatatypes.INT}),
+    )
+
+    assert special.accepts(get(CoreDatatypes.INT))
+    assert not special.accepts(get(CoreDatatypes.OBJECT))
+
+
+def test_type_datatype_is_for_classes():
     type_datatype = get(CoreDatatypes.TYPE)
-    assert not type_datatype.is_wildcard
+    assert type_datatype.python_type is type
+    assert NYX_REGISTRY.infer_datatype(int) is type_datatype
     assert type_datatype.accepts(type_datatype)
     assert type_datatype.accepts(get(CoreDatatypes.OBJECT))
-    assert not type_datatype.accepts(get(CoreDatatypes.INT))
-    assert not get(CoreDatatypes.INT).accepts(type_datatype)
 
 
 def test_concrete_datatypes_accept_only_themselves():
@@ -72,7 +100,9 @@ def test_bool_is_a_wildcard():
         (1, CoreDatatypes.INT),
         (1.5, CoreDatatypes.FLOAT),
         ("text", CoreDatatypes.STRING),
-        ([1], CoreDatatypes.OBJECT),
+        ([1], CoreDatatypes.LIST),
+        ({"a": 1}, CoreDatatypes.DICT),
+        ({1}, CoreDatatypes.OBJECT),
     ],
 )
 def test_infer_datatype_uses_the_exact_python_type(value, expected):
@@ -82,18 +112,20 @@ def test_infer_datatype_uses_the_exact_python_type(value, expected):
 @pytest.mark.parametrize(
     "value, expected",
     [
-        (CoreDatatypes.BOOL, CoreDatatypes.BOOL),  # a registered datatype id
-        (float, CoreDatatypes.FLOAT),  # a python type
-        (3, CoreDatatypes.INT),  # any other value gives its own type
-        (dict, CoreDatatypes.OBJECT),
+        (CoreDatatypes.BOOL, bool),  # a registered datatype id
+        (CoreDatatypes.OBJECT, object),  # a datatype without a python type
+        (float, float),  # a class stays as it is
+        (dict, dict),
+        (3, int),  # any other value gives its own type
+        ("text", str),
     ],
 )
-def test_type_datatype_gets_the_type_from_any_input(value, expected):
+def test_type_datatype_gets_the_class_from_any_input(value, expected):
     assert get(CoreDatatypes.TYPE).cast(value) == expected
 
 
 def test_type_datatype_accepts_a_datatype():
-    assert get(CoreDatatypes.TYPE).cast(get(CoreDatatypes.INT)) == CoreDatatypes.INT
+    assert get(CoreDatatypes.TYPE).cast(get(CoreDatatypes.INT)) is int
 
 
 @pytest.mark.parametrize(
@@ -103,7 +135,7 @@ def test_type_datatype_accepts_a_datatype():
         (CoreDatatypes.STRING, ""),
         (CoreDatatypes.INT, 0),
         (CoreDatatypes.FLOAT, 0.0),
-        (CoreDatatypes.TYPE, "core:object"),
+        (CoreDatatypes.TYPE, object),
         (CoreDatatypes.OBJECT, None),
         (CoreDatatypes.PATH, None),
         (CoreDatatypes.FLOW, None),
@@ -142,3 +174,57 @@ def test_only_flow_is_not_selectable():
         if not datatype.selectable
     }
     assert not_selectable == {CoreDatatypes.FLOW}
+
+
+# ======== List and dictionary ========= #
+
+
+@pytest.mark.parametrize(
+    "type_id, value, expected",
+    [
+        (CoreDatatypes.LIST, [1, 2], [1, 2]),
+        (CoreDatatypes.LIST, (1, 2), [1, 2]),
+        (CoreDatatypes.LIST, range(3), [0, 1, 2]),
+        (CoreDatatypes.DICT, {"a": 1}, {"a": 1}),
+        (CoreDatatypes.DICT, [("a", 1), ("b", 2)], {"a": 1, "b": 2}),
+    ],
+)
+def test_list_and_dict_casts(type_id, value, expected):
+    result = get(type_id).cast(value)
+
+    assert result == expected
+    assert type(result) is type(expected)
+
+
+@pytest.mark.parametrize(
+    "type_id, value", [(CoreDatatypes.LIST, 5), (CoreDatatypes.DICT, 5)]
+)
+def test_list_and_dict_reject_values_that_are_not_collections(type_id, value):
+    with pytest.raises(DatatypeCastError):
+        get(type_id).cast(value)
+
+
+@pytest.mark.parametrize("type_id", [CoreDatatypes.LIST, CoreDatatypes.DICT])
+def test_list_and_dict_defaults_are_new_empty_collections(type_id):
+    first = get(type_id).create_default()
+    second = get(type_id).create_default()
+
+    assert first == second == get(type_id).python_type()
+    assert first is not second
+
+
+def test_list_and_dict_are_concrete_with_own_plug_shapes():
+    from nyx.api.v1 import GraphicsPlugShape
+
+    list_type, dict_type = get(CoreDatatypes.LIST), get(CoreDatatypes.DICT)
+
+    assert not list_type.is_wildcard and not dict_type.is_wildcard
+    assert list_type.plug_shape is GraphicsPlugShape.BARS
+    assert dict_type.plug_shape is GraphicsPlugShape.DIAMOND
+    assert list_type.accepts(list_type) and dict_type.accepts(dict_type)
+    assert list_type.accepts(get(CoreDatatypes.OBJECT))
+    assert dict_type.accepts(get(CoreDatatypes.OBJECT))
+    assert not list_type.accepts(dict_type)
+    assert not dict_type.accepts(list_type)
+    assert not list_type.accepts(get(CoreDatatypes.INT))
+    assert not get(CoreDatatypes.INT).accepts(dict_type)

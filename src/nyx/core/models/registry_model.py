@@ -20,6 +20,9 @@ class RegistryListModel(QtCore.QAbstractListModel):
         TYPE_CLASS = enum.auto()
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
+        DESCRIPTION = enum.auto()
+        SOURCE_PLUGIN = enum.auto()
+        PALETTE_SECTION = enum.auto()
         TYPE_TAGS = enum.auto()
 
     def __init__(self, get_items: typing.Callable[[], OrderedDict], parent=None):
@@ -45,7 +48,14 @@ class RegistryListModel(QtCore.QAbstractListModel):
         """Reload entries from the registry."""
         self.beginResetModel()
         self._cls_by_id = dict(self._get_items())
-        self._type_ids = sorted(self._cls_by_id.keys())
+        # Grouped by plugin, so the views can show a section for each of them
+        self._type_ids = sorted(
+            self._cls_by_id,
+            key=lambda type_id: (
+                self._cls_by_id[type_id].get_source_plugin_palette_name(),
+                type_id,
+            ),
+        )
         self.endResetModel()
 
     def rowCount(self, parent=QtCore.QModelIndex()):
@@ -86,8 +96,14 @@ class RegistryListModel(QtCore.QAbstractListModel):
             return cls
         if role == self.Roles.TYPE_ICON:
             return cls.get_type_icon()
+        if role == self.Roles.SOURCE_PLUGIN:
+            return cls.get_source_plugin_name()
+        if role == self.Roles.PALETTE_SECTION:
+            return cls.get_source_plugin_palette_name()
+        if role == self.Roles.DESCRIPTION:
+            return cls.get_description()
         if role == self.Roles.TYPE_TAGS:
-            return cls.get_tags()
+            return sorted(cls.get_tags())
         return None
 
     def roleNames(self):

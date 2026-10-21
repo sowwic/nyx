@@ -9,13 +9,14 @@ from ...core.commands import (
     ReorderNodeComponentCommand,
     SetNodeComponentValueCommand,
     SetNodeComponentDatatypeCommand,
+    SetNodeComponentNoteCommand,
     SetNodeComponentActiveStateCommand,
     RenameNodeComponentCommand,
     SetNodeComponentFlagCommand,
 )
 from ...core.node_component import NodeComponent
 from ...core.plugin_subsystem.registry import NYX_REGISTRY
-from ...static.enums import ItemSelectionMode, NodeComponentFlag
+from ...static.enums import ItemSelectionMode, NodeComponentFlag, NoteFormat
 
 
 if typing.TYPE_CHECKING:
@@ -247,6 +248,39 @@ class ComponentsController(QtCore.QObject):
                 stage=self.stage, node_component=component, value=new_value, raw=raw
             )
         )
+
+    @QtCore.Slot(int, str, str)
+    def setComponentNote(self, row: int, text: str, note_format: str):
+        """Set the note of a component through an undoable command.
+
+        Args:
+            row (int): proxy row.
+            text (str): new note, empty to remove it.
+            note_format (str): how the note is written, a `NoteFormat` value.
+        """
+        component = self.get_component_from_proxy_row(row)
+        if component.note == text and component.note_format == note_format:
+            return
+        self.stage.push_command(
+            SetNodeComponentNoteCommand(
+                stage=self.stage,
+                node_component=component,
+                text=text,
+                note_format=note_format,
+            )
+        )
+
+    @QtCore.Slot(result="QVariantList")
+    def noteFormats(self) -> list[dict[str, str]]:
+        """Get the formats a note can be written in.
+
+        Returns:
+            list[dict[str, str]]: `id` and `name` of every note format.
+        """
+        return [
+            {"id": str(note_format), "name": note_format.name.title()}
+            for note_format in NoteFormat
+        ]
 
     @QtCore.Slot(int, str)
     def setComponentDatatype(self, row: int, datatype_id: str):

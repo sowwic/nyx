@@ -22,6 +22,11 @@ class ValueNode(Node):
         return ":/core/icons/value_cpnt"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Provides a value that can be edited and linked to other nodes."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"common", "value"}
@@ -32,6 +37,7 @@ class ValueNode(Node):
             CoreNodeComponents.VALUE
         )
         self.value_cpnt.name = "value"
+        self.value_cpnt.description = "Value of the node, it can be edited or linked."
         self.value_cpnt.readable = True
         self.value_cpnt.is_editable = True
         self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE

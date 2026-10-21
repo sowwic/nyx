@@ -31,6 +31,11 @@ class GetterNode(Node):
         return ":/icons/function"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Provides the value of a component of another node."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"logic", "value"}
@@ -81,6 +86,9 @@ class GetterNode(Node):
             CoreNodeComponents.STAGE_REFERENCE
         )
         self.in_component_path.name = "component"
+        self.in_component_path.description = (
+            "Path of the component to read, like /stage/node.component."
+        )
         # A node is no use here: the value of a component is needed.
         self.in_component_path.target_types = (NodeComponent,)
         self.in_component_path.is_editable = True
@@ -89,6 +97,7 @@ class GetterNode(Node):
             CoreNodeComponents.VALUE
         )
         self.value_cpnt.name = "value"
+        self.value_cpnt.description = "Value of the component the path points at."
         self.value_cpnt.readable = True
         self.value_cpnt.component_flags |= NodeComponentFlag.INHERITS_DATATYPE
         self.value_cpnt.is_editable = False

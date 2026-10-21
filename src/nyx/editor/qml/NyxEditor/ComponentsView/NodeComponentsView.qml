@@ -19,6 +19,17 @@ Rectangle {
     property alias searchText: searchField.text
     property bool hasActiveFilters: searchText.length > 0
 
+    // Tapping where there is no component (below the last one, between the components,
+    // around the list) clears the selection and closes the components palette.
+    // `x` and `y` are in the coordinates of the list.
+    function handleTapInList(x, y) {
+        const inContent = componentsListView.mapToItem(componentsListView.contentItem, x, y);
+        if (componentsListView.itemAt(inContent.x, inContent.y) !== null)
+            return;
+        root.componentsController.selectionModel.clear();
+        palettePopup.close();
+    }
+
     ColumnLayout {
         id: mainLayout
         anchors.fill: parent
@@ -48,6 +59,7 @@ Rectangle {
 
             ListView {
                 id: componentsListView
+                objectName: "componentsListView"
 
                 property var reorderState: ReorderState {}
 
@@ -62,6 +74,12 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
                 reuseItems: false   // delegates hold expanded state, so they should not be recycled
                 activeFocusOnTab: true
+
+                // On the list itself: the list takes the mouse press before the items
+                // around it. Taps on components still reach their own handlers.
+                TapHandler {
+                    onTapped: eventPoint => root.handleTapInList(eventPoint.position.x, eventPoint.position.y)
+                }
 
                 ScrollBar.vertical: ScrollBar {
                     id: verticalScrollBar
@@ -193,6 +211,7 @@ Rectangle {
 
     NodeComponentsPalettePopup {
         id: palettePopup
+        objectName: "palettePopup"
         parent: root
         bottomReserved: root.height - buttonBar.y
 
