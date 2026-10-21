@@ -28,6 +28,34 @@ class NyxPluginContents:
     nodes: list[type[Node]] = dataclasses.field(init=False, default_factory=list)
     datatypes: list[Datatype] = dataclasses.field(init=False, default_factory=list)
 
+    def register_function_node(
+        self, func: typing.Callable, type_id: str | None = None
+    ) -> type[Node]:
+        """Add a node calling a function.
+
+        The node has a value component for every parameter and one for the return
+        value, the datatypes are chosen from the type hints of the function.
+
+        Args:
+            func (typing.Callable): function to call.
+            type_id (str | None): node type id. Derived from the module and name of
+                the function if omitted.
+
+        Raises:
+            TypeError: func is not a named function.
+            ValueError: a node with the same type id is already in the contents.
+
+        Returns:
+            type[Node]: generated node class.
+        """
+        from ..function_node import create_function_node_class
+
+        node_cls = create_function_node_class(func, type_id=type_id)
+        if any(node.get_type_id() == node_cls.get_type_id() for node in self.nodes):
+            raise ValueError(f"Node {node_cls.get_type_id()} is already registered")
+        self.nodes.append(node_cls)
+        return node_cls
+
 
 class NyxPlugin(ABC):
     """Base interface for all Nyx plugins.

@@ -31,6 +31,11 @@ class FlowComponent(NodeComponent):
         return ":/core/icons/flow_cpnt"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the component type does, shown in the palette."""
+        return "Connects the execution flow from one node to the next."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: component tags."""
         return {"logic"}

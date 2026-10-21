@@ -24,6 +24,11 @@ class SetterNode(Node):
         return "Set"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Sets the value of a component of another node when the flow reaches it."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"logic", "value"}

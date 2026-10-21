@@ -23,6 +23,11 @@ class LogNode(Node):
         return ":/core/icons/log_node"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Writes a message to the log with the chosen level."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"utils"}

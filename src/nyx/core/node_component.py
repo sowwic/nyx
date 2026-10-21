@@ -9,7 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
-from .datatype import Datatype
+from .datatypes.datatype import Datatype
 from .exceptions import DatatypeCastError
 from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
@@ -57,6 +57,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         TYPE_ID = QtCore.Qt.ItemDataRole.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
+        DESCRIPTION = enum.auto()
         RAW_VALUE = enum.auto()
         CACHED_VALUE = enum.auto()
         DATATYPE = enum.auto()
@@ -479,6 +480,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
+        self.setData(self.get_description(), role=self.Roles.DESCRIPTION)
         self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
         self.setData(True, role=self.Roles.LINKS_EXPANDED)

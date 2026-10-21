@@ -22,6 +22,11 @@ class ValueNode(Node):
         return ":/core/icons/value_cpnt"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Provides a value that can be edited and linked to other nodes."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"common", "value"}

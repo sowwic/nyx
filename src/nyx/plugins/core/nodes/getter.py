@@ -31,6 +31,11 @@ class GetterNode(Node):
         return ":/icons/function"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Provides the value of a component of another node."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"logic", "value"}

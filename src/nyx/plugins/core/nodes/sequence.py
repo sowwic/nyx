@@ -23,6 +23,11 @@ class SequenceNode(Node):
         return ":/core/icons/sequence_node"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Continues through all of its flow outputs one after another, in order."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"logic"}

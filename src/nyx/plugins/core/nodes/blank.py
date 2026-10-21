@@ -15,3 +15,8 @@ class BlankNode(Node):
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI."""
         return "Node"
+
+    @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Empty node without components. Groups other nodes inside of it."

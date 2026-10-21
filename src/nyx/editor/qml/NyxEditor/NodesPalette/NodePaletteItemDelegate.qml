@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 
+import "../Common"
+
 ItemDelegate {
     id: itemRoot
 
@@ -13,6 +15,11 @@ ItemDelegate {
 
     icon.source: "qrc" + model.typeIcon
     text: model.typeDisplayName
+
+    DescriptionToolTip {
+        visible: itemRoot.hovered && itemRoot.model.description.length > 0
+        text: itemRoot.model.description
+    }
     onClicked: {
         if (dragEnabled)
             return;

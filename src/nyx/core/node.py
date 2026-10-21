@@ -98,6 +98,7 @@ class Node(QtGui.QStandardItem, StageObject):
         TYPE_ID = QtCore.Qt.UserRole + 1
         TYPE_DISPLAY_NAME = enum.auto()
         TYPE_ICON = enum.auto()
+        DESCRIPTION = enum.auto()
         IS_ACTIVE = enum.auto()
         POSITION = enum.auto()
         REFERENCE_FILE_PATH = enum.auto()
@@ -167,6 +168,7 @@ class Node(QtGui.QStandardItem, StageObject):
         """Initialize item data roles with the defaults of the node type."""
         self.setData(self.get_type_id(), role=self.Roles.TYPE_ID)
         self.setData(self.get_type_icon(), role=self.Roles.TYPE_ICON)
+        self.setData(self.get_description(), role=self.Roles.DESCRIPTION)
         self.setData(True, role=self.Roles.IS_ACTIVE)
         self.setData(QtCore.QPointF(), role=self.Roles.POSITION)
         self.setData(None, role=self.Roles.REFERENCE_FILE_PATH)

@@ -22,6 +22,11 @@ class FlowStartNode(Node):
         return ":/core/icons/flow_start_node"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Marks where the execution flow of the parent scope begins."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"logic"}

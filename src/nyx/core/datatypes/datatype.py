@@ -1,8 +1,8 @@
 import dataclasses
 import typing
 
-from .exceptions import DatatypeCastError
-from ..static.enums import CoreDatatypes, GraphicsPlugShape
+from ..exceptions import DatatypeCastError
+from ...static.enums import CoreDatatypes, GraphicsPlugShape
 
 
 @dataclasses.dataclass(frozen=True)

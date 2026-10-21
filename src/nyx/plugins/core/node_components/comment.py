@@ -28,6 +28,11 @@ class CommentComponent(NodeComponent):
         return ":/core/icons/comment_cpnt"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the component type does, shown in the palette."""
+        return "Static text for notes. Does not take part in execution."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: component tags."""
         return {"common", "utility"}

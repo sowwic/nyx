@@ -1,13 +1,9 @@
 import pathlib
 import typing
 
-from nyx.api.v1 import (
-    NYX_REGISTRY,
-    CoreDatatypes,
-    Datatype,
-    GraphicsPlugShape,
-    OBJECT_DATATYPE,
-)
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
+from nyx.static.enums import CoreDatatypes, GraphicsPlugShape
+from .datatype import Datatype, OBJECT_DATATYPE
 
 
 def cast_to_type_id(value: typing.Any) -> str:

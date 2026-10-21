@@ -183,3 +183,8 @@ class StageObject:
     def get_type_icon(cls) -> str:
         """str: resource path of the type icon."""
         return ":/icons/stage_object"
+
+    @classmethod
+    def get_description(cls) -> str:
+        """str: short text telling what the type does, empty for none."""
+        return ""

@@ -27,6 +27,11 @@ class WhileLoopNode(Node):
         return ":/core/icons/value_cpnt"
 
     @classmethod
+    def get_description(cls) -> str:
+        """str: what the node type does, shown in the palette."""
+        return "Runs the loop body for as long as the condition is true, then continues with completed."
+
+    @classmethod
     def get_tags(cls) -> set[str]:
         """set[str]: node tags."""
         return {"common", "logic", "cycle"}

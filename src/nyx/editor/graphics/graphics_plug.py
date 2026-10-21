@@ -364,9 +364,16 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         painter.setPen(self.LABEL_COLOR)
         left, right = self._label_margins()
         text_rect = QtCore.QRectF(left, 0.0, self._width - left - right, self.ROW_HEIGHT)
+        # Not clipped to the rect: when two plugs share a row the padding between their
+        # labels is trimmed (see `GraphicsNode.update_layout`), so a label may reach
+        # into its own padding. Clipping it would cut off the letters.
         align = (
-            QtCore.Qt.AlignmentFlag.AlignRight
-            if self._readable and not self._writable
-            else QtCore.Qt.AlignmentFlag.AlignLeft
-        ) | QtCore.Qt.AlignmentFlag.AlignVCenter
+            (
+                QtCore.Qt.AlignmentFlag.AlignRight
+                if self._readable and not self._writable
+                else QtCore.Qt.AlignmentFlag.AlignLeft
+            )
+            | QtCore.Qt.AlignmentFlag.AlignVCenter
+            | QtCore.Qt.TextFlag.TextDontClip
+        )
         painter.drawText(text_rect, align, self._label)
