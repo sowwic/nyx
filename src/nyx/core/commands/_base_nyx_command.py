@@ -54,6 +54,10 @@ class NyxCommand(QtGui.QUndoCommand):
             NyxCommandValidationError: if the command arguments are invalid.
         """
 
+    def modifies_structure(self) -> bool:
+        """bool: the command adds, removes or redefines components or nodes."""
+        return self.MODIFIES_STRUCTURE
+
     def target_nodes(self) -> typing.Iterable[Node | None]:
         """Get the nodes the command changes.
 
@@ -77,7 +81,7 @@ class NyxCommand(QtGui.QUndoCommand):
                 raise NyxCommandValidationError(
                     f"{node.path} belongs to a reference and can't be changed"
                 )
-            if self.MODIFIES_STRUCTURE and node.locks_structure:
+            if self.modifies_structure() and node.locks_structure:
                 raise NyxCommandValidationError(
                     f"The structure of {node.path} can't be changed"
                 )

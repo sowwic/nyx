@@ -173,7 +173,7 @@ class ComponentsController(QtCore.QObject):
             component: NodeComponent = self.components_model.itemFromIndex(
                 source_model_index
             )
-            if component.is_built_in:
+            if component.is_built_in and not component.invalid_reason:
                 LOGGER.warning("Can't delete built-in component %s", str(component.path))
                 return
 
@@ -197,6 +197,20 @@ class ComponentsController(QtCore.QObject):
             stage=component.stage, node_component=component, state=state
         )
         component.stage.push_command(set_active_command)
+
+    @QtCore.Slot(int)
+    def removeComponent(self, row: int):
+        """Remove a component through an undoable command.
+
+        Args:
+            row (int): proxy row of the component.
+        """
+        component = self.get_component_from_proxy_row(row)
+        self.stage.push_command(
+            DeleteNodeComponentCommand(
+                node=self.components_model.node, component_names=[component.name]
+            )
+        )
 
     @QtCore.Slot(int, int, result=bool)
     def canMoveComponent(self, row: int, step: int) -> bool:

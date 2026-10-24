@@ -84,6 +84,16 @@ class DeleteNodeComponentCommand(NyxCommand):
             for deleted_component_record in self.deleted_component_records
         ]
 
+    def modifies_structure(self) -> bool:
+        """bool: some component is valid, the ones that are not can always go."""
+        node = self.stage.get_object(self.node_uuid)
+        try:
+            return not all(
+                node[name].invalid_reason for name in self.component_names_to_delete
+            )
+        except ValueError:
+            return True
+
     def target_nodes(self):
         """list[Node]: nodes the command changes."""
         return [self.stage.get_object(self.node_uuid)]

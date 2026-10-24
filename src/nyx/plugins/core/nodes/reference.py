@@ -3,6 +3,7 @@ import logging
 import pathlib
 import typing
 import uuid
+from uuid import UUID
 import weakref
 from collections import OrderedDict
 
@@ -43,6 +44,7 @@ class ReferenceNode(Node):
     SOURCE_COMPONENT_NAME = "source"
     SOURCE_KEY = "source"
     SOURCE_VALUES_KEY = "source_values"
+    SOURCE_UUIDS_KEY = "source_uuids"
 
     @classmethod
     def get_type_id(cls) -> str:
@@ -81,9 +83,11 @@ class ReferenceNode(Node):
         self._loading = False
         self._loaded_source: str | None = None
         self._load_error = "No source set"
-        self._removed_components = False
         # Serialized value of each component of the source file, when it was loaded.
         self._source_values: dict[str, typing.Any] = {}
+        # Uuid in the source file of the component each component stands for, by name.
+        # A component renamed in the source is found again by it.
+        self._source_uuids: dict[str, str] = {}
 
         self.source_cpnt = self.components_model.create_component(
             CoreNodeComponents.FILE
@@ -223,9 +227,8 @@ class ReferenceNode(Node):
         if self._loading or component is not self.source_cpnt:
             return
         if self.source != self._loaded_source:
-            # A different file has its own values, and its own components: the ones of
-            # the old file go even if the new one can't be loaded.
-            self.reload(overrides={}, clear_on_error=True)
+            # A different file has its own values.
+            self.reload(overrides={})
 
     def collect_overrides(self) -> dict[str, typing.Any]:
         """Get the values that were changed on this node.
@@ -252,20 +255,20 @@ class ReferenceNode(Node):
     def reload(
         self,
         overrides: dict[str, typing.Any] | None = None,
-        clear_on_error: bool = False,
+        clear_history: bool = True,
     ) -> None:
         """Load the contents of the source file again.
 
-        Values set on this node are kept, links to its components are too as long as
-        the component is still in the source file.
+        Values set on this node are kept. So are its components and the links to them,
+        the ones that are not in the source anymore are marked as invalid.
 
         Args:
             overrides (dict[str, typing.Any] | None): serialized values to set over
                 the ones of the file, by component name. Defaults to the values changed
                 on this node.
-            clear_on_error (bool): remove the components when the file can't be loaded.
-                Otherwise they stay, so a stage opened while its source is missing
-                keeps them, and the links to them.
+            clear_history (bool): forget the undo history of the stage: a reload isn't
+                something it can undo. Not for the load that comes with creating the
+                node, which the history has to be able to undo and redo.
         """
         if self._loading:
             return
@@ -274,21 +277,20 @@ class ReferenceNode(Node):
 
         self._loading = True
         try:
-            self._load(overrides, clear_on_error)
+            self._load(overrides)
         finally:
             self._loading = False
             self.emitDataChanged()
-        if self._removed_components:
-            self._removed_components = False
+        if clear_history:
             self._clear_stage_history()
 
     def _clear_stage_history(self) -> None:
-        """Forget the undo history of the stage, it holds commands on what was removed.
+        """Forget the undo history of the stage, it holds commands from before the load.
 
         Done once the running event is over: reloading also happens while a command
         is run or undone, and the stack can't be cleared from under it.
         """
-        LOGGER.warning(f"{self.path}: components were removed, undo history cleared")
+        LOGGER.info(f"{self.path}: reloaded, undo history cleared")
         stage_ref = weakref.ref(self.stage)
 
         def clear():
@@ -298,12 +300,11 @@ class ReferenceNode(Node):
 
         QtCore.QTimer.singleShot(0, clear)
 
-    def _load(self, overrides: dict[str, typing.Any], clear_on_error: bool) -> None:
-        """Replace the children and the components taken from the source file.
+    def _load(self, overrides: dict[str, typing.Any]) -> None:
+        """Replace the children and update the components taken from the source file.
 
         Args:
             overrides (dict[str, typing.Any]): serialized values set on this node.
-            clear_on_error (bool): remove the components if the file can't be loaded.
         """
         self._remove_children()
         self._loaded_source = self.source
@@ -314,10 +315,9 @@ class ReferenceNode(Node):
             self._load_error = str(err)
             if self.source:
                 LOGGER.error(f"{self.path}: {err}")
-            if clear_on_error:
-                for component in self.mirrored_components():
-                    self._drop_component(component)
-                self._source_values = {}
+            # Nothing is known of the source: the components stay, and so do the links.
+            for component in self.mirrored_components():
+                component.set_invalid_reason(self._load_error)
             return
 
         context = NodeDeserializationContext(
@@ -348,7 +348,10 @@ class ReferenceNode(Node):
         overrides: dict[str, typing.Any],
         context: NodeDeserializationContext,
     ) -> None:
-        """Create, update and remove the components taken from the source file.
+        """Create and update the components taken from the source file.
+
+        A component that is not in the source anymore stays, marked as invalid, and so
+        do its links: they are left for the user to remove.
 
         Args:
             components_data (list[dict]): serialized components of the source node.
@@ -356,6 +359,8 @@ class ReferenceNode(Node):
             context (NodeDeserializationContext): context of the source contents.
         """
         source_values = {}
+        source_uuids = {}
+        matched: set[UUID] = set()
         for component_data in components_data:
             name = component_data[NodeComponent.NAME_KEY]
             if name == self.SOURCE_COMPONENT_NAME:
@@ -365,20 +370,33 @@ class ReferenceNode(Node):
                 )
                 continue
 
-            existing = self._find_component(name)
-            if existing is not None and existing.get_type_id() != component_data.get(
-                NodeComponent.TYPE_ID_KEY
-            ):
-                self._drop_component(existing)
-                existing = None
+            source_uuid = str(component_data.get(NodeComponent.UUID_KEY))
+            existing = self._find_existing_component(name, source_uuid, matched)
+            if existing is not None:
+                matched.add(existing.uuid)
+                if existing.get_type_id() != component_data.get(
+                    NodeComponent.TYPE_ID_KEY
+                ):
+                    # Can't turn into the new type. It goes once the user removes it.
+                    existing.set_invalid_reason("Changed type in the source")
+                    LOGGER.warning(f"{existing.path} changed type in the source")
+                    continue
+
+            # What was set on the component, under the name it has now.
+            override_key = existing.name if existing is not None else name
 
             # The same uuid for a component that stays, so links to it stay. A new one
             # gets a uuid worked out from the node, so it is the same whenever the node
             # is created again, like when a paste is undone and redone.
             data = copy.copy(component_data)
             data[NodeComponent.UUID_KEY] = str(
-                existing.uuid if existing is not None else uuid.uuid5(self.uuid, name)
+                existing.uuid if existing is not None else self._derive_uuid(name)
             )
+            if existing is not None and name != existing.name:
+                if self._find_component(name) is None:
+                    LOGGER.info(f"{existing.path} was renamed to '{name}'")
+                else:
+                    data[NodeComponent.NAME_KEY] = existing.name
             component = NodeComponent.deserialize(
                 data=data,
                 node=self,
@@ -390,24 +408,67 @@ class ReferenceNode(Node):
                 serialized_uuid=component_data.get(NodeComponent.UUID_KEY),
                 new_uuid=component.uuid,
             )
-            source_values[name] = component_data.get("value")
+            source_values[component.name] = component_data.get("value")
+            source_uuids[component.name] = source_uuid
+            matched.add(component.uuid)
             if existing is None:
                 self.components_model.add_component(component)
             component.mark_as_built_in()
+            component.set_invalid_reason("")
 
-            if name in overrides:
+            if override_key in overrides:
                 try:
-                    component.restore_value(overrides[name], context)
+                    component.restore_value(overrides[override_key], context)
                 except Exception as err:
                     LOGGER.warning(f"{component.path}: dropped the value set: {err}")
 
         self._source_values = source_values
+        self._source_uuids = source_uuids
         for component in self.mirrored_components():
-            if component.name not in source_values:
-                LOGGER.warning(
-                    f"{component.path} is not in the source anymore, it is removed"
-                )
-                self._drop_component(component)
+            if component.uuid not in matched:
+                component.set_invalid_reason("Not in the source anymore")
+                LOGGER.warning(f"{component.path} is not in the source anymore")
+
+    def _derive_uuid(self, name: str) -> UUID:
+        """Work out the uuid of a component from the uuid of this node and its name.
+
+        Args:
+            name (str): name of the component.
+
+        Returns:
+            UUID: the same uuid for the same node and name. It has the bits of a random
+                uuid, since stage objects are looked up from the text of their uuid
+                as one.
+        """
+        return uuid.UUID(bytes=uuid.uuid5(self.uuid, name).bytes, version=4)
+
+    def _find_existing_component(
+        self, name: str, source_uuid: str, taken: set[UUID]
+    ) -> NodeComponent | None:
+        """Find the component of this node standing for a component of the source.
+
+        The component of the same source component is the one, even if it was renamed.
+        Otherwise it is the one with the same name.
+
+        Args:
+            name (str): name of the component in the source.
+            source_uuid (str): uuid of the component in the source file.
+            taken (set[UUID]): uuids of the components already used.
+
+        Returns:
+            NodeComponent | None: the component, None if the source one is new.
+        """
+        for component in self.mirrored_components():
+            if (
+                component.uuid not in taken
+                and self._source_uuids.get(component.name) == source_uuid
+            ):
+                return component
+
+        component = self._find_component(name)
+        if component is None or component is self.source_cpnt or component.uuid in taken:
+            return None
+        return component
 
     def _find_component(self, name: str) -> NodeComponent | None:
         """Get a component by name.
@@ -422,18 +483,6 @@ class ReferenceNode(Node):
             return self.components_model.get_component(name)
         except ValueError:
             return None
-
-    def _drop_component(self, component: NodeComponent) -> None:
-        """Remove a component and the links to it.
-
-        Args:
-            component (NodeComponent): component to remove.
-        """
-        self._removed_components = True
-        for link_uuid in list(component.links_uuids):
-            if self.stage.uuid_map.get(link_uuid) is not None:
-                self.stage.unregister_link(link_uuid)
-        self.components_model.remove_component(component.uuid, force=True)
 
     def _remove_children(self) -> None:
         """Remove the nodes loaded from the source file and the links between them."""
@@ -463,6 +512,7 @@ class ReferenceNode(Node):
         """
         contents = OrderedDict(self.components_model.serialize())
         contents[self.SOURCE_VALUES_KEY] = dict(self._source_values)
+        contents[self.SOURCE_UUIDS_KEY] = dict(self._source_uuids)
         return contents
 
     def collect_serialized_links(self, context: NodeSerializationContext) -> None:
@@ -506,6 +556,7 @@ class ReferenceNode(Node):
             if isinstance(serialized_node.get(self.SOURCE_KEY), str):
                 self.source_cpnt.push_value(serialized_node[self.SOURCE_KEY])
             self._source_values = dict(serialized_node.get(self.SOURCE_VALUES_KEY, {}))
+            self._source_uuids = dict(serialized_node.get(self.SOURCE_UUIDS_KEY, {}))
             for component in self.mirrored_components():
                 component.mark_as_built_in()
             # Links to the new components, and the ones inside the source, need them.
@@ -513,4 +564,5 @@ class ReferenceNode(Node):
             overrides = self.collect_overrides()
         finally:
             self._loading = False
-        self.reload(overrides=overrides)
+        # Creating the node is something the history undoes and redoes: keep it.
+        self.reload(overrides=overrides, clear_history=False)

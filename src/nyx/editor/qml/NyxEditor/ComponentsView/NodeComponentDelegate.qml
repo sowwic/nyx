@@ -22,6 +22,10 @@ DraggableDelegate {
 
     required property bool filtersActive
 
+    // Why the component can't be relied on, like when it left the source of a reference.
+    readonly property string invalidReason: model.invalidReason || ""
+    readonly property bool isInvalid: invalidReason.length > 0
+
     // False for the components of a reference: they belong to its source file.
     readonly property bool structureEditable: root.componentsController.structureEditable
 
@@ -196,7 +200,7 @@ DraggableDelegate {
                         opacity: itemRoot.isActive ? 1.0 : 0.5
                         // Hide only the label's own text while renaming. (Hiding the label itself
                         // or lowering its opacity would also affect the TextField child.)
-                        color: itemRoot.isRenaming ? "transparent" : palette.windowText
+                        color: itemRoot.isRenaming ? "transparent" : itemRoot.isInvalid ? "firebrick" : palette.windowText
 
                         HoverHandler {
                             id: componentNameHoverHandler
@@ -205,7 +209,7 @@ DraggableDelegate {
                         // The same tooltip as the items of the palettes
                         DescriptionToolTip {
                             visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming && text.length > 0
-                            text: itemRoot.model.description || itemRoot.typeDisplayName
+                            text: itemRoot.isInvalid ? itemRoot.invalidReason : (itemRoot.model.description || itemRoot.typeDisplayName)
                         }
 
                         // Inline rename editor, drawn over the title.
@@ -254,6 +258,13 @@ DraggableDelegate {
                                 // A hidden MenuItem keeps its slot in the menu; collapse it explicitly.
                                 height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startRename()
+                            }
+
+                            MenuItem {
+                                text: "Remove"
+                                visible: itemRoot.isInvalid
+                                height: visible ? implicitHeight : 0
+                                onClicked: root.componentsController.removeComponent(itemRoot.index)
                             }
 
                             MenuItem {

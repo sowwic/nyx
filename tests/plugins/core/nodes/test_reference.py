@@ -184,22 +184,17 @@ def test_changes_to_the_source_are_pulled_in(tmp_path, source_path, caplog):
     assert new_node["amount"].raw_value == 42
 
 
-def test_reload_removes_components_that_left_the_source(tmp_path, source_path):
+def test_components_that_left_the_source_stay_marked_as_invalid(source_path):
     stage = Stage()
     node = reference(stage, source_path)
+    link_to_reference(stage, node, "label")
 
-    source = Stage()
-    source.import_json(source_path)
-    source.push_command(
-        commands.DeleteNodeComponentCommand(
-            node=source.root_node, component_names=["label"]
-        )
-    )
-    source.export_json(source_path)
+    remove_from_source(source_path, "label")
     node.reload()
 
-    with pytest.raises(ValueError):
-        node["label"]
+    assert node["label"].invalid_reason == "Not in the source anymore"
+    assert node["label"].input_links
+    assert node["amount"].invalid_reason == ""
     assert node["amount"].raw_value == 5
 
 
@@ -214,12 +209,13 @@ def test_changing_the_source_loads_the_new_file(tmp_path, source_path):
     node["source"].push_value(str(other))
 
     assert node["speed"].raw_value == 3
+    assert node["speed"].invalid_reason == ""
     assert node.find_child_by_name("inner") is None
-    with pytest.raises(ValueError):
-        node["amount"]
+    # What the new file doesn't have stays, as invalid.
+    assert node["amount"].invalid_reason == "Not in the source anymore"
 
 
-def test_changing_the_source_to_a_missing_file_removes_the_components(
+def test_changing_the_source_to_a_missing_file_marks_the_components_invalid(
     tmp_path, source_path
 ):
     stage = Stage()
@@ -231,18 +227,20 @@ def test_changing_the_source_to_a_missing_file_removes_the_components(
 
     assert "doesn't exist" in node.load_error
     assert node.find_child_by_name("inner") is None
-    assert [c.name for c in node.components_model.list_components()] == ["source"]
+    assert node["label"].invalid_reason == node.load_error
+    assert node["amount"].invalid_reason == node.load_error
+    assert node["label"].input_links
     assert stage.undo_stack.count() == 0
 
 
-def test_clearing_the_source_removes_the_components(source_path):
+def test_clearing_the_source_marks_the_components_invalid(source_path):
     stage = Stage()
     node = reference(stage, source_path)
 
     node["source"].push_value("")
 
     assert node.load_error == "No source set"
-    assert [c.name for c in node.components_model.list_components()] == ["source"]
+    assert node["amount"].invalid_reason == "No source set"
 
 
 def test_relative_source_is_relative_to_the_stage_file(tmp_path, source_path):
@@ -283,12 +281,9 @@ def remove_from_source(path, name):
     source.export_json(path)
 
 
-def test_removing_a_component_from_the_source_clears_the_undo_history(
-    tmp_path, source_path
-):
+def test_reload_clears_the_undo_history(tmp_path, source_path):
     stage = Stage()
     node = reference(stage, source_path)
-    node["label"].writable = True
     link_to_reference(stage, node, "label")
     assert stage.undo_stack.count() > 0
 
@@ -300,21 +295,20 @@ def test_removing_a_component_from_the_source_clears_the_undo_history(
     stage.undo_stack.undo()
     stage.undo_stack.redo()
     assert stage.is_modified()
-    with pytest.raises(ValueError):
-        node["label"]
+    # The component and its link are still there, for the user to remove.
+    assert node["label"].input_links
 
 
-def test_reload_that_removes_nothing_keeps_the_undo_history(tmp_path, source_path):
+def test_reload_clears_the_undo_history_even_if_nothing_changed(source_path):
     stage = Stage()
     node = reference(stage, source_path)
-    node["label"].writable = True
     link_to_reference(stage, node, "label")
-    count = stage.undo_stack.count()
+    assert stage.undo_stack.count() > 0
 
     node.reload()
     QtCore.QCoreApplication.processEvents()
 
-    assert stage.undo_stack.count() == count
+    assert stage.undo_stack.count() == 0
     assert node["label"].input_links
 
 
@@ -524,6 +518,105 @@ def test_link_to_a_pasted_reference_survives_undo_and_redo(source_path):
     node = at(stage, "/ref")
     assert node["label"].input_links
     assert node["label"].input_links[0].source_component.node.name == "feeder"
+
+
+def test_the_uuids_of_the_components_can_be_looked_up_by_text(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    component = node["label"]
+
+    assert stage.get_object(str(component.uuid)) is component
+
+
+def test_invalid_components_can_be_removed_but_valid_ones_cant(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    link_to_reference(stage, node, "label")
+    remove_from_source(source_path, "label")
+    node.reload()
+
+    with pytest.raises(exceptions.NyxCommandValidationError):
+        stage.push_command(
+            commands.DeleteNodeComponentCommand(node=node, component_names=["amount"])
+        )
+    with pytest.raises(exceptions.NyxCommandValidationError):
+        stage.push_command(
+            commands.DeleteNodeComponentCommand(
+                node=node, component_names=["amount", "label"]
+            )
+        )
+
+    stage.push_command(
+        commands.DeleteNodeComponentCommand(node=node, component_names=["label"])
+    )
+    with pytest.raises(ValueError):
+        node["label"]
+    # The link went with it, and undoing brings both back.
+    stage.undo_stack.undo()
+    assert node["label"].input_links
+
+
+def test_the_invalid_reason_reaches_the_views(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    remove_from_source(source_path, "label")
+    node.reload()
+    component = node["label"]
+
+    assert (
+        component.model().data(component.index(), NodeComponent.Roles.INVALID_REASON)
+        == "Not in the source anymore"
+    )
+    assert (
+        component.model().data(
+            node["amount"].index(), NodeComponent.Roles.INVALID_REASON
+        )
+        == ""
+    )
+
+
+def test_a_component_renamed_in_the_source_keeps_its_links(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    link_to_reference(stage, node, "label")
+    uuid_before = node["label"].uuid
+
+    source = Stage()
+    source.import_json(source_path)
+    source.push_command(
+        commands.RenameNodeComponentCommand(
+            stage=source, node_component=source.root_node["label"], new_name="title"
+        )
+    )
+    source.export_json(source_path)
+    node.reload()
+
+    assert node["title"].uuid == uuid_before
+    assert node["title"].input_links
+    assert node["title"].invalid_reason == ""
+    with pytest.raises(ValueError):
+        node["label"]
+
+
+def test_a_component_that_changed_type_in_the_source_is_invalid(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    source = Stage()
+    source.import_json(source_path)
+    source.push_command(
+        commands.DeleteNodeComponentCommand(
+            node=source.root_node, component_names=["label"]
+        )
+    )
+    flow = commands.AddNodeComponentCommand(
+        node=source.root_node, type_id=CoreNodeComponents.FLOW, name="label"
+    )
+    source.push_command(flow)
+    source.export_json(source_path)
+    node.reload()
+
+    assert node["label"].get_type_id() == CoreNodeComponents.VALUE
+    assert node["label"].invalid_reason == "Changed type in the source"
 
 
 # ======== Failures ========= #

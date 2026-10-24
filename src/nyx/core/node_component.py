@@ -47,6 +47,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     PATH_SEPARATOR: str = "."
     VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
 
+    _invalid_reason: str = ""
+
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
@@ -88,6 +90,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_VALID = enum.auto()
         RESOLVED_DATATYPE = enum.auto()
         IS_DATATYPE_LOCKED = enum.auto()
+        INVALID_REASON = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -112,6 +115,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_VALID,
                 cls.RESOLVED_DATATYPE,
                 cls.IS_DATATYPE_LOCKED,
+                cls.INVALID_REASON,
             )
 
     def __repr__(self) -> str:
@@ -453,6 +457,30 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def is_valid(self) -> bool:
         """bool: the value is usable. Components with something to resolve override."""
         return self.value_storage.is_valid
+
+    @property
+    def invalid_reason(self) -> str:
+        """str: why the component can't be relied on, empty if it can.
+
+        Set by the node owning the component, like a reference node for a component
+        that is not in its source anymore. Not stored.
+        """
+        return self._invalid_reason
+
+    def set_invalid_reason(self, reason: str) -> None:
+        """Mark the component as invalid, or valid again with an empty reason.
+
+        Args:
+            reason (str): why the component can't be relied on, empty for no reason.
+        """
+        if reason == self._invalid_reason:
+            return
+        self._invalid_reason = reason
+        model = self.model()
+        if model is not None:
+            model.dataChanged.emit(
+                self.index(), self.index(), [self.Roles.INVALID_REASON]
+            )
 
     @property
     def is_built_in(self) -> bool:

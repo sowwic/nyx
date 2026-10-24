@@ -211,6 +211,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_editable and not self.node.is_in_locked_scope
             if role == NodeComponent.Roles.IS_VALID:
                 return component.is_valid
+            if role == NodeComponent.Roles.INVALID_REASON:
+                return component.invalid_reason
             if role == NodeComponent.Roles.RESOLVED_DATATYPE:
                 return component.resolved_datatype_id
             if role == NodeComponent.Roles.IS_DATATYPE_LOCKED:
@@ -365,21 +367,21 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             self.node.stage.uuid_map[component.uuid] = component
         LOGGER.debug(f"Added new component: {component}")
 
-    def remove_component(self, uuid: UUID, force: bool = False) -> None:
+    def remove_component(self, uuid: UUID) -> None:
         """Remove a component from the node.
 
         Args:
             uuid (UUID): uuid of the component.
-            force (bool): remove built-in components too, for the node owning them.
 
         Raises:
-            ValueError: if the component doesn't exist or is built-in.
+            ValueError: if the component doesn't exist, or is built-in and not
+                invalid.
         """
         component = self.node.stage.get_object(uuid)
         if component is None:
             raise ValueError(f"Component UUID doesn't exist in stage: {uuid}")
 
-        if component.is_built_in and not force:
+        if component.is_built_in and not component.invalid_reason:
             raise ValueError(f"Can't remove builtin component: {component.path}")
 
         if self.node.stage:
