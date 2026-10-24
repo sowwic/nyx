@@ -1,6 +1,7 @@
 <!DOCTYPE RCC>
 <RCC>
   <qresource prefix="/">
+    <file>icons/asterisk.png</file>
     <file>icons/arrow_back.png</file>
     <file>icons/delete.png</file>
     <file>icons/edit.png</file>
