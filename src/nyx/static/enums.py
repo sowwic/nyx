@@ -50,6 +50,7 @@ class CoreNodeComponents(enum.StrEnum):
     FLOW = "core:flow"
     COMMENT = "core:comment"
     SCRIPT = "core:script"
+    FILE = "core:file"
     STAGE_REFERENCE = "core:stage_reference"
 
 

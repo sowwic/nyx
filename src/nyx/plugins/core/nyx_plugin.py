@@ -8,6 +8,7 @@ from .node_components.comment import CommentComponent
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
 from .node_components.script import ScriptComponent
+from .node_components.file import FileComponent
 from .node_components.stage_reference import StageReferenceComponent
 
 from .nodes.blank import BlankNode
@@ -59,6 +60,7 @@ class NyxCore(NyxPlugin):
             FlowComponent,
             ValueComponent,
             ScriptComponent,
+            FileComponent,
             StageReferenceComponent,
         ]
         plugin.contents.nodes = [
