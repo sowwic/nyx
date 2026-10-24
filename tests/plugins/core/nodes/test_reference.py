@@ -84,6 +84,7 @@ def test_reference_has_source_and_is_creatable():
     node = create(stage, CoreNodes.REFERENCE)
 
     assert node.get_type_id() == CoreNodes.REFERENCE
+    assert node["source"].get_type_id() == CoreNodeComponents.FILE
     assert node["source"].datatype_id == CoreDatatypes.STRING
     assert node.load_error == "No source set"
 

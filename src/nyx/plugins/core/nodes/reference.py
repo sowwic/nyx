@@ -11,7 +11,6 @@ from nyx.api.v1 import (
     NodeSerializationContext,
     CoreNodes,
     CoreNodeComponents,
-    CoreDatatypes,
     NodeFlag,
     RestoreUuidOption,
     static_vars,
@@ -82,15 +81,12 @@ class ReferenceNode(Node):
         self._source_values: dict[str, typing.Any] = {}
 
         self.source_cpnt = self.components_model.create_component(
-            CoreNodeComponents.VALUE
+            CoreNodeComponents.FILE
         )
         self.source_cpnt.name = self.SOURCE_COMPONENT_NAME
         self.source_cpnt.description = (
             "Stage file to reference, absolute or relative to the file of this stage."
         )
-        self.source_cpnt.is_editable = True
-        self.source_cpnt.set_datatype(CoreDatatypes.STRING)
-        self.source_cpnt.push_value("")
         self.components_model.add_component(self.source_cpnt)
 
         self.bind_subtitle_to_component(
