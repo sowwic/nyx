@@ -219,6 +219,32 @@ def test_changing_the_source_loads_the_new_file(tmp_path, source_path):
         node["amount"]
 
 
+def test_changing_the_source_to_a_missing_file_removes_the_components(
+    tmp_path, source_path
+):
+    stage = Stage()
+    node = reference(stage, source_path)
+    link_to_reference(stage, node, "label")
+
+    node["source"].push_value(str(tmp_path / f"missing{Stage.FILE_EXTENSION}"))
+    QtCore.QCoreApplication.processEvents()
+
+    assert "doesn't exist" in node.load_error
+    assert node.find_child_by_name("inner") is None
+    assert [c.name for c in node.components_model.list_components()] == ["source"]
+    assert stage.undo_stack.count() == 0
+
+
+def test_clearing_the_source_removes_the_components(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+
+    node["source"].push_value("")
+
+    assert node.load_error == "No source set"
+    assert [c.name for c in node.components_model.list_components()] == ["source"]
+
+
 def test_relative_source_is_relative_to_the_stage_file(tmp_path, source_path):
     stage = Stage()
     node = create(stage, CoreNodes.REFERENCE, name="ref")

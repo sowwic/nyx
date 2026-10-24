@@ -223,8 +223,9 @@ class ReferenceNode(Node):
         if self._loading or component is not self.source_cpnt:
             return
         if self.source != self._loaded_source:
-            # A different file has its own values.
-            self.reload(overrides={})
+            # A different file has its own values, and its own components: the ones of
+            # the old file go even if the new one can't be loaded.
+            self.reload(overrides={}, clear_on_error=True)
 
     def collect_overrides(self) -> dict[str, typing.Any]:
         """Get the values that were changed on this node.
@@ -248,7 +249,11 @@ class ReferenceNode(Node):
         """Load the source file again."""
         self.reload()
 
-    def reload(self, overrides: dict[str, typing.Any] | None = None) -> None:
+    def reload(
+        self,
+        overrides: dict[str, typing.Any] | None = None,
+        clear_on_error: bool = False,
+    ) -> None:
         """Load the contents of the source file again.
 
         Values set on this node are kept, links to its components are too as long as
@@ -258,6 +263,9 @@ class ReferenceNode(Node):
             overrides (dict[str, typing.Any] | None): serialized values to set over
                 the ones of the file, by component name. Defaults to the values changed
                 on this node.
+            clear_on_error (bool): remove the components when the file can't be loaded.
+                Otherwise they stay, so a stage opened while its source is missing
+                keeps them, and the links to them.
         """
         if self._loading:
             return
@@ -266,7 +274,7 @@ class ReferenceNode(Node):
 
         self._loading = True
         try:
-            self._load(overrides)
+            self._load(overrides, clear_on_error)
         finally:
             self._loading = False
             self.emitDataChanged()
@@ -290,11 +298,12 @@ class ReferenceNode(Node):
 
         QtCore.QTimer.singleShot(0, clear)
 
-    def _load(self, overrides: dict[str, typing.Any]) -> None:
+    def _load(self, overrides: dict[str, typing.Any], clear_on_error: bool) -> None:
         """Replace the children and the components taken from the source file.
 
         Args:
             overrides (dict[str, typing.Any]): serialized values set on this node.
+            clear_on_error (bool): remove the components if the file can't be loaded.
         """
         self._remove_children()
         self._loaded_source = self.source
@@ -305,6 +314,10 @@ class ReferenceNode(Node):
             self._load_error = str(err)
             if self.source:
                 LOGGER.error(f"{self.path}: {err}")
+            if clear_on_error:
+                for component in self.mirrored_components():
+                    self._drop_component(component)
+                self._source_values = {}
             return
 
         context = NodeDeserializationContext(
