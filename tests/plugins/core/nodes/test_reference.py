@@ -2,6 +2,7 @@ import json
 import pathlib
 
 import pytest
+from PySide6 import QtCore
 
 from nyx.plugins.core.nodes.reference import ReferenceNode
 from nyx.api.v1 import (
@@ -227,6 +228,87 @@ def test_relative_source_is_relative_to_the_stage_file(tmp_path, source_path):
 
     assert node.load_error == ""
     assert node["amount"].raw_value == 5
+
+
+# ======== History ========= #
+
+
+def link_to_reference(stage, node, name):
+    """Link a new string value node into a component of the reference."""
+    feeder = create(stage, CoreNodes.VALUE, name="feeder")
+    feeder["value"].set_datatype(CoreDatatypes.STRING)
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=feeder["value"], target=node[name]
+        )
+    )
+
+
+def remove_from_source(path, name):
+    source = Stage()
+    source.import_json(path)
+    source.push_command(
+        commands.DeleteNodeComponentCommand(
+            node=source.root_node, component_names=[name]
+        )
+    )
+    source.export_json(path)
+
+
+def test_removing_a_component_from_the_source_clears_the_undo_history(
+    tmp_path, source_path
+):
+    stage = Stage()
+    node = reference(stage, source_path)
+    node["label"].writable = True
+    link_to_reference(stage, node, "label")
+    assert stage.undo_stack.count() > 0
+
+    remove_from_source(source_path, "label")
+    node.reload()
+    QtCore.QCoreApplication.processEvents()
+
+    assert stage.undo_stack.count() == 0
+    stage.undo_stack.undo()
+    stage.undo_stack.redo()
+    assert stage.is_modified()
+    with pytest.raises(ValueError):
+        node["label"]
+
+
+def test_reload_that_removes_nothing_keeps_the_undo_history(tmp_path, source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    node["label"].writable = True
+    link_to_reference(stage, node, "label")
+    count = stage.undo_stack.count()
+
+    node.reload()
+    QtCore.QCoreApplication.processEvents()
+
+    assert stage.undo_stack.count() == count
+    assert node["label"].input_links
+
+
+def test_changing_the_source_to_a_file_without_the_component_clears_the_history(
+    tmp_path, source_path
+):
+    other = tmp_path / f"other{Stage.FILE_EXTENSION}"
+    Stage().export_json(other)
+    stage = Stage()
+    node = reference(stage, source_path)
+    node["label"].writable = True
+    link_to_reference(stage, node, "label")
+
+    stage.push_command(
+        commands.SetNodeComponentValueCommand(
+            stage=stage, node_component=node["source"], value=str(other)
+        )
+    )
+    QtCore.QCoreApplication.processEvents()
+
+    assert stage.undo_stack.count() == 0
+    stage.undo_stack.undo()
 
 
 # ======== Locking ========= #

@@ -2,8 +2,11 @@ import copy
 import logging
 import pathlib
 import typing
+import weakref
 from collections import OrderedDict
 
+import shiboken6
+from PySide6 import QtCore
 from nyx.api.v1 import (
     Node,
     NodeComponent,
@@ -77,6 +80,7 @@ class ReferenceNode(Node):
         self._loading = False
         self._loaded_source: str | None = None
         self._load_error = "No source set"
+        self._removed_components = False
         # Serialized value of each component of the source file, when it was loaded.
         self._source_values: dict[str, typing.Any] = {}
 
@@ -265,6 +269,25 @@ class ReferenceNode(Node):
         finally:
             self._loading = False
             self.emitDataChanged()
+        if self._removed_components:
+            self._removed_components = False
+            self._clear_stage_history()
+
+    def _clear_stage_history(self) -> None:
+        """Forget the undo history of the stage, it holds commands on what was removed.
+
+        Done once the running event is over: reloading also happens while a command
+        is run or undone, and the stack can't be cleared from under it.
+        """
+        LOGGER.warning(f"{self.path}: components were removed, undo history cleared")
+        stage_ref = weakref.ref(self.stage)
+
+        def clear():
+            stage = stage_ref()
+            if stage is not None and shiboken6.isValid(stage):
+                stage.clear_undo_history()
+
+        QtCore.QTimer.singleShot(0, clear)
 
     def _load(self, overrides: dict[str, typing.Any]) -> None:
         """Replace the children and the components taken from the source file.
@@ -393,6 +416,7 @@ class ReferenceNode(Node):
         Args:
             component (NodeComponent): component to remove.
         """
+        self._removed_components = True
         for link_uuid in list(component.links_uuids):
             if self.stage.uuid_map.get(link_uuid) is not None:
                 self.stage.unregister_link(link_uuid)

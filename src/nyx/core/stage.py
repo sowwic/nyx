@@ -146,6 +146,14 @@ class Stage(QtGui.QStandardItemModel):
         """bool: stage is untouched and was never saved."""
         return not self.undo_stack.count() and self.file_path is None
 
+    def clear_undo_history(self) -> None:
+        """Forget the undo history, for changes the undo stack can't describe.
+
+        The stage counts as modified afterwards: it no longer matches its file.
+        """
+        self.undo_stack.clear()
+        self.last_saved_undo_index = -1
+
     def is_modified(self):
         """bool: stage has unsaved changes."""
         if not shiboken6.isValid(self.undo_stack):
