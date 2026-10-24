@@ -96,7 +96,7 @@ class ComponentsController(QtCore.QObject):
         if model is None or model.node is None:
             return True
         node = model.node
-        return node.ALLOWS_STRUCTURE_CHANGES and not node.is_in_locked_scope
+        return not node.is_structure_locked
 
     def _connect_models(self):
         """Clear the selection before rows are moved."""

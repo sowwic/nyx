@@ -92,6 +92,21 @@ class NodeExecutionStatus(enum.IntEnum):
     NOT_RAN = enum.auto()
 
 
+class NodeFlag(enum.IntFlag):
+    """Flags describing what the nodes of a type allow.
+
+    Attributes:
+        LOCKS_CHILDREN: the nodes inside can't be changed or linked to from the
+            outside, like the ones a reference node loads from its source
+        LOCKS_STRUCTURE: components can't be added, removed, renamed or given
+            another datatype
+    """
+
+    NONE = 0
+    LOCKS_CHILDREN = enum.auto()
+    LOCKS_STRUCTURE = enum.auto()
+
+
 class NodeExecutionOrderFlag(enum.IntFlag):
     """When a node executes relative to its children."""
 

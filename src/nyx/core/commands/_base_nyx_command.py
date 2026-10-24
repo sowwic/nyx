@@ -77,7 +77,7 @@ class NyxCommand(QtGui.QUndoCommand):
                 raise NyxCommandValidationError(
                     f"{node.path} belongs to a reference and can't be changed"
                 )
-            if self.MODIFIES_STRUCTURE and not node.ALLOWS_STRUCTURE_CHANGES:
+            if self.MODIFIES_STRUCTURE and node.locks_structure:
                 raise NyxCommandValidationError(
                     f"The structure of {node.path} can't be changed"
                 )

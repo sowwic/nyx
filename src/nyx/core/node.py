@@ -23,6 +23,7 @@ from ..static.enums import (
     RestoreUuidOption,
     NodeExecutionStatus,
     NodeExecutionOrderFlag,
+    NodeFlag,
 )
 
 if typing.TYPE_CHECKING:
@@ -85,11 +86,6 @@ class Node(QtGui.QStandardItem, StageObject):
 
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
-    # Children are owned by the node, like the ones a reference node loads from its
-    # source: they can't be changed or linked to from the outside.
-    LOCKS_CHILDREN: bool = False
-    # Components can be added, removed, renamed and have their datatype changed.
-    ALLOWS_STRUCTURE_CHANGES: bool = True
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
@@ -337,9 +333,24 @@ class Node(QtGui.QStandardItem, StageObject):
         return self._components_model
 
     @property
+    def locks_children(self) -> bool:
+        """bool: the nodes inside can't be changed or linked to from the outside."""
+        return NodeFlag.LOCKS_CHILDREN in self.get_type_flags()
+
+    @property
+    def locks_structure(self) -> bool:
+        """bool: components can't be added, removed, renamed or retyped."""
+        return NodeFlag.LOCKS_STRUCTURE in self.get_type_flags()
+
+    @property
     def is_in_locked_scope(self) -> bool:
         """bool: an ancestor owns this node, so it can't be changed from the outside."""
-        return any(parent.LOCKS_CHILDREN for parent in self.list_parents())
+        return any(parent.locks_children for parent in self.list_parents())
+
+    @property
+    def is_structure_locked(self) -> bool:
+        """bool: the components of the node can't be added, removed or redefined."""
+        return self.locks_structure or self.is_in_locked_scope
 
     @property
     def is_locked(self) -> bool:
@@ -916,6 +927,11 @@ class Node(QtGui.QStandardItem, StageObject):
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI. Subclasses must implement."""
         raise NotImplementedError
+
+    @classmethod
+    def get_type_flags(cls) -> NodeFlag:
+        """NodeFlag: what nodes of the type allow. Subclasses add to the parent flags."""
+        return NodeFlag.NONE
 
     @classmethod
     def get_type_execution_order(cls) -> NodeExecutionOrderFlag:

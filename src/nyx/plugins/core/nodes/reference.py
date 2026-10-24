@@ -12,6 +12,7 @@ from nyx.api.v1 import (
     CoreNodes,
     CoreNodeComponents,
     CoreDatatypes,
+    NodeFlag,
     RestoreUuidOption,
     static_vars,
 )
@@ -35,8 +36,6 @@ class ReferenceNode(Node):
     """
 
     DEFAULT_NAME = "reference"
-    LOCKS_CHILDREN = True
-    ALLOWS_STRUCTURE_CHANGES = False
 
     SOURCE_COMPONENT_NAME = "source"
     SOURCE_KEY = "source"
@@ -46,6 +45,13 @@ class ReferenceNode(Node):
     def get_type_id(cls) -> str:
         """str: node type id."""
         return CoreNodes.REFERENCE
+
+    @classmethod
+    def get_type_flags(cls) -> NodeFlag:
+        """NodeFlag: the inner nodes and the components are owned by the source."""
+        return (
+            super().get_type_flags() | NodeFlag.LOCKS_CHILDREN | NodeFlag.LOCKS_STRUCTURE
+        )
 
     @classmethod
     def get_type_display_name(cls) -> str:

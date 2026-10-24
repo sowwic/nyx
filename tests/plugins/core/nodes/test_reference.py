@@ -3,11 +3,13 @@ import pathlib
 
 import pytest
 
+from nyx.plugins.core.nodes.reference import ReferenceNode
 from nyx.api.v1 import (
     CoreDatatypes,
     CoreNodeComponents,
     CoreNodes,
     Node,
+    NodeFlag,
     Stage,
     commands,
     exceptions,
@@ -84,6 +86,24 @@ def test_reference_has_source_and_is_creatable():
     assert node.get_type_id() == CoreNodes.REFERENCE
     assert node["source"].datatype_id == CoreDatatypes.STRING
     assert node.load_error == "No source set"
+
+
+def test_node_flags():
+    assert Node.get_type_flags() == NodeFlag.NONE
+    flags = ReferenceNode.get_type_flags()
+    assert NodeFlag.LOCKS_CHILDREN in flags
+    assert NodeFlag.LOCKS_STRUCTURE in flags
+
+
+def test_children_of_a_reference_have_a_locked_structure(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    inner = node.find_child_by_name("inner")
+
+    assert node.locks_children and node.locks_structure
+    assert not inner.locks_structure
+    assert inner.is_structure_locked
+    assert not create(stage, CoreNodes.VALUE).is_structure_locked
 
 
 def test_reference_takes_top_components_and_children(source_path):
