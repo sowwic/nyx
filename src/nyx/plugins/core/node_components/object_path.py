@@ -56,7 +56,7 @@ class StageObjectPathComponent(NodeComponent):
     @classmethod
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI."""
-        return "Stage Object Path"
+        return "Object Path"
 
     @classmethod
     def get_type_icon(cls) -> str:
