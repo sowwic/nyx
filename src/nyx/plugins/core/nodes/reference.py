@@ -427,7 +427,7 @@ class ReferenceNode(Node):
         return contents
 
     def collect_serialized_links(self, context: NodeSerializationContext) -> None:
-        """Store the links to the outside, the ones to the loaded nodes come back with them.
+        """Store the links to the outside, the source brings back the inner ones.
 
         Args:
             context (NodeSerializationContext): serialization context.

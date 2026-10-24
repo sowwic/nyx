@@ -374,4 +374,6 @@ def test_same_file_twice_has_independent_values(source_path):
     assert first["amount"].raw_value == 1
     assert second["amount"].raw_value == 2
     assert first["amount"].uuid != second["amount"].uuid
-    assert first.find_child_by_name("inner").uuid != second.find_child_by_name("inner").uuid
+    first_inner = first.find_child_by_name("inner")
+    second_inner = second.find_child_by_name("inner")
+    assert first_inner.uuid != second_inner.uuid

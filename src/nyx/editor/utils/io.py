@@ -9,7 +9,7 @@ from PySide6 import QtWidgets
 
 from ...core import commands
 from ...core.node import Node
-from ...static.vars import NYX_FILE_FILTER, NYX_FILE_EXTENSION
+from ...static.vars import NYX_FILE_FILTER
 from ...utils import file_fn, pyside_fn
 from ...utils.profiling import profile
 from ...static.enums import CoreNodes, RestoreUuidOption
@@ -21,35 +21,6 @@ if typing.TYPE_CHECKING:
 
 
 LOGGER = logging.getLogger(__name__)
-
-
-def export_selected_nodes():
-    """Export selected nodes from stage_graph."""
-    main_window = pyside_fn.find_nyx_editor_window()
-    selected_nodes = main_window.stage_tree_view.selected_nodes()
-    if not selected_nodes:
-        return
-    elif len(selected_nodes) == 1:
-        node = selected_nodes[-1]
-        file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=main_window,
-            caption=f"Export {node.name} as...",
-            filter=NYX_FILE_FILTER,
-        )
-        if not file_path:
-            return
-        node.export_to_json(file_path)
-        LOGGER.info(f"Exported node {file_path}")
-    else:
-        dir_path = QtWidgets.QFileDialog.getExistingDirectory(
-            parent=main_window, caption="Select export directory"
-        )
-        for node in selected_nodes:
-            file_path = (pathlib.Path(dir_path) / node.name).with_suffix(
-                NYX_FILE_EXTENSION
-            )
-            node.export_to_json(file_path)
-            LOGGER.info(f"Exported node {file_path}")
 
 
 def _serialize_reference_node(stage: Stage, path: pathlib.Path) -> OrderedDict:
@@ -79,16 +50,16 @@ def _serialize_reference_node(stage: Stage, path: pathlib.Path) -> OrderedDict:
     )
 
 
-@profile(name="Nodes imported", text="{name} in {seconds:.4f}s")
-def _import_nodes(
+@profile(name="Stages imported", text="{name} in {seconds:.4f}s")
+def _import_stages(
     stage_graph: StageGraphEditor,
     file_paths: Collection[str] | Collection[pathlib.Path],
     as_reference=False,
 ):
-    """Import nodes from stage files into the active stage.
+    """Import stage files into the active stage.
 
     Args:
-        stage_graph (StageGraphEditor): editor receiving the nodes.
+        stage_graph (StageGraphEditor): editor receiving the stages.
         file_paths (Collection[str] | Collection[pathlib.Path]): files to import.
         as_reference (bool): reference the files instead of copying their content.
     """
@@ -119,25 +90,24 @@ def _import_nodes(
         parent_node_path = (
             parent_node.path if parent_node else stage_graph.stage.root_node.path
         )
-        paste_command.setText(
-            f"{command_name} node ({parent_node_path / serialized_nodes[0].get('name')})"
-        )
+        node_path = parent_node_path / serialized_nodes[0].get("name")
+        paste_command.setText(f"{command_name} stage ({node_path})")
     else:
-        paste_command.setText(f"{command_name} nodes")
+        paste_command.setText(f"{command_name} stages")
     stage_graph.stage.push_command(paste_command)
 
 
-def import_nodes_from_explorer(as_reference=False):
-    """Select nodes from file explorer and import."""
+def import_stages_from_explorer(as_reference=False):
+    """Select stage files from file explorer and import them."""
     main_window = pyside_fn.find_nyx_editor_window()
     stage_graph = main_window.current_stage_graph
     if not stage_graph:
         return
 
     file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
-        parent=main_window, caption="Select nodes", filter=NYX_FILE_FILTER
+        parent=main_window, caption="Select stages", filter=NYX_FILE_FILTER
     )
     if not file_paths:
         return
 
-    _import_nodes(stage_graph, file_paths, as_reference=as_reference)
+    _import_stages(stage_graph, file_paths, as_reference=as_reference)

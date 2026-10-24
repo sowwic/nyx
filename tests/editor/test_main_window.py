@@ -162,8 +162,8 @@ def test_menus_use_registry_actions(main_window):
         ActionId.NEW_STAGE,
         ActionId.OPEN_STAGE,
         ActionId.SAVE_STAGE,
-        ActionId.IMPORT_NODES,
-        ActionId.EXPORT_NODES,
+        ActionId.IMPORT_STAGE,
+        ActionId.REFERENCE_STAGE,
     ):
         assert ACTION_REGISTRY.action(action_id) in file_actions
 

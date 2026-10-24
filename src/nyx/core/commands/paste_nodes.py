@@ -80,7 +80,9 @@ class PasteNodesCommand(NyxCommand):
 
     def target_nodes(self):
         """list[Node]: nodes the command changes."""
-        return [self.stage.get_object(self.parent_node_uuid) if self.parent_node_uuid else None]
+        if not self.parent_node_uuid:
+            return [None]
+        return [self.stage.get_object(self.parent_node_uuid)]
 
     def redo(self) -> None:
         """Create the pasted nodes and restore links between them."""

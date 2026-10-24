@@ -406,63 +406,31 @@ def test_graph_view_delete_node_disabled_without_selection(stage_editor, give_fo
 
 
 # ---- io ----
-def test_export_single_node(
+def test_import_stage_from_file(
     main_window, stage_editor, create_node, tmp_path, monkeypatch
 ):
-    a = create_node(stage_editor.stage, "exported")
-    select(stage_editor, a)
-    target = tmp_path / "node.nyx"
-    monkeypatch.setattr(
-        QtWidgets.QFileDialog, "getSaveFileName", lambda *a, **k: (str(target), "")
-    )
-    io.export_selected_nodes()
-    assert json.loads(target.read_text())["name"] == "exported"
-
-
-def test_export_without_selection_is_noop(main_window, stage_editor, monkeypatch):
-    called = []
-    monkeypatch.setattr(
-        QtWidgets.QFileDialog, "getSaveFileName", lambda *a, **k: called.append(1)
-    )
-    io.export_selected_nodes()
-    assert called == []
-
-
-def test_export_multiple_nodes_into_directory(
-    main_window, stage_editor, create_node, tmp_path, monkeypatch
-):
-    a = create_node(stage_editor.stage, "first")
-    b = create_node(stage_editor.stage, "second")
-    select(stage_editor, a, b)
-    monkeypatch.setattr(
-        QtWidgets.QFileDialog, "getExistingDirectory", lambda *a, **k: str(tmp_path)
-    )
-    io.export_selected_nodes()
-    assert {p.name for p in tmp_path.glob("*.nyx")} == {"first.nyx", "second.nyx"}
-
-
-def test_import_nodes_from_file(
-    main_window, stage_editor, create_node, tmp_path, monkeypatch
-):
-    source = create_node(stage_editor.stage, "imported")
+    source = Stage()
+    create_node(source, "imported")
     file_path = tmp_path / "imported.nyx"
-    source.export_to_json(file_path)
+    source.export_json(file_path)
     monkeypatch.setattr(
         QtWidgets.QFileDialog,
         "getOpenFileNames",
         lambda *a, **k: ([str(file_path)], ""),
     )
 
-    io.import_nodes_from_explorer()
+    io.import_stages_from_explorer()
 
-    assert len(root_children(stage_editor)) == 2
+    assert len(root_children(stage_editor)) == 1
+    imported_stage = stage_editor.stage.root_node.list_children()[0]
+    assert imported_stage.find_child_by_name("imported") is not None
 
 
 def test_import_cancelled_does_nothing(main_window, stage_editor, monkeypatch):
     monkeypatch.setattr(
         QtWidgets.QFileDialog, "getOpenFileNames", lambda *a, **k: ([], "")
     )
-    io.import_nodes_from_explorer()
+    io.import_stages_from_explorer()
     assert root_children(stage_editor) == []
 
 
@@ -471,7 +439,7 @@ def test_import_without_stage_graph_does_nothing(main_window, monkeypatch):
     monkeypatch.setattr(
         QtWidgets.QFileDialog, "getOpenFileNames", lambda *a, **k: called.append(1)
     )
-    io.import_nodes_from_explorer()
+    io.import_stages_from_explorer()
     assert called == []
 
 
@@ -485,7 +453,7 @@ def test_reference_into_itself_is_rejected(
     stage.file_path = file_path
 
     with caplog.at_level("ERROR"):
-        io._import_nodes(stage_editor, [file_path], as_reference=True)
+        io._import_stages(stage_editor, [file_path], as_reference=True)
     assert "Can't reference file into itself" in caplog.text
 
 
@@ -496,7 +464,7 @@ def test_reference_nodes_creates_a_reference_node(stage_editor, tmp_path):
     other.export_json(source)
     stage.export_json(tmp_path / "main.nyx")
 
-    io._import_nodes(stage_editor, [source], as_reference=True)
+    io._import_stages(stage_editor, [source], as_reference=True)
 
     node = stage.root_node.find_child_by_name("source")
     assert node.get_type_id() == CoreNodes.REFERENCE
@@ -515,7 +483,7 @@ def test_nodes_of_a_reference_cant_be_linked(stage_editor, tmp_path):
     )
     other.export_json(source)
     stage.export_json(tmp_path / "main.nyx")
-    io._import_nodes(stage_editor, [source], as_reference=True)
+    io._import_stages(stage_editor, [source], as_reference=True)
     reference = stage.root_node.find_child_by_name("source")
     child = reference.find_child_by_name("inner")
 
