@@ -375,21 +375,3 @@ def test_same_file_twice_has_independent_values(source_path):
     assert second["amount"].raw_value == 2
     assert first["amount"].uuid != second["amount"].uuid
     assert first.find_child_by_name("inner").uuid != second.find_child_by_name("inner").uuid
-
-
-def test_legacy_referenced_node_loads_as_reference_node(tmp_path, source_path):
-    stage = Stage()
-    legacy = {
-        "uuid": "6a1f3a4e-9d4c-4f6e-9c3e-0d9f8a1b2c3d",
-        "name": "old",
-        "type_id": CoreNodes.EMPTY,
-        "active": True,
-        "position": [0.0, 0.0],
-        "components": [],
-        "reference_file_path": source_path.as_posix(),
-    }
-    Node.deserialize(legacy, parent_node=stage.root_node)
-
-    node = at(stage, "/old")
-    assert node.get_type_id() == CoreNodes.REFERENCE
-    assert node["amount"].raw_value == 5

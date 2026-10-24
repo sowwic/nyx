@@ -96,7 +96,6 @@ class Node(QtGui.QStandardItem, StageObject):
     ACTIVE_KEY = "active"
     POSITION_KEY = "position"
     EXECUTION_ORDER_KEY = "execution_order"
-    LEGACY_REFERENCE_FILE_KEY = "reference_file_path"
     COMPONENTS_KEY = "components"
     CHILDREN_KEY = "children"
     LINKS_KEY = "links"
@@ -661,38 +660,6 @@ class Node(QtGui.QStandardItem, StageObject):
         )
 
     @classmethod
-    def _migrate_legacy_reference(
-        cls, serialized_node: OrderedDict[str, typing.Any]
-    ) -> OrderedDict[str, typing.Any]:
-        """Turn data of a node referenced from a file into data of a reference node.
-
-        Args:
-            serialized_node (OrderedDict[str, typing.Any]): serialized node.
-
-        Returns:
-            OrderedDict[str, typing.Any]: data of a reference node, the same data if
-                the node isn't a legacy reference.
-        """
-        source = serialized_node.get(cls.LEGACY_REFERENCE_FILE_KEY)
-        if not source:
-            return serialized_node
-
-        migrated = OrderedDict()
-        for key in (
-            cls.UUID_KEY,
-            cls.NAME_KEY,
-            cls.ACTIVE_KEY,
-            cls.POSITION_KEY,
-            cls.EXECUTION_ORDER_KEY,
-            cls.LINKS_KEY,
-        ):
-            if key in serialized_node:
-                migrated[key] = serialized_node[key]
-        migrated[cls.TYPE_ID_KEY] = CoreNodes.REFERENCE
-        migrated["source"] = source
-        return migrated
-
-    @classmethod
     def deserialize(
         cls,
         serialized_node: OrderedDict[str, typing.Any],
@@ -723,7 +690,6 @@ class Node(QtGui.QStandardItem, StageObject):
                 "Either parent node or node must be provided for deserialization."
             )
 
-        serialized_node = cls._migrate_legacy_reference(serialized_node)
         stage = parent_node.stage if parent_node else node.stage
         uuid = cls.choose_new_uuid(
             stage=stage,
