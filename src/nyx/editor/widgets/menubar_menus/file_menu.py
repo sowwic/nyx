@@ -43,6 +43,8 @@ class FileMenu(BaseMenu):
         self.addAction(action(ActionId.NEW_STAGE))
         self.addAction(action(ActionId.OPEN_STAGE))
         self.addAction(action(ActionId.OPEN_STAGE_TAB))
+        self.addAction(action(ActionId.IMPORT_STAGE))
+        self.addAction(action(ActionId.REFERENCE_STAGE))
         self.recent_menu = self.addMenu("Recent Files...")
         self.recent_menu.setToolTipsVisible(True)
         self.recent_menu.aboutToShow.connect(self.rebuild_recent_menu)
@@ -50,9 +52,6 @@ class FileMenu(BaseMenu):
         self.addSection("Save")
         self.addAction(action(ActionId.SAVE_STAGE))
         self.addAction(action(ActionId.SAVE_STAGE_AS))
-        self.addSection("Stages")
-        self.addAction(action(ActionId.IMPORT_STAGE))
-        self.addAction(action(ActionId.REFERENCE_STAGE))
 
     def rebuild_recent_menu(self):
         """Refill the recent files submenu from the session."""
