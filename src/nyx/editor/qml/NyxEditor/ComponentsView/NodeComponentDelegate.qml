@@ -22,6 +22,9 @@ DraggableDelegate {
 
     required property bool filtersActive
 
+    // False for the components of a reference: they belong to its source file.
+    readonly property bool structureEditable: root.componentsController.structureEditable
+
     readonly property bool isSelected: {
         if (!root.componentsController.selectionModel.model)
             return false;
@@ -43,7 +46,7 @@ DraggableDelegate {
     }
 
     function startRename() {
-        if (isBuiltIn)
+        if (isBuiltIn || !structureEditable)
             return;
         isRenaming = true;
         renameField.text = name;
@@ -77,8 +80,8 @@ DraggableDelegate {
     }
 
     onIsDraggingChanged: animateHeight = true
-    dragEnabled: !isBuiltIn && !filtersActive
-    dropEnabled: !isBuiltIn && !filtersActive
+    dragEnabled: !isBuiltIn && structureEditable && !filtersActive
+    dropEnabled: !isBuiltIn && structureEditable && !filtersActive
 
     Rectangle {
         id: card
@@ -177,6 +180,7 @@ DraggableDelegate {
                         Layout.alignment: Qt.AlignVCenter
                         checked: itemRoot.isActive
                         visible: !itemRoot.model.isStatic
+                        enabled: itemRoot.structureEditable
                         onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
                     }
 
@@ -236,7 +240,7 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Rename"
-                                visible: !itemRoot.isBuiltIn
+                                visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 // A hidden MenuItem keeps its slot in the menu; collapse it explicitly.
                                 height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startRename()
@@ -247,7 +251,7 @@ DraggableDelegate {
                             MenuItem {
                                 id: writableMenuItem
                                 text: "Writable"
-                                visible: !itemRoot.isBuiltIn
+                                visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 height: visible ? implicitHeight : 0
                                 checked: itemRoot.model.writable
                                 checkable: true
@@ -259,7 +263,7 @@ DraggableDelegate {
                             MenuItem {
                                 id: readableMenuItem
                                 text: "Readable"
-                                visible: !itemRoot.isBuiltIn
+                                visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 height: visible ? implicitHeight : 0
                                 checked: itemRoot.model.readable
                                 checkable: true
@@ -374,6 +378,7 @@ DraggableDelegate {
                     objectName: "noteItem"
 
                     Layout.fillWidth: true
+                    enabled: itemRoot.structureEditable
 
                     note: itemRoot.model.note
                     noteFormat: itemRoot.model.noteFormat

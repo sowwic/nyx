@@ -9,6 +9,7 @@ from nyx.api.v1 import (
     CoreNodeComponents,
     CoreNodes,
     Node,
+    NodeComponent,
     NodeFlag,
     Stage,
     commands,
@@ -260,6 +261,21 @@ def test_children_cant_be_changed(source_path):
                 stage=stage, type_id=CoreNodes.VALUE, parent_node=inner
             )
         )
+
+
+def test_views_cant_edit_the_values_of_the_children(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    inner = node.find_child_by_name("inner")
+    outside = create(stage, CoreNodes.VALUE, name="outside")
+
+    def editable(component):
+        model = component.model()
+        return model.data(component.index(), NodeComponent.Roles.IS_EDITABLE)
+
+    assert not editable(inner["value"])
+    assert editable(node["amount"])
+    assert editable(outside["value"])
 
 
 def test_children_cant_be_linked(source_path):

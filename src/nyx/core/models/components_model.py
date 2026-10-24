@@ -207,7 +207,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             if role == NodeComponent.Roles.EDITOR_QML_FILE:
                 return component.get_qml_editor_url()
             if role == NodeComponent.Roles.IS_EDITABLE:
-                return component.is_editable
+                # The nodes of a reference belong to its source file.
+                return component.is_editable and not self.node.is_in_locked_scope
             if role == NodeComponent.Roles.IS_VALID:
                 return component.is_valid
             if role == NodeComponent.Roles.RESOLVED_DATATYPE:
