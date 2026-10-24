@@ -51,7 +51,7 @@ class CoreNodeComponents(enum.StrEnum):
     COMMENT = "core:comment"
     SCRIPT = "core:script"
     FILE = "core:file"
-    STAGE_REFERENCE = "core:stage_reference"
+    STAGE_OBJECT_PATH = "core:stage_object_path"
 
 
 class CoreDatatypes(enum.StrEnum):
@@ -67,7 +67,7 @@ class CoreDatatypes(enum.StrEnum):
     LIST = "core:list"
     DICT = "core:dict"
     FLOW = "core:flow"
-    REFERENCE = "core:reference"
+    STAGE_OBJECT_PATH = "core:stage_object_path"
 
 
 class RestoreUuidOption(enum.IntEnum):

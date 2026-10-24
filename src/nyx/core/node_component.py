@@ -743,7 +743,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """Set the value from serialized data while deserializing.
 
         Components whose value refers to other stage objects override this to remap
-        the references through the context.
+        the object paths through the context.
 
         Args:
             serialized_value (typing.Any): value as written by `serialize_value`.

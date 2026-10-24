@@ -112,8 +112,8 @@ CORE_DATATYPES: tuple[Datatype, ...] = (
         selectable=False,
     ),
     Datatype(
-        type_id=CoreDatatypes.REFERENCE,
-        display_name="Reference",
+        type_id=CoreDatatypes.STAGE_OBJECT_PATH,
+        display_name="Stage Object Path",
         color="#0096FF",
         plug_shape=GraphicsPlugShape.SQUARE,
         compatible_with=frozenset({CoreDatatypes.STRING}),

@@ -12,7 +12,7 @@ from nyx.api.v1 import (
     commands,
     exceptions,
 )
-from nyx.plugins.core.node_components.stage_reference import StageReferenceComponent
+from nyx.plugins.core.node_components.stage_object_path import StageObjectPathComponent
 
 
 def create(stage, type_id=CoreNodes.ACTION, name=None, parent=None):
@@ -51,9 +51,9 @@ def getter_and_target():
 # ======== Component ========= #
 
 
-def test_reference_has_its_own_type():
-    component = StageReferenceComponent()
-    assert component.get_type_id() == CoreNodeComponents.STAGE_REFERENCE
+def test_object_path_has_its_own_type():
+    component = StageObjectPathComponent()
+    assert component.get_type_id() == CoreNodeComponents.STAGE_OBJECT_PATH
     assert component.is_editable
     assert NodeComponentFlag.STATIC in component.component_flags
     assert not component.is_valid  # nothing to point at while detached
@@ -68,14 +68,14 @@ def test_getter_and_setter_only_accept_component_paths(getter_and_target):
 
 def test_full_component_path_resolves_to_component(getter_and_target):
     _stage, getter, target = getter_and_target
-    reference = getter["component"]
+    object_path = getter["component"]
 
-    assert reference.target_component is target["message"]
-    assert reference.resolve_component() is target["message"]
-    assert reference.target_node is target
-    assert reference.target_uuid == target["message"].uuid
-    assert reference.pull_value() == "/stage/target.message"
-    assert reference.is_valid
+    assert object_path.target_component is target["message"]
+    assert object_path.resolve_component() is target["message"]
+    assert object_path.target_node is target
+    assert object_path.target_uuid == target["message"].uuid
+    assert object_path.pull_value() == "/stage/target.message"
+    assert object_path.is_valid
 
 
 @pytest.mark.parametrize(
@@ -103,16 +103,16 @@ def test_relative_path_in_child_scope():
     assert getter["component"].resolve_component() is outer["message"]
 
 
-def test_reference_follows_renamed_node_and_component(getter_and_target):
+def test_object_path_follows_renamed_node_and_component(getter_and_target):
     _stage, getter, target = getter_and_target
-    reference = getter["component"]
+    object_path = getter["component"]
     message = target["message"]
 
     target.rename("renamed")
     message.name = "text"
 
-    assert reference.resolve_component() is message
-    assert reference.pull_value() == "/stage/renamed.text"
+    assert object_path.resolve_component() is message
+    assert object_path.pull_value() == "/stage/renamed.text"
 
 
 @pytest.mark.parametrize(
@@ -127,66 +127,66 @@ def test_reference_follows_renamed_node_and_component(getter_and_target):
 )
 def test_wrong_or_missing_target_is_unresolved(getter_and_target, text):
     _stage, getter, _target = getter_and_target
-    reference = getter["component"]
-    reference.push_value(text)
+    object_path = getter["component"]
+    object_path.push_value(text)
 
-    assert reference.target_component is None
-    assert reference.target_node is None
-    assert not reference.is_valid
+    assert object_path.target_component is None
+    assert object_path.target_node is None
+    assert not object_path.is_valid
     with pytest.raises(exceptions.StageObjectQueryError):
-        reference.resolve_component()
+        object_path.resolve_component()
 
 
 def test_suffix_decides_between_node_and_component(getter_and_target):
     stage, _getter, target = getter_and_target
     owner = create(stage, name="owner")
     add_command = commands.AddNodeComponentCommand(
-        node=owner, type_id=CoreNodeComponents.STAGE_REFERENCE, name="ref"
+        node=owner, type_id=CoreNodeComponents.STAGE_OBJECT_PATH, name="ref"
     )
     stage.push_command(add_command)
-    reference = add_command.result_component
+    object_path = add_command.result_component
     message = target["message"]
 
-    reference.push_value("/stage/target")
-    assert reference.target is target
-    assert reference.resolve_node() is target
-    assert reference.target_component is None
+    object_path.push_value("/stage/target")
+    assert object_path.target is target
+    assert object_path.resolve_node() is target
+    assert object_path.target_component is None
     with pytest.raises(exceptions.StageObjectQueryError):
-        reference.resolve_component()
+        object_path.resolve_component()
 
-    reference.push_value("/stage/target.message")
-    assert reference.target is message
-    assert reference.resolve_component() is message
-    assert reference.target_node is target  # the node owning the component
+    object_path.push_value("/stage/target.message")
+    assert object_path.target is message
+    assert object_path.resolve_component() is message
+    assert object_path.target_node is target  # the node owning the component
     with pytest.raises(exceptions.StageObjectQueryError):
-        reference.resolve_node()
+        object_path.resolve_node()
 
-    reference.push_value("./target.message")  # relative, same rule
-    assert reference.target is message
-    assert reference.is_valid
+    object_path.push_value("./target.message")  # relative, same rule
+    assert object_path.target is message
+    assert object_path.is_valid
 
 
 def test_node_path_is_unresolved_when_only_components_are_accepted(getter_and_target):
     _stage, getter, target = getter_and_target
-    reference = getter["component"]
+    object_path = getter["component"]
 
-    reference.push_value("/stage/target")
-    assert reference.target is None
-    assert not reference.is_valid
-    assert reference.pull_value() == "/stage/target"  # shown as typed
+    object_path.push_value("/stage/target")
+    assert object_path.target is None
+    assert not object_path.is_valid
+    assert object_path.pull_value() == "/stage/target"  # shown as typed
 
-    reference.push_value("/stage/target.message")
-    assert reference.is_valid
-    assert reference.resolve_component() is target["message"]
+    object_path.push_value("/stage/target.message")
+    assert object_path.is_valid
+    assert object_path.resolve_component() is target["message"]
 
 
-def test_linked_reference_provides_the_path():
+def test_linked_object_path_provides_the_path():
     stage = Stage()
     target = create(stage, CoreNodes.LOG, name="target")
     setter = create(stage, CoreNodes.SET, name="setter")
     source_node = create(stage, name="source")
     add_command = commands.AddNodeComponentCommand(
-        node=source_node, type_id=CoreNodeComponents.STAGE_REFERENCE, name="path"
+        node=source_node, type_id=CoreNodeComponents.STAGE_OBJECT_PATH, name="path"
     )
     stage.push_command(add_command)
     source = add_command.result_component
@@ -224,33 +224,33 @@ def test_plain_value_can_be_linked_into_the_component_field():
     assert len(setter["component"].input_links) == 1
 
 
-def test_reference_survives_delete_and_undo_of_component_and_node(getter_and_target):
+def test_object_path_survives_delete_and_undo_of_component_and_node(getter_and_target):
     stage, getter, target = getter_and_target
-    reference = getter["component"]
+    object_path = getter["component"]
 
     stage.push_command(commands.DeleteNodeCommand(stage=stage, nodes=[target]))
-    assert not reference.is_valid
+    assert not object_path.is_valid
     stage.undo_stack.undo()
-    assert reference.is_valid
-    assert reference.resolve_component().node.name == "target"
+    assert object_path.is_valid
+    assert object_path.resolve_component().node.name == "target"
 
 
 def test_set_value_command_undo_redo(getter_and_target):
     stage, getter, target = getter_and_target
     other = create(stage, CoreNodes.LOG, name="other")
-    reference = getter["component"]
+    object_path = getter["component"]
 
     stage.push_command(
         commands.SetNodeComponentValueCommand(
             stage=stage,
-            node_component=reference,
+            node_component=object_path,
             value="/stage/other.message",
             raw=True,
         )
     )
-    assert reference.resolve_component() is other["message"]
+    assert object_path.resolve_component() is other["message"]
     stage.undo_stack.undo()
-    assert reference.resolve_component() is target["message"]
+    assert object_path.resolve_component() is target["message"]
 
 
 # ======== Getter and setter ========= #
@@ -368,7 +368,7 @@ def test_external_target_missing_in_another_stage_is_unresolved(getter_and_targe
     assert new_getter["component"].is_valid
 
 
-def test_paste_undo_redo_keeps_references(getter_and_target):
+def test_paste_undo_redo_keeps_object_paths(getter_and_target):
     stage, getter, target = getter_and_target
     command = commands.PasteNodesCommand(
         stage=stage,
@@ -390,8 +390,8 @@ def test_paste_undo_redo_keeps_references(getter_and_target):
 def test_views_get_the_new_display_and_validity(getter_and_target):
     stage, getter, _target = getter_and_target
     create(stage, CoreNodes.LOG, name="other")
-    reference = getter["component"]
-    model, index = reference.model(), reference.index()
+    object_path = getter["component"]
+    model, index = object_path.model(), object_path.index()
     changes = []
 
     def on_changed(top_left, _bottom_right, roles):
@@ -399,23 +399,23 @@ def test_views_get_the_new_display_and_validity(getter_and_target):
             changes.append(
                 (
                     set(roles),
-                    index.data(reference.Roles.DISPLAY_VALUE),
-                    index.data(reference.Roles.IS_VALID),
+                    index.data(object_path.Roles.DISPLAY_VALUE),
+                    index.data(object_path.Roles.IS_VALID),
                 )
             )
 
     model.dataChanged.connect(on_changed)
 
-    reference.push_value("/stage/other.message")
-    display_changes = [c for c in changes if reference.Roles.DISPLAY_VALUE in c[0]]
+    object_path.push_value("/stage/other.message")
+    display_changes = [c for c in changes if object_path.Roles.DISPLAY_VALUE in c[0]]
     other_message = stage.get_object("/stage/other.message")
     old_message = stage.get_object("/stage/target.message")
     assert display_changes[-1][1] == str(other_message)
     assert all(c[1] != str(old_message) for c in display_changes)
 
     changes.clear()
-    reference.push_value("/stage/other.nothing")
-    validity_changes = [c for c in changes if reference.Roles.IS_VALID in c[0]]
+    object_path.push_value("/stage/other.nothing")
+    validity_changes = [c for c in changes if object_path.Roles.IS_VALID in c[0]]
     assert validity_changes[-1][2] is False
 
 
@@ -458,15 +458,15 @@ def test_getter_saved_with_node_path_and_cpnt_name_still_loads():
 
 def test_display_shows_the_target_and_cached_value_is_the_path(getter_and_target):
     _stage, getter, target = getter_and_target
-    reference = getter["component"]
+    object_path = getter["component"]
 
-    assert reference.get_display_value() == str(target["message"])
-    assert reference.get_display_value() == "ValueComponent (/stage/target.message)"
-    index = reference.index()
-    assert index.data(reference.Roles.DISPLAY_VALUE) == str(target["message"])
+    assert object_path.get_display_value() == str(target["message"])
+    assert object_path.get_display_value() == "ValueComponent (/stage/target.message)"
+    index = object_path.index()
+    assert index.data(object_path.Roles.DISPLAY_VALUE) == str(target["message"])
     # Consumers still get something they can use as a path.
-    assert reference.pull_value() == "/stage/target.message"
-    assert reference.cached_value == "/stage/target.message"
+    assert object_path.pull_value() == "/stage/target.message"
+    assert object_path.cached_value == "/stage/target.message"
 
 
 def test_display_follows_renames(getter_and_target):
@@ -486,16 +486,16 @@ def test_display_shows_the_text_when_there_is_no_target(getter_and_target, text,
     assert not getter["component"].is_valid
 
 
-def test_reference_component_uses_the_reference_datatype():
+def test_object_path_component_uses_the_object_path_datatype():
     from nyx.api.v1 import CoreDatatypes, GraphicsPlugShape
 
     stage = Stage()
     command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
     stage.push_command(command)
-    reference = command.result_node["component"]
+    object_path = command.result_node["component"]
 
-    assert reference.datatype_id == CoreDatatypes.REFERENCE
-    assert reference.get_plug_shape() is GraphicsPlugShape.SQUARE
+    assert object_path.datatype_id == CoreDatatypes.STAGE_OBJECT_PATH
+    assert object_path.get_plug_shape() is GraphicsPlugShape.SQUARE
 
 
 def test_name_text_is_the_last_part_of_the_path():
@@ -506,12 +506,12 @@ def test_name_text_is_the_last_part_of_the_path():
     stage.push_command(target_command)
     getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
     stage.push_command(getter_command)
-    reference = getter_command.result_node["component"]
+    object_path = getter_command.result_node["component"]
 
-    assert reference.current_name_text() == ""
+    assert object_path.current_name_text() == ""
 
-    reference.push_value("/stage/target.message")
-    assert reference.current_name_text() == "target.message"
+    object_path.push_value("/stage/target.message")
+    assert object_path.current_name_text() == "target.message"
 
-    reference.push_value("/stage/missing/deep.value")
-    assert reference.current_name_text() == "deep.value"
+    object_path.push_value("/stage/missing/deep.value")
+    assert object_path.current_name_text() == "deep.value"

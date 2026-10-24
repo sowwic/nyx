@@ -83,7 +83,7 @@ class GetterNode(Node):
     def setup(self):
         """Add the component path and value components."""
         self.in_component_path = self.components_model.create_component(
-            CoreNodeComponents.STAGE_REFERENCE
+            CoreNodeComponents.STAGE_OBJECT_PATH
         )
         self.in_component_path.name = "component"
         self.in_component_path.description = (
@@ -105,7 +105,7 @@ class GetterNode(Node):
         self.components_model.add_component(self.in_component_path)
         self.components_model.add_component(self.value_cpnt)
         self.bind_subtitle_to_component(
-            self.in_component_path.name, lambda reference: reference.current_name_text()
+            self.in_component_path.name, lambda path: path.current_name_text()
         )
 
         # Replace pull value to pull path from inputs

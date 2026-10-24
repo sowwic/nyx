@@ -336,9 +336,9 @@ def test_controller_select_file_cancelled_returns_empty(monkeypatch):
     assert ComponentsController().selectFile("Pick", "All (*)", "") == ""
 
 
-def test_stage_reference_item_sets_path_without_evaluating(make_editor):
+def test_stage_object_path_item_sets_path_without_evaluating(make_editor):
     editor = make_editor(
-        CORE_QML_DIR / "StageReferenceComponentItem.qml",
+        CORE_QML_DIR / "StageObjectPathComponentItem.qml",
         rawValue="./target.message",
         displayValue="/stage/target.message",
         isValid=True,
@@ -352,9 +352,9 @@ def test_stage_reference_item_sets_path_without_evaluating(make_editor):
 
 
 @pytest.mark.parametrize("is_valid", [True, False])
-def test_stage_reference_item_marks_unresolved_reference(make_editor, is_valid):
+def test_stage_object_path_item_marks_unresolved_reference(make_editor, is_valid):
     editor = make_editor(
-        CORE_QML_DIR / "StageReferenceComponentItem.qml", isValid=is_valid
+        CORE_QML_DIR / "StageObjectPathComponentItem.qml", isValid=is_valid
     )
     assert (editor.field.property("color").name() == "#b22222") is (not is_valid)
 
@@ -559,7 +559,7 @@ def find_edit_button(editor):
     "qml_file",
     [
         "ValueComponentItem.qml",
-        "StageReferenceComponentItem.qml",
+        "StageObjectPathComponentItem.qml",
         "ScriptComponentItem.qml",
         "CommentComponentItem.qml",
     ],

@@ -46,7 +46,7 @@ class SetterNode(Node):
         self.flow_cpnt.name = "flow"
 
         self.component_path_cpnt = self.components_model.create_component(
-            CoreNodeComponents.STAGE_REFERENCE
+            CoreNodeComponents.STAGE_OBJECT_PATH
         )
         self.component_path_cpnt.name = "component"
         self.component_path_cpnt.description = (
@@ -71,7 +71,7 @@ class SetterNode(Node):
         self.components_model.add_component(self.value_cpnt)
         self.bind_subtitle_to_component(
             self.component_path_cpnt.name,
-            lambda reference: reference.current_name_text(),
+            lambda path: path.current_name_text(),
         )
 
     def execute(self):
