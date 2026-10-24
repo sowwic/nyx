@@ -73,6 +73,8 @@ DraggableDelegate {
     // Edit the note, showing it first if it is hidden: the component and the note
     // frame are opened, and the frame is shown even though there is no note yet.
     function startNoteEdit() {
+        if (!structureEditable)
+            return;
         if (!isExpanded)
             toggleExpanded();
         model.noteExpanded = true;
@@ -277,6 +279,8 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Edit Note"
+                                visible: itemRoot.structureEditable
+                                height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startNoteEdit()
                             }
 
