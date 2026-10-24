@@ -1,5 +1,7 @@
 import json
 import pathlib
+import uuid
+from collections import OrderedDict
 
 import pytest
 from PySide6 import QtCore
@@ -457,6 +459,45 @@ def test_pasted_reference_survives_undo_and_redo(source_path):
     assert pasted.get_type_id() == CoreNodes.REFERENCE
     assert pasted["amount"].raw_value == 5
     assert pasted.find_child_by_name("inner") is not None
+
+
+def test_link_to_a_pasted_reference_survives_undo_and_redo(source_path):
+    stage = Stage()
+    pasted_data = OrderedDict(
+        [
+            ("uuid", str(uuid.uuid4())),
+            ("name", "ref"),
+            ("type_id", CoreNodes.REFERENCE),
+            ("active", True),
+            ("source", str(source_path)),
+        ]
+    )
+    stage.push_command(
+        commands.PasteNodesCommand(
+            stage=stage,
+            serialize_nodes=[pasted_data],
+            position=QtCore.QPointF(0, 0),
+            parent_node=None,
+        )
+    )
+    node = at(stage, "/ref")
+    feeder = create(stage, CoreNodes.VALUE, name="feeder")
+    feeder["value"].set_datatype(CoreDatatypes.STRING)
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=feeder["value"], target=node["label"]
+        )
+    )
+
+    while stage.undo_stack.canUndo():
+        stage.undo_stack.undo()
+    assert stage.node_from_path(pathlib.PurePosixPath("/stage/ref")) is None
+    while stage.undo_stack.canRedo():
+        stage.undo_stack.redo()
+
+    node = at(stage, "/ref")
+    assert node["label"].input_links
+    assert node["label"].input_links[0].source_component.node.name == "feeder"
 
 
 # ======== Failures ========= #

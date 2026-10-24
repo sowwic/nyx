@@ -2,6 +2,7 @@ import copy
 import logging
 import pathlib
 import typing
+import uuid
 import weakref
 from collections import OrderedDict
 
@@ -358,20 +359,19 @@ class ReferenceNode(Node):
                 self._drop_component(existing)
                 existing = None
 
-            # Same uuid for a component that stays, so links to it stay.
+            # The same uuid for a component that stays, so links to it stay. A new one
+            # gets a uuid worked out from the node, so it is the same whenever the node
+            # is created again, like when a paste is undone and redone.
             data = copy.copy(component_data)
-            if existing is not None:
-                data[NodeComponent.UUID_KEY] = str(existing.uuid)
+            data[NodeComponent.UUID_KEY] = str(
+                existing.uuid if existing is not None else uuid.uuid5(self.uuid, name)
+            )
             component = NodeComponent.deserialize(
                 data=data,
                 node=self,
                 context=context,
                 component=existing,
-                restore_uuid=(
-                    RestoreUuidOption.RESTORE
-                    if existing is not None
-                    else RestoreUuidOption.GENERATE_NEW
-                ),
+                restore_uuid=RestoreUuidOption.RESTORE,
             )
             context.register(
                 serialized_uuid=component_data.get(NodeComponent.UUID_KEY),
