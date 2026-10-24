@@ -17,7 +17,7 @@ def show_menu(menu: QtWidgets.QMenu, global_pos: QtCore.QPoint) -> None:
 
 
 def build_nodes_context_menu(
-    parent: QtWidgets.QWidget, has_selection: bool
+    parent: QtWidgets.QWidget, has_selection: bool, has_reference: bool = False
 ) -> QtWidgets.QMenu:
     """Build the node context menu used by both the tree and the graph views.
 
@@ -25,6 +25,8 @@ def build_nodes_context_menu(
         parent: owner of the menu
         has_selection: whether nodes are selected; selection-only entries are
             hidden otherwise
+        has_reference: whether a selected node is loaded from a stage file; the
+            entries for those are hidden otherwise
     """
     action = ACTION_REGISTRY.action
     menu = QtWidgets.QMenu("", parent)
@@ -40,5 +42,8 @@ def build_nodes_context_menu(
         menu.addSeparator()
         menu.addAction(action(ActionId.FOCUS_SELECTED))
         menu.addAction(action(ActionId.COPY_NODE_PATH))
+        if has_reference:
+            menu.addAction(action(ActionId.RELOAD_REFERENCE))
+            menu.addAction(action(ActionId.OPEN_REFERENCED_STAGE))
         menu.addAction(action(ActionId.DELETE_NODE))
     return menu

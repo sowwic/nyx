@@ -24,6 +24,7 @@ from .nodes.sequence import SequenceNode
 from .nodes.log import LogNode
 from .nodes.type_cast import TypeCastNode
 from .nodes.get_type import GetTypeNode
+from .nodes.reference import ReferenceNode
 
 
 LOGGER = logging.getLogger(__name__)
@@ -75,6 +76,7 @@ class NyxCore(NyxPlugin):
             LogNode,
             TypeCastNode,
             GetTypeNode,
+            ReferenceNode,
         ]
 
         return plugin

@@ -18,6 +18,7 @@ class CoreNodes(enum.StrEnum):
     LOG = "core:log"
     TYPE_CAST = "core:type_cast"
     GET_TYPE = "core:get_type"
+    REFERENCE = "core:reference"
 
 
 class LinkAnimationStyle(enum.StrEnum):

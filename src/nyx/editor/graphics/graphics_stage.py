@@ -503,6 +503,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """
         if source is target:
             return False
+        if source.node.is_in_locked_scope or target.node.is_in_locked_scope:
+            return False
         if not source.readable or not target.writable:
             return False
         if not target.datatype.accepts(source.datatype):

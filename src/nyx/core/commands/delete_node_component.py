@@ -39,6 +39,8 @@ class DeletedComponentRecord:
 class DeleteNodeComponentCommand(NyxCommand):
     """Delete components from a node, unlinking their links first."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         node: Node,
@@ -81,6 +83,10 @@ class DeleteNodeComponentCommand(NyxCommand):
             deleted_component_record.component_uuid
             for deleted_component_record in self.deleted_component_records
         ]
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.node_uuid)]
 
     def redo(self) -> None:
         """Unlink and delete the components, recording them for undo."""

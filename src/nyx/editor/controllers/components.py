@@ -31,6 +31,7 @@ class ComponentsController(QtCore.QObject):
     consistent across reorders."""
 
     componentsModelChanged = QtCore.Signal()
+    structureEditableChanged = QtCore.Signal()
 
     def __init__(
         self,
@@ -86,6 +87,16 @@ class ComponentsController(QtCore.QObject):
         self.components_filter_model.setSourceModel(model)
         if self.components_model is not None:
             self._connect_models()
+        self.structureEditableChanged.emit()
+
+    @property
+    def structure_editable(self) -> bool:
+        """bool: components can be added to and removed from the node shown."""
+        model = self.components_model
+        if model is None or model.node is None:
+            return True
+        node = model.node
+        return node.ALLOWS_STRUCTURE_CHANGES and not node.is_in_locked_scope
 
     def _connect_models(self):
         """Clear the selection before rows are moved."""
@@ -395,6 +406,11 @@ class ComponentsController(QtCore.QObject):
         fget=selection_model.fget,
         fset=selection_model.fset,
         constant=True,
+    )
+    structureEditable = QtCore.Property(
+        bool,
+        fget=structure_editable.fget,
+        notify=structureEditableChanged,
     )
     componentsModel = QtCore.Property(
         QtCore.QObject,

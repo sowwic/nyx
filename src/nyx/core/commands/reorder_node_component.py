@@ -13,6 +13,8 @@ LOGGER = logging.getLogger(__name__)
 class ReorderNodeComponentCommand(NyxCommand):
     """Move a component to another row of its node."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -35,6 +37,10 @@ class ReorderNodeComponentCommand(NyxCommand):
         ).uuid
         self.from_row = None
         self.to_row = to_row
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.component_uuid).node]
 
     def redo(self) -> None:
         """Move the component to the destination row."""

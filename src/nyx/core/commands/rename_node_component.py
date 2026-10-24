@@ -15,6 +15,8 @@ LOGGER = logging.getLogger(__name__)
 class RenameNodeComponentCommand(NyxCommand):
     """Rename a node component, keeping the name unique within its node."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -36,6 +38,10 @@ class RenameNodeComponentCommand(NyxCommand):
         self.component_uuid = None
         self.new_name = NameValidator.get_valid_stage_object_name(new_name)
         self.old_name: str = None
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.path_to_rename).node]
 
     def redo(self) -> None:
         """Rename the component."""

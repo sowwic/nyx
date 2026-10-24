@@ -5,9 +5,11 @@ import typing
 from PySide6 import QtCore, QtWidgets
 
 from nyx.core import commands
+from nyx.core.exceptions import NyxCommandValidationError
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import clipboard
+from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -71,6 +73,16 @@ class StageGraphActions:
             condition=view.selection_editable_condition,
         )
         register(
+            ActionId.RELOAD_REFERENCE,
+            self.reload_selected_references,
+            condition=view.selection_editable_condition,
+        )
+        register(
+            ActionId.OPEN_REFERENCED_STAGE,
+            self.open_selected_referenced_stages,
+            condition=view.selection_editable_condition,
+        )
+        register(
             ActionId.FOCUS_SELECTED,
             self.focus_on_selected_nodes,
             condition=view.selection_editable_condition,
@@ -87,10 +99,31 @@ class StageGraphActions:
             return
 
         selected_gr_nodes = view.gr_stage.selected_gr_nodes()
-        nodes_to_delete: list[Node] = [gr_node.node for gr_node in selected_gr_nodes]
+        nodes_to_delete: list[Node] = [
+            gr_node.node
+            for gr_node in selected_gr_nodes
+            if not gr_node.node.is_in_locked_scope
+        ]
+        if not nodes_to_delete:
+            LOGGER.warning("Nodes of a reference can't be deleted")
+            return
         del_cmd = commands.DeleteNodeCommand(stage=view.stage, nodes=nodes_to_delete)
         view.stage.push_command(del_cmd)
         view.gr_stage.rebuild_current_scope()
+
+    def reload_selected_references(self):
+        """Load the source files of the selected nodes again."""
+        for gr_node in self._view.gr_stage.selected_gr_nodes():
+            gr_node.node.reload_source()
+        self._view.gr_stage.rebuild_current_scope()
+
+    def open_selected_referenced_stages(self):
+        """Open the source files of the selected nodes in the editor."""
+        main_window = pyside_fn.find_nyx_editor_window()
+        for gr_node in self._view.gr_stage.selected_gr_nodes():
+            source_file = gr_node.node.get_source_file()
+            if source_file is not None:
+                main_window.on_stage_open_recent(str(source_file))
 
     def copy_selected_nodes(self):
         """Copy the selected nodes to the clipboard."""
@@ -111,6 +144,11 @@ class StageGraphActions:
         if not selected_nodes:
             return
 
+        if any(node.is_in_locked_scope for node in selected_nodes):
+            LOGGER.warning("Nodes of a reference can't be cut, copying them instead")
+            clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=False)
+            return
+
         clipboard.serialize_nodes_to_clipboard(selected_nodes, delete=True)
         LOGGER.info("Cut selected nodes")
 
@@ -129,7 +167,10 @@ class StageGraphActions:
             position=view.last_scene_mouse_pos,
             parent_node=parent_node,
         )
-        view.stage.push_command(paste_cmd)
+        try:
+            view.stage.push_command(paste_cmd)
+        except NyxCommandValidationError as err:
+            LOGGER.warning(str(err))
 
     def copy_selected_node_path(self):
         """Copy the path of the last selected node to the clipboard."""

@@ -285,6 +285,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         if self.get_datatype_source() is not None:
             return True
+        node = self.node
+        if node is not None and (
+            not node.ALLOWS_STRUCTURE_CHANGES or node.is_in_locked_scope
+        ):
+            return True
         return self.is_built_in and not self.inherits_datatype
 
     def cast_value(self, value: typing.Any) -> typing.Any:

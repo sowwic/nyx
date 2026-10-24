@@ -23,6 +23,8 @@ LOGGER = logging.getLogger(__name__)
 class PasteNodesCommand(NyxCommand):
     """Paste serialized nodes into the stage."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -75,6 +77,10 @@ class PasteNodesCommand(NyxCommand):
             self.stage.get_object(uuid, expected_type=Node)
             for uuid in self.created_uuids
         ]
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.parent_node_uuid) if self.parent_node_uuid else None]
 
     def redo(self) -> None:
         """Create the pasted nodes and restore links between them."""

@@ -38,6 +38,8 @@ class ActionId(StrEnum):
     CREATE_NODE = "node.create"
     DELETE_NODE = "node.delete"
     COPY_NODE_PATH = "node.copy_path"
+    RELOAD_REFERENCE = "node.reload_reference"
+    OPEN_REFERENCED_STAGE = "node.open_referenced_stage"
     SHOW_PALETTE = "node.show_palette"
     # Stage
     EXECUTE_STAGE = "stage.execute"
@@ -95,6 +97,8 @@ def default_definitions() -> list[ActionDefinition]:
         D(ActionId.CREATE_NODE, "Create node", "Node", icon_path=":/icons/plus"),
         D(ActionId.DELETE_NODE, "Delete node", "Node", icon_path=":/icons/delete"),
         D(ActionId.COPY_NODE_PATH, "Copy path to selected", "Node"),
+        D(ActionId.RELOAD_REFERENCE, "Reload reference", "Node"),
+        D(ActionId.OPEN_REFERENCED_STAGE, "Open referenced stage", "Node"),
         D(ActionId.SHOW_PALETTE, "Add Node...", "Node", default_shortcut="Tab"),
         D(
             ActionId.EXECUTE_STAGE,

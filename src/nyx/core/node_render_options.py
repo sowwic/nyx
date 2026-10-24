@@ -19,7 +19,6 @@ class NodeRenderOptions:
             plugs sharing a row
         title_color: color of the header
         background_color: color of the body
-        reference_background_color: color of the body of a referenced node
         outline_color: color of the outline
         selected_outline_color: color of the outline of a selected node
         icon_rect: where the type icon is drawn in the header
@@ -42,9 +41,6 @@ class NodeRenderOptions:
     )
     background_color: QtGui.QColor = dataclasses.field(
         default_factory=lambda: QtGui.QColor("#E3212121")
-    )
-    reference_background_color: QtGui.QColor = dataclasses.field(
-        default_factory=lambda: QtGui.QColor("#2182CF")
     )
     outline_color: QtGui.QColor = dataclasses.field(
         default_factory=lambda: QtGui.QColor("#7F000000")

@@ -171,6 +171,7 @@ Rectangle {
 
                 Button {
                     id: addButton
+                    enabled: root.componentsController.structureEditable
                     Layout.fillWidth: true
                     icon.source: "qrc:/icons/plus.png"
                     icon.width: 16
@@ -189,7 +190,7 @@ Rectangle {
 
                 Button {
                     id: removeButton
-                    enabled: root.componentsController.selectionModel.hasSelection
+                    enabled: root.componentsController.structureEditable && root.componentsController.selectionModel.hasSelection
                     Layout.fillWidth: true
                     icon.source: "qrc:/icons/delete.png"
                     icon.width: 16

@@ -11,6 +11,8 @@ LOGGER = logging.getLogger(__name__)
 class SetNodeComponentActiveStateCommand(NyxCommand):
     """Set the active state of a component."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -37,6 +39,10 @@ class SetNodeComponentActiveStateCommand(NyxCommand):
     def component(self) -> NodeComponent:
         """NodeComponent: component the command operates on."""
         return self.stage.get_object(self.component_uuid, expected_type=NodeComponent)
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.component.node]
 
     def redo(self) -> None:
         """Apply the new active state."""

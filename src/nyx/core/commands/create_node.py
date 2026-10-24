@@ -23,6 +23,8 @@ if typing.TYPE_CHECKING:
 class CreateNodeCommand(NyxCommand):
     """Create a node, or recreate one from serialized data."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -69,6 +71,10 @@ class CreateNodeCommand(NyxCommand):
     def parent_node(self) -> Node:
         """Node: parent of the created node."""
         return self.stage.get_object(self.parent_uuid, expected_type=Node)
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.parent_uuid)]
 
     def redo(self) -> None:
         """Create the node, restoring serialized data on repeated calls."""

@@ -37,6 +37,15 @@ class UnlinkNodeComponentsCommand(NyxCommand):
         # link uuid -> (source uuid, target uuid), filled when the links are removed
         self._ends: dict[UUID, tuple[UUID, UUID]] = {}
 
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [
+            node
+            for link_uuid in self.link_uuids
+            if (link := self.stage.get_object(link_uuid)) is not None
+            for node in (link.source_component.node, link.target_component.node)
+        ]
+
     def redo(self) -> None:
         """Remove the links."""
         links: list[Link] = [self.stage.get_object(uuid) for uuid in self.link_uuids]

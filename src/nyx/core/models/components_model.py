@@ -364,11 +364,12 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             self.node.stage.uuid_map[component.uuid] = component
         LOGGER.debug(f"Added new component: {component}")
 
-    def remove_component(self, uuid: UUID) -> None:
+    def remove_component(self, uuid: UUID, force: bool = False) -> None:
         """Remove a component from the node.
 
         Args:
             uuid (UUID): uuid of the component.
+            force (bool): remove built-in components too, for the node owning them.
 
         Raises:
             ValueError: if the component doesn't exist or is built-in.
@@ -377,7 +378,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         if component is None:
             raise ValueError(f"Component UUID doesn't exist in stage: {uuid}")
 
-        if component.is_built_in:
+        if component.is_built_in and not force:
             raise ValueError(f"Can't remove builtin component: {component.path}")
 
         if self.node.stage:

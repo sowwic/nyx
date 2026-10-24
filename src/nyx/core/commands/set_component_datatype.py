@@ -23,6 +23,8 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
     command restores both.
     """
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -70,6 +72,10 @@ class SetNodeComponentDatatypeCommand(NyxCommand):
             raise NyxCommandValidationError(
                 f"Datatype of {self.component.path} is locked"
             )
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.component.node]
 
     def redo(self) -> None:
         """Apply the new datatype, then fix the value and links it makes invalid."""

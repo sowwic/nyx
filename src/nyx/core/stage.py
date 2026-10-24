@@ -563,7 +563,11 @@ class Stage(QtGui.QStandardItemModel):
         self._uuid_map.pop(node.uuid, None)
         descendant_nodes = node.list_children_tree()
         for component in node.components_model.list_components():
-            self._uuid_map.pop(component.uuid)
+            self._uuid_map.pop(component.uuid, None)
+            # Links left are the ones inside what is removed, like the internal
+            # links of a reference node.
+            for link_uuid in component.links_uuids:
+                self._uuid_map.pop(link_uuid, None)
 
         for child_node in descendant_nodes:
             self.unregister_node(child_node)
@@ -587,11 +591,14 @@ class Stage(QtGui.QStandardItemModel):
         for each_node in node:
             parent.appendRow(each_node)
 
-    def delete_node(self, nodes: Sequence[NodeLike] | NodeLike) -> None:
+    def delete_node(
+        self, nodes: Sequence[NodeLike] | NodeLike, ignore_lock: bool = False
+    ) -> None:
         """Delete node from stage.
 
         Args:
             nodes: nodes to delete.
+            ignore_lock (bool): delete locked nodes too, for the node owning them.
 
         """
         if not isinstance(nodes, Sequence):
@@ -601,7 +608,7 @@ class Stage(QtGui.QStandardItemModel):
             if node is None:
                 raise RuntimeError(f"{self} | Failed to delete node.")
 
-            if node.is_locked:
+            if node.is_locked and not ignore_lock:
                 raise RuntimeError("Can't delete locked node: %s", node.path)
 
             # Removed uuids for node, childrent and components
@@ -660,8 +667,9 @@ class Stage(QtGui.QStandardItemModel):
             LOGGER.exception("Failed to load stage from json.")
             return
 
-        Node.deserialize(serialized_node=json_data, node=self.root_node)
+        # Set first: nodes loading from relative paths need the folder of the stage.
         self.file_path = pathlib.Path(file_path)
+        Node.deserialize(serialized_node=json_data, node=self.root_node)
         self.last_saved_undo_index = self.undo_stack.index()
         LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
@@ -679,6 +687,7 @@ class Stage(QtGui.QStandardItemModel):
             if self is not command.stage:
                 raise ValueError("Command stage doesn't match current stage.")
             command.validate()
+            command.validate_not_locked()
 
         for command in commands:
             self.undo_stack.push(command)

@@ -4,7 +4,7 @@ import pytest
 
 from PySide6 import QtCore, QtWidgets
 
-from nyx.api.v1 import CoreNodeComponents, CoreNodes, commands
+from nyx.api.v1 import CoreNodeComponents, CoreNodes, Stage, commands
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
@@ -487,6 +487,40 @@ def test_reference_into_itself_is_rejected(
     with caplog.at_level("ERROR"):
         io._import_nodes(stage_editor, [file_path], as_reference=True)
     assert "Can't reference file into itself" in caplog.text
+
+
+def test_reference_nodes_creates_a_reference_node(stage_editor, tmp_path):
+    stage = stage_editor.stage
+    source = tmp_path / "source.nyx"
+    other = Stage()
+    other.export_json(source)
+    stage.export_json(tmp_path / "main.nyx")
+
+    io._import_nodes(stage_editor, [source], as_reference=True)
+
+    node = stage.root_node.find_child_by_name("source")
+    assert node.get_type_id() == CoreNodes.REFERENCE
+    assert node.source == "source.nyx"
+    assert node.load_error == ""
+
+
+def test_nodes_of_a_reference_cant_be_linked(stage_editor, tmp_path):
+    from nyx.editor.graphics.graphics_stage import GraphicsStage
+
+    stage = stage_editor.stage
+    source = tmp_path / "source.nyx"
+    other = Stage()
+    other.push_command(
+        commands.CreateNodeCommand(stage=other, type_id=CoreNodes.VALUE, name="inner")
+    )
+    other.export_json(source)
+    stage.export_json(tmp_path / "main.nyx")
+    io._import_nodes(stage_editor, [source], as_reference=True)
+    reference = stage.root_node.find_child_by_name("source")
+    child = reference.find_child_by_name("inner")
+
+    assert not GraphicsStage.can_link(child["value"], reference["source"])
+    assert not GraphicsStage.can_link(reference["source"], child["value"])
 
 
 # ---- Graphics stage ----

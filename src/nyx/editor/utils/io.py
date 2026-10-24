@@ -1,18 +1,22 @@
 import logging
+import os
 import pathlib
 import typing
+import uuid
 from collections import OrderedDict
 
 from PySide6 import QtWidgets
 
 from ...core import commands
+from ...core.node import Node
 from ...static.vars import NYX_FILE_FILTER, NYX_FILE_EXTENSION
 from ...utils import file_fn, pyside_fn
 from ...utils.profiling import profile
-from ...static.enums import RestoreUuidOption
+from ...static.enums import CoreNodes, RestoreUuidOption
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection
+    from nyx.core.stage import Stage
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 
@@ -48,6 +52,33 @@ def export_selected_nodes():
             LOGGER.info(f"Exported node {file_path}")
 
 
+def _serialize_reference_node(stage: Stage, path: pathlib.Path) -> OrderedDict:
+    """Compose the data of a reference node standing for a stage file.
+
+    Args:
+        stage (Stage): stage receiving the node.
+        path (pathlib.Path): stage file to reference.
+
+    Returns:
+        OrderedDict: serialized reference node.
+    """
+    if stage.file_path is not None:
+        source = pathlib.Path(
+            os.path.relpath(path, pathlib.Path(stage.file_path).parent)
+        )
+    else:
+        source = path
+    return OrderedDict(
+        [
+            (Node.UUID_KEY, str(uuid.uuid4())),
+            (Node.NAME_KEY, path.stem),
+            (Node.TYPE_ID_KEY, CoreNodes.REFERENCE),
+            (Node.ACTIVE_KEY, True),
+            ("source", source.as_posix()),
+        ]
+    )
+
+
 @profile(name="Nodes imported", text="{name} in {seconds:.4f}s")
 def _import_nodes(
     stage_graph: StageGraphEditor,
@@ -64,13 +95,13 @@ def _import_nodes(
     serialized_nodes = []
     for path in file_paths:
         path = pathlib.Path(path)
-        node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
-        # Add ref file path to node data.
         if as_reference:
             if stage_graph.stage.file_path == path:
                 LOGGER.error(f"Can't reference file into itself: {path}")
                 return
-            node_data["reference_file_path"] = path.as_posix()
+            node_data = _serialize_reference_node(stage_graph.stage, path)
+        else:
+            node_data = file_fn.load_json(path, object_pairs_hook=OrderedDict)
         serialized_nodes.append(node_data)
 
     # Paste command

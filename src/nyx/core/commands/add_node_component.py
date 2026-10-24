@@ -14,6 +14,8 @@ LOGGER = logging.getLogger(__name__)
 class AddNodeComponentCommand(NyxCommand):
     """Add a new component to a node."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         node: Node,
@@ -41,6 +43,10 @@ class AddNodeComponentCommand(NyxCommand):
     def result_component(self) -> NodeComponent:
         """NodeComponent: component created by the command."""
         return self.stage.get_object(self.component_uuid)
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.node_uuid)]
 
     def redo(self) -> None:
         """Create and add the component."""
