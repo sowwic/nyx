@@ -438,6 +438,27 @@ def test_datatype_of_reference_components_is_locked(source_path):
     assert node.find_child_by_name("inner")["value"].is_datatype_locked
 
 
+def test_pasted_reference_survives_undo_and_redo(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    command = commands.PasteNodesCommand(
+        stage=stage,
+        serialize_nodes=[node.serialize()],
+        position=QtCore.QPointF(0, 0),
+        parent_node=None,
+    )
+    stage.push_command(command)
+
+    stage.undo_stack.undo()
+    assert not command.created_uuids
+    stage.undo_stack.redo()
+
+    pasted = command.pasted_nodes[0]
+    assert pasted.get_type_id() == CoreNodes.REFERENCE
+    assert pasted["amount"].raw_value == 5
+    assert pasted.find_child_by_name("inner") is not None
+
+
 # ======== Failures ========= #
 
 

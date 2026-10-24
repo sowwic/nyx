@@ -159,7 +159,10 @@ class PasteNodesCommand(NyxCommand):
                 component.name: component.uuid
                 for component in node.components_model.list_components()
             },
-            "children": [
+            # Nodes owning their children, like a reference node, load them again.
+            "children": []
+            if node.locks_children
+            else [
                 PasteNodesCommand._collect_uuids(child) for child in node.list_children()
             ],
         }
