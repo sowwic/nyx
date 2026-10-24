@@ -198,6 +198,45 @@ class ComponentsController(QtCore.QObject):
         )
         component.stage.push_command(set_active_command)
 
+    @QtCore.Slot(int, int, result=bool)
+    def canMoveComponent(self, row: int, step: int) -> bool:
+        """Check a component can be moved up or down by some rows.
+
+        Args:
+            row (int): proxy row of the component.
+            step (int): rows to move by, negative to move up.
+
+        Returns:
+            bool: both the component and the one it would take the place of can be
+                moved, so neither is built-in.
+        """
+        if self.components_model is None or not self.structure_editable:
+            return False
+
+        proxy = self.components_filter_model
+        from_source = proxy.mapToSource(proxy.index(row, 0))
+        to_source = proxy.mapToSource(proxy.index(row + step, 0))
+        if not from_source.isValid() or not to_source.isValid():
+            return False
+
+        return not any(
+            self.components_model.item(source.row(), 0).is_built_in
+            for source in (from_source, to_source)
+        )
+
+    @QtCore.Slot(int, int)
+    def moveComponent(self, row: int, step: int):
+        """Move a component up or down by some rows through an undoable command.
+
+        Nothing happens if the component can't be moved that way.
+
+        Args:
+            row (int): proxy row of the component.
+            step (int): rows to move by, negative to move up.
+        """
+        if self.canMoveComponent(row, step):
+            self.reorderComponent(row, row + step)
+
     @QtCore.Slot(int, int)
     def reorderComponent(self, from_row: int, to_row: int):
         """Move a component to another row through an undoable command.

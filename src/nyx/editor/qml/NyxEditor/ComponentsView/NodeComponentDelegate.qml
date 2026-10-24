@@ -240,12 +240,36 @@ DraggableDelegate {
                         Menu {
                             id: componentOptionsMenu
 
+                            // The neighbours change as components move, so ask when the menu opens.
+                            property bool canMoveUp: false
+                            property bool canMoveDown: false
+                            onAboutToShow: {
+                                canMoveUp = root.componentsController.canMoveComponent(itemRoot.index, -1);
+                                canMoveDown = root.componentsController.canMoveComponent(itemRoot.index, 1);
+                            }
+
                             MenuItem {
                                 text: "Rename"
                                 visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 // A hidden MenuItem keeps its slot in the menu; collapse it explicitly.
                                 height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startRename()
+                            }
+
+                            MenuItem {
+                                text: "Move Up"
+                                visible: itemRoot.dragEnabled
+                                height: visible ? implicitHeight : 0
+                                enabled: componentOptionsMenu.canMoveUp
+                                onClicked: root.componentsController.moveComponent(itemRoot.index, -1)
+                            }
+
+                            MenuItem {
+                                text: "Move Down"
+                                visible: itemRoot.dragEnabled
+                                height: visible ? implicitHeight : 0
+                                enabled: componentOptionsMenu.canMoveDown
+                                onClicked: root.componentsController.moveComponent(itemRoot.index, 1)
                             }
 
                             MenuSeparator {}
