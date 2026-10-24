@@ -66,7 +66,7 @@ class ReferenceNode(Node):
     @classmethod
     def get_type_icon(cls) -> str:
         """str: resource path of the type icon."""
-        return ":/icons/function"
+        return ":/icons/asterisk"
 
     @classmethod
     def get_description(cls) -> str:
