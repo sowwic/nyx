@@ -317,7 +317,7 @@ class ReferenceNode(Node):
                 LOGGER.error(f"{self.path}: {err}")
             # Nothing is known of the source: the components stay, and so do the links.
             for component in self.mirrored_components():
-                component.set_invalid_reason(self._load_error)
+                component.invalid_reason = self._load_error
             return
 
         context = NodeDeserializationContext(
@@ -378,7 +378,7 @@ class ReferenceNode(Node):
                     NodeComponent.TYPE_ID_KEY
                 ):
                     # Can't turn into the new type. It goes once the user removes it.
-                    existing.set_invalid_reason("Changed type in the source")
+                    existing.invalid_reason = "Changed type in the source"
                     LOGGER.warning(f"{existing.path} changed type in the source")
                     continue
 
@@ -414,7 +414,7 @@ class ReferenceNode(Node):
             if existing is None:
                 self.components_model.add_component(component)
             component.mark_as_built_in()
-            component.set_invalid_reason("")
+            component.invalid_reason = ""
 
             if override_key in overrides:
                 try:
@@ -426,7 +426,7 @@ class ReferenceNode(Node):
         self._source_uuids = source_uuids
         for component in self.mirrored_components():
             if component.uuid not in matched:
-                component.set_invalid_reason("Not in the source anymore")
+                component.invalid_reason = "Not in the source anymore"
                 LOGGER.warning(f"{component.path} is not in the source anymore")
 
     def _derive_uuid(self, name: str) -> UUID:

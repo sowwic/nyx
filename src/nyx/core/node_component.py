@@ -72,6 +72,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_EXPANDED = enum.auto()
         LINKS_EXPANDED = enum.auto()
         NOTE_EXPANDED = enum.auto()
+        INVALID_REASON = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
@@ -88,7 +89,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_VALID = enum.auto()
         RESOLVED_DATATYPE = enum.auto()
         IS_DATATYPE_LOCKED = enum.auto()
-        INVALID_REASON = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -113,7 +113,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_VALID,
                 cls.RESOLVED_DATATYPE,
                 cls.IS_DATATYPE_LOCKED,
-                cls.INVALID_REASON,
             )
 
     def __repr__(self) -> str:
@@ -134,7 +133,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         QtGui.QStandardItem.__init__(self)
         StageObject.__init__(self, uuid=uuid)
 
-        self._invalid_reason: str = ""
         self.value_storage = self.VALUE_STORAGE_CLS(self)
         self.name = name or self.DEFAULT_NAME
         self.init_default_data_values()
@@ -462,24 +460,13 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """str: why the component can't be relied on, empty if it can.
 
         Set by the node owning the component, like a reference node for a component
-        that is not in its source anymore. Not stored.
+        that is not in its source anymore. Not serialized.
         """
-        return self._invalid_reason
+        return self.data(self.Roles.INVALID_REASON) or ""
 
-    def set_invalid_reason(self, reason: str) -> None:
-        """Mark the component as invalid, or valid again with an empty reason.
-
-        Args:
-            reason (str): why the component can't be relied on, empty for no reason.
-        """
-        if reason == self._invalid_reason:
-            return
-        self._invalid_reason = reason
-        model = self.model()
-        if model is not None:
-            model.dataChanged.emit(
-                self.index(), self.index(), [self.Roles.INVALID_REASON]
-            )
+    @invalid_reason.setter
+    def invalid_reason(self, reason: str) -> None:
+        self.setData(reason, role=self.Roles.INVALID_REASON)
 
     @property
     def is_built_in(self) -> bool:
@@ -556,6 +543,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             role=self.Roles.DESCRIPTION,
         )
         self.setData("", role=self.Roles.NOTE)
+        self.setData("", role=self.Roles.INVALID_REASON)
         self.setData(str(NoteFormat.PLAIN), role=self.Roles.NOTE_FORMAT)
         self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)

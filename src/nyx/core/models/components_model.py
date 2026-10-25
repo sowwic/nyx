@@ -211,8 +211,6 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_editable and not self.node.is_in_locked_scope
             if role == NodeComponent.Roles.IS_VALID:
                 return component.is_valid
-            if role == NodeComponent.Roles.INVALID_REASON:
-                return component.invalid_reason
             if role == NodeComponent.Roles.RESOLVED_DATATYPE:
                 return component.resolved_datatype_id
             if role == NodeComponent.Roles.IS_DATATYPE_LOCKED:

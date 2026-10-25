@@ -575,6 +575,21 @@ def test_the_invalid_reason_reaches_the_views(source_path):
     )
 
 
+def test_views_are_told_when_the_invalid_reason_changes(source_path):
+    stage = Stage()
+    node = reference(stage, source_path)
+    component = node["label"]
+    changes = []
+    component.model().dataChanged.connect(
+        lambda _top_left, _bottom_right, roles: changes.append(list(roles))
+    )
+
+    component.invalid_reason = "gone"
+    component.invalid_reason = "gone"
+
+    assert changes == [[NodeComponent.Roles.INVALID_REASON]]
+
+
 def test_a_component_renamed_in_the_source_keeps_its_links(source_path):
     stage = Stage()
     node = reference(stage, source_path)
