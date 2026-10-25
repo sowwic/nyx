@@ -47,8 +47,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     PATH_SEPARATOR: str = "."
     VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
 
-    _invalid_reason: str = ""
-
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
@@ -136,6 +134,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         QtGui.QStandardItem.__init__(self)
         StageObject.__init__(self, uuid=uuid)
 
+        self._invalid_reason: str = ""
         self.value_storage = self.VALUE_STORAGE_CLS(self)
         self.name = name or self.DEFAULT_NAME
         self.init_default_data_values()
