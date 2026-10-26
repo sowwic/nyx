@@ -30,6 +30,9 @@ from .nodes.reference import ReferenceNode
 from .util_objects.note import NoteObject
 from .util_objects.group import GroupObject
 
+from .graphics_objects.note import GraphicsNote
+from .graphics_objects.group import GraphicsGroup
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,5 +87,6 @@ class NyxStdlib(NyxPlugin):
             ReferenceNode,
         ]
         plugin.contents.util_objects = [NoteObject, GroupObject]
+        plugin.contents.graphics_objects = [GraphicsNote, GraphicsGroup]
 
         return plugin

@@ -8,12 +8,12 @@ from nyx.api.v1 import (
     NYX_REGISTRY,
     commands,
 )
-from nyx.editor.graphics.graphics_group import GraphicsGroup
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_node import GraphicsNode
-from nyx.editor.graphics.graphics_note import GraphicsNote
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.utils import context_menus
+from nyx.stdlib.graphics_objects.group import GraphicsGroup
+from nyx.stdlib.graphics_objects.note import GraphicsNote
 
 
 class FancyGraphicsNote(GraphicsNote):
@@ -61,10 +61,25 @@ def test_builtin_graphics_objects_are_registered(stage_editor):
         assert NYX_REGISTRY.get_graphics_object_cls(type_id) is graphics_cls
 
 
-def test_builtin_graphics_objects_survive_a_registry_reset(stage_editor):
+def test_registry_reset_keeps_only_the_builtin_graphics_objects(stage_editor):
     NYX_REGISTRY.reset_graphics_objects()
+    try:
+        assert (
+            NYX_REGISTRY.get_graphics_object_cls(CoreGraphicsObjects.NODE)
+            is GraphicsNode
+        )
+        assert NYX_REGISTRY.get_graphics_object_cls(CoreGraphicsObjects.NOTE) is None
+    finally:
+        NYX_REGISTRY.register_plugin_content()
 
     assert NYX_REGISTRY.get_graphics_object_cls(CoreGraphicsObjects.NOTE) is GraphicsNote
+
+
+def test_note_and_group_graphics_come_from_the_stdlib_plugin(stage_editor):
+    for cls in (GraphicsNote, GraphicsGroup):
+        assert cls.__module__.startswith("nyx.stdlib.")
+    contents = NYX_REGISTRY.get_plugin("NyxStdlib").plugin_instance.contents
+    assert contents.graphics_objects == [GraphicsNote, GraphicsGroup]
 
 
 def test_util_objects_are_drawn_with_their_graphics_object(stage_editor, create_util):

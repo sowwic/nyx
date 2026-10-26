@@ -5,7 +5,19 @@ import pytest
 from nyx.api.v1 import CoreDatatypes, CoreNodes, Stage, commands
 
 
+STAGES = []
+"""Stages of the running test: a node doesn't keep its stage alive, so a test holding
+only the node would lose the stage to the garbage collector."""
+
+
+@pytest.fixture(autouse=True)
+def keep_stages_alive():
+    yield
+    STAGES.clear()
+
+
 def make_node(stage, type_id, name=None):
+    STAGES.append(stage)
     command = commands.CreateNodeCommand(stage=stage, type_id=type_id, name=name)
     stage.push_command(command)
     return command.result_node

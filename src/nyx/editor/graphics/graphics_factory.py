@@ -13,20 +13,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 def register_builtin_graphics_objects() -> None:
-    """Register the graphics objects drawing the objects of the core."""
-    from nyx.editor.graphics.graphics_group import GraphicsGroup
+    """Register the graphics objects drawing nodes, plugs and links.
+
+    The ones drawing the util objects of the standard library come with its plugin.
+    """
     from nyx.editor.graphics.graphics_link import GraphicsLink
     from nyx.editor.graphics.graphics_node import GraphicsNode
-    from nyx.editor.graphics.graphics_note import GraphicsNote
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
 
-    for graphics_cls in (
-        GraphicsNode,
-        GraphicsPlug,
-        GraphicsLink,
-        GraphicsNote,
-        GraphicsGroup,
-    ):
+    for graphics_cls in (GraphicsNode, GraphicsPlug, GraphicsLink):
         NYX_REGISTRY.register_builtin_graphics_object(
             graphics_cls.get_type_id(), graphics_cls
         )
