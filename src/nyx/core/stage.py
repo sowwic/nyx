@@ -23,7 +23,7 @@ from .exceptions import (
     NodeComponentLinkError,
 )
 from ..utils import file_fn, names_fn
-from ..static.vars import ROOT_NODE_PATH
+from ..static.vars import DEFAULT_UNDO_LIMIT, ROOT_NODE_PATH
 from ..static.enums import CoreNodes
 
 if typing.TYPE_CHECKING:
@@ -73,14 +73,18 @@ class Stage(QtGui.QStandardItemModel):
             return self.root_node.path / other
         raise NotImplementedError
 
-    def __init__(self) -> None:
-        """Initialize Stage with a root node and an empty undo stack."""
+    def __init__(self, undo_limit: int = DEFAULT_UNDO_LIMIT) -> None:
+        """Initialize Stage with a root node and an empty undo stack.
+
+        Args:
+            undo_limit (int): number of undoable steps to remember, 0 for no limit.
+        """
         super().__init__()
-        self.last_saved_undo_index = 0
         self.file_path: pathlib.Path | None = None
         self._uuid_map: dict[UUID, Node] = {}
         self._crawler = StageCrawler(self)
         self.undo_stack = QtGui.QUndoStack(self)
+        self.undo_limit = undo_limit
         self._create_root_node()
         self._register_qml_role_names()
 
@@ -147,22 +151,40 @@ class Stage(QtGui.QStandardItemModel):
         """bool: stage is untouched and was never saved."""
         return not self.undo_stack.count() and self.file_path is None
 
+    @property
+    def undo_limit(self) -> int:
+        """int: number of undoable steps remembered, 0 for no limit.
+
+        Qt only accepts a new limit while the undo history is empty, so changing it
+        later is ignored with a warning.
+        """
+        return self.undo_stack.undoLimit()
+
+    @undo_limit.setter
+    def undo_limit(self, limit: int) -> None:
+        limit = max(int(limit), 0)
+        if limit == self.undo_stack.undoLimit():
+            return
+        if self.undo_stack.count():
+            LOGGER.warning("Can't change the undo limit of a stage with undo history.")
+            return
+        self.undo_stack.setUndoLimit(limit)
+
     def clear_undo_history(self) -> None:
         """Forget the undo history, for changes the undo stack can't describe.
 
         The stage counts as modified afterwards: it no longer matches its file.
         """
         self.undo_stack.clear()
-        self.last_saved_undo_index = -1
+        self.undo_stack.resetClean()
 
     def is_modified(self):
         """bool: stage has unsaved changes."""
         if not shiboken6.isValid(self.undo_stack):
             return False
-        return (
-            self.file_path is None
-            or self.last_saved_undo_index != self.undo_stack.index()
-        )
+        # The stack knows where the file state is, even once the undo limit has
+        # dropped the oldest commands and moved every index.
+        return self.file_path is None or not self.undo_stack.isClean()
 
     def total_node_count(self) -> int:
         """Get total number of nodes in the stage.
@@ -687,7 +709,7 @@ class Stage(QtGui.QStandardItemModel):
             serialized_data = self.root_node.serialize()
             file_fn.write_json(file_path, serialized_data, sort_keys=False)
             self.file_path = pathlib.Path(file_path)
-            self.last_saved_undo_index = self.undo_stack.index()
+            self.undo_stack.setClean()
             LOGGER.info(f"Exported stage: {self.file_path}")
         except Exception:
             LOGGER.exception("Failed to save stage to file.")
@@ -711,7 +733,7 @@ class Stage(QtGui.QStandardItemModel):
         # Set first: nodes loading from relative paths need the folder of the stage.
         self.file_path = pathlib.Path(file_path)
         Node.deserialize(serialized_node=json_data, node=self.root_node)
-        self.last_saved_undo_index = self.undo_stack.index()
+        self.undo_stack.setClean()
         LOGGER.info(f"Imported stage: {self.file_path}")
         return json_data
 
