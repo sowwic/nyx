@@ -35,15 +35,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 @NyxPluginManager.register_plugin()
-class NyxCore(NyxPlugin):
+class NyxStdlib(NyxPlugin):
     """Built-in plugin providing the core nodes and node components."""
 
-    QML_MODULE_NAME = "NyxCore"
+    QML_MODULE_NAME = "NyxStdlib"
 
     @classmethod
     def get_type_id(cls) -> str:
         """str: plugin id."""
-        return "NyxCore"
+        return "NyxStdlib"
 
     @classmethod
     def get_palette_name(cls) -> str:

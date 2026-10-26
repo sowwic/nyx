@@ -34,7 +34,7 @@ def test_core_util_objects_are_registered():
         CoreUtilObjects.GROUP,
     }
     note_cls = NYX_REGISTRY.get_util_object_cls(CoreUtilObjects.NOTE)
-    assert note_cls.get_source_plugin_name() == "NyxCore"
+    assert note_cls.get_source_plugin_name() == "NyxStdlib"
 
 
 def test_create_note_registers_it_in_the_stage():

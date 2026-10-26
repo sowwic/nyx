@@ -5,11 +5,11 @@ def test_include_enables_the_listed_plugins_even_if_they_were_disabled():
     manager = NyxPluginManager()
     function_plugin = "NyxMathFunctions"
     try:
-        manager.initialize_plugins(include=["NyxCore"])
+        manager.initialize_plugins(include=["NyxStdlib"])
         assert NYX_REGISTRY.plugins[function_plugin].enabled is False
         assert NYX_REGISTRY.get_node_cls("function:math.add") is None
 
-        manager.initialize_plugins(include=["NyxCore", function_plugin])
+        manager.initialize_plugins(include=["NyxStdlib", function_plugin])
 
         assert NYX_REGISTRY.plugins[function_plugin].enabled is True
         assert NYX_REGISTRY.get_node_cls("function:math.add") is not None

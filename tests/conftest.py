@@ -102,10 +102,10 @@ def init_nyx_core(qapp):
         plugin_manager = NyxPluginManager()
         if not isinstance(qapp, NyxEditorApplication):
             # The editor application initializes the plugins itself.
-            plugin_manager.initialize_plugins(include=["NyxCore"])
+            plugin_manager.initialize_plugins(include=["NyxStdlib"])
         yield plugin_manager
     except Exception as err:
-        pytest.exit(f"NyxCore initialization failed: {err!r}", returncode=2)
+        pytest.exit(f"NyxStdlib initialization failed: {err!r}", returncode=2)
     finally:
         NYX_REGISTRY.clear()
 

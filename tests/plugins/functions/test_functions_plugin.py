@@ -6,7 +6,7 @@ from nyx.api.v1 import CoreDatatypes, CoreNodes, NYX_REGISTRY, Stage, commands
 
 
 pytestmark = pytest.mark.with_plugins(
-    "NyxCore",
+    "NyxStdlib",
     "NyxMathFunctions",
     "NyxLogicFunctions",
     "NyxStringFunctions",
@@ -114,7 +114,7 @@ def test_nodes_run_in_a_flow():
 
 def test_every_plugin_has_a_palette_name():
     names = {
-        "NyxCore": "Core",
+        "NyxStdlib": "Core",
         "NyxMathFunctions": "Math Operations",
         "NyxListFunctions": "List Operations",
         "NyxDictionaryFunctions": "Dictionary Operations",
