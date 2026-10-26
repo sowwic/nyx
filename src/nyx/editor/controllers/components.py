@@ -6,6 +6,7 @@ from PySide6 import QtCore, QtWidgets
 
 from ...core.commands import (
     DeleteNodeComponentCommand,
+    UnlinkNodeComponentsCommand,
     ReorderNodeComponentCommand,
     SetNodeComponentValueCommand,
     SetNodeComponentDatatypeCommand,
@@ -14,6 +15,7 @@ from ...core.commands import (
     RenameNodeComponentCommand,
     SetNodeComponentFlagCommand,
 )
+from ...core.exceptions import NyxCommandValidationError
 from ...core.node_component import NodeComponent
 from ...core.plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import ItemSelectionMode, NodeComponentFlag, NoteFormat
@@ -211,6 +213,38 @@ class ComponentsController(QtCore.QObject):
                 node=self.components_model.node, component_names=[component.name]
             )
         )
+
+    @QtCore.Slot(int, str, str, result=bool)
+    def unlinkComponent(self, row: int, direction: str, linked_path: str) -> bool:
+        """Remove the link between a component and another through an undoable command.
+
+        Args:
+            row (int): proxy row of the component.
+            direction (str): "Input" for a link feeding the component, "Output" for one
+                it feeds.
+            linked_path (str): path of the component at the other end of the link.
+
+        Returns:
+            bool: a link was found and removed.
+        """
+        component = self.get_component_from_proxy_row(row)
+        is_input = direction == "Input"
+        links = component.input_links if is_input else component.output_links
+        for link in links:
+            other = link.source_component if is_input else link.target_component
+            if other.path.as_posix() != linked_path:
+                continue
+            try:
+                self.stage.push_command(
+                    UnlinkNodeComponentsCommand(stage=self.stage, link_uuids=[link.uuid])
+                )
+            except NyxCommandValidationError as err:
+                LOGGER.warning(f"Can't unlink {component.path}: {err}")
+                return False
+            return True
+
+        LOGGER.warning(f"No {direction.lower()} link from {linked_path} to unlink")
+        return False
 
     @QtCore.Slot(int, int, result=bool)
     def canMoveComponent(self, row: int, step: int) -> bool:

@@ -4,6 +4,9 @@ import QtQuick.Controls
 ItemDelegate {
     id: itemRoot
 
+    // Emitted when the "x" button is clicked, to remove the link.
+    signal unlinkRequested
+
     property string linkDirection
     property string linkPath
 
@@ -36,6 +39,22 @@ ItemDelegate {
                 anchors.centerIn: parent
                 text: itemRoot.linkPath
             }
+        }
+
+        ToolButton {
+            id: unlinkButton
+            objectName: "unlinkButton"
+
+            width: parent.height
+            height: parent.height
+            padding: 0
+            display: AbstractButton.IconOnly
+            icon.source: "qrc:/icons/cross.png"
+            icon.width: 12
+            icon.height: 12
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Unlink")
+            onClicked: itemRoot.unlinkRequested()
         }
     }
 }

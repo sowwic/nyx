@@ -5,6 +5,10 @@ import QtQuick.Layouts
 Item {
     id: linksViewRoot
 
+    // Emitted with the direction ("Input" or "Output") and the path of the component
+    // at the other end of the link whose "x" button was clicked.
+    signal unlinkRequested(string direction, string linkPath)
+
     required property var inputLinks
     required property var outputLinks
 
@@ -36,6 +40,7 @@ Item {
                 Layout.fillWidth: true
                 linkDirection: "Input"
                 linkPath: modelData
+                onUnlinkRequested: linksViewRoot.unlinkRequested(linkDirection, linkPath)
             }
         }
 
@@ -49,6 +54,7 @@ Item {
                 Layout.fillWidth: true
                 linkDirection: "Output"
                 linkPath: modelData
+                onUnlinkRequested: linksViewRoot.unlinkRequested(linkDirection, linkPath)
             }
         }
     }

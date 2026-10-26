@@ -385,6 +385,8 @@ DraggableDelegate {
 
                     inputLinks: itemRoot.model.inputLinks
                     outputLinks: itemRoot.model.outputLinks
+
+                    onUnlinkRequested: (direction, linkPath) => root.componentsController.unlinkComponent(itemRoot.index, direction, linkPath)
                 }
             }
 
