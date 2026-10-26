@@ -6,7 +6,7 @@ from collections import OrderedDict
 import pytest
 from PySide6 import QtCore
 
-from nyx.plugins.core.nodes.reference import ReferenceNode
+from nyx.stdlib.nodes.reference import ReferenceNode
 from nyx.api.v1 import (
     CoreDatatypes,
     CoreNodeComponents,

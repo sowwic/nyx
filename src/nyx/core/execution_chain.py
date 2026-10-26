@@ -4,7 +4,7 @@ from uuid import UUID
 
 if typing.TYPE_CHECKING:
     from .node import Node
-    from nyx.plugins.core.node_components.flow import FlowComponent
+    from nyx.stdlib.node_components.flow import FlowComponent
 
 
 class ExecutionChain:

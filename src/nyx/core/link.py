@@ -7,7 +7,7 @@ from collections import OrderedDict
 from .stage_object import StageObject
 from .path_resolver import StagePathResolver
 from .exceptions import StageObjectQueryError
-from ..static.enums import RestoreUuidOption
+from ..static.enums import CoreGraphicsObjects, RestoreUuidOption
 
 if typing.TYPE_CHECKING:
     from .stage import Stage
@@ -23,7 +23,7 @@ type LinkLike = Link | UUID | str
 class Link(StageObject):
     """Connection between a source and a target node component."""
 
-    GRAPHICS_OBJECT_ID = "core.link"
+    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.LINK
 
     SOURCE_UUID_KEY = "source_uuid"
     TARGET_UUID_KEY = "target_uuid"

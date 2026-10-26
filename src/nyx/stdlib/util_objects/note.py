@@ -1,61 +1,59 @@
 import typing
 from collections import OrderedDict
 
-from nyx.api.v1 import CoreUtilObjects, UtilObject
+from nyx.api.v1 import CoreGraphicsObjects, CoreUtilObjects, UtilObject
 
 
-class GroupObject(UtilObject):
-    """Titled frame drawn behind the nodes it surrounds, to keep them together."""
+class NoteObject(UtilObject):
+    """Free text on a sticky note, to document what a node graph does."""
 
-    GRAPHICS_OBJECT_ID = "core.group"
-    DEFAULT_SIZE = (360.0, 240.0)
-    MIN_SIZE = (80.0, 60.0)
-    DEFAULT_TITLE = "Group"
-    DEFAULT_COLOR = "#5b8def"
+    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.NOTE
+    DEFAULT_SIZE = (220.0, 140.0)
+    DEFAULT_COLOR = "#e8c95a"
 
-    TITLE_KEY = "title"
+    TEXT_KEY = "text"
     COLOR_KEY = "color"
 
     def __init__(self, uuid=None):
-        """Initialize GroupObject.
+        """Initialize NoteObject.
 
         Args:
             uuid (UUID | str | None): object uuid. Generated if omitted.
         """
         super().__init__(uuid=uuid)
-        self.title: str = self.DEFAULT_TITLE
+        self.text: str = ""
         self.color: str = self.DEFAULT_COLOR
 
     @classmethod
     def get_type_id(cls) -> str:
         """str: util object type id."""
-        return CoreUtilObjects.GROUP
+        return CoreUtilObjects.NOTE
 
     @classmethod
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI."""
-        return "Group"
+        return "Note"
 
     @classmethod
     def get_description(cls) -> str:
         """str: what the type does."""
-        return "Titled frame around nodes. Moving it moves the nodes inside."
+        return "Sticky note with free text."
 
     def serialize_properties(self) -> OrderedDict[str, typing.Any]:
-        """OrderedDict[str, typing.Any]: position, size, title and color."""
+        """OrderedDict[str, typing.Any]: position, size, text and color."""
         properties = super().serialize_properties()
-        properties[self.TITLE_KEY] = self.title
+        properties[self.TEXT_KEY] = self.text
         properties[self.COLOR_KEY] = self.color
         return properties
 
     def apply_properties(self, properties: typing.Mapping[str, typing.Any]) -> None:
-        """Set position, size, title and color.
+        """Set position, size, text and color.
 
         Args:
             properties (typing.Mapping[str, typing.Any]): values by name.
         """
         super().apply_properties(properties)
-        if self.TITLE_KEY in properties:
-            self.title = str(properties[self.TITLE_KEY])
+        if self.TEXT_KEY in properties:
+            self.text = str(properties[self.TEXT_KEY])
         if self.COLOR_KEY in properties:
             self.color = str(properties[self.COLOR_KEY])

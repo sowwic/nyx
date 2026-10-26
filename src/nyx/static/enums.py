@@ -28,6 +28,16 @@ class CoreUtilObjects(enum.StrEnum):
     GROUP = "core:group"
 
 
+class CoreGraphicsObjects(enum.StrEnum):
+    """Ids of the graphics objects provided by the editor, as in `graphics_object_id`."""
+
+    NODE = "core.node"
+    PLUG = "core.plug"
+    LINK = "core.link"
+    NOTE = "core.note"
+    GROUP = "core.group"
+
+
 class LinkAnimationStyle(enum.StrEnum):
     """Animations a graphics link can be highlighted with."""
 

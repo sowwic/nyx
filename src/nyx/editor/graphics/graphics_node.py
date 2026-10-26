@@ -9,7 +9,7 @@ from .graphics_node_title import GraphicsNodeTitle
 from .graphics_plug import GraphicsPlug
 from .level_of_detail import LevelOfDetail
 from ..utils.common import build_role_tooltip_html, are_hover_diagnostics_enabled
-from ...static.enums import NodeExecutionStatus
+from ...static.enums import CoreGraphicsObjects, NodeExecutionStatus
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
@@ -27,7 +27,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     @classmethod
     def get_type_id(cls) -> str:
         """str: id the graphics object is registered with."""
-        return "core.node"
+        return CoreGraphicsObjects.NODE
 
     def __init__(self, node: Node, parent=None):
         """Initialize GraphicsNode.

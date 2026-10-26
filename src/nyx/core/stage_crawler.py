@@ -10,8 +10,8 @@ from ..static.enums import NodeExecutionOrderFlag
 
 if typing.TYPE_CHECKING:
     from ..core import Node, Stage
-    from nyx.plugins.core.nodes.flow_start import FlowStartNode
-    from nyx.plugins.core.node_components.flow import FlowComponent
+    from nyx.stdlib.nodes.flow_start import FlowStartNode
+    from nyx.stdlib.node_components.flow import FlowComponent
 
 LOGGER = logging.getLogger(__name__)
 

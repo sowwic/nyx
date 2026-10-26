@@ -9,7 +9,7 @@ from nyx.static.enums import ItemSelectionMode
 from nyx.static.paths import PACKAGE_ROOT
 
 _KEEP_ALIVE = []
-CORE_QML_DIR = PACKAGE_ROOT / "plugins" / "core" / "qml" / "NyxCore"
+CORE_QML_DIR = PACKAGE_ROOT / "stdlib" / "qml" / "NyxCore"
 
 
 class ControllerStub(QtCore.QObject):

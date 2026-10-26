@@ -15,6 +15,7 @@ from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..static.enums import (
+    CoreGraphicsObjects,
     RestoreUuidOption,
     NodeComponentFlag,
     NodeComponentValueMask,
@@ -47,7 +48,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     PATH_SEPARATOR: str = "."
     VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
 
-    GRAPHICS_OBJECT_ID = "core.plug"
+    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.PLUG
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"

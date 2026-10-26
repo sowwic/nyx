@@ -1,6 +1,7 @@
 from PySide6 import QtCore
 
 from nyx.api.v1 import (
+    CoreGraphicsObjects,
     CoreNodes,
     CoreUtilObjects,
     NYX_REGISTRY,
@@ -113,7 +114,7 @@ def test_graphics_object_id_override_is_serialized_and_restored():
     stage = Stage()
     node = _create_node(stage)
     note = _create_util(stage, node=node)
-    assert note.graphics_object_id == "core.note"
+    assert note.graphics_object_id == CoreGraphicsObjects.NOTE
     assert UtilObject.GRAPHICS_OBJECT_ID_KEY not in note.serialize()
 
     note.graphics_object_id = "test.fancy_note"
@@ -130,7 +131,7 @@ def test_graphics_object_id_override_is_serialized_and_restored():
 def test_node_and_component_graphics_object_ids():
     stage = Stage()
     node = _create_node(stage)
-    assert node.graphics_object_id == "core.node"
+    assert node.graphics_object_id == CoreGraphicsObjects.NODE
 
     class Custom(Node):
         GRAPHICS_OBJECT_ID = "test.custom"

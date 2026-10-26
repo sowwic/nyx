@@ -29,14 +29,51 @@ class NyxPluginLoader:
 
         Args:
             plugin_source_paths: optional paths override.
-                If not provided will default to built-in + `NYX_PLUGIN_PATH` env variable
+                If not provided will default to the standard library plugin, the built-in
+                plugins and the `NYX_PLUGIN_PATH` env variable paths
         """
         if plugin_source_paths is None:
             plugin_source_paths = [
+                self._stdlib_path(),
                 self._builtin_plugins_path(),
                 *self._env_plugin_paths(),
             ]
         self.plugin_source_paths = plugin_source_paths
+
+    @staticmethod
+    def _stdlib_path() -> pathlib.Path:
+        """Get path for the directory of the core plugin that others rely on.
+
+        Returns:
+            Nyx standard library directory path.
+
+        Raises:
+            ValueError: Standard library directory is missing.
+        """
+        spec: ModuleSpec = importlib.util.find_spec("nyx.stdlib")
+        if spec is None or spec.submodule_search_locations is None:
+            raise ValueError("No path found for the standard library plugin")
+        return pathlib.Path(spec.submodule_search_locations[0])
+
+    @staticmethod
+    def _importable_module_name(plugin_file: pathlib.Path) -> str | None:
+        """Get the module name of a plugin file that is part of the `nyx` package.
+
+        Args:
+            plugin_file: plugin entry point file path
+
+        Returns:
+            Dotted module name such as `nyx.stdlib.nyx_plugin`, None if the file isn't
+            inside the package.
+        """
+        package_dir = pathlib.Path(
+            importlib.util.find_spec("nyx").submodule_search_locations[0]
+        ).resolve()
+        try:
+            relative = plugin_file.resolve().relative_to(package_dir)
+        except ValueError:
+            return None
+        return ".".join(["nyx", *relative.with_suffix("").parts])
 
     @staticmethod
     def _builtin_plugins_path() -> pathlib.Path:
@@ -86,6 +123,14 @@ class NyxPluginLoader:
         """
         LOGGER.info("Loading plugin from: %s", plugin_file)
         plugin_file = pathlib.Path(plugin_file)
+
+        # Plugins of the package are imported by their real name, so that other
+        # plugins importing from them get the same classes the registry holds.
+        module_name = self._importable_module_name(plugin_file)
+        if module_name is not None:
+            importlib.import_module(module_name)
+            return
+
         package_dir = plugin_file.parent
         package_name = package_dir.name
 

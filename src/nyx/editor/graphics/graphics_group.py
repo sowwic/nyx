@@ -1,6 +1,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.graphics.graphics_util_object import GraphicsUtilObject
+from nyx.static.enums import CoreGraphicsObjects
 from nyx.editor.graphics.level_of_detail import LevelOfDetail
 
 
@@ -28,7 +29,7 @@ class GraphicsGroup(GraphicsUtilObject):
     @classmethod
     def get_type_id(cls) -> str:
         """str: id the graphics object is registered with."""
-        return "core.group"
+        return CoreGraphicsObjects.GROUP
 
     def paint(
         self,

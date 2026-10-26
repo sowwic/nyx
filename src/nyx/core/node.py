@@ -19,6 +19,7 @@ from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from .node_render_options import NodeRenderOptions
 from ..static.enums import (
+    CoreGraphicsObjects,
     CoreNodes,
     RestoreUuidOption,
     NodeExecutionStatus,
@@ -31,8 +32,8 @@ if typing.TYPE_CHECKING:
     from .node_component import NodeComponent
     from .util_object import UtilObject
     from .stage_crawler import NodeVisitor
-    from nyx.plugins.core.nodes.flow_start import FlowStartNode
-    from nyx.plugins.core.node_components.flow import FlowComponent
+    from nyx.stdlib.nodes.flow_start import FlowStartNode
+    from nyx.stdlib.node_components.flow import FlowComponent
 
 
 LOGGER = logging.getLogger(__name__)
@@ -88,7 +89,7 @@ class Node(QtGui.QStandardItem, StageObject):
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
 
-    GRAPHICS_OBJECT_ID = "core.node"
+    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.NODE
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"

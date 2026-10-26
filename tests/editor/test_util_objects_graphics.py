@@ -1,7 +1,13 @@
 import pytest
 from PySide6 import QtCore, QtWidgets
 
-from nyx.api.v1 import CoreNodes, CoreUtilObjects, NYX_REGISTRY, commands
+from nyx.api.v1 import (
+    CoreGraphicsObjects,
+    CoreNodes,
+    CoreUtilObjects,
+    NYX_REGISTRY,
+    commands,
+)
 from nyx.editor.graphics.graphics_group import GraphicsGroup
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_node import GraphicsNode
@@ -45,11 +51,11 @@ def select_nodes(stage_editor, *nodes):
 
 def test_builtin_graphics_objects_are_registered(stage_editor):
     expected = {
-        "core.node": GraphicsNode,
-        "core.plug": GraphicsPlug,
-        "core.link": GraphicsLink,
-        "core.note": GraphicsNote,
-        "core.group": GraphicsGroup,
+        CoreGraphicsObjects.NODE: GraphicsNode,
+        CoreGraphicsObjects.PLUG: GraphicsPlug,
+        CoreGraphicsObjects.LINK: GraphicsLink,
+        CoreGraphicsObjects.NOTE: GraphicsNote,
+        CoreGraphicsObjects.GROUP: GraphicsGroup,
     }
     for type_id, graphics_cls in expected.items():
         assert NYX_REGISTRY.get_graphics_object_cls(type_id) is graphics_cls
@@ -58,7 +64,7 @@ def test_builtin_graphics_objects_are_registered(stage_editor):
 def test_builtin_graphics_objects_survive_a_registry_reset(stage_editor):
     NYX_REGISTRY.reset_graphics_objects()
 
-    assert NYX_REGISTRY.get_graphics_object_cls("core.note") is GraphicsNote
+    assert NYX_REGISTRY.get_graphics_object_cls(CoreGraphicsObjects.NOTE) is GraphicsNote
 
 
 def test_util_objects_are_drawn_with_their_graphics_object(stage_editor, create_util):

@@ -2,7 +2,7 @@ import typing
 from nyx.api.v1 import Stage, CoreNodeComponents, CoreNodes, commands
 
 if typing.TYPE_CHECKING:
-    from nyx.plugins.core.nodes.action import ActionNode
+    from nyx.stdlib.nodes.action import ActionNode
 
 
 def test_action_node_creation():
