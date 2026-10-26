@@ -10,6 +10,7 @@ from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.api.v1 import NyxPluginManager
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.editor.core.actions import register_default_actions
+from nyx.editor.graphics.graphics_factory import register_builtin_graphics_objects
 from nyx.utils import pyside_fn
 from nyx.version import __version__
 
@@ -33,8 +34,16 @@ class NyxApplication(QtWidgets.QApplication):
         self.setApplicationVersion(__version__)
         LOGGER.setLevel(self.config.values.logging_level)
 
+        self.register_builtin_content()
         if initialize_plugins:
             self._plugin_manager.initialize_plugins()
+
+    def register_builtin_content(self) -> None:
+        """Register what the application provides itself, before plugins are loaded.
+
+        Plugins are registered after it, so a plugin can't take an id of the
+        application. Nothing in the base application, the editor adds its own.
+        """
 
     @property
     def session(self) -> NyxSession:
@@ -67,6 +76,10 @@ class NyxEditorApplication(NyxApplication):
         NyxEditorMainWindow.display()
         if self.config.values.editor_behaviour.new_stage_on_launch:
             self.main_window().on_stage_new()
+
+    def register_builtin_content(self) -> None:
+        """Register the graphics objects that draw nodes, plugs and links."""
+        register_builtin_graphics_objects()
 
     def main_window(self) -> NyxEditorMainWindow:
         """Get the editor main window.

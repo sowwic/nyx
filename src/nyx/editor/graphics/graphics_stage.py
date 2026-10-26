@@ -20,10 +20,7 @@ from nyx.core.link import Link
 from nyx.core.stage_object import StageObject
 from nyx.core.stage_render_options import StageRenderOptions
 from nyx.editor.graphics.background.styles import create_background
-from nyx.editor.graphics.graphics_factory import (
-    create_graphics_object,
-    register_builtin_graphics_objects,
-)
+from nyx.editor.graphics.graphics_factory import create_graphics_object
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_link_drag_handler import GraphicsLinkDragHandler
 from nyx.editor.graphics.graphics_node import GraphicsNode
@@ -42,8 +39,6 @@ if typing.TYPE_CHECKING:
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 LOGGER = logging.getLogger(__name__)
-
-register_builtin_graphics_objects()
 
 
 class GraphicsStage(QtWidgets.QGraphicsScene):

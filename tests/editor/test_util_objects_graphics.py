@@ -62,6 +62,25 @@ def test_builtin_graphics_objects_are_registered(stage_editor):
         assert NYX_REGISTRY.get_graphics_object_cls(type_id) is graphics_cls
 
 
+def test_the_editor_application_registers_the_builtin_graphics_objects(
+    qapp, monkeypatch
+):
+    from collections import OrderedDict
+
+    from nyx.application import NyxApplication
+
+    monkeypatch.setattr(NYX_REGISTRY, "_builtin_graphics_objects", OrderedDict())
+    monkeypatch.setattr(NYX_REGISTRY, "graphics_objects", OrderedDict())
+
+    NyxApplication.register_builtin_content(qapp)
+    assert NYX_REGISTRY.graphics_objects == {}
+
+    qapp.register_builtin_content()
+    assert NYX_REGISTRY.get_graphics_object_cls(CoreGraphicsObjects.NODE) is GraphicsNode
+    assert NYX_REGISTRY.get_graphics_object_cls(CoreGraphicsObjects.PLUG) is GraphicsPlug
+    assert NYX_REGISTRY.get_graphics_object_cls(CoreGraphicsObjects.LINK) is GraphicsLink
+
+
 def test_registry_reset_keeps_only_the_builtin_graphics_objects(stage_editor):
     NYX_REGISTRY.reset_graphics_objects()
     try:
