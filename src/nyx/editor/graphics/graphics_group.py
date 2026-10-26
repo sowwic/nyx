@@ -7,7 +7,7 @@ from nyx.editor.graphics.level_of_detail import LevelOfDetail
 class GraphicsGroup(GraphicsUtilObject):
     """Titled frame of a `GroupObject`, drawn behind the nodes.
 
-    The nodes inside the frame when it is pressed move along with it.
+    The nodes, notes and groups inside the frame when it is pressed move along with it.
     """
 
     RADIUS = 10.0
@@ -78,42 +78,46 @@ class GraphicsGroup(GraphicsUtilObject):
         if accepted and title != self.util_object.title:
             self.push_properties({"title": title}, "Rename group")
 
-    def enclosed_gr_nodes(self) -> list:
-        """Find the node items inside the frame that are not selected.
+    def enclosed_items(self) -> list[QtWidgets.QGraphicsItem]:
+        """Find the nodes, notes and groups inside the frame that are not selected.
 
-        Selected nodes move on their own with the selection.
+        Selected items move on their own with the selection.
 
         Returns:
-            list[GraphicsNode]: node items fully inside the frame.
+            list[QtWidgets.QGraphicsItem]: node and util object items fully inside
+                the frame.
         """
         gr_stage = self.gr_stage
         if gr_stage is None:
             return []
         frame = QtCore.QRectF(self.pos(), self.item_size)
-        return [
-            gr_node
+        candidates = [
+            (gr_node, QtCore.QSizeF(gr_node.width, gr_node.height))
             for gr_node in gr_stage.gr_nodes()
-            if not gr_node.isSelected()
-            and frame.contains(
-                QtCore.QRectF(
-                    gr_node.pos(), QtCore.QSizeF(gr_node.width, gr_node.height)
-                )
-            )
+        ] + [
+            (gr_util, gr_util.item_size)
+            for gr_util in gr_stage.gr_util_objects()
+            if gr_util is not self
+        ]
+        return [
+            item
+            for item, size in candidates
+            if not item.isSelected() and frame.contains(QtCore.QRectF(item.pos(), size))
         ]
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        """Remember the nodes inside the frame, they move with it.
+        """Remember the items inside the frame, they move with it.
 
         Args:
             event (QtWidgets.QGraphicsSceneMouseEvent): event.
         """
         grip = self.handle_rect.contains(event.pos())
         if event.button() == QtCore.Qt.LeftButton and not grip and self.is_editable:
-            self._enclosed = self.enclosed_gr_nodes()
+            self._enclosed = self.enclosed_items()
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        """Move the nodes along no more, and push the move.
+        """Stop carrying the items inside the frame, and push the move.
 
         Args:
             event (QtWidgets.QGraphicsSceneMouseEvent): event.
@@ -122,7 +126,7 @@ class GraphicsGroup(GraphicsUtilObject):
         self._enclosed = []
 
     def itemChange(self, change, value):
-        """Move the enclosed nodes by the distance the frame moves.
+        """Move the enclosed items by the distance the frame moves.
 
         Args:
             change (QtWidgets.QGraphicsItem.GraphicsItemChange): kind of change.
@@ -136,6 +140,6 @@ class GraphicsGroup(GraphicsUtilObject):
             and self._enclosed
         ):
             delta = value - self.pos()
-            for gr_node in self._enclosed:
-                gr_node.setPos(gr_node.pos() + delta)
+            for item in self._enclosed:
+                item.setPos(item.pos() + delta)
         return super().itemChange(change, value)

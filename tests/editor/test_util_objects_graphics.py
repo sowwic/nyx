@@ -288,7 +288,7 @@ def test_moving_a_group_moves_the_nodes_inside(stage_editor, create_node, create
     gr_stage.rebuild_current_scope()
     gr_group = gr_stage.get_gr_util_object(group)
 
-    gr_group._enclosed = gr_group.enclosed_gr_nodes()
+    gr_group._enclosed = gr_group.enclosed_items()
     gr_group.setPos(100, 50)
     gr_stage.commit_moves()
 
@@ -338,3 +338,41 @@ def test_notes_and_groups_paint(stage_editor, create_util):
 
     # The note is drawn in its color inside the selection outline.
     assert image.pixelColor(60, 80) == QtGui.QColor(note.color)
+
+
+def test_moving_a_group_moves_the_notes_and_groups_inside(stage_editor, create_util):
+    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    inner_note = create_util(position=(20, 40), size=(100, 60))
+    inner_group = create_util(
+        CoreUtilObjects.GROUP, position=(200, 100), size=(150, 100)
+    )
+    straddling = create_util(position=(550, 350), size=(200, 100))
+    far_away = create_util(position=(2000, 2000))
+    gr_stage = stage_editor.gr_stage
+    gr_group = gr_stage.get_gr_util_object(group)
+
+    gr_group._enclosed = gr_group.enclosed_items()
+    gr_group.setPos(100, 50)
+    gr_stage.commit_moves()
+
+    assert group.position == QtCore.QPointF(100, 50)
+    assert inner_note.position == QtCore.QPointF(120, 90)
+    assert inner_group.position == QtCore.QPointF(300, 150)
+    assert straddling.position == QtCore.QPointF(550, 350)
+    assert far_away.position == QtCore.QPointF(2000, 2000)
+
+    stage_editor.stage.undo_stack.undo()
+    assert group.position == QtCore.QPointF(0, 0)
+    assert inner_note.position == QtCore.QPointF(20, 40)
+    assert inner_group.position == QtCore.QPointF(200, 100)
+
+
+def test_selected_notes_inside_a_group_are_not_moved_twice(stage_editor, create_util):
+    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    note = create_util(position=(20, 40), size=(100, 60))
+    gr_stage = stage_editor.gr_stage
+    gr_stage.get_gr_util_object(note).setSelected(True)
+
+    gr_group = gr_stage.get_gr_util_object(group)
+
+    assert gr_group.enclosed_items() == []
