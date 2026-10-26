@@ -28,6 +28,8 @@ class GraphicsUtilObject(QtWidgets.QGraphicsItem):
     }
     SELECTED_COLOR = QtGui.QColor("#FFA637")
     HANDLE_SIZE = 14.0
+    GRIP_INSET = 5.0
+    """float: distance of the drawn grip lines from the corner, clear of the border."""
     Z_VALUE = 0.0
 
     def __init__(self, util_object: UtilObject, parent: QtWidgets.QGraphicsItem = None):
@@ -157,7 +159,7 @@ class GraphicsUtilObject(QtWidgets.QGraphicsItem):
                 QtCore.QRectF(QtCore.QPointF(), self._size), radius, radius
             )
         if self.is_editable and (self.isSelected() or self.isUnderMouse()):
-            handle = self.handle_rect.adjusted(4, 4, -2, -2)
+            handle = self.handle_rect.adjusted(4, 4, -self.GRIP_INSET, -self.GRIP_INSET)
             painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 160), 1.5))
             for offset in (0.0, 4.0, 8.0):
                 painter.drawLine(
