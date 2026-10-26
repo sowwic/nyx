@@ -1,5 +1,5 @@
-from nyx.core.layered_config import NyxConfig
-from nyx.editor.utils.common import are_hover_diagnostics_enabled, get_app_config
+from nyx.core.layered_config import NyxConfig, get_app_config
+from nyx.editor.utils.common import are_hover_diagnostics_enabled
 
 
 def test_app_config_is_the_config_of_the_application(qapp):
@@ -10,7 +10,7 @@ def test_without_an_application_config_a_resolved_one_is_made(monkeypatch):
     resolved = []
     monkeypatch.setattr(NyxConfig, "resolve", lambda self: resolved.append(self))
     monkeypatch.setattr(
-        "nyx.editor.utils.common.QtWidgets.QApplication.instance", lambda: None
+        "nyx.core.layered_config.QtCore.QCoreApplication.instance", lambda: None
     )
 
     config = get_app_config()

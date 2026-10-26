@@ -12,6 +12,7 @@ if typing.TYPE_CHECKING:
     from ..node import Node
     from ..node_component import NodeComponent
     from ..datatypes.datatype import Datatype
+    from ..util_object import UtilObject
 
 
 logging.setLoggerClass(NyxLogger)
@@ -45,6 +46,8 @@ class NyxRegistry:
         node_components: component classes by type id
         nodes: node classes by type id
         datatypes: datatypes by type id
+        util_objects: util object classes by type id
+        graphics_objects: graphics object classes by type id, built-in ones included
         qml_import_root_directories: QML import roots of registered plugins
     """
 
@@ -60,8 +63,17 @@ class NyxRegistry:
     datatypes: OrderedDict[str, Datatype] = dataclasses.field(
         init=False, default_factory=OrderedDict
     )
+    util_objects: OrderedDict[str, type[UtilObject]] = dataclasses.field(
+        init=False, default_factory=OrderedDict
+    )
+    graphics_objects: OrderedDict[str, type] = dataclasses.field(
+        init=False, default_factory=OrderedDict
+    )
     qml_import_root_directories: list[pathlib.Path] = dataclasses.field(
         init=False, default_factory=list
+    )
+    _builtin_graphics_objects: OrderedDict[str, type] = dataclasses.field(
+        init=False, default_factory=OrderedDict
     )
 
     def __post_init__(self):
@@ -73,8 +85,10 @@ class NyxRegistry:
         self.nodes.clear()
         self.node_components.clear()
         self.datatypes.clear()
+        self.util_objects.clear()
         self.plugins.clear()
         self.qml_import_root_directories.clear()
+        self.reset_graphics_objects()
 
     def get_plugin(self, name: str) -> NyxPluginRegistryEntry | None:
         """Get plugin registry entry by name.
@@ -128,7 +142,9 @@ class NyxRegistry:
         self.nodes.clear()
         self.node_components.clear()
         self.datatypes.clear()
+        self.util_objects.clear()
         self.register_core_datatypes()
+        self.reset_graphics_objects()
 
         for plugin_entry in self.iter_plugin_entries():
             if not plugin_entry.plugin_instance:
@@ -146,6 +162,8 @@ class NyxRegistry:
             self.register_node_components(plugin_entry)
             self.register_nodes(plugin_entry)
             self.register_datatypes(plugin_entry)
+            self.register_util_objects(plugin_entry)
+            self.register_graphics_objects(plugin_entry)
             self.register_qml_import_root(plugin_entry)
 
     def register_node_components(self, plugin_entry: NyxPluginRegistryEntry):
@@ -205,6 +223,105 @@ class NyxRegistry:
                 node_cls.__name__,
                 plugin_entry.plugin_cls.get_type_id(),
             )
+
+    def register_util_objects(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the util objects provided by a plugin. Duplicates are skipped.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): initialized plugin entry.
+        """
+        LOGGER.debug("Registering new util objects...")
+        for util_object_cls in plugin_entry.plugin_instance.contents.util_objects:
+            type_id = util_object_cls.get_type_id()
+            if type_id in self.util_objects:
+                LOGGER.error(
+                    "Failed to register util object class %s - "
+                    "TYPE_ID %s is already registered as %s",
+                    util_object_cls.__name__,
+                    type_id,
+                    self.util_objects[type_id],
+                )
+                continue
+
+            self.util_objects[type_id] = util_object_cls
+            util_object_cls.SOURCE_PLUGIN = plugin_entry
+            LOGGER.debug(
+                "Registered util object %s (%s) from %s",
+                type_id,
+                util_object_cls.__name__,
+                plugin_entry.plugin_cls.get_type_id(),
+            )
+
+    def get_util_object_cls(self, type_id: str) -> type[UtilObject] | None:
+        """Get a util object class.
+
+        Args:
+            type_id (str): util object type id.
+
+        Returns:
+            type[UtilObject] | None: class, None (and an error is logged) if not
+                registered.
+        """
+        try:
+            return self.util_objects[type_id]
+        except KeyError:
+            LOGGER.error(
+                f"Invalid util object type_id: {type_id}\n"
+                f"Available Types: {self.util_objects.keys()}"
+            )
+
+    def register_builtin_graphics_object(self, type_id: str, graphics_cls: type):
+        """Register a graphics object that exists whatever plugins are enabled.
+
+        Args:
+            type_id (str): graphics object type id.
+            graphics_cls (type): graphics object class.
+        """
+        self._builtin_graphics_objects[type_id] = graphics_cls
+        self.graphics_objects[type_id] = graphics_cls
+
+    def reset_graphics_objects(self):
+        """Drop the graphics objects of plugins, keeping the built-in ones."""
+        self.graphics_objects.clear()
+        self.graphics_objects.update(self._builtin_graphics_objects)
+
+    def register_graphics_objects(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the graphics objects provided by a plugin. Duplicates are skipped.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): initialized plugin entry.
+        """
+        LOGGER.debug("Registering new graphics objects...")
+        for graphics_cls in plugin_entry.plugin_instance.contents.graphics_objects:
+            type_id = graphics_cls.get_type_id()
+            if type_id in self.graphics_objects:
+                LOGGER.error(
+                    "Failed to register graphics object class %s - "
+                    "TYPE_ID %s is already registered as %s",
+                    graphics_cls.__name__,
+                    type_id,
+                    self.graphics_objects[type_id],
+                )
+                continue
+
+            self.graphics_objects[type_id] = graphics_cls
+            LOGGER.debug(
+                "Registered graphics object %s (%s) from %s",
+                type_id,
+                graphics_cls.__name__,
+                plugin_entry.plugin_cls.get_type_id(),
+            )
+
+    def get_graphics_object_cls(self, type_id: str) -> type | None:
+        """Get a graphics object class.
+
+        Args:
+            type_id (str): graphics object type id.
+
+        Returns:
+            type | None: class, None if not registered.
+        """
+        return self.graphics_objects.get(type_id)
 
     def register_core_datatypes(self):
         """Register the built-in datatypes, which exist whatever plugins are enabled."""

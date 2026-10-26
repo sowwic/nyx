@@ -3,7 +3,7 @@ import typing
 from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands, exceptions
 
 if typing.TYPE_CHECKING:
-    from nyx.plugins.core.nodes.setter import SetterNode
+    from nyx.stdlib.nodes.setter import SetterNode
 
 
 def test_setter_creation():

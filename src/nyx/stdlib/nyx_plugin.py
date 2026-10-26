@@ -27,20 +27,26 @@ from .nodes.type_cast import TypeCastNode
 from .nodes.get_type import GetTypeNode
 from .nodes.reference import ReferenceNode
 
+from .util_objects.note import NoteObject
+from .util_objects.group import GroupObject
+
+from .graphics_objects.note import GraphicsNote
+from .graphics_objects.group import GraphicsGroup
+
 
 LOGGER = logging.getLogger(__name__)
 
 
 @NyxPluginManager.register_plugin()
-class NyxCore(NyxPlugin):
+class NyxStdlib(NyxPlugin):
     """Built-in plugin providing the core nodes and node components."""
 
-    QML_MODULE_NAME = "NyxCore"
+    QML_MODULE_NAME = "NyxStdlib"
 
     @classmethod
     def get_type_id(cls) -> str:
         """str: plugin id."""
-        return "NyxCore"
+        return "NyxStdlib"
 
     @classmethod
     def get_palette_name(cls) -> str:
@@ -80,5 +86,7 @@ class NyxCore(NyxPlugin):
             GetTypeNode,
             ReferenceNode,
         ]
+        plugin.contents.util_objects = [NoteObject, GroupObject]
+        plugin.contents.graphics_objects = [GraphicsNote, GraphicsGroup]
 
         return plugin

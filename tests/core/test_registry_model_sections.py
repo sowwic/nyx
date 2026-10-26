@@ -13,8 +13,8 @@ def test_registered_types_know_their_plugin():
     core_node = NYX_REGISTRY.nodes["core:branch"]
     core_component = NYX_REGISTRY.node_components["core:value"]
 
-    assert core_node.get_source_plugin_name() == "NyxCore"
-    assert core_component.get_source_plugin_name() == "NyxCore"
+    assert core_node.get_source_plugin_name() == "NyxStdlib"
+    assert core_component.get_source_plugin_name() == "NyxStdlib"
 
 
 def test_registry_model_exposes_the_source_plugin_role():
@@ -42,7 +42,7 @@ def test_registry_model_keeps_the_types_of_a_plugin_together():
         if not seen or seen[-1] != plugin:
             assert plugin not in seen
             seen.append(plugin)
-    assert "NyxCore" in seen
+    assert "NyxStdlib" in seen
 
 
 def test_registry_model_provides_tags_as_a_sorted_list():

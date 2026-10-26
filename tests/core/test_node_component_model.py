@@ -16,7 +16,7 @@ from nyx.api.v1 import (
 from nyx.utils import file_fn
 
 if typing.TYPE_CHECKING:
-    from nyx.plugins.core.nodes.action import ActionNode
+    from nyx.stdlib.nodes.action import ActionNode
 
 LOGGER = logging.getLogger(__name__)
 

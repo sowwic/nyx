@@ -1,4 +1,4 @@
-module NyxCore
+module NyxStdlib
 
 CommentComponentItem 1.0 CommentComponentItem.qml
 FlowComponentItem 1.0 FlowComponentItem.qml

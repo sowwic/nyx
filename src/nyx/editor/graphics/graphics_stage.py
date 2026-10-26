@@ -20,19 +20,22 @@ from nyx.core.link import Link
 from nyx.core.stage_object import StageObject
 from nyx.core.stage_render_options import StageRenderOptions
 from nyx.editor.graphics.background.styles import create_background
+from nyx.editor.graphics.graphics_factory import create_graphics_object
 from nyx.editor.graphics.graphics_link import GraphicsLink
 from nyx.editor.graphics.graphics_link_drag_handler import GraphicsLinkDragHandler
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.graphics.graphics_plug import GraphicsPlug
+from nyx.editor.graphics.graphics_util_object import GraphicsUtilObject
 from nyx.editor.graphics.animation.link_animator import LinkAnimator, ViewArea
 from nyx.editor.graphics.animation.styles import ANIMATION_CLASSES, create_animation
-from nyx.editor.utils.common import get_app_config
+from nyx.core.layered_config import get_app_config
 from nyx.static.enums import CoreNodeComponents, LinkAnimationStyle, StageBackGroundStyle
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import Node
     from nyx.core.node_component import NodeComponent
     from nyx.core.stage import Stage
+    from nyx.core.util_object import UtilObject
     from nyx.editor.widgets.stage_graph_editor import StageGraphEditor
 
 LOGGER = logging.getLogger(__name__)
@@ -59,6 +62,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self._graph_editor = graph_editor
         self._gr_nodes: dict[UUID, GraphicsNode] = {}
         self._gr_links: dict[UUID, GraphicsLink] = {}
+        self._gr_util_objects: dict[UUID, GraphicsUtilObject] = {}
         self._link_drag_handler = GraphicsLinkDragHandler(self)
         self._link_drag_handler.drag_changed.connect(self.link_drag_changed)
         self._link_animator = LinkAnimator(visible_areas=self._view_areas, parent=self)
@@ -218,7 +222,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             node: The node to create a GraphicsNode for.
 
         Returns:
-            GraphicsNode | None: item for the node, None if the node is out of scope.
+            GraphicsNode | None: item for the node, None if the node is out of scope
+                or isn't drawn.
         """
         node = self.stage.get_object(node)
         if not self.is_in_scope(node):
@@ -231,7 +236,9 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                 return gr_node
             self.remove_node(node.uuid)
 
-        gr_node = GraphicsNode(node)
+        gr_node = create_graphics_object(node, node)
+        if gr_node is None:
+            return None
         self._gr_nodes[node.uuid] = gr_node
         self.addItem(gr_node)
         return gr_node
@@ -272,6 +279,128 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             else:
                 gr_node.refresh()
 
+    # ======== Util objects ========= #
+
+    def gr_util_objects(self) -> list[GraphicsUtilObject]:
+        """Returns all items of util objects (notes, groups, ...) in the scene."""
+        return list(self._gr_util_objects.values())
+
+    def get_gr_util_object(
+        self, util_object: UtilObject | UUID
+    ) -> GraphicsUtilObject | None:
+        """Returns the item drawn for the given util object, if there is one.
+
+        Args:
+            util_object (UtilObject | UUID): util object or its uuid.
+        """
+        return self._gr_util_objects.get(getattr(util_object, "uuid", util_object))
+
+    def selected_gr_util_objects(self) -> list[GraphicsUtilObject]:
+        """Returns the selected util object items in the scene."""
+        return [
+            item for item in self.selectedItems() if isinstance(item, GraphicsUtilObject)
+        ]
+
+    def is_selection_empty(self) -> bool:
+        """Check if neither a node nor a util object is selected."""
+        return self.is_gr_node_selection_empty() and not self.selected_gr_util_objects()
+
+    def add_util_object(self, util_object: UtilObject) -> GraphicsUtilObject | None:
+        """Adds the item of a util object to the scene.
+
+        Args:
+            util_object (UtilObject): util object to draw.
+
+        Returns:
+            GraphicsUtilObject | None: item for the util object, None if it isn't
+                drawn.
+        """
+        gr_util = self._gr_util_objects.get(util_object.uuid)
+        if gr_util is not None:
+            if gr_util.util_object is util_object:
+                return gr_util
+            self.remove_util_object(util_object.uuid)
+
+        gr_util = create_graphics_object(util_object, util_object)
+        if gr_util is None:
+            return None
+        self._gr_util_objects[util_object.uuid] = gr_util
+        self.addItem(gr_util)
+        return gr_util
+
+    def remove_util_object(self, util_object: UtilObject | UUID) -> None:
+        """Removes the item of the given util object, if there is one.
+
+        Args:
+            util_object (UtilObject | UUID): util object or its uuid.
+        """
+        gr_util = self._gr_util_objects.pop(
+            getattr(util_object, "uuid", util_object), None
+        )
+        if gr_util is not None:
+            self.removeItem(gr_util)
+
+    def clear_util_objects(self) -> None:
+        """Removes all util object items from the scene."""
+        for uuid in list(self._gr_util_objects):
+            self.remove_util_object(uuid)
+
+    def build_util_objects(self, scope_node: Node) -> None:
+        """Make the util object items match the util objects of the scope node.
+
+        Args:
+            scope_node (Node): node being drawn.
+        """
+        util_objects = {each.uuid: each for each in scope_node.util_objects}
+        for uuid, gr_util in list(self._gr_util_objects.items()):
+            if util_objects.get(uuid) is not gr_util.util_object:
+                self.remove_util_object(uuid)
+
+        for uuid, util_object in util_objects.items():
+            gr_util = self._gr_util_objects.get(uuid)
+            if gr_util is None:
+                self.add_util_object(util_object)
+            else:
+                gr_util.refresh()
+
+    def commit_moves(self) -> None:
+        """Push one command for all node and util object items moved with the mouse."""
+        stage = self.stage
+        nodes, node_positions = [], []
+        for gr_node in self.gr_nodes():
+            if gr_node.pos() != gr_node.node.position():
+                nodes.append(gr_node.node)
+                node_positions.append(gr_node.pos())
+        util_changes = {
+            gr_util.util_object: {"position": [gr_util.pos().x(), gr_util.pos().y()]}
+            for gr_util in self.gr_util_objects()
+            if gr_util.pos() != gr_util.util_object.position
+        }
+        if not nodes and not util_changes:
+            return
+
+        move_commands = []
+        if nodes:
+            move_commands.append(
+                commands.MoveNodeCommand(
+                    stage=stage, nodes=nodes, new_positions=node_positions
+                )
+            )
+        if util_changes:
+            move_commands.append(
+                commands.SetUtilObjectPropertiesCommand(
+                    stage, util_changes, text="Moved util objects"
+                )
+            )
+        if len(move_commands) == 1:
+            stage.push_command(move_commands[0])
+            return
+        stage.undo_stack.beginMacro("Moved items")
+        try:
+            stage.push_command(*move_commands)
+        finally:
+            stage.undo_stack.endMacro()
+
     # ======== Links ========= #
 
     def gr_links(self) -> list[GraphicsLink]:
@@ -288,7 +417,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def add_link(
         self, link: Link, source_plug: GraphicsPlug, target_plug: GraphicsPlug
-    ) -> GraphicsLink:
+    ) -> GraphicsLink | None:
         """Adds a GraphicsLink item between two plugs.
 
         Args:
@@ -297,10 +426,14 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             target_plug (GraphicsPlug): plug the link ends at.
 
         Returns:
-            GraphicsLink: new item.
+            GraphicsLink | None: new item, None if the link isn't drawn.
         """
         self.remove_link(link.uuid)
-        gr_link = GraphicsLink(source_plug, target_plug, link_uuid=link.uuid)
+        gr_link = create_graphics_object(
+            link, source_plug, target_plug, link_uuid=link.uuid
+        )
+        if gr_link is None:
+            return None
         gr_link.attach()
         self._gr_links[link.uuid] = gr_link
         self.addItem(gr_link)
@@ -574,16 +707,23 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
         LOGGER.debug(f"Rebuilding scope: {scope_path}")
         previous_selection = self.list_selected_node_paths()
+        previous_util_selection = [gr.uuid for gr in self.selected_gr_util_objects()]
         self.cancel_link_drag()
         self.clear_links()
         if scope_path != self._scope_path:
             self.clear_nodes()
+            self.clear_util_objects()
             self._scope_path = scope_path
         scope_node = self.stage.get_object(scope_path)
         self.build_nodes(scope_node)
+        self.build_util_objects(scope_node)
         self.build_links(scope_node)
         self.update_flow_chain_highlight(scope_node)
         self._restore_selection(previous_selection)
+        for uuid in previous_util_selection:
+            gr_util = self._gr_util_objects.get(uuid)
+            if gr_util is not None:
+                gr_util.setSelected(True)
 
     def _restore_selection(self, paths: list[pathlib.PurePosixPath]):
         """Select the items of nodes that are still drawn.
@@ -615,7 +755,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """Updates the scene selection to match the selection in the selection model."""
         self.blockSignals(True)
         try:
-            self.clearSelection()
+            for gr_node in list(self.selected_gr_nodes()):
+                gr_node.setSelected(False)
             selected_nodes = [
                 self.stage.itemFromIndex(index)
                 for index in self.selection_model.selectedIndexes()

@@ -11,6 +11,7 @@ from nyx.static.vars import ROOT_NODE_PATH
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_stage import GraphicsStage
+from nyx.core.layered_config import get_app_config
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
@@ -54,7 +55,6 @@ class StageGraphEditor(QtWidgets.QWidget):
         super().__init__(parent=parent)
         self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
-        self.last_saved_undo_index = 0
         self._selection_model = QtCore.QItemSelectionModel()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
@@ -103,6 +103,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         old_stage = self.stage
         if stage is None:
             stage = Stage()
+        stage.undo_limit = get_app_config().values.editor_behaviour.undo_limit
         session = self.main_window.application.session
         if old_stage:
             session.unregister_stage(old_stage)

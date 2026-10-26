@@ -11,7 +11,7 @@ from nyx.editor.utils.common import (
     build_component_tooltip_html,
     build_role_tooltip_html,
 )
-from nyx.static.enums import GraphicsPlugShape
+from nyx.static.enums import CoreGraphicsObjects, GraphicsPlugShape
 
 if typing.TYPE_CHECKING:
     from nyx.core.node_component import NodeComponent
@@ -36,6 +36,11 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     SOCKET_INSET = 10.0  # distance of the sockets from the sides of the node
     LABEL_COLOR = QtGui.QColor("#CCCCCC")
     LABEL_FONT = QtGui.QFont("Zed Mono", 10)
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        """str: id the graphics object is registered with."""
+        return CoreGraphicsObjects.PLUG
 
     def __init__(self, component: NodeComponent, gr_node: GraphicsNode):
         """Initialize GraphicsPlug.

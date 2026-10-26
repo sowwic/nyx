@@ -7,7 +7,7 @@ from collections import OrderedDict
 from .stage_object import StageObject
 from .path_resolver import StagePathResolver
 from .exceptions import StageObjectQueryError
-from ..static.enums import RestoreUuidOption
+from ..static.enums import CoreGraphicsObjects, RestoreUuidOption
 
 if typing.TYPE_CHECKING:
     from .stage import Stage
@@ -49,6 +49,11 @@ class Link(StageObject):
     def __repr__(self) -> str:
         """str: link class name and the connected paths."""
         return f"({self.__class__.__name__}): {self.path_connection_str}"
+
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """str | None: id of the graphics object drawing the type."""
+        return CoreGraphicsObjects.LINK
 
     @property
     def stage(self) -> Stage:

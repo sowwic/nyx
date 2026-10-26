@@ -2,6 +2,7 @@ from pydantic.dataclasses import Field
 
 from nyx.core.config_values.base_values import NyxBaseConfigValues
 from nyx.static.enums import LinkAnimationStyle, LinkStyle, StageBackGroundStyle
+from nyx.static.vars import DEFAULT_GROUP_COLOR, DEFAULT_NOTE_COLOR
 
 
 class NyxEditorGraphicsNodeConfigValues(NyxBaseConfigValues):
@@ -30,3 +31,7 @@ class NyxEditorGraphicsStageConfigValues(NyxBaseConfigValues):
     """Pattern the stage background is drawn with, one of: grid, dots."""
     background_color: str = Field(default="#393939")
     """Color the stage background is filled with, as a hex color such as #393939."""
+    default_note_color: str = Field(default=DEFAULT_NOTE_COLOR)
+    """Color new notes get, as a hex color such as #e8c95a."""
+    default_group_color: str = Field(default=DEFAULT_GROUP_COLOR)
+    """Color new groups get, as a hex color such as #5b8def."""

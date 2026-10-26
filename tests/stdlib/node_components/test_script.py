@@ -4,7 +4,7 @@ import pytest
 from nyx.api.v1 import Stage, commands, CoreNodes, CoreNodeComponents
 
 if typing.TYPE_CHECKING:
-    from nyx.plugins.core.nodes.action import ActionNode
+    from nyx.stdlib.nodes.action import ActionNode
 
 
 def test_script_uses_node_ref(make_script: typing.Callable):

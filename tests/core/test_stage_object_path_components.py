@@ -12,7 +12,7 @@ from nyx.api.v1 import (
     commands,
     exceptions,
 )
-from nyx.plugins.core.node_components.object_path import StageObjectPathComponent
+from nyx.stdlib.node_components.object_path import StageObjectPathComponent
 
 
 def create(stage, type_id=CoreNodes.ACTION, name=None, parent=None):

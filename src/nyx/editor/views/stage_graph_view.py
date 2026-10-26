@@ -11,6 +11,7 @@ from nyx.editor.core.action_condition import CallableCondition
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
 from nyx.editor.graphics.graphics_node import GraphicsNode
+from nyx.editor.graphics.graphics_util_object import GraphicsUtilObject
 from nyx.editor.utils import context_menus
 from nyx.editor.views.stage_graph_actions import StageGraphActions
 from nyx.editor.views.stage_graph_zoom import StageGraphZoom
@@ -188,7 +189,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
         """StageGraphViewState: what the view currently allows."""
         return StageGraphViewState(
             is_idle=self.is_idle,
-            has_selection=not self.gr_stage.is_gr_node_selection_empty(),
+            has_selection=not self.gr_stage.is_selection_empty(),
         )
 
     def create_connections(self):
@@ -319,6 +320,22 @@ class StageGraphView(QtWidgets.QGraphicsView):
             GraphicsNode | None: owning node item, if any.
         """
         while gr_item is not None and not isinstance(gr_item, GraphicsNode):
+            gr_item = gr_item.parentItem()
+        return gr_item
+
+    @staticmethod
+    def _owning_gr_util_object(
+        gr_item: QtWidgets.QGraphicsItem | None,
+    ) -> GraphicsUtilObject | None:
+        """Find the util object item that `gr_item` is, or is a child of.
+
+        Args:
+            gr_item (QtWidgets.QGraphicsItem | None): item under the cursor.
+
+        Returns:
+            GraphicsUtilObject | None: util object item, if any.
+        """
+        while gr_item is not None and not isinstance(gr_item, GraphicsUtilObject):
             gr_item = gr_item.parentItem()
         return gr_item
 
@@ -572,9 +589,18 @@ class StageGraphView(QtWidgets.QGraphicsView):
         if not state.is_idle:
             return
         ACTION_ROUTER.refresh_enabled()
+        gr_util = self._owning_gr_util_object(self.itemAt(point))
+        if gr_util is not None:
+            if not gr_util.isSelected():
+                self.gr_stage.clearSelection()
+                gr_util.setSelected(True)
+            menu = context_menus.build_util_object_context_menu(self, gr_util)
+            context_menus.show_menu(menu, self.mapToGlobal(point))
+            return
         menu = context_menus.build_nodes_context_menu(
             self,
             has_selection=state.has_selection,
+            with_util_objects=True,
             has_reference=any(
                 gr_node.node.get_source_file() is not None
                 for gr_node in self.gr_stage.selected_gr_nodes()

@@ -2,7 +2,7 @@ import typing
 from nyx.api.v1 import Stage, CoreNodeComponents, CoreNodes, commands
 
 if typing.TYPE_CHECKING:
-    from nyx.plugins.core.nodes.sequence import SequenceNode
+    from nyx.stdlib.nodes.sequence import SequenceNode
 
 
 def test_sequence_node_creation():

@@ -6,7 +6,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from nyx.core.node_component import NodeComponent
 from nyx.editor.graphics.level_of_detail import LevelOfDetail
 from nyx.editor.graphics.link_path import build_link_path, get_link_style
-from nyx.static.enums import LinkStyle
+from nyx.static.enums import CoreGraphicsObjects, LinkStyle
 
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
@@ -34,6 +34,11 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
 
     WIDTH = 2.0
     PREVIEW_OPACITY = 0.8
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        """str: id the graphics object is registered with."""
+        return CoreGraphicsObjects.LINK
 
     def __init__(
         self,

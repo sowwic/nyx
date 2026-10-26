@@ -6,7 +6,7 @@ import html
 from PySide6 import QtCore, QtGui, QtWidgets, QtQml
 
 from ...core.datatypes.datatype import value_to_class_name
-from ...core.layered_config import NyxConfig
+from ...core.layered_config import get_app_config
 from ...static.enums import CoreDatatypes, NoteFormat
 from ...static.vars import DEBUG
 
@@ -73,21 +73,6 @@ def blocked_signals(*objs):
     finally:
         for o, p in zip(objs, previous):
             o.blockSignals(p)
-
-
-def get_app_config() -> NyxConfig:
-    """Get the config of the running application.
-
-    Returns:
-        NyxConfig: config the application loaded at startup, so it has the values of
-            the user's config file. Without an application a new config is created and
-            resolved.
-    """
-    config = getattr(QtWidgets.QApplication.instance(), "config", None)
-    if config is None:
-        config = NyxConfig()
-        config.resolve()
-    return config
 
 
 def are_hover_diagnostics_enabled() -> bool:

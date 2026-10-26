@@ -1,0 +1,58 @@
+import logging
+import typing
+
+from PySide6 import QtWidgets
+
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
+
+if typing.TYPE_CHECKING:
+    from nyx.core.stage_object import StageObject
+
+
+LOGGER = logging.getLogger(__name__)
+
+
+def register_builtin_graphics_objects() -> None:
+    """Register the graphics objects drawing nodes, plugs and links.
+
+    The ones drawing the util objects of the standard library come with its plugin.
+    """
+    from nyx.editor.graphics.graphics_link import GraphicsLink
+    from nyx.editor.graphics.graphics_node import GraphicsNode
+    from nyx.editor.graphics.graphics_plug import GraphicsPlug
+
+    for graphics_cls in (GraphicsNode, GraphicsPlug, GraphicsLink):
+        NYX_REGISTRY.register_builtin_graphics_object(
+            graphics_cls.get_type_id(), graphics_cls
+        )
+
+
+def create_graphics_object(
+    stage_object: StageObject, *args: typing.Any, **kwargs: typing.Any
+) -> QtWidgets.QGraphicsItem | None:
+    """Create the graphics object that draws a stage object.
+
+    The class is looked up in the registry by the graphics object id of the type of
+    the stage object (`get_graphics_object_id`).
+
+    Args:
+        stage_object (StageObject): node, component, link or util object to draw.
+        *args: positional arguments for the graphics object.
+        **kwargs: keyword arguments for the graphics object.
+
+    Returns:
+        QtWidgets.QGraphicsItem | None: new graphics object, None if the stage object
+            isn't drawn: its type has no graphics object id, or none is registered
+            with that id.
+    """
+    graphics_id = type(stage_object).get_graphics_object_id()
+    if graphics_id is None:
+        return None
+
+    graphics_cls = NYX_REGISTRY.get_graphics_object_cls(graphics_id)
+    if graphics_cls is None:
+        LOGGER.error(
+            "Unknown graphics object %r, can't draw %s", graphics_id, stage_object
+        )
+        return None
+    return graphics_cls(*args, **kwargs)

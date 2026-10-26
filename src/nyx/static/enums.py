@@ -21,6 +21,26 @@ class CoreNodes(enum.StrEnum):
     REFERENCE = "core:reference"
 
 
+class CoreUtilObjects(enum.StrEnum):
+    """Type ids of the util objects provided by the core plugin."""
+
+    NOTE = "core:note"
+    GROUP = "core:group"
+
+
+class CoreGraphicsObjects(enum.StrEnum):
+    """Ids of the graphics objects provided by the editor.
+
+    Types return them from `get_graphics_object_id`.
+    """
+
+    NODE = "core.node"
+    PLUG = "core.plug"
+    LINK = "core.link"
+    NOTE = "core.note"
+    GROUP = "core.group"
+
+
 class LinkAnimationStyle(enum.StrEnum):
     """Animations a graphics link can be highlighted with."""
 

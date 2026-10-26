@@ -5,7 +5,7 @@ import typing
 from PySide6 import QtCore, QtGui
 
 from nyx.editor.graphics.animation.link_animation import LinkAnimation, color_from_config
-from nyx.editor.utils.common import get_app_config
+from nyx.core.layered_config import get_app_config
 
 if typing.TYPE_CHECKING:
     from nyx.core.config_values.animation_values import (

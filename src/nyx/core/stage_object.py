@@ -4,7 +4,6 @@ import logging
 from collections import OrderedDict
 from uuid import UUID, uuid4
 
-from PySide6 import QtCore
 
 from ..static.enums import RestoreUuidOption
 
@@ -60,6 +59,18 @@ class StageObject:
         self._uuid = value
         self.stage.uuid_map[self._uuid] = self
 
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """Get the id of the graphics object drawing objects of the type.
+
+        Override it in subclasses to draw the objects of the type with a graphics
+        object registered in the registry.
+
+        Returns:
+            str | None: graphics object id, None if objects of the type aren't drawn.
+        """
+        return None
+
     @property
     def path(self) -> pathlib.PosixPath:
         """pathlib.PosixPath: path in the stage. Subclasses must implement."""
@@ -85,41 +96,6 @@ class StageObject:
             )
 
         return serialized_data
-
-    @classmethod
-    def deserialize(
-        cls,
-    ) -> StageObject:
-        """Create an object from serialized data. Subclasses must implement.
-
-        Returns:
-            StageObject: deserialized object.
-        """
-        raise NotImplementedError(
-            "StageObject subclass must implement deserialize() method"
-        )
-
-    @classmethod
-    def resolve_qml_source(cls, component_path: str) -> QtCore.QUrl:
-        """Resolve a QML file of the plugin that provides this type.
-
-        Args:
-            component_path (str): path relative to the plugin QML directory.
-
-        Returns:
-            QtCore.QUrl | None: file url, None if the type has no source plugin.
-
-        Raises:
-            ValueError: if the file doesn't exist.
-        """
-        if not cls.SOURCE_PLUGIN:
-            return None
-
-        path = cls.SOURCE_PLUGIN.plugin_cls.qml_directory() / component_path
-        if not path.is_file():
-            raise ValueError(f"Invalid QML source file: {path}")
-
-        return QtCore.QUrl.fromLocalFile(str(path))
 
     @staticmethod
     def as_uuid(value: StageObject | UUID | str | None, strict: bool = False) -> UUID:

@@ -9,6 +9,7 @@ from nyx.core.exceptions import NyxCommandValidationError
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import clipboard
+from nyx.static.enums import CoreUtilObjects
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
@@ -27,6 +28,11 @@ class StageGraphActions:
     the viewport.
     """
 
+    GROUP_MARGIN = 24.0
+    """float: space between a new group and the nodes it is created around."""
+    GROUP_TITLE_SPACE = 26.0
+    """float: room above the nodes for the title of a new group."""
+
     def __init__(self, view: StageGraphView):
         """Initialize StageGraphActions.
 
@@ -42,6 +48,8 @@ class StageGraphActions:
         register(
             ActionId.CREATE_NODE, view.create_new_node, condition=view.idle_condition
         )
+        register(ActionId.CREATE_NOTE, self.create_note, condition=view.idle_condition)
+        register(ActionId.CREATE_GROUP, self.create_group, condition=view.idle_condition)
         register(
             ActionId.PASTE,
             self.paste_nodes_from_clipboard,
@@ -89,27 +97,109 @@ class StageGraphActions:
         )
 
     def delete_selected(self):
-        """Delete the selected nodes through an undoable command."""
+        """Delete the selected nodes and util objects through an undoable command."""
         view = self._view
         if not view.stage:
             return
 
-        if view.gr_stage.is_gr_node_selection_empty():
-            LOGGER.warning("No nodes selected to delete!")
+        if view.gr_stage.is_selection_empty():
+            LOGGER.warning("Nothing selected to delete!")
             return
 
-        selected_gr_nodes = view.gr_stage.selected_gr_nodes()
         nodes_to_delete: list[Node] = [
             gr_node.node
-            for gr_node in selected_gr_nodes
+            for gr_node in view.gr_stage.selected_gr_nodes()
             if not gr_node.node.is_in_locked_scope
         ]
-        if not nodes_to_delete:
+        util_objects_to_delete = [
+            gr_util.util_object
+            for gr_util in view.gr_stage.selected_gr_util_objects()
+            if not gr_util.util_object.is_locked
+        ]
+        delete_commands = []
+        if nodes_to_delete:
+            delete_commands.append(
+                commands.DeleteNodeCommand(stage=view.stage, nodes=nodes_to_delete)
+            )
+        if util_objects_to_delete:
+            delete_commands.append(
+                commands.DeleteUtilObjectCommand(view.stage, util_objects_to_delete)
+            )
+        if not delete_commands:
             LOGGER.warning("Nodes of a reference can't be deleted")
             return
-        del_cmd = commands.DeleteNodeCommand(stage=view.stage, nodes=nodes_to_delete)
-        view.stage.push_command(del_cmd)
+
+        undo_stack = view.stage.undo_stack
+        if len(delete_commands) > 1:
+            undo_stack.beginMacro("Delete selection")
+        try:
+            view.stage.push_command(*delete_commands)
+        finally:
+            if len(delete_commands) > 1:
+                undo_stack.endMacro()
         view.gr_stage.rebuild_current_scope()
+
+    def create_note(self):
+        """Create a note at the mouse position."""
+        self._create_util_object(
+            CoreUtilObjects.NOTE, position=self._view.last_scene_mouse_pos
+        )
+
+    def create_group(self):
+        """Create a group around the selected nodes, or at the mouse position."""
+        gr_nodes = list(self._view.gr_stage.selected_gr_nodes())
+        if not gr_nodes:
+            self._create_util_object(
+                CoreUtilObjects.GROUP, position=self._view.last_scene_mouse_pos
+            )
+            return
+
+        bounds = QtCore.QRectF()
+        for gr_node in gr_nodes:
+            bounds = bounds.united(
+                QtCore.QRectF(
+                    gr_node.pos(), QtCore.QSizeF(gr_node.width, gr_node.height)
+                )
+            )
+        margin = self.GROUP_MARGIN
+        bounds = bounds.adjusted(
+            -margin, -margin - self.GROUP_TITLE_SPACE, margin, margin
+        )
+        self._create_util_object(
+            CoreUtilObjects.GROUP, position=bounds.topLeft(), size=bounds.size()
+        )
+
+    def _create_util_object(self, type_id, position, size=None):
+        """Create a util object in the scope being drawn and select it.
+
+        Args:
+            type_id (str): util object type id.
+            position (QtCore.QPointF): top left corner.
+            size (QtCore.QSizeF | None): size, the default of the type if omitted.
+        """
+        view = self._view
+        if not view.stage:
+            return
+
+        scope_node = view.stage.get_object(view.graph_editor.get_scope_path())
+        command = commands.CreateUtilObjectCommand(
+            view.stage,
+            type_id,
+            node=scope_node,
+            position=position,
+            size=size,
+        )
+        try:
+            view.stage.push_command(command)
+        except NyxCommandValidationError as err:
+            LOGGER.warning(f"Can't create {type_id}: {err}")
+            return
+
+        view.gr_stage.rebuild_current_scope()
+        view.gr_stage.clearSelection()
+        gr_util = view.gr_stage.get_gr_util_object(command.result_object)
+        if gr_util is not None:
+            gr_util.setSelected(True)
 
     def reload_selected_references(self):
         """Load the source files of the selected nodes again."""

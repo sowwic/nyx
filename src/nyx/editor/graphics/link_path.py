@@ -3,7 +3,7 @@ import logging
 
 from PySide6 import QtCore, QtGui
 
-from nyx.editor.utils.common import get_app_config
+from nyx.core.layered_config import get_app_config
 from nyx.static.enums import LinkStyle
 
 LOGGER = logging.getLogger(__name__)

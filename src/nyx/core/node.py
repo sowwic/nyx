@@ -19,6 +19,7 @@ from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from .node_render_options import NodeRenderOptions
 from ..static.enums import (
+    CoreGraphicsObjects,
     CoreNodes,
     RestoreUuidOption,
     NodeExecutionStatus,
@@ -29,9 +30,10 @@ from ..static.enums import (
 if typing.TYPE_CHECKING:
     from .stage import Stage
     from .node_component import NodeComponent
+    from .util_object import UtilObject
     from .stage_crawler import NodeVisitor
-    from nyx.plugins.core.nodes.flow_start import FlowStartNode
-    from nyx.plugins.core.node_components.flow import FlowComponent
+    from nyx.stdlib.nodes.flow_start import FlowStartNode
+    from nyx.stdlib.node_components.flow import FlowComponent
 
 
 LOGGER = logging.getLogger(__name__)
@@ -95,6 +97,7 @@ class Node(QtGui.QStandardItem, StageObject):
     COMPONENTS_KEY = "components"
     CHILDREN_KEY = "children"
     LINKS_KEY = "links"
+    UTIL_OBJECTS_KEY = "util_objects"
 
     class Roles(enum.IntEnum):
         """Item data roles used to store node state in the stage model."""
@@ -129,6 +132,7 @@ class Node(QtGui.QStandardItem, StageObject):
         StageObject.__init__(self, uuid=uuid)
         self._set_default_role_values()
         self._components_model = NodeComponentsModel(node=self)
+        self._util_objects: dict[UUID, UtilObject] = {}
         self._subtitle_binding: _SubtitleBinding | None = None
         self._components_model.dataChanged.connect(self._on_components_data_changed)
 
@@ -331,6 +335,44 @@ class Node(QtGui.QStandardItem, StageObject):
             NodeComponentsModel: components model
         """
         return self._components_model
+
+    @property
+    def util_objects(self) -> list[UtilObject]:
+        """list[UtilObject]: notes, groups and other util objects of the node."""
+        return list(self._util_objects.values())
+
+    def add_util_object(self, util_object: UtilObject) -> UtilObject:
+        """Add a util object to the node and register it in the stage.
+
+        Args:
+            util_object (UtilObject): object to add.
+
+        Returns:
+            UtilObject: the added object.
+        """
+        util_object._node = self
+        self._util_objects[util_object.uuid] = util_object
+        stage = self.stage
+        if stage is not None:
+            stage.register_util_object(util_object)
+        return util_object
+
+    def remove_util_object(self, util_object: UtilObject) -> None:
+        """Remove a util object from the node and unregister it from the stage.
+
+        Args:
+            util_object (UtilObject): object to remove.
+        """
+        self._util_objects.pop(util_object.uuid, None)
+        stage = self.stage
+        if stage is not None:
+            stage.unregister_util_object(util_object)
+        util_object._node = None
+
+    def clear_util_objects(self) -> None:
+        """Remove all util objects of the node."""
+        for util_object in self.util_objects:
+            self.remove_util_object(util_object)
 
     @property
     def locks_children(self) -> bool:
@@ -631,6 +673,9 @@ class Node(QtGui.QStandardItem, StageObject):
         contents[self.CHILDREN_KEY] = [
             child_node.serialize(context=context) for child_node in self.list_children()
         ]
+        contents[self.UTIL_OBJECTS_KEY] = [
+            util_object.serialize() for util_object in self.util_objects
+        ]
         return contents
 
     def collect_serialized_links(self, context: NodeSerializationContext) -> None:
@@ -669,6 +714,34 @@ class Node(QtGui.QStandardItem, StageObject):
             context=context,
             restore_uuid=restore_uuid,
         )
+        self.deserialize_util_objects(
+            serialized_node.get(self.UTIL_OBJECTS_KEY, []),
+            context=context,
+            restore_uuid=restore_uuid,
+        )
+
+    def deserialize_util_objects(
+        self,
+        util_objects_data: list[OrderedDict[str, typing.Any]],
+        context: NodeDeserializationContext,
+        restore_uuid: RestoreUuidOption,
+    ) -> None:
+        """Create util objects from serialized data and add them to the node.
+
+        Args:
+            util_objects_data (list[OrderedDict[str, typing.Any]]): serialized objects.
+            context (NodeDeserializationContext): deserialization context.
+            restore_uuid (RestoreUuidOption): how serialized uuids are restored.
+        """
+        from .util_object import UtilObject
+
+        for util_object_data in util_objects_data:
+            UtilObject.deserialize(
+                node=self,
+                serialized_data=util_object_data,
+                restore_uuid=restore_uuid,
+                context=context,
+            )
 
     @classmethod
     def deserialize(
@@ -917,6 +990,11 @@ class Node(QtGui.QStandardItem, StageObject):
 
         total_time = time.perf_counter() - start_time
         LOGGER.info(f"Executed in {total_time:.4f}: {self.path}")
+
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """str | None: id of the graphics object drawing the type."""
+        return CoreGraphicsObjects.NODE
 
     @classmethod
     def get_type_id(cls) -> str:

@@ -14,7 +14,7 @@ from nyx.api.v1 import (
     static_vars,
 )
 from nyx.core.contexts.serialization import NodeDeserializationContext
-from nyx.plugins.core.node_components.object_path import StageObjectPathComponent
+from nyx.stdlib.node_components.object_path import StageObjectPathComponent
 
 
 def create(stage, type_id=CoreNodes.ACTION, name=None, parent=None):

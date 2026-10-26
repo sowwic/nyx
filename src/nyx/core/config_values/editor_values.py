@@ -3,6 +3,7 @@ import pathlib
 from pydantic.dataclasses import Field
 
 from nyx.core.config_values.base_values import NyxBaseConfigValues
+from nyx.static.vars import DEFAULT_UNDO_LIMIT
 
 
 class NyxEditorBehaviourConfigValues(NyxBaseConfigValues):
@@ -10,6 +11,13 @@ class NyxEditorBehaviourConfigValues(NyxBaseConfigValues):
 
     new_stage_on_launch: bool = Field(default=True)
     """Create an empty stage at startup."""
+    undo_limit: int = Field(default=DEFAULT_UNDO_LIMIT, ge=0)
+    """Number of undoable steps each stage remembers, 0 for no limit.
+
+    Applies to stages opened after the change. A step is one command, or one group of
+    commands such as moving several items. Commands that delete or paste nodes keep a
+    copy of them, so a high limit costs memory on big stages.
+    """
 
 
 class NyxEditorSessionConfigValues(NyxBaseConfigValues):
