@@ -3,12 +3,12 @@ from uuid import UUID
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from .graphics_factory import create_graphics_object
 from .graphics_node_subtitle import GraphicsNodeSubtitle
 from .graphics_node_title import GraphicsNodeTitle
 from .graphics_plug import GraphicsPlug
 from .level_of_detail import LevelOfDetail
 from ..utils.common import build_role_tooltip_html, are_hover_diagnostics_enabled
-from ...core import commands
 from ...static.enums import NodeExecutionStatus
 
 if typing.TYPE_CHECKING:
@@ -23,6 +23,11 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     The item is a view of its node: `refresh` re-reads everything from the node
     and `update_layout` recomputes the geometry. Geometry is only changed there.
     """
+
+    @classmethod
+    def get_type_id(cls) -> str:
+        """str: id the graphics object is registered with."""
+        return "core.node"
 
     def __init__(self, node: Node, parent=None):
         """Initialize GraphicsNode.
@@ -160,7 +165,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         for component in components:
             plug = self._plugs.get(component.uuid)
             if plug is None:
-                plug = GraphicsPlug(component, self)
+                plug = create_graphics_object(component, component, self)
             plug.refresh()
             plugs[component.uuid] = plug
         self._plugs = plugs
@@ -371,7 +376,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
     # ======== Events ========= #
 
     def mouseReleaseEvent(self, event):
-        """Push a move command for the selected nodes that were moved.
+        """Push a move command for the items that were moved.
 
         Args:
             event (QtWidgets.QGraphicsSceneMouseEvent): event.
@@ -382,18 +387,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         if gr_stage is None:
             return
 
-        moved_nodes = []
-        new_positions = []
-        for gr_node in gr_stage.selected_gr_nodes():
-            if gr_node.pos() != gr_node.node.position():
-                moved_nodes.append(gr_node.node)
-                new_positions.append(gr_node.pos())
-
-        if moved_nodes:
-            move_cmd = commands.MoveNodeCommand(
-                stage=self._node.stage, nodes=moved_nodes, new_positions=new_positions
-            )
-            self._node.stage.push_command(move_cmd)
+        gr_stage.commit_moves()
 
     def itemChange(self, change, value):
         """Keep the links of the plugs attached to the node while it moves.

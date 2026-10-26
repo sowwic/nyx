@@ -1,0 +1,340 @@
+import pytest
+from PySide6 import QtCore, QtWidgets
+
+from nyx.api.v1 import CoreNodes, CoreUtilObjects, NYX_REGISTRY, commands
+from nyx.editor.graphics.graphics_group import GraphicsGroup
+from nyx.editor.graphics.graphics_link import GraphicsLink
+from nyx.editor.graphics.graphics_node import GraphicsNode
+from nyx.editor.graphics.graphics_note import GraphicsNote
+from nyx.editor.graphics.graphics_plug import GraphicsPlug
+from nyx.editor.utils import context_menus
+
+
+class FancyGraphicsNote(GraphicsNote):
+    @classmethod
+    def get_type_id(cls) -> str:
+        return "test.fancy_note"
+
+
+@pytest.fixture
+def fancy_note_registered():
+    NYX_REGISTRY.graphics_objects["test.fancy_note"] = FancyGraphicsNote
+    yield FancyGraphicsNote
+    NYX_REGISTRY.graphics_objects.pop("test.fancy_note", None)
+
+
+@pytest.fixture
+def create_util(stage_editor):
+    def _create(type_id=CoreUtilObjects.NOTE, position=(0, 0), node=None, **kwargs):
+        command = commands.CreateUtilObjectCommand(
+            stage_editor.stage, type_id, node=node, position=position, **kwargs
+        )
+        stage_editor.stage.push_command(command)
+        return command.result_object
+
+    return _create
+
+
+def select_nodes(stage_editor, *nodes):
+    stage_editor.selection_model.clearSelection()
+    for node in nodes:
+        stage_editor.selection_model.select(
+            node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
+        )
+
+
+def test_builtin_graphics_objects_are_registered(stage_editor):
+    expected = {
+        "core.node": GraphicsNode,
+        "core.plug": GraphicsPlug,
+        "core.link": GraphicsLink,
+        "core.note": GraphicsNote,
+        "core.group": GraphicsGroup,
+    }
+    for type_id, graphics_cls in expected.items():
+        assert NYX_REGISTRY.get_graphics_object_cls(type_id) is graphics_cls
+
+
+def test_builtin_graphics_objects_survive_a_registry_reset(stage_editor):
+    NYX_REGISTRY.reset_graphics_objects()
+
+    assert NYX_REGISTRY.get_graphics_object_cls("core.note") is GraphicsNote
+
+
+def test_util_objects_are_drawn_with_their_graphics_object(stage_editor, create_util):
+    note = create_util(CoreUtilObjects.NOTE)
+    group = create_util(CoreUtilObjects.GROUP)
+
+    gr_stage = stage_editor.gr_stage
+
+    assert type(gr_stage.get_gr_util_object(note)) is GraphicsNote
+    assert type(gr_stage.get_gr_util_object(group)) is GraphicsGroup
+
+
+def test_graphics_object_id_override_draws_a_custom_item(
+    stage_editor, create_util, fancy_note_registered
+):
+    note = create_util()
+    note.graphics_object_id = "test.fancy_note"
+
+    stage_editor.gr_stage.rebuild_current_scope()
+    gr_note = stage_editor.gr_stage.get_gr_util_object(note)
+    assert type(gr_note) is GraphicsNote  # kept: same util object, same item
+
+    stage_editor.gr_stage.remove_util_object(note)
+    assert type(stage_editor.gr_stage.add_util_object(note)) is fancy_note_registered
+
+
+def test_node_graphics_object_id_override_draws_a_custom_item(stage_editor, create_node):
+    class CustomGraphicsNode(GraphicsNode):
+        @classmethod
+        def get_type_id(cls) -> str:
+            return "test.custom_node"
+
+    NYX_REGISTRY.graphics_objects["test.custom_node"] = CustomGraphicsNode
+    try:
+        node = create_node(stage_editor.stage, type_id=CoreNodes.ACTION)
+        node.graphics_object_id = "test.custom_node"
+        gr_stage = stage_editor.gr_stage
+        gr_stage.remove_node(node)
+
+        assert type(gr_stage.add_node(node)) is CustomGraphicsNode
+    finally:
+        NYX_REGISTRY.graphics_objects.pop("test.custom_node", None)
+
+
+def test_unknown_graphics_object_id_falls_back_to_the_default(stage_editor, create_util):
+    note = create_util()
+    note.graphics_object_id = "test.missing"
+    gr_stage = stage_editor.gr_stage
+    gr_stage.remove_util_object(note)
+
+    assert type(gr_stage.add_util_object(note)) is GraphicsNote
+
+
+def test_undo_and_redo_update_the_scene(stage_editor, create_util):
+    note = create_util()
+    gr_stage = stage_editor.gr_stage
+    assert gr_stage.get_gr_util_object(note) is not None
+
+    stage_editor.stage.undo_stack.undo()
+    assert gr_stage.gr_util_objects() == []
+
+    stage_editor.stage.undo_stack.redo()
+    assert gr_stage.get_gr_util_object(note.uuid) is not None
+
+
+def test_only_the_util_objects_of_the_scope_are_drawn(
+    stage_editor, create_node, create_util
+):
+    inner = create_node(stage_editor.stage, "inner")
+    root_note = create_util()
+    inner_note = create_util(node=inner)
+    gr_stage = stage_editor.gr_stage
+    assert gr_stage.get_gr_util_object(root_note) is not None
+    assert gr_stage.get_gr_util_object(inner_note) is None
+
+    stage_editor.set_scope_path(inner)
+
+    assert gr_stage.get_gr_util_object(root_note) is None
+    assert gr_stage.get_gr_util_object(inner_note) is not None
+
+
+def test_item_follows_the_properties_of_the_util_object(stage_editor, create_util):
+    note = create_util(position=(10, 20), size=(300, 200))
+    gr_note = stage_editor.gr_stage.get_gr_util_object(note)
+
+    assert gr_note.pos() == QtCore.QPointF(10, 20)
+    assert gr_note.item_size == QtCore.QSizeF(300, 200)
+
+    stage_editor.stage.push_command(
+        commands.SetUtilObjectPropertiesCommand(
+            stage_editor.stage, {note: {"position": [50, 60], "color": "#112233"}}
+        )
+    )
+    assert gr_note.pos() == QtCore.QPointF(50, 60)
+    assert gr_note.color.name() == "#112233"
+
+
+def test_create_note_action_creates_and_selects_the_note(stage_editor):
+    view = stage_editor.gr_view
+    view.last_scene_mouse_pos = QtCore.QPointF(30, 40)
+
+    view.edit_actions.create_note()
+
+    (gr_note,) = stage_editor.gr_stage.gr_util_objects()
+    assert type(gr_note) is GraphicsNote
+    assert gr_note.pos() == QtCore.QPointF(30, 40)
+    assert gr_note.isSelected()
+
+
+def test_create_group_wraps_the_selected_nodes(stage_editor, create_node):
+    a = create_node(stage_editor.stage, "a")
+    b = create_node(stage_editor.stage, "b")
+    a.set_position(QtCore.QPointF(0, 0))
+    b.set_position(QtCore.QPointF(400, 200))
+    stage_editor.gr_stage.rebuild_current_scope()
+    select_nodes(stage_editor, a, b)
+
+    stage_editor.gr_view.edit_actions.create_group()
+
+    (gr_group,) = stage_editor.gr_stage.gr_util_objects()
+    frame = QtCore.QRectF(gr_group.pos(), gr_group.item_size)
+    for node in (a, b):
+        gr_node = stage_editor.gr_stage.get_gr_node(node)
+        assert frame.contains(
+            QtCore.QRectF(gr_node.pos(), QtCore.QSizeF(gr_node.width, gr_node.height))
+        )
+
+
+def test_selecting_a_note_is_not_undone_by_the_node_selection_sync(
+    stage_editor, create_node, create_util
+):
+    node = create_node(stage_editor.stage, "n")
+    note = create_util()
+    gr_stage = stage_editor.gr_stage
+    gr_note = gr_stage.get_gr_util_object(note)
+
+    gr_note.setSelected(True)
+
+    assert gr_note.isSelected()
+    assert gr_stage.selected_gr_util_objects() == [gr_note]
+    assert not gr_stage.is_selection_empty()
+
+    select_nodes(stage_editor, node)
+    assert gr_stage.get_gr_node(node).isSelected()
+
+
+def test_selection_survives_a_rebuild(stage_editor, create_util):
+    note = create_util()
+    gr_stage = stage_editor.gr_stage
+    gr_stage.get_gr_util_object(note).setSelected(True)
+
+    gr_stage.rebuild_current_scope()
+
+    assert gr_stage.get_gr_util_object(note).isSelected()
+
+
+def test_delete_selected_removes_nodes_and_util_objects_in_one_step(
+    stage_editor, create_node, create_util
+):
+    node = create_node(stage_editor.stage, "n")
+    note = create_util()
+    gr_stage = stage_editor.gr_stage
+    select_nodes(stage_editor, node)
+    gr_stage.get_gr_util_object(note).setSelected(True)
+
+    stage_editor.gr_view.edit_actions.delete_selected()
+
+    assert stage_editor.stage.list_children(stage_editor.stage.root_node) == []
+    assert gr_stage.gr_util_objects() == []
+
+    stage_editor.stage.undo_stack.undo()
+    assert [
+        n.name for n in stage_editor.stage.list_children(stage_editor.stage.root_node)
+    ] == ["n"]
+    assert gr_stage.get_gr_util_object(note.uuid) is not None
+
+
+def test_moving_items_pushes_one_command(stage_editor, create_node, create_util):
+    node = create_node(stage_editor.stage, "n")
+    note = create_util(position=(0, 0))
+    gr_stage = stage_editor.gr_stage
+    undo_stack = stage_editor.stage.undo_stack
+    count = undo_stack.count()
+
+    gr_stage.get_gr_node(node).setPos(100, 100)
+    gr_stage.get_gr_util_object(note).setPos(50, 60)
+    gr_stage.commit_moves()
+
+    assert node.position() == QtCore.QPointF(100, 100)
+    assert note.position == QtCore.QPointF(50, 60)
+    assert undo_stack.count() == count + 1  # one macro
+
+    undo_stack.undo()
+    assert node.position() == QtCore.QPointF(0, 0)
+    assert note.position == QtCore.QPointF(0, 0)
+
+
+def test_commit_moves_without_a_move_pushes_nothing(stage_editor, create_util):
+    create_util()
+    count = stage_editor.stage.undo_stack.count()
+
+    stage_editor.gr_stage.commit_moves()
+
+    assert stage_editor.stage.undo_stack.count() == count
+
+
+def test_resizing_pushes_a_command(stage_editor, create_util):
+    note = create_util(size=(200, 100))
+    gr_note = stage_editor.gr_stage.get_gr_util_object(note)
+
+    gr_note._resizing = True
+    gr_note._size = QtCore.QSizeF(320, 240)
+    gr_note.mouseReleaseEvent(QtWidgets.QGraphicsSceneMouseEvent())
+
+    assert note.size == QtCore.QSizeF(320, 240)
+    stage_editor.stage.undo_stack.undo()
+    assert note.size == QtCore.QSizeF(200, 100)
+
+
+def test_moving_a_group_moves_the_nodes_inside(stage_editor, create_node, create_util):
+    inside = create_node(stage_editor.stage, "inside")
+    outside = create_node(stage_editor.stage, "outside")
+    inside.set_position(QtCore.QPointF(20, 40))
+    outside.set_position(QtCore.QPointF(2000, 2000))
+    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    gr_stage = stage_editor.gr_stage
+    gr_stage.rebuild_current_scope()
+    gr_group = gr_stage.get_gr_util_object(group)
+
+    gr_group._enclosed = gr_group.enclosed_gr_nodes()
+    gr_group.setPos(100, 50)
+    gr_stage.commit_moves()
+
+    assert group.position == QtCore.QPointF(100, 50)
+    assert inside.position() == QtCore.QPointF(120, 90)
+    assert outside.position() == QtCore.QPointF(2000, 2000)
+
+
+def test_util_object_context_menu(qtbot, stage_editor, create_util):
+    gr_note = stage_editor.gr_stage.get_gr_util_object(create_util())
+    parent = QtWidgets.QWidget()
+    qtbot.addWidget(parent)
+
+    menu = context_menus.build_util_object_context_menu(parent, gr_note)
+
+    labels = [action.text() for action in menu.actions() if not action.isSeparator()]
+    assert labels[:2] == ["Edit...", "Color"]
+    assert "Delete" in labels
+
+
+def test_set_color_pushes_a_command(stage_editor, create_util):
+    note = create_util()
+    gr_note = stage_editor.gr_stage.get_gr_util_object(note)
+
+    gr_note.set_color("#102030")
+
+    assert note.color == "#102030"
+    stage_editor.stage.undo_stack.undo()
+    assert note.color == note.DEFAULT_COLOR
+
+
+def test_notes_and_groups_paint(stage_editor, create_util):
+    from PySide6 import QtGui
+
+    create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(300, 200))
+    note = create_util(
+        position=(20, 40), size=(120, 80), properties={"text": "hello\nworld"}
+    )
+    stage_editor.gr_stage.get_gr_util_object(note).setSelected(True)
+
+    image = QtGui.QImage(400, 300, QtGui.QImage.Format_ARGB32)
+    image.fill(QtGui.QColor("black"))
+    painter = QtGui.QPainter(image)
+    area = QtCore.QRectF(0, 0, 400, 300)
+    stage_editor.gr_stage.render(painter, area, area)
+    painter.end()
+
+    # The note is drawn in its color inside the selection outline.
+    assert image.pixelColor(60, 80) == QtGui.QColor(note.color)

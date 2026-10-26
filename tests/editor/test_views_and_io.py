@@ -124,7 +124,7 @@ def test_graph_view_delete_without_selection_warns(stage_editor, create_node, ca
     with caplog.at_level("WARNING"):
         stage_editor.gr_view.edit_actions.delete_selected()
     assert root_children(stage_editor) == ["a"]
-    assert "No nodes selected" in caplog.text
+    assert "Nothing selected" in caplog.text
 
 
 def test_graph_view_copy_paste_roundtrip(stage_editor, create_node):
@@ -364,9 +364,17 @@ def test_graph_and_tree_context_menus_match(
     monkeypatch.setattr(context_menus, "show_menu", capture("tree"))
     main_window.stage_tree_view.show_context_menu(QtCore.QPoint(5, 5))
 
-    assert layouts["graph"] == layouts["tree"]
+    # Only the graph can show notes and groups, so only it offers creating them.
+    graph_layout = [
+        action_id
+        for action_id in layouts["graph"]
+        if action_id not in (ActionId.CREATE_NOTE, ActionId.CREATE_GROUP)
+    ]
+    assert graph_layout == layouts["tree"]
+    assert ActionId.CREATE_NOTE in layouts["graph"]
+    assert ActionId.CREATE_GROUP in layouts["graph"]
     expected = WITH_SELECTION_LAYOUT if with_selection else NO_SELECTION_LAYOUT
-    assert layouts["graph"] == expected
+    assert layouts["tree"] == expected
 
 
 def test_graph_view_copy_node_path(stage_editor, create_node):

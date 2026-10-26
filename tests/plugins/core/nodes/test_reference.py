@@ -692,3 +692,39 @@ def test_same_file_twice_has_independent_values(source_path):
     first_inner = first.find_child_by_name("inner")
     second_inner = second.find_child_by_name("inner")
     assert first_inner.uuid != second_inner.uuid
+
+
+def test_util_objects_of_the_source_are_shown_and_locked(tmp_path):
+    source_path = tmp_path / f"source{Stage.FILE_EXTENSION}"
+    source = make_source(source_path)
+    source.push_command(
+        commands.CreateUtilObjectCommand(
+            source, "core:note", position=(1, 2), properties={"text": "from source"}
+        )
+    )
+    source.export_json(source_path)
+    stage = Stage()
+
+    ref = reference(stage, source_path)
+
+    (note,) = ref.util_objects
+    assert note.text == "from source"
+    assert note.is_locked
+    with pytest.raises(exceptions.NyxCommandValidationError):
+        stage.push_command(
+            commands.SetUtilObjectPropertiesCommand(stage, {note: {"text": "edit"}})
+        )
+
+
+def test_util_objects_of_a_reference_are_not_saved_with_it(tmp_path):
+    source_path = tmp_path / f"source{Stage.FILE_EXTENSION}"
+    source = make_source(source_path)
+    source.push_command(commands.CreateUtilObjectCommand(source, "core:note"))
+    source.export_json(source_path)
+    stage = Stage()
+    ref = reference(stage, source_path)
+
+    assert "util_objects" not in ref.serialize()
+    reopened = reopen(stage, tmp_path / f"stage{Stage.FILE_EXTENSION}")
+
+    assert len(at(reopened, "/ref").util_objects) == 1

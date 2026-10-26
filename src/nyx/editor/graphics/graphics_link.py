@@ -35,6 +35,11 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     WIDTH = 2.0
     PREVIEW_OPACITY = 0.8
 
+    @classmethod
+    def get_type_id(cls) -> str:
+        """str: id the graphics object is registered with."""
+        return "core.link"
+
     def __init__(
         self,
         source_plug: GraphicsPlug | None = None,

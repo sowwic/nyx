@@ -37,6 +37,11 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     LABEL_COLOR = QtGui.QColor("#CCCCCC")
     LABEL_FONT = QtGui.QFont("Zed Mono", 10)
 
+    @classmethod
+    def get_type_id(cls) -> str:
+        """str: id the graphics object is registered with."""
+        return "core.plug"
+
     def __init__(self, component: NodeComponent, gr_node: GraphicsNode):
         """Initialize GraphicsPlug.
 
