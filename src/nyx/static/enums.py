@@ -29,7 +29,10 @@ class CoreUtilObjects(enum.StrEnum):
 
 
 class CoreGraphicsObjects(enum.StrEnum):
-    """Ids of the graphics objects provided by the editor, as in `graphics_object_id`."""
+    """Ids of the graphics objects provided by the editor.
+
+    Types return them from `get_graphics_object_id`.
+    """
 
     NODE = "core.node"
     PLUG = "core.plug"

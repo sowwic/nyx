@@ -4,7 +4,6 @@ import logging
 from collections import OrderedDict
 from uuid import UUID, uuid4
 
-from PySide6 import QtCore
 
 from ..static.enums import RestoreUuidOption
 
@@ -23,7 +22,6 @@ class StageObject:
     META_DATA_KEY: str = "metadata"
     SOURCE_PLUGIN_KEY: str = "source_plugin"
     NYX_VERSION_METADATA_KEY: str = "nyx_version"
-    GRAPHICS_OBJECT_ID_KEY: str = "graphics_object_id"
 
     SOURCE_PLUGIN: NyxPluginRegistryEntry | None = None
 
@@ -34,7 +32,6 @@ class StageObject:
             uuid (UUID | str | None): object uuid. Generated if omitted.
         """
         self._uuid = self.as_uuid(uuid)
-        self._graphics_object_id: str | None = None
 
     @property
     def stage(self) -> Stage:
@@ -66,29 +63,13 @@ class StageObject:
     def get_graphics_object_id(cls) -> str | None:
         """Get the id of the graphics object drawing objects of the type.
 
-        Override it in subclasses to draw all objects of the type with a graphics
-        object registered in the registry, or set `graphics_object_id` to draw a
-        single object differently.
+        Override it in subclasses to draw the objects of the type with a graphics
+        object registered in the registry.
 
         Returns:
             str | None: graphics object id, None if objects of the type aren't drawn.
         """
         return None
-
-    @property
-    def graphics_object_id(self) -> str | None:
-        """str | None: id of the graphics object drawing the object, None for none.
-
-        The id of the type (`get_graphics_object_id`) unless set on the object. Setting
-        it to the id of the type or to None drops the override.
-        """
-        return self._graphics_object_id or self.get_graphics_object_id()
-
-    @graphics_object_id.setter
-    def graphics_object_id(self, value: str | None):
-        self._graphics_object_id = (
-            None if not value or value == self.get_graphics_object_id() else value
-        )
 
     @property
     def path(self) -> pathlib.PosixPath:
@@ -113,53 +94,8 @@ class StageObject:
             serialized_data[self.SOURCE_PLUGIN_KEY] = (
                 self.SOURCE_PLUGIN.plugin_cls.get_type_id()
             )
-        if self._graphics_object_id is not None:
-            serialized_data[self.GRAPHICS_OBJECT_ID_KEY] = self._graphics_object_id
 
         return serialized_data
-
-    def restore_graphics_object_id(self, serialized_data: dict[str, typing.Any]):
-        """Take the graphics object override from serialized data.
-
-        Args:
-            serialized_data (dict[str, typing.Any]): serialized object.
-        """
-        self.graphics_object_id = serialized_data.get(self.GRAPHICS_OBJECT_ID_KEY)
-
-    @classmethod
-    def deserialize(
-        cls,
-    ) -> StageObject:
-        """Create an object from serialized data. Subclasses must implement.
-
-        Returns:
-            StageObject: deserialized object.
-        """
-        raise NotImplementedError(
-            "StageObject subclass must implement deserialize() method"
-        )
-
-    @classmethod
-    def resolve_qml_source(cls, component_path: str) -> QtCore.QUrl:
-        """Resolve a QML file of the plugin that provides this type.
-
-        Args:
-            component_path (str): path relative to the plugin QML directory.
-
-        Returns:
-            QtCore.QUrl | None: file url, None if the type has no source plugin.
-
-        Raises:
-            ValueError: if the file doesn't exist.
-        """
-        if not cls.SOURCE_PLUGIN:
-            return None
-
-        path = cls.SOURCE_PLUGIN.plugin_cls.qml_directory() / component_path
-        if not path.is_file():
-            raise ValueError(f"Invalid QML source file: {path}")
-
-        return QtCore.QUrl.fromLocalFile(str(path))
 
     @staticmethod
     def as_uuid(value: StageObject | UUID | str | None, strict: bool = False) -> UUID:

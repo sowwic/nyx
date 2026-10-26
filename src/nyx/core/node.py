@@ -799,7 +799,6 @@ class Node(QtGui.QStandardItem, StageObject):
         LOGGER.debug(f"Deserializing: {serialized_node.get(cls.NAME_KEY)}")
         if uuid is not None:
             node.uuid = uuid
-        node.restore_graphics_object_id(serialized_node)
 
         context.register(
             serialized_uuid=serialized_node[cls.UUID_KEY], new_uuid=node.uuid

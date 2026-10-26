@@ -167,7 +167,6 @@ class UtilObject(StageObject):
         )
         util_object = util_object_cls(uuid=uuid)
         util_object.apply_properties(serialized_data)
-        util_object.restore_graphics_object_id(serialized_data)
         node.add_util_object(util_object)
         if context is not None:
             context.register(

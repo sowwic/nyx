@@ -191,5 +191,4 @@ class Link(StageObject):
         else:
             link.uuid = new_uuid
 
-        link.restore_graphics_object_id(serialized_link)
         return link

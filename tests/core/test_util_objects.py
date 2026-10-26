@@ -4,8 +4,10 @@ from nyx.api.v1 import (
     CoreGraphicsObjects,
     CoreNodes,
     CoreUtilObjects,
+    Link,
     NYX_REGISTRY,
     Node,
+    NodeComponent,
     Stage,
     UtilObject,
     commands,
@@ -112,35 +114,25 @@ def test_util_objects_round_trip_through_the_stage_file(tmp_path):
     assert restored.size == QtCore.QSizeF(300, 200)
 
 
-def test_graphics_object_id_override_is_serialized_and_restored():
-    stage = Stage()
-    node = _create_node(stage)
-    note = _create_util(stage, node=node)
-    assert note.graphics_object_id == CoreGraphicsObjects.NOTE
-    assert UtilObject.GRAPHICS_OBJECT_ID_KEY not in note.serialize()
+def test_types_return_their_graphics_object_id():
+    from nyx.stdlib.util_objects.group import GroupObject
+    from nyx.stdlib.util_objects.note import NoteObject
 
-    note.graphics_object_id = "test.fancy_note"
-    data = node.serialize()
-
-    assert data[Node.UTIL_OBJECTS_KEY][0]["graphics_object_id"] == "test.fancy_note"
-    other = Stage()
-    restored = UtilObject.deserialize(
-        node=other.root_node, serialized_data=data[Node.UTIL_OBJECTS_KEY][0]
-    )
-    assert restored.graphics_object_id == "test.fancy_note"
+    assert Node.get_graphics_object_id() == CoreGraphicsObjects.NODE
+    assert NodeComponent.get_graphics_object_id() == CoreGraphicsObjects.PLUG
+    assert Link.get_graphics_object_id() == CoreGraphicsObjects.LINK
+    assert NoteObject.get_graphics_object_id() == CoreGraphicsObjects.NOTE
+    assert GroupObject.get_graphics_object_id() == CoreGraphicsObjects.GROUP
 
 
-def test_node_and_component_graphics_object_ids():
+def test_the_graphics_object_id_is_not_saved():
     stage = Stage()
     node = _create_node(stage, type_id=CoreNodes.ACTION)
-    assert node.graphics_object_id == CoreGraphicsObjects.NODE
-    assert Node.get_graphics_object_id() == CoreGraphicsObjects.NODE
-    assert node["flow"].graphics_object_id == CoreGraphicsObjects.PLUG
+    note = _create_util(stage, node=node)
 
-    node.graphics_object_id = "test.custom"
-    assert node.serialize()["graphics_object_id"] == "test.custom"
-    node.graphics_object_id = None
     assert "graphics_object_id" not in node.serialize()
+    assert "graphics_object_id" not in node["flow"].serialize()
+    assert "graphics_object_id" not in note.serialize()
 
 
 def test_a_subclass_sets_the_graphics_object_id_of_its_type():
@@ -157,39 +149,14 @@ def test_a_subclass_sets_the_graphics_object_id_of_its_type():
         def get_graphics_object_id(cls) -> str | None:
             return "test.custom"
 
-    node = Custom(name="custom")
-
-    assert node.graphics_object_id == "test.custom"
+    assert Custom.get_graphics_object_id() == "test.custom"
     assert Node.get_graphics_object_id() == CoreGraphicsObjects.NODE
-    # The id of the type isn't an override: it isn't saved.
-    node.graphics_object_id = "test.custom"
-    assert node._graphics_object_id is None
 
 
-def test_types_without_a_graphics_object_id_are_not_drawn():
+def test_stage_objects_are_not_drawn_by_default():
     from nyx.api.v1 import StageObject
 
-    class Hidden(Node):
-        @classmethod
-        def get_type_id(cls) -> str:
-            return "test:hidden"
-
-        @classmethod
-        def get_type_display_name(cls) -> str:
-            return "Hidden"
-
-        @classmethod
-        def get_graphics_object_id(cls) -> str | None:
-            return None
-
     assert StageObject.get_graphics_object_id() is None
-    node = Hidden(name="hidden")
-    assert node.graphics_object_id is None
-
-    node.graphics_object_id = "test.custom"
-    assert node.graphics_object_id == "test.custom"
-    node.graphics_object_id = None
-    assert node.graphics_object_id is None
 
 
 def test_set_properties_undo_redo():

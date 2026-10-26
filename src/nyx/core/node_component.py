@@ -843,7 +843,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             component = component_cls(uuid=uuid)
 
         component.uuid = uuid
-        component.restore_graphics_object_id(data)
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
         component.setData(

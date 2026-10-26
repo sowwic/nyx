@@ -112,45 +112,37 @@ def test_util_objects_are_drawn_with_their_graphics_object(stage_editor, create_
     assert type(gr_stage.get_gr_util_object(group)) is GraphicsGroup
 
 
-def test_graphics_object_id_override_draws_a_custom_item(
-    stage_editor, create_util, fancy_note_registered
+def test_a_util_object_type_can_be_drawn_with_another_graphics_object(
+    stage_editor, create_util, fancy_note_registered, monkeypatch
 ):
+    from nyx.stdlib.util_objects.note import NoteObject
+
     note = create_util()
-    note.graphics_object_id = "test.fancy_note"
-
-    stage_editor.gr_stage.rebuild_current_scope()
-    gr_note = stage_editor.gr_stage.get_gr_util_object(note)
-    assert type(gr_note) is GraphicsNote  # kept: same util object, same item
-
-    stage_editor.gr_stage.remove_util_object(note)
-    assert type(stage_editor.gr_stage.add_util_object(note)) is fancy_note_registered
-
-
-def test_node_graphics_object_id_override_draws_a_custom_item(stage_editor, create_node):
-    class CustomGraphicsNode(GraphicsNode):
-        @classmethod
-        def get_type_id(cls) -> str:
-            return "test.custom_node"
-
-    NYX_REGISTRY.graphics_objects["test.custom_node"] = CustomGraphicsNode
-    try:
-        node = create_node(stage_editor.stage, type_id=CoreNodes.ACTION)
-        node.graphics_object_id = "test.custom_node"
-        gr_stage = stage_editor.gr_stage
-        gr_stage.remove_node(node)
-
-        assert type(gr_stage.add_node(node)) is CustomGraphicsNode
-    finally:
-        NYX_REGISTRY.graphics_objects.pop("test.custom_node", None)
-
-
-def test_unknown_graphics_object_id_falls_back_to_the_default(stage_editor, create_util):
-    note = create_util()
-    note.graphics_object_id = "test.missing"
+    monkeypatch.setattr(
+        NoteObject, "get_graphics_object_id", classmethod(lambda cls: "test.fancy_note")
+    )
     gr_stage = stage_editor.gr_stage
     gr_stage.remove_util_object(note)
 
-    assert type(gr_stage.add_util_object(note)) is GraphicsNote
+    assert type(gr_stage.add_util_object(note)) is fancy_note_registered
+
+
+def test_an_unregistered_graphics_object_id_is_not_drawn(
+    stage_editor, create_util, monkeypatch, caplog
+):
+    from nyx.stdlib.util_objects.note import NoteObject
+
+    note = create_util()
+    monkeypatch.setattr(
+        NoteObject, "get_graphics_object_id", classmethod(lambda cls: "test.missing")
+    )
+    gr_stage = stage_editor.gr_stage
+    gr_stage.remove_util_object(note)
+
+    with caplog.at_level("ERROR"):
+        assert gr_stage.add_util_object(note) is None
+
+    assert "test.missing" in caplog.text
 
 
 def test_undo_and_redo_update_the_scene(stage_editor, create_util):

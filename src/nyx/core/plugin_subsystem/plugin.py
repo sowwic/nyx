@@ -23,7 +23,7 @@ class NyxPluginContents:
         util_objects: List of UtilObject classes
         graphics_objects: List of graphics object classes (QGraphicsItem subclasses with
             a `get_type_id` classmethod). Stage objects refer to them by
-            `graphics_object_id`.
+            `get_graphics_object_id`.
     """
 
     namespace: str = ""
