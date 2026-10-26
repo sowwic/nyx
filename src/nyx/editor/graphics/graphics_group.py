@@ -109,13 +109,16 @@ class GraphicsGroup(GraphicsUtilObject):
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         """Remember the items inside the frame, they move with it.
 
+        The items are collected after the press is handled: it replaces the selection,
+        and an item that was selected before only moves on its own if it still is.
+
         Args:
             event (QtWidgets.QGraphicsSceneMouseEvent): event.
         """
+        super().mousePressEvent(event)
         grip = self.handle_rect.contains(event.pos())
         if event.button() == QtCore.Qt.LeftButton and not grip and self.is_editable:
             self._enclosed = self.enclosed_items()
-        super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         """Stop carrying the items inside the frame, and push the move.

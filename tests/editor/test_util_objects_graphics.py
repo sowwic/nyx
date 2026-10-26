@@ -382,3 +382,30 @@ def test_selected_notes_inside_a_group_are_not_moved_twice(stage_editor, create_
     gr_group = gr_stage.get_gr_util_object(group)
 
     assert gr_group.enclosed_items() == []
+
+
+def test_pressing_a_group_carries_a_node_that_was_selected(
+    stage_editor, create_node, create_util
+):
+    node = create_node(stage_editor.stage, "n")
+    node.set_position(QtCore.QPointF(20, 40))
+    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    gr_stage = stage_editor.gr_stage
+    gr_stage.rebuild_current_scope()
+    gr_node = gr_stage.get_gr_node(node)
+    gr_group = gr_stage.get_gr_util_object(group)
+    gr_node.setSelected(True)
+
+    press = QtWidgets.QGraphicsSceneMouseEvent(QtCore.QEvent.GraphicsSceneMousePress)
+    press.setButton(QtCore.Qt.LeftButton)
+    press.setPos(QtCore.QPointF(300, 300))
+    press.setScenePos(QtCore.QPointF(300, 300))
+    gr_group.mousePressEvent(press)
+
+    assert gr_group.isSelected()
+    assert not gr_node.isSelected()
+    assert gr_group._enclosed == [gr_node]
+
+    gr_group.setPos(100, 50)
+    gr_stage.commit_moves()
+    assert node.position() == QtCore.QPointF(120, 90)
