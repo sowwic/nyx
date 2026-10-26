@@ -31,7 +31,7 @@ from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.graphics.graphics_util_object import GraphicsUtilObject
 from nyx.editor.graphics.animation.link_animator import LinkAnimator, ViewArea
 from nyx.editor.graphics.animation.styles import ANIMATION_CLASSES, create_animation
-from nyx.editor.utils.common import get_app_config
+from nyx.core.layered_config import get_app_config
 from nyx.static.enums import CoreNodeComponents, LinkAnimationStyle, StageBackGroundStyle
 
 if typing.TYPE_CHECKING:

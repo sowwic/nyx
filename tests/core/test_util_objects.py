@@ -227,3 +227,45 @@ def test_pasted_nodes_copy_their_util_objects_with_stable_uuids():
     stage.undo_stack.redo()
     again = [each for each in stage.root_node.list_children() if each is not node]
     assert again[0].util_objects[0].uuid == uuid
+
+
+def test_new_objects_get_their_default_color_from_the_config(qapp, monkeypatch):
+    from nyx.stdlib.util_objects.group import GroupObject
+    from nyx.stdlib.util_objects.note import NoteObject
+
+    graphics_stage = qapp.config.values.editor_widgets.graphics_stage
+    monkeypatch.setattr(graphics_stage, "default_note_color", "#102030")
+    monkeypatch.setattr(graphics_stage, "default_group_color", "#405060")
+
+    assert NoteObject().color == "#102030"
+    assert GroupObject().color == "#405060"
+    assert NoteObject.get_default_color() == "#102030"
+
+
+def test_an_invalid_configured_color_falls_back_to_the_constant(
+    qapp, monkeypatch, caplog
+):
+    from nyx.stdlib.util_objects.note import NoteObject
+    from nyx.static.vars import DEFAULT_NOTE_COLOR
+
+    graphics_stage = qapp.config.values.editor_widgets.graphics_stage
+    monkeypatch.setattr(graphics_stage, "default_note_color", "nope")
+
+    with caplog.at_level("WARNING"):
+        assert NoteObject().color == DEFAULT_NOTE_COLOR
+
+    assert "default_note_color" in caplog.text
+
+
+def test_a_saved_color_wins_over_the_configured_default(qapp, monkeypatch):
+    stage = Stage()
+    node = _create_node(stage)
+    note = _create_util(stage, node=node, properties={"color": "#aabbcc"})
+    graphics_stage = qapp.config.values.editor_widgets.graphics_stage
+    monkeypatch.setattr(graphics_stage, "default_note_color", "#102030")
+
+    restored = UtilObject.deserialize(
+        node=Stage().root_node, serialized_data=note.serialize()
+    )
+
+    assert restored.color == "#aabbcc"

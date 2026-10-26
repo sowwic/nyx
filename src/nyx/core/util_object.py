@@ -4,8 +4,9 @@ import typing
 from collections import OrderedDict
 from uuid import UUID
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtGui
 
+from .layered_config import get_app_config
 from .plugin_subsystem.registry import NYX_REGISTRY
 from .stage_object import StageObject
 from ..static.enums import RestoreUuidOption
@@ -183,6 +184,23 @@ class UtilObject(StageObject):
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI. Subclasses must implement."""
         raise NotImplementedError
+
+
+def get_configured_color(config_field: str, fallback: str) -> str:
+    """Get a color from the graphics stage section of the config.
+
+    Args:
+        config_field (str): name of the config value, such as `default_note_color`.
+        fallback (str): color to use when the configured value isn't a color.
+
+    Returns:
+        str: the configured color, or the fallback if it is invalid.
+    """
+    color = getattr(get_app_config().values.editor_widgets.graphics_stage, config_field)
+    if QtGui.QColor(color).isValid():
+        return color
+    LOGGER.warning(f"Invalid {config_field} {color!r} in the config, using {fallback!r}")
+    return fallback
 
 
 def _as_point(value: QtCore.QPointF | typing.Iterable[float]) -> QtCore.QPointF:

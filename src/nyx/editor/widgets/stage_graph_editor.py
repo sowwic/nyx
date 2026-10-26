@@ -11,7 +11,7 @@ from nyx.static.vars import ROOT_NODE_PATH
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_stage import GraphicsStage
-from nyx.editor.utils.common import get_app_config
+from nyx.core.layered_config import get_app_config
 from nyx.editor.views.stage_graph_view import StageGraphView
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette

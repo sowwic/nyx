@@ -14,6 +14,7 @@ from nyx.editor.graphics.graphics_plug import GraphicsPlug
 from nyx.editor.utils import context_menus
 from nyx.stdlib.graphics_objects.group import GraphicsGroup
 from nyx.stdlib.graphics_objects.note import GraphicsNote
+from nyx.static.vars import DEFAULT_GROUP_COLOR, DEFAULT_NOTE_COLOR
 
 
 class FancyGraphicsNote(GraphicsNote):
@@ -338,7 +339,7 @@ def test_set_color_pushes_a_command(stage_editor, create_util):
 
     assert note.color == "#102030"
     stage_editor.stage.undo_stack.undo()
-    assert note.color == note.DEFAULT_COLOR
+    assert note.color == DEFAULT_NOTE_COLOR
 
 
 def test_notes_and_groups_paint(stage_editor, create_util):
@@ -461,15 +462,12 @@ def test_an_invalid_configured_color_falls_back_to_the_default(
         stage_editor.gr_view.edit_actions.create_note()
 
     (gr_note,) = stage_editor.gr_stage.gr_util_objects()
-    assert gr_note.util_object.color == gr_note.util_object.DEFAULT_COLOR
+    assert gr_note.util_object.color == DEFAULT_NOTE_COLOR
     assert "default_note_color" in caplog.text
 
 
-def test_config_defaults_match_the_colors_of_the_types(graphics_stage_config):
-    from nyx.stdlib.util_objects.group import GroupObject
-    from nyx.stdlib.util_objects.note import NoteObject
-
+def test_config_defaults_are_the_default_colors(graphics_stage_config):
     defaults = type(graphics_stage_config)()
 
-    assert defaults.default_note_color == NoteObject.DEFAULT_COLOR
-    assert defaults.default_group_color == GroupObject.DEFAULT_COLOR
+    assert defaults.default_note_color == DEFAULT_NOTE_COLOR
+    assert defaults.default_group_color == DEFAULT_GROUP_COLOR

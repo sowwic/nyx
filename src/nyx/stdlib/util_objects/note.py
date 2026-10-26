@@ -2,6 +2,7 @@ import typing
 from collections import OrderedDict
 
 from nyx.api.v1 import CoreGraphicsObjects, CoreUtilObjects, UtilObject
+from nyx.core.util_object import get_configured_color
 from nyx.static.vars import DEFAULT_NOTE_COLOR
 
 
@@ -10,7 +11,6 @@ class NoteObject(UtilObject):
 
     GRAPHICS_OBJECT_ID = CoreGraphicsObjects.NOTE
     DEFAULT_SIZE = (220.0, 140.0)
-    DEFAULT_COLOR = DEFAULT_NOTE_COLOR
 
     TEXT_KEY = "text"
     COLOR_KEY = "color"
@@ -23,7 +23,12 @@ class NoteObject(UtilObject):
         """
         super().__init__(uuid=uuid)
         self.text: str = ""
-        self.color: str = self.DEFAULT_COLOR
+        self.color: str = self.get_default_color()
+
+    @classmethod
+    def get_default_color(cls) -> str:
+        """str: color new notes get, the `default_note_color` config value."""
+        return get_configured_color("default_note_color", DEFAULT_NOTE_COLOR)
 
     @classmethod
     def get_type_id(cls) -> str:

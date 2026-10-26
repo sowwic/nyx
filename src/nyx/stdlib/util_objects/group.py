@@ -2,6 +2,7 @@ import typing
 from collections import OrderedDict
 
 from nyx.api.v1 import CoreGraphicsObjects, CoreUtilObjects, UtilObject
+from nyx.core.util_object import get_configured_color
 from nyx.static.vars import DEFAULT_GROUP_COLOR
 
 
@@ -12,7 +13,6 @@ class GroupObject(UtilObject):
     DEFAULT_SIZE = (360.0, 240.0)
     MIN_SIZE = (80.0, 60.0)
     DEFAULT_TITLE = "Group"
-    DEFAULT_COLOR = DEFAULT_GROUP_COLOR
 
     TITLE_KEY = "title"
     COLOR_KEY = "color"
@@ -25,7 +25,12 @@ class GroupObject(UtilObject):
         """
         super().__init__(uuid=uuid)
         self.title: str = self.DEFAULT_TITLE
-        self.color: str = self.DEFAULT_COLOR
+        self.color: str = self.get_default_color()
+
+    @classmethod
+    def get_default_color(cls) -> str:
+        """str: color new groups get, the `default_group_color` config value."""
+        return get_configured_color("default_group_color", DEFAULT_GROUP_COLOR)
 
     @classmethod
     def get_type_id(cls) -> str:
