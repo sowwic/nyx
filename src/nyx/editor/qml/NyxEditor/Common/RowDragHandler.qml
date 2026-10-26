@@ -5,6 +5,7 @@ import QtQuick
 // so that buttons and switches stacked above it still receive their own clicks.
 Item {
     id: rowDragHandlerRoot
+    objectName: "rowDragHandler"
 
     required property DraggableDelegate row     // the row this surface drags
 
@@ -34,8 +35,10 @@ Item {
             const row = rowDragHandlerRoot.row;
             const item = row.dragItem;
             const pointerY = row.mapFromItem(null, centroid.scenePosition).y;
-            const minY = -row.y;
-            const maxY = row.view.contentHeight - row.y - item.height;
+            // The list moves its origin when rows are moved, so its content doesn't
+            // necessarily start at 0.
+            const minY = row.view.originY - row.y;
+            const maxY = row.view.originY + row.view.contentHeight - row.y - item.height;
             item.y = Math.max(minY, Math.min(maxY, pointerY - grabOffsetY));
         }
 
