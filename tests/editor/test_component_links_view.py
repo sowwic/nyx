@@ -134,3 +134,43 @@ def test_clicking_the_x_button_in_the_inspector_removes_the_link(linked, qtbot):
     QtCore.QMetaObject.invokeMethod(button, "click")
 
     assert target["value"].input_links == []
+
+
+def test_the_x_button_is_at_the_right_end_of_the_item(qapp):
+    engine = qapp.qml_engine
+    component = QtQml.QQmlComponent(
+        engine, QtCore.QUrl.fromLocalFile(str(LINK_DELEGATE_QML))
+    )
+    item = component.create()
+    assert item is not None, component.errorString()
+    try:
+        item.setProperty("linkPath", "/stage/source.value")
+        for width in (300.0, 640.0):
+            item.setProperty("width", width)
+            button = item.findChild(QtCore.QObject, "unlinkButton")
+
+            right_edge = button.mapToItem(item, QtCore.QPointF(button.width(), 0)).x()
+
+            assert right_edge == pytest.approx(
+                width - item.property("rightPadding"), abs=1.0
+            )
+    finally:
+        item.deleteLater()
+
+
+def test_in_the_inspector_the_row_keeps_its_height_and_the_x_is_at_its_right(
+    linked, qtbot
+):
+    controller, *_ = linked
+    qtbot.waitUntil(
+        lambda: bool(find_items(controller.view_root, "unlinkButton")), timeout=3000
+    )
+    (button,) = find_items(controller.view_root, "unlinkButton")
+    delegate = button.parentItem().parentItem()
+
+    assert delegate.height() == pytest.approx(30)
+    right_edge = button.mapToItem(delegate, QtCore.QPointF(button.width(), 0)).x()
+    assert right_edge == pytest.approx(
+        delegate.width() - delegate.property("rightPadding"), abs=1.0
+    )
+    assert delegate.width() > 100
