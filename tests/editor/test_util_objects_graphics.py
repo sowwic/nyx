@@ -424,3 +424,52 @@ def test_pressing_a_group_carries_a_node_that_was_selected(
     gr_group.setPos(100, 50)
     gr_stage.commit_moves()
     assert node.position() == QtCore.QPointF(120, 90)
+
+
+@pytest.fixture
+def graphics_stage_config(main_window, restore_config):
+    return restore_config(
+        main_window.config.values.editor_widgets.graphics_stage,
+        "default_note_color",
+        "default_group_color",
+    )
+
+
+def test_new_notes_and_groups_get_the_configured_colors(
+    stage_editor, graphics_stage_config
+):
+    graphics_stage_config.default_note_color = "#102030"
+    graphics_stage_config.default_group_color = "#405060"
+    actions = stage_editor.gr_view.edit_actions
+
+    actions.create_note()
+    actions.create_group()
+
+    colors = {
+        type(gr_util.util_object).__name__: gr_util.util_object.color
+        for gr_util in stage_editor.gr_stage.gr_util_objects()
+    }
+    assert colors == {"NoteObject": "#102030", "GroupObject": "#405060"}
+
+
+def test_an_invalid_configured_color_falls_back_to_the_default(
+    stage_editor, graphics_stage_config, caplog
+):
+    graphics_stage_config.default_note_color = "not a color"
+
+    with caplog.at_level("WARNING"):
+        stage_editor.gr_view.edit_actions.create_note()
+
+    (gr_note,) = stage_editor.gr_stage.gr_util_objects()
+    assert gr_note.util_object.color == gr_note.util_object.DEFAULT_COLOR
+    assert "default_note_color" in caplog.text
+
+
+def test_config_defaults_match_the_colors_of_the_types(graphics_stage_config):
+    from nyx.stdlib.util_objects.group import GroupObject
+    from nyx.stdlib.util_objects.note import NoteObject
+
+    defaults = type(graphics_stage_config)()
+
+    assert defaults.default_note_color == NoteObject.DEFAULT_COLOR
+    assert defaults.default_group_color == GroupObject.DEFAULT_COLOR

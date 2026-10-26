@@ -2,13 +2,14 @@ import functools
 import logging
 import typing
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
 from nyx.core.exceptions import NyxCommandValidationError
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import clipboard
+from nyx.editor.utils.common import get_app_config
 from nyx.static.enums import CoreUtilObjects
 from nyx.utils import pyside_fn
 
@@ -32,6 +33,11 @@ class StageGraphActions:
     """float: space between a new group and the nodes it is created around."""
     GROUP_TITLE_SPACE = 26.0
     """float: room above the nodes for the title of a new group."""
+    DEFAULT_COLOR_FIELDS = {
+        CoreUtilObjects.NOTE: "default_note_color",
+        CoreUtilObjects.GROUP: "default_group_color",
+    }
+    """dict[str, str]: config value holding the default color of each util object."""
 
     def __init__(self, view: StageGraphView):
         """Initialize StageGraphActions.
@@ -169,6 +175,25 @@ class StageGraphActions:
             CoreUtilObjects.GROUP, position=bounds.topLeft(), size=bounds.size()
         )
 
+    def _default_properties(self, type_id) -> dict[str, str]:
+        """Get the properties new util objects of a type start with, from the config.
+
+        Args:
+            type_id (str): util object type id.
+
+        Returns:
+            dict[str, str]: the configured color, empty if the type has none or the
+                configured value isn't a color, so the default of the type is used.
+        """
+        field = self.DEFAULT_COLOR_FIELDS.get(type_id)
+        if field is None:
+            return {}
+        color = getattr(get_app_config().values.editor_widgets.graphics_stage, field)
+        if not QtGui.QColor(color).isValid():
+            LOGGER.warning(f"Invalid {field} {color!r} in the config, using the default")
+            return {}
+        return {"color": color}
+
     def _create_util_object(self, type_id, position, size=None):
         """Create a util object in the scope being drawn and select it.
 
@@ -183,7 +208,12 @@ class StageGraphActions:
 
         scope_node = view.stage.get_object(view.graph_editor.get_scope_path())
         command = commands.CreateUtilObjectCommand(
-            view.stage, type_id, node=scope_node, position=position, size=size
+            view.stage,
+            type_id,
+            node=scope_node,
+            position=position,
+            size=size,
+            properties=self._default_properties(type_id),
         )
         try:
             view.stage.push_command(command)

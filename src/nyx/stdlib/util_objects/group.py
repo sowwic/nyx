@@ -2,6 +2,7 @@ import typing
 from collections import OrderedDict
 
 from nyx.api.v1 import CoreGraphicsObjects, CoreUtilObjects, UtilObject
+from nyx.static.vars import DEFAULT_GROUP_COLOR
 
 
 class GroupObject(UtilObject):
@@ -11,7 +12,7 @@ class GroupObject(UtilObject):
     DEFAULT_SIZE = (360.0, 240.0)
     MIN_SIZE = (80.0, 60.0)
     DEFAULT_TITLE = "Group"
-    DEFAULT_COLOR = "#5b8def"
+    DEFAULT_COLOR = DEFAULT_GROUP_COLOR
 
     TITLE_KEY = "title"
     COLOR_KEY = "color"

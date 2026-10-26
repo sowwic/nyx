@@ -2,6 +2,7 @@ import typing
 from collections import OrderedDict
 
 from nyx.api.v1 import CoreGraphicsObjects, CoreUtilObjects, UtilObject
+from nyx.static.vars import DEFAULT_NOTE_COLOR
 
 
 class NoteObject(UtilObject):
@@ -9,7 +10,7 @@ class NoteObject(UtilObject):
 
     GRAPHICS_OBJECT_ID = CoreGraphicsObjects.NOTE
     DEFAULT_SIZE = (220.0, 140.0)
-    DEFAULT_COLOR = "#e8c95a"
+    DEFAULT_COLOR = DEFAULT_NOTE_COLOR
 
     TEXT_KEY = "text"
     COLOR_KEY = "color"
