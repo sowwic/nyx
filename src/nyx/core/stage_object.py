@@ -23,8 +23,15 @@ class StageObject:
     META_DATA_KEY: str = "metadata"
     SOURCE_PLUGIN_KEY: str = "source_plugin"
     NYX_VERSION_METADATA_KEY: str = "nyx_version"
+    GRAPHICS_OBJECT_ID_KEY: str = "graphics_object_id"
 
     SOURCE_PLUGIN: NyxPluginRegistryEntry | None = None
+    GRAPHICS_OBJECT_ID: str = ""
+    """str: id of the graphics object drawing the type, registered in the registry.
+
+    Override it in subclasses to draw all objects of the type differently, or set
+    `graphics_object_id` to draw a single object differently.
+    """
 
     def __init__(self, uuid: UUID | str | None = None):
         """Initialize StageObject.
@@ -33,6 +40,7 @@ class StageObject:
             uuid (UUID | str | None): object uuid. Generated if omitted.
         """
         self._uuid = self.as_uuid(uuid)
+        self._graphics_object_id: str | None = None
 
     @property
     def stage(self) -> Stage:
@@ -61,6 +69,21 @@ class StageObject:
         self.stage.uuid_map[self._uuid] = self
 
     @property
+    def graphics_object_id(self) -> str:
+        """str: id of the graphics object drawing the object, registered in the registry.
+
+        The type default (`GRAPHICS_OBJECT_ID`) unless set on the object. Setting it
+        to the default or to None drops the override.
+        """
+        return self._graphics_object_id or self.GRAPHICS_OBJECT_ID
+
+    @graphics_object_id.setter
+    def graphics_object_id(self, value: str | None):
+        self._graphics_object_id = (
+            None if not value or value == self.GRAPHICS_OBJECT_ID else value
+        )
+
+    @property
     def path(self) -> pathlib.PosixPath:
         """pathlib.PosixPath: path in the stage. Subclasses must implement."""
         raise NotImplementedError("StageObject subclass must implement path property")
@@ -83,8 +106,18 @@ class StageObject:
             serialized_data[self.SOURCE_PLUGIN_KEY] = (
                 self.SOURCE_PLUGIN.plugin_cls.get_type_id()
             )
+        if self._graphics_object_id is not None:
+            serialized_data[self.GRAPHICS_OBJECT_ID_KEY] = self._graphics_object_id
 
         return serialized_data
+
+    def restore_graphics_object_id(self, serialized_data: dict[str, typing.Any]):
+        """Take the graphics object override from serialized data.
+
+        Args:
+            serialized_data (dict[str, typing.Any]): serialized object.
+        """
+        self.graphics_object_id = serialized_data.get(self.GRAPHICS_OBJECT_ID_KEY)
 
     @classmethod
     def deserialize(

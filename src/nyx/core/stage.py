@@ -28,6 +28,7 @@ from ..static.enums import CoreNodes
 
 if typing.TYPE_CHECKING:
     from nyx.core.commands import NyxCommand
+    from nyx.core.util_object import UtilObject
 
 LOGGER = logging.getLogger(__name__)
 
@@ -555,6 +556,36 @@ class Stage(QtGui.QStandardItemModel):
                 )
             self._uuid_map[node_component.uuid] = node_component
 
+        for util_object in node.util_objects:
+            self.register_util_object(util_object)
+
+    def register_util_object(self, util_object: UtilObject):
+        """Register a util object in the uuid map.
+
+        Args:
+            util_object (UtilObject): object to register.
+
+        Raises:
+            StageObjectRegistrationError: if the uuid is used by another object.
+        """
+        if (
+            util_object.uuid in self._uuid_map
+            and self._uuid_map[util_object.uuid] is not util_object
+        ):
+            raise StageObjectRegistrationError(
+                f"Util object with UUID {util_object.uuid} already exists: "
+                f"{self._uuid_map[util_object.uuid]}"
+            )
+        self._uuid_map[util_object.uuid] = util_object
+
+    def unregister_util_object(self, util_object: UtilObject):
+        """Remove a util object from the uuid map.
+
+        Args:
+            util_object (UtilObject): object to unregister.
+        """
+        self._uuid_map.pop(util_object.uuid, None)
+
     def unregister_node(self, node: NodeLike):
         """Unregister a node, its components and its descendants.
 
@@ -569,6 +600,8 @@ class Stage(QtGui.QStandardItemModel):
 
         node: Node = self.get_object(node)
         self._uuid_map.pop(node.uuid, None)
+        for util_object in node.util_objects:
+            self._uuid_map.pop(util_object.uuid, None)
         descendant_nodes = node.list_children_tree()
         for component in node.components_model.list_components():
             self._uuid_map.pop(component.uuid, None)

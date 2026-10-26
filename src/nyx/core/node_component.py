@@ -47,6 +47,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     PATH_SEPARATOR: str = "."
     VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
 
+    GRAPHICS_OBJECT_ID = "core.plug"
+
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
@@ -842,6 +844,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             component = component_cls(uuid=uuid)
 
         component.uuid = uuid
+        component.restore_graphics_object_id(data)
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
         component.setData(

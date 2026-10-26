@@ -27,6 +27,9 @@ from .nodes.type_cast import TypeCastNode
 from .nodes.get_type import GetTypeNode
 from .nodes.reference import ReferenceNode
 
+from .util_objects.note import NoteObject
+from .util_objects.group import GroupObject
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -80,5 +83,6 @@ class NyxCore(NyxPlugin):
             GetTypeNode,
             ReferenceNode,
         ]
+        plugin.contents.util_objects = [NoteObject, GroupObject]
 
         return plugin

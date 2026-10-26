@@ -159,6 +159,11 @@ class PasteNodesCommand(NyxCommand):
                 component.name: component.uuid
                 for component in node.components_model.list_components()
             },
+            "util_objects": [
+                util_object.uuid
+                for util_object in node.util_objects
+                if not node.locks_children
+            ],
             # Nodes owning their children, like a reference node, load them again.
             "children": []
             if node.locks_children
@@ -182,6 +187,11 @@ class PasteNodesCommand(NyxCommand):
                     f"Component '{component_data['name']}' missing from paste history."
                 )
             component_data[NodeComponent.UUID_KEY] = str(component_uuid)
+
+        for util_data, util_uuid in zip(
+            node_data.get(Node.UTIL_OBJECTS_KEY, []), record["util_objects"]
+        ):
+            util_data[Node.UUID_KEY] = str(util_uuid)
 
         children_data = node_data.get(Node.CHILDREN_KEY, [])
         if len(children_data) != len(record["children"]):

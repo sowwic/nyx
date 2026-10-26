@@ -330,6 +330,11 @@ class ReferenceNode(Node):
                 context=context,
                 restore_uuid=RestoreUuidOption.GENERATE_NEW,
             )
+        self.deserialize_util_objects(
+            data.get(self.UTIL_OBJECTS_KEY, []),
+            context=context,
+            restore_uuid=RestoreUuidOption.GENERATE_NEW,
+        )
         self._load_components(data.get(self.COMPONENTS_KEY, []), overrides, context)
 
         try:
@@ -485,7 +490,8 @@ class ReferenceNode(Node):
             return None
 
     def _remove_children(self) -> None:
-        """Remove the nodes loaded from the source file and the links between them."""
+        """Remove the nodes and util objects loaded from the source and their links."""
+        self.clear_util_objects()
         children = self.list_children()
         for node in [*children, *self.list_children_tree()]:
             for component in node.components_model.list_components():

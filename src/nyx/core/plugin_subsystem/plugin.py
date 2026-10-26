@@ -7,7 +7,7 @@ import inspect
 
 
 if typing.TYPE_CHECKING:
-    from nyx.api.v1 import Node, NodeComponent, Datatype
+    from nyx.api.v1 import Node, NodeComponent, Datatype, UtilObject
 
 
 @dataclasses.dataclass()
@@ -20,6 +20,10 @@ class NyxPluginContents:
         node_components: List of NodeComponent classes
         nodes: List of Node classes
         datatypes: List of Datatype instances
+        util_objects: List of UtilObject classes
+        graphics_objects: List of graphics object classes (QGraphicsItem subclasses with
+            a `get_type_id` classmethod). Stage objects refer to them by
+            `graphics_object_id`.
     """
 
     namespace: str = ""
@@ -28,6 +32,10 @@ class NyxPluginContents:
     )
     nodes: list[type[Node]] = dataclasses.field(init=False, default_factory=list)
     datatypes: list[Datatype] = dataclasses.field(init=False, default_factory=list)
+    util_objects: list[type[UtilObject]] = dataclasses.field(
+        init=False, default_factory=list
+    )
+    graphics_objects: list[type] = dataclasses.field(init=False, default_factory=list)
 
     def register_function_node(
         self,

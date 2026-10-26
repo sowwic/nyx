@@ -6,6 +6,9 @@ from .set_node_active_state import SetNodeActiveStateCommand
 from .set_component_active_state import SetNodeComponentActiveStateCommand
 from .paste_nodes import PasteNodesCommand
 from .move_node import MoveNodeCommand
+from .create_util_object import CreateUtilObjectCommand
+from .delete_util_object import DeleteUtilObjectCommand
+from .set_util_object_properties import SetUtilObjectPropertiesCommand
 from .add_node_component import AddNodeComponentCommand
 from .delete_node_component import DeleteNodeComponentCommand
 from .rename_node_component import RenameNodeComponentCommand
@@ -30,6 +33,9 @@ __all__ = [
     "SetNodeComponentFlagCommand",
     "PasteNodesCommand",
     "MoveNodeCommand",
+    "CreateUtilObjectCommand",
+    "DeleteUtilObjectCommand",
+    "SetUtilObjectPropertiesCommand",
     "AddNodeComponentCommand",
     "DeleteNodeComponentCommand",
     "RenameNodeComponentCommand",

@@ -23,6 +23,8 @@ type LinkLike = Link | UUID | str
 class Link(StageObject):
     """Connection between a source and a target node component."""
 
+    GRAPHICS_OBJECT_ID = "core.link"
+
     SOURCE_UUID_KEY = "source_uuid"
     TARGET_UUID_KEY = "target_uuid"
 
@@ -186,4 +188,5 @@ class Link(StageObject):
         else:
             link.uuid = new_uuid
 
+        link.restore_graphics_object_id(serialized_link)
         return link
