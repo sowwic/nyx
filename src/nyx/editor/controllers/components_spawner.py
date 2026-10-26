@@ -5,6 +5,7 @@ from PySide6 import QtCore
 from ...core.node import Node
 from ...core.node_component import NodeComponent
 from ...core.commands import AddNodeComponentCommand
+from ...core.exceptions import NyxCommandValidationError
 
 
 LOGGER = logging.getLogger(__name__)
@@ -28,7 +29,11 @@ class NodeComponentSpawner(QtCore.QObject):
             NodeComponent: created component.
         """
         command = AddNodeComponentCommand(node=target_node, type_id=type_id)
-        target_node.stage.push_command(command)
+        try:
+            target_node.stage.push_command(command)
+        except NyxCommandValidationError as err:
+            LOGGER.warning(str(err))
+            return None
         result_component = command.result_component
         self.componentSpawned.emit(result_component)
         return result_component

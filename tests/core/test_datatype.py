@@ -160,7 +160,7 @@ def test_plug_shape_defaults_to_circle():
 def test_reference_is_a_square_that_exchanges_paths_with_strings():
     from nyx.api.v1 import GraphicsPlugShape
 
-    reference = get(CoreDatatypes.REFERENCE)
+    reference = get(CoreDatatypes.STAGE_OBJECT_PATH)
     assert reference.plug_shape is GraphicsPlugShape.SQUARE
     assert reference.accepts(get(CoreDatatypes.STRING))
     assert get(CoreDatatypes.STRING).accepts(reference)

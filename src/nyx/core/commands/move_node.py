@@ -42,6 +42,10 @@ class MoveNodeCommand(NyxCommand):
 
         self.setText(f"{self.text()} {[p.as_posix() for p in self.node_paths]}")
 
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(path) for path in self.node_paths]
+
     def redo(self) -> None:
         """Move the nodes to their new positions."""
         for node, new_pos in zip(

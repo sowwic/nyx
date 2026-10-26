@@ -35,6 +35,14 @@ class NodeSerializationContext:
         for component in from_node.components_model.list_components():
             self._links_uuids.update(component.links_uuids)
 
+    def collect_link_uuids(self, link_uuids: typing.Iterable[UUID]):
+        """Collect links by uuid.
+
+        Args:
+            link_uuids (Iterable[UUID]): uuids of the links to collect.
+        """
+        self._links_uuids.update(link_uuids)
+
     def get_serialized_links(self) -> list[OrderedDict]:
         """Serialize the collected links.
 

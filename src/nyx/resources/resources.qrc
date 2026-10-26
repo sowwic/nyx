@@ -1,6 +1,7 @@
 <!DOCTYPE RCC>
 <RCC>
   <qresource prefix="/">
+    <file>icons/asterisk.png</file>
     <file>icons/arrow_back.png</file>
     <file>icons/delete.png</file>
     <file>icons/edit.png</file>
@@ -14,7 +15,7 @@
     <file>icons/frame_bug.png</file>
     <file>icons/stage_object.png</file>
     <file>icons/function.png</file>
-    <file>icons/stage_reference.png</file>
+    <file>icons/stage_object_path.png</file>
     <file>icons/check.png</file>
     <file>icons/cross.png</file>
     <file>icons/green_check.png</file>

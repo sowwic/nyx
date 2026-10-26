@@ -8,12 +8,12 @@ if typing.TYPE_CHECKING:
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
-from nyx.editor.utils.io import export_selected_nodes, import_nodes_from_explorer
+from nyx.editor.utils.io import import_stages_from_explorer
 from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
 class FileMenu(BaseMenu):
-    """File menu: stage open and save, recent files and node import and export."""
+    """File menu: stage open and save, recent files and stage import and reference."""
 
     def __init__(
         self, main_window: NyxEditorMainWindow, title: str = "&File", parent=None
@@ -28,13 +28,12 @@ class FileMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
-        """Register the handlers of the node import and export actions."""
+        """Register the handlers of the stage import and reference actions."""
         register = ACTION_ROUTER.register_handler
-        register(ActionId.EXPORT_NODES, export_selected_nodes)
-        register(ActionId.IMPORT_NODES, import_nodes_from_explorer)
+        register(ActionId.IMPORT_STAGE, import_stages_from_explorer)
         register(
-            ActionId.REFERENCE_NODES,
-            lambda: import_nodes_from_explorer(as_reference=True),
+            ActionId.REFERENCE_STAGE,
+            lambda: import_stages_from_explorer(as_reference=True),
         )
 
     def populate(self):
@@ -44,6 +43,8 @@ class FileMenu(BaseMenu):
         self.addAction(action(ActionId.NEW_STAGE))
         self.addAction(action(ActionId.OPEN_STAGE))
         self.addAction(action(ActionId.OPEN_STAGE_TAB))
+        self.addAction(action(ActionId.IMPORT_STAGE))
+        self.addAction(action(ActionId.REFERENCE_STAGE))
         self.recent_menu = self.addMenu("Recent Files...")
         self.recent_menu.setToolTipsVisible(True)
         self.recent_menu.aboutToShow.connect(self.rebuild_recent_menu)
@@ -51,10 +52,6 @@ class FileMenu(BaseMenu):
         self.addSection("Save")
         self.addAction(action(ActionId.SAVE_STAGE))
         self.addAction(action(ActionId.SAVE_STAGE_AS))
-        self.addSection("Nodes")
-        self.addAction(action(ActionId.IMPORT_NODES))
-        self.addAction(action(ActionId.REFERENCE_NODES))
-        self.addAction(action(ActionId.EXPORT_NODES))
 
     def rebuild_recent_menu(self):
         """Refill the recent files submenu from the session."""

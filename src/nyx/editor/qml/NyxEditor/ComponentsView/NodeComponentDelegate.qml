@@ -22,6 +22,13 @@ DraggableDelegate {
 
     required property bool filtersActive
 
+    // Why the component can't be relied on, like when it left the source of a reference.
+    readonly property string invalidReason: model.invalidReason || ""
+    readonly property bool isInvalid: invalidReason.length > 0
+
+    // False for the components of a reference: they belong to its source file.
+    readonly property bool structureEditable: root.componentsController.structureEditable
+
     readonly property bool isSelected: {
         if (!root.componentsController.selectionModel.model)
             return false;
@@ -43,7 +50,7 @@ DraggableDelegate {
     }
 
     function startRename() {
-        if (isBuiltIn)
+        if (isBuiltIn || !structureEditable)
             return;
         isRenaming = true;
         renameField.text = name;
@@ -70,6 +77,8 @@ DraggableDelegate {
     // Edit the note, showing it first if it is hidden: the component and the note
     // frame are opened, and the frame is shown even though there is no note yet.
     function startNoteEdit() {
+        if (!structureEditable)
+            return;
         if (!isExpanded)
             toggleExpanded();
         model.noteExpanded = true;
@@ -77,8 +86,8 @@ DraggableDelegate {
     }
 
     onIsDraggingChanged: animateHeight = true
-    dragEnabled: !isBuiltIn && !filtersActive
-    dropEnabled: !isBuiltIn && !filtersActive
+    dragEnabled: !isBuiltIn && structureEditable && !filtersActive
+    dropEnabled: !isBuiltIn && structureEditable && !filtersActive
 
     Rectangle {
         id: card
@@ -177,6 +186,7 @@ DraggableDelegate {
                         Layout.alignment: Qt.AlignVCenter
                         checked: itemRoot.isActive
                         visible: !itemRoot.model.isStatic
+                        enabled: itemRoot.structureEditable
                         onToggled: root.componentsController.setSetComponentActiveState(itemRoot.model.index, checked)
                     }
 
@@ -190,7 +200,7 @@ DraggableDelegate {
                         opacity: itemRoot.isActive ? 1.0 : 0.5
                         // Hide only the label's own text while renaming. (Hiding the label itself
                         // or lowering its opacity would also affect the TextField child.)
-                        color: itemRoot.isRenaming ? "transparent" : palette.windowText
+                        color: itemRoot.isRenaming ? "transparent" : itemRoot.isInvalid ? "firebrick" : palette.windowText
 
                         HoverHandler {
                             id: componentNameHoverHandler
@@ -199,7 +209,7 @@ DraggableDelegate {
                         // The same tooltip as the items of the palettes
                         DescriptionToolTip {
                             visible: componentNameHoverHandler.hovered && !itemRoot.isRenaming && text.length > 0
-                            text: itemRoot.model.description || itemRoot.typeDisplayName
+                            text: itemRoot.isInvalid ? itemRoot.invalidReason : (itemRoot.model.description || itemRoot.typeDisplayName)
                         }
 
                         // Inline rename editor, drawn over the title.
@@ -234,12 +244,43 @@ DraggableDelegate {
                         Menu {
                             id: componentOptionsMenu
 
+                            // The neighbours change as components move, so ask when the menu opens.
+                            property bool canMoveUp: false
+                            property bool canMoveDown: false
+                            onAboutToShow: {
+                                canMoveUp = root.componentsController.canMoveComponent(itemRoot.index, -1);
+                                canMoveDown = root.componentsController.canMoveComponent(itemRoot.index, 1);
+                            }
+
                             MenuItem {
                                 text: "Rename"
-                                visible: !itemRoot.isBuiltIn
+                                visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 // A hidden MenuItem keeps its slot in the menu; collapse it explicitly.
                                 height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startRename()
+                            }
+
+                            MenuItem {
+                                text: "Remove"
+                                visible: itemRoot.isInvalid
+                                height: visible ? implicitHeight : 0
+                                onClicked: root.componentsController.removeComponent(itemRoot.index)
+                            }
+
+                            MenuItem {
+                                text: "Move Up"
+                                visible: itemRoot.dragEnabled
+                                height: visible ? implicitHeight : 0
+                                enabled: componentOptionsMenu.canMoveUp
+                                onClicked: root.componentsController.moveComponent(itemRoot.index, -1)
+                            }
+
+                            MenuItem {
+                                text: "Move Down"
+                                visible: itemRoot.dragEnabled
+                                height: visible ? implicitHeight : 0
+                                enabled: componentOptionsMenu.canMoveDown
+                                onClicked: root.componentsController.moveComponent(itemRoot.index, 1)
                             }
 
                             MenuSeparator {}
@@ -247,7 +288,7 @@ DraggableDelegate {
                             MenuItem {
                                 id: writableMenuItem
                                 text: "Writable"
-                                visible: !itemRoot.isBuiltIn
+                                visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 height: visible ? implicitHeight : 0
                                 checked: itemRoot.model.writable
                                 checkable: true
@@ -259,7 +300,7 @@ DraggableDelegate {
                             MenuItem {
                                 id: readableMenuItem
                                 text: "Readable"
-                                visible: !itemRoot.isBuiltIn
+                                visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 height: visible ? implicitHeight : 0
                                 checked: itemRoot.model.readable
                                 checkable: true
@@ -273,6 +314,8 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Edit Note"
+                                visible: itemRoot.structureEditable
+                                height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startNoteEdit()
                             }
 
@@ -374,6 +417,7 @@ DraggableDelegate {
                     objectName: "noteItem"
 
                     Layout.fillWidth: true
+                    enabled: itemRoot.structureEditable
 
                     note: itemRoot.model.note
                     noteFormat: itemRoot.model.noteFormat

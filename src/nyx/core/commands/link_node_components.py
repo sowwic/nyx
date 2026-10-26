@@ -67,6 +67,10 @@ class LinkNodeComponentsCommand(NyxCommand):
         """NodeComponent: link target."""
         return self.stage.get_object(self.target_component_uuid)
 
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.source_component.node, self.target_component.node]
+
     def redo(self) -> None:
         """Create the link, removing the target's previous input link."""
         if self._unlink_command:

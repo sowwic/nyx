@@ -1,8 +1,13 @@
 import logging
+import typing
 import weakref
 
 from PySide6 import QtGui
 from nyx.core import Stage
+from nyx.core.exceptions import NyxCommandValidationError
+
+if typing.TYPE_CHECKING:
+    from nyx.core.node import Node
 
 LOGGER = logging.getLogger(__name__)
 
@@ -11,7 +16,16 @@ class NyxCommand(QtGui.QUndoCommand):
     """Base undo command bound to a stage.
 
     The stage is held weakly because it owns the undo stack that owns this command.
+
+    Commands change nodes of the stage: they list them in `target_nodes`, so the stage
+    can refuse to change nodes that belong to a reference node.
+
+    Attributes:
+        MODIFIES_STRUCTURE: the command adds, removes or redefines components or
+            nodes, which the nodes may not allow.
     """
+
+    MODIFIES_STRUCTURE: bool = False
 
     def __init__(
         self, stage: Stage, text: str, parent: QtGui.QUndoCommand | None = None
@@ -39,3 +53,35 @@ class NyxCommand(QtGui.QUndoCommand):
         Raises:
             NyxCommandValidationError: if the command arguments are invalid.
         """
+
+    def modifies_structure(self) -> bool:
+        """bool: the command adds, removes or redefines components or nodes."""
+        return self.MODIFIES_STRUCTURE
+
+    def target_nodes(self) -> typing.Iterable[Node | None]:
+        """Get the nodes the command changes.
+
+        Returns:
+            Iterable[Node | None]: nodes changed by the command. Override in
+                subclasses.
+        """
+        return ()
+
+    def validate_not_locked(self) -> None:
+        """Check the nodes the command changes can be changed.
+
+        Raises:
+            NyxCommandValidationError: if a node belongs to a reference node, or the
+                command changes the structure of a node that doesn't allow it.
+        """
+        for node in self.target_nodes():
+            if node is None:
+                continue
+            if node.is_in_locked_scope:
+                raise NyxCommandValidationError(
+                    f"{node.path} belongs to a reference and can't be changed"
+                )
+            if self.modifies_structure() and node.locks_structure:
+                raise NyxCommandValidationError(
+                    f"The structure of {node.path} can't be changed"
+                )

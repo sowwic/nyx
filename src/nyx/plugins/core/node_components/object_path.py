@@ -21,7 +21,7 @@ if typing.TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
-class StageReferenceComponent(NodeComponent):
+class StageObjectPathComponent(NodeComponent):
     """Component pointing at a node or a component of the stage by path.
 
     A path with a suffix, like `/stage/node.component`, is the path of a component and
@@ -29,17 +29,17 @@ class StageReferenceComponent(NodeComponent):
     scope of the owning node.
 
     The target is remembered by uuid, so renaming or moving it doesn't break the
-    reference, and pasting or importing a group re-points the copies at each other.
+    path, and pasting or importing a group re-points the copies at each other.
     The text value is the path the user gave. It finds the target when the uuid can't,
     for example when the group is imported into another stage.
 
-    Only another reference can be linked into it, not a plain value.
+    Only another stage object path can be linked into it, not a plain value.
     """
 
-    DEFAULT_NAME = "reference"
-    EDITOR_QML = "StageReferenceComponentItem"
+    DEFAULT_NAME = "path"
+    EDITOR_QML = "StageObjectPathComponentItem"
 
-    # What the reference may point at. Set on an instance to narrow it down, for example
+    # What the path may point at. Set on an instance to narrow it down, for example
     # to `(NodeComponent,)` when a node path makes no sense.
     target_types: tuple[type, ...] = (Node, NodeComponent)
     TARGET_UUID_KEY = "target_uuid"
@@ -51,17 +51,17 @@ class StageReferenceComponent(NodeComponent):
     @classmethod
     def get_type_id(cls) -> str:
         """str: component type id."""
-        return CoreNodeComponents.STAGE_REFERENCE
+        return CoreNodeComponents.STAGE_OBJECT_PATH
 
     @classmethod
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI."""
-        return "Stage Reference"
+        return "Object Path"
 
     @classmethod
     def get_type_icon(cls) -> str:
         """str: resource path of the type icon."""
-        return ":/icons/stage_reference"
+        return ":/icons/stage_object_path"
 
     @classmethod
     def get_description(cls) -> str:
@@ -83,13 +83,13 @@ class StageReferenceComponent(NodeComponent):
 
     @classmethod
     def get_default_expanded_state(cls) -> bool:
-        """bool: reference components start expanded."""
+        """bool: stage object path components start expanded."""
         return True
 
     @classmethod
     def get_type_default_datatype(cls) -> str:
-        """str: references have a datatype of their own."""
-        return CoreDatatypes.REFERENCE
+        """str: the datatype is one of its own."""
+        return CoreDatatypes.STAGE_OBJECT_PATH
 
     # ======== Resolving ========= #
 
@@ -125,12 +125,12 @@ class StageReferenceComponent(NodeComponent):
 
     @property
     def target_uuid(self) -> UUID | None:
-        """UUID | None: uuid the reference points at, None if it has no target yet."""
+        """UUID | None: uuid the path points at, None if it has no target yet."""
         return self._target_uuid
 
     @property
     def target(self) -> Node | NodeComponent | None:
-        """Node | NodeComponent | None: what the reference points at, None if not found.
+        """Node | NodeComponent | None: what the path points at, None if not found.
 
         The uuid is tried first and the text only if it fails. The uuid is kept even
         when the object is missing, so a target restored later is found again.
@@ -154,7 +154,7 @@ class StageReferenceComponent(NodeComponent):
         return target
 
     def resolve_target(self) -> Node | NodeComponent:
-        """Get the node or component the reference points at.
+        """Get the node or component the path points at.
 
         An input link replaces the target: the path it provides is used.
 
@@ -167,7 +167,7 @@ class StageReferenceComponent(NodeComponent):
         target = self.target
         if target is None:
             raise exceptions.StageObjectQueryError(
-                f"{self.name}: nothing found for reference {self.raw_value!r}"
+                f"{self.name}: nothing found for path {self.raw_value!r}"
             )
         return target
 
@@ -186,7 +186,7 @@ class StageReferenceComponent(NodeComponent):
         return target if isinstance(target, NodeComponent) else None
 
     def resolve_node(self) -> Node:
-        """Get the node the reference points at.
+        """Get the node the path points at.
 
         Returns:
             Node: target node.
@@ -202,7 +202,7 @@ class StageReferenceComponent(NodeComponent):
         return target
 
     def resolve_component(self) -> NodeComponent:
-        """Get the component the reference points at.
+        """Get the component the path points at.
 
         Returns:
             NodeComponent: target component.
@@ -219,7 +219,7 @@ class StageReferenceComponent(NodeComponent):
 
     @property
     def is_valid(self) -> bool:
-        """bool: the reference points at an existing node or component."""
+        """bool: the path points at an existing node or component."""
         try:
             self.resolve_target()
         except exceptions.StageObjectQueryError:
@@ -227,7 +227,7 @@ class StageReferenceComponent(NodeComponent):
         return True
 
     def current_path_text(self) -> str:
-        """Get the text the reference stands for right now.
+        """Get the text the path stands for right now.
 
         Returns:
             str: absolute path of the target, the given text if there is no target.
@@ -248,7 +248,7 @@ class StageReferenceComponent(NodeComponent):
         return pathlib.PurePosixPath(self.current_path_text()).name
 
     def current_display_text(self) -> str:
-        """Get the text shown for the reference right now.
+        """Get the text shown for the path right now.
 
         Returns:
             str: the target as a string, like `LogNode (/stage/log)`. The given text
@@ -262,7 +262,7 @@ class StageReferenceComponent(NodeComponent):
     # ======== Values ========= #
 
     def push_value(self, value: typing.Any, evaluate: bool = True):
-        """Set the text of the reference and look for its target.
+        """Set the text of the path and look for its target.
 
         Args:
             value (typing.Any): path of the target, absolute or relative to the scope
@@ -341,7 +341,7 @@ class StageReferenceComponent(NodeComponent):
         serialized_value: typing.Any,
         context: NodeDeserializationContext | None,
     ) -> None:
-        """Set the reference from serialized data, re-pointing it at copies.
+        """Set the path from serialized data, re-pointing it at copies.
 
         Args:
             serialized_value (typing.Any): value from `serialize_value`, or just a path

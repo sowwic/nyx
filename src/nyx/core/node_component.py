@@ -72,6 +72,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_EXPANDED = enum.auto()
         LINKS_EXPANDED = enum.auto()
         NOTE_EXPANDED = enum.auto()
+        INVALID_REASON = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
@@ -285,6 +286,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         if self.get_datatype_source() is not None:
             return True
+        node = self.node
+        if node is not None and node.is_structure_locked:
+            return True
         return self.is_built_in and not self.inherits_datatype
 
     def cast_value(self, value: typing.Any) -> typing.Any:
@@ -452,6 +456,19 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         return self.value_storage.is_valid
 
     @property
+    def invalid_reason(self) -> str:
+        """str: why the component can't be relied on, empty if it can.
+
+        Set by the node owning the component, like a reference node for a component
+        that is not in its source anymore. Not serialized.
+        """
+        return self.data(self.Roles.INVALID_REASON) or ""
+
+    @invalid_reason.setter
+    def invalid_reason(self, reason: str) -> None:
+        self.setData(reason, role=self.Roles.INVALID_REASON)
+
+    @property
     def is_built_in(self) -> bool:
         """bool: component was created by the node type and can't be removed."""
         return NodeComponentFlag.BUILT_IN in self.component_flags
@@ -526,6 +543,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             role=self.Roles.DESCRIPTION,
         )
         self.setData("", role=self.Roles.NOTE)
+        self.setData("", role=self.Roles.INVALID_REASON)
         self.setData(str(NoteFormat.PLAIN), role=self.Roles.NOTE_FORMAT)
         self.setData(str(self.get_type_default_datatype()), role=self.Roles.DATATYPE)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
@@ -740,7 +758,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """Set the value from serialized data while deserializing.
 
         Components whose value refers to other stage objects override this to remap
-        the references through the context.
+        the object paths through the context.
 
         Args:
             serialized_value (typing.Any): value as written by `serialize_value`.

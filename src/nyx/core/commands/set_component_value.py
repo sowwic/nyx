@@ -42,6 +42,10 @@ class SetNodeComponentValueCommand(NyxCommand):
         """NodeComponent: component the command operates on."""
         return self.stage.get_object(self.component_uuid, expected_type=NodeComponent)
 
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.component.node]
+
     def redo(self) -> None:
         """Push the new value."""
         component = self.component

@@ -33,7 +33,9 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         """
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, enabled=True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, enabled=True)
+        self.setFlag(
+            QtWidgets.QGraphicsItem.ItemIsMovable, enabled=not node.is_in_locked_scope
+        )
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, enabled=True)
         self.setAcceptHoverEvents(True)
 
@@ -116,11 +118,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
         self.subtitle_item.refresh(self._node.subtitle)
         self._icon = QtGui.QIcon(self._node.get_type_icon())
         self._status_pixmap = self._build_status_pixmap(self._node.execution_status)
-        self._brush_background = QtGui.QBrush(
-            self.options.reference_background_color
-            if self._node.is_referenced
-            else self.options.background_color
-        )
+        self._brush_background = QtGui.QBrush(self.options.background_color)
         self._sync_plugs()
         self.update_layout()
         self.update()

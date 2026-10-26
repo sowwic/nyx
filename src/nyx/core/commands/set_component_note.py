@@ -14,6 +14,8 @@ LOGGER = logging.getLogger(__name__)
 class SetNodeComponentNoteCommand(NyxCommand):
     """Set the note of a component, and how it is written."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -56,6 +58,10 @@ class SetNodeComponentNoteCommand(NyxCommand):
             raise NyxCommandValidationError(
                 f"Unknown note format: {self.new_format}"
             ) from err
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.component_uuid).node]
 
     def redo(self) -> None:
         """Set the new note."""

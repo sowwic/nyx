@@ -18,9 +18,8 @@ class ActionId(StrEnum):
     OPEN_STAGE_TAB = "file.open_stage_tab"
     SAVE_STAGE = "file.save_stage"
     SAVE_STAGE_AS = "file.save_stage_as"
-    EXPORT_NODES = "file.export_nodes"
-    IMPORT_NODES = "file.import_nodes"
-    REFERENCE_NODES = "file.reference_nodes"
+    IMPORT_STAGE = "file.import_stage"
+    REFERENCE_STAGE = "file.reference_stage"
     SAVE_SESSION = "file.save_session"
     LOAD_SESSION = "file.load_session"
     RESTORE_LAST_SESSION = "file.restore_last_session"
@@ -38,6 +37,8 @@ class ActionId(StrEnum):
     CREATE_NODE = "node.create"
     DELETE_NODE = "node.delete"
     COPY_NODE_PATH = "node.copy_path"
+    RELOAD_REFERENCE = "node.reload_reference"
+    OPEN_REFERENCED_STAGE = "node.open_referenced_stage"
     SHOW_PALETTE = "node.show_palette"
     # Stage
     EXECUTE_STAGE = "stage.execute"
@@ -67,9 +68,8 @@ def default_definitions() -> list[ActionDefinition]:
             default_shortcut="Ctrl+Shift+S",
         ),
         D(ActionId.SAVE_STAGE_AS, "Save Stage As...", "File"),
-        D(ActionId.EXPORT_NODES, "Export Selected Nodes As...", "File"),
-        D(ActionId.IMPORT_NODES, "Import Nodes", "File"),
-        D(ActionId.REFERENCE_NODES, "Reference Nodes", "File"),
+        D(ActionId.IMPORT_STAGE, "Import Stage...", "File"),
+        D(ActionId.REFERENCE_STAGE, "Reference Stage...", "File"),
         D(ActionId.SAVE_SESSION, "Save Session As...", "File"),
         D(ActionId.LOAD_SESSION, "Load Session...", "File"),
         D(ActionId.RESTORE_LAST_SESSION, "Restore Last Session", "File"),
@@ -95,6 +95,8 @@ def default_definitions() -> list[ActionDefinition]:
         D(ActionId.CREATE_NODE, "Create node", "Node", icon_path=":/icons/plus"),
         D(ActionId.DELETE_NODE, "Delete node", "Node", icon_path=":/icons/delete"),
         D(ActionId.COPY_NODE_PATH, "Copy path to selected", "Node"),
+        D(ActionId.RELOAD_REFERENCE, "Reload reference", "Node"),
+        D(ActionId.OPEN_REFERENCED_STAGE, "Open referenced stage", "Node"),
         D(ActionId.SHOW_PALETTE, "Add Node...", "Node", default_shortcut="Tab"),
         D(
             ActionId.EXECUTE_STAGE,

@@ -23,6 +23,8 @@ LOGGER = logging.getLogger(__name__)
 class PasteNodesCommand(NyxCommand):
     """Paste serialized nodes into the stage."""
 
+    MODIFIES_STRUCTURE = True
+
     def __init__(
         self,
         stage: Stage,
@@ -64,7 +66,7 @@ class PasteNodesCommand(NyxCommand):
         self._first_run_uuids: list[dict] = []
         self._link_pairs: list[tuple[UUID, UUID]] = []
         # Serialized uuid -> uuid of its copy, from the first run. Replays reuse it so
-        # references to the originals still end up at the copies.
+        # object paths to the originals still end up at the copies.
         self._uuid_remap: dict[UUID, UUID] = {}
         self._active_link_commands: list[LinkNodeComponentsCommand] = []
 
@@ -75,6 +77,12 @@ class PasteNodesCommand(NyxCommand):
             self.stage.get_object(uuid, expected_type=Node)
             for uuid in self.created_uuids
         ]
+
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        if not self.parent_node_uuid:
+            return [None]
+        return [self.stage.get_object(self.parent_node_uuid)]
 
     def redo(self) -> None:
         """Create the pasted nodes and restore links between them."""
@@ -112,7 +120,7 @@ class PasteNodesCommand(NyxCommand):
             self.created_uuids.append(new_node.uuid)
             new_nodes.append(new_node)
 
-        # All top-level nodes exist: references can find the copies they point to.
+        # All top-level nodes exist: object paths can find the copies they point to.
         context.run_deferred()
         if first_run:
             self._uuid_remap = context.uuid_map
@@ -151,7 +159,10 @@ class PasteNodesCommand(NyxCommand):
                 component.name: component.uuid
                 for component in node.components_model.list_components()
             },
-            "children": [
+            # Nodes owning their children, like a reference node, load them again.
+            "children": []
+            if node.locks_children
+            else [
                 PasteNodesCommand._collect_uuids(child) for child in node.list_children()
             ],
         }

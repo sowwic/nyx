@@ -3,5 +3,6 @@ module NyxCore
 CommentComponentItem 1.0 CommentComponentItem.qml
 FlowComponentItem 1.0 FlowComponentItem.qml
 ScriptComponentItem 1.0 ScriptComponentItem.qml
+FileComponentItem 1.0 FileComponentItem.qml
 ValueComponentItem 1.0 ValueComponentItem.qml
-StageReferenceComponentItem 1.0 StageReferenceComponentItem.qml
+StageObjectPathComponentItem 1.0 StageObjectPathComponentItem.qml

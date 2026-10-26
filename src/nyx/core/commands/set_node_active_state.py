@@ -33,6 +33,10 @@ class SetNodeActiveStateCommand(NyxCommand):
         self.new_state = state
         self.setText(f"{self.text()} ({self.node_path} -> {self.new_state})")
 
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.node_path)]
+
     def redo(self) -> None:
         """Apply the new active state."""
         node = self.stage.get_object(self.node_path, expected_type=Node)

@@ -21,7 +21,7 @@ def test_setter_creation():
     assert flow.readable is True
 
     in_component_path = result_node["component"]
-    assert in_component_path.get_type_id() == CoreNodeComponents.STAGE_REFERENCE
+    assert in_component_path.get_type_id() == CoreNodeComponents.STAGE_OBJECT_PATH
     assert in_component_path.is_editable is True
     assert in_component_path.writable is True
     assert in_component_path.readable is False

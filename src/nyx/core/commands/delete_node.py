@@ -49,6 +49,10 @@ class DeleteNodeCommand(NyxCommand):
 
         self._build_child_unlink_commands()
 
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(path) for path in self.requested_nodes]
+
     def redo(self) -> None:
         """Unlink and delete the nodes, serializing them for undo."""
         self._redo_unlink()

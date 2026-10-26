@@ -18,6 +18,7 @@ class CoreNodes(enum.StrEnum):
     LOG = "core:log"
     TYPE_CAST = "core:type_cast"
     GET_TYPE = "core:get_type"
+    REFERENCE = "core:reference"
 
 
 class LinkAnimationStyle(enum.StrEnum):
@@ -49,7 +50,8 @@ class CoreNodeComponents(enum.StrEnum):
     FLOW = "core:flow"
     COMMENT = "core:comment"
     SCRIPT = "core:script"
-    STAGE_REFERENCE = "core:stage_reference"
+    FILE = "core:file"
+    STAGE_OBJECT_PATH = "core:stage_object_path"
 
 
 class CoreDatatypes(enum.StrEnum):
@@ -65,7 +67,7 @@ class CoreDatatypes(enum.StrEnum):
     LIST = "core:list"
     DICT = "core:dict"
     FLOW = "core:flow"
-    REFERENCE = "core:reference"
+    STAGE_OBJECT_PATH = "core:stage_object_path"
 
 
 class RestoreUuidOption(enum.IntEnum):
@@ -89,6 +91,21 @@ class NodeExecutionStatus(enum.IntEnum):
     ERROR = enum.auto()
     PENDING = enum.auto()
     NOT_RAN = enum.auto()
+
+
+class NodeFlag(enum.IntFlag):
+    """Flags describing what the nodes of a type allow.
+
+    Attributes:
+        LOCKS_CHILDREN: the nodes inside can't be changed or linked to from the
+            outside, like the ones a reference node loads from its source
+        LOCKS_STRUCTURE: components can't be added, removed, renamed or given
+            another datatype
+    """
+
+    NONE = 0
+    LOCKS_CHILDREN = enum.auto()
+    LOCKS_STRUCTURE = enum.auto()
 
 
 class NodeExecutionOrderFlag(enum.IntFlag):

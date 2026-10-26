@@ -8,7 +8,8 @@ from .node_components.comment import CommentComponent
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
 from .node_components.script import ScriptComponent
-from .node_components.stage_reference import StageReferenceComponent
+from .node_components.file import FileComponent
+from .node_components.object_path import StageObjectPathComponent
 
 from .nodes.blank import BlankNode
 from .nodes.setter import SetterNode
@@ -24,6 +25,7 @@ from .nodes.sequence import SequenceNode
 from .nodes.log import LogNode
 from .nodes.type_cast import TypeCastNode
 from .nodes.get_type import GetTypeNode
+from .nodes.reference import ReferenceNode
 
 
 LOGGER = logging.getLogger(__name__)
@@ -58,7 +60,8 @@ class NyxCore(NyxPlugin):
             FlowComponent,
             ValueComponent,
             ScriptComponent,
-            StageReferenceComponent,
+            FileComponent,
+            StageObjectPathComponent,
         ]
         plugin.contents.nodes = [
             BlankNode,
@@ -75,6 +78,7 @@ class NyxCore(NyxPlugin):
             LogNode,
             TypeCastNode,
             GetTypeNode,
+            ReferenceNode,
         ]
 
         return plugin

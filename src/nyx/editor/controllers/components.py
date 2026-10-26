@@ -31,6 +31,7 @@ class ComponentsController(QtCore.QObject):
     consistent across reorders."""
 
     componentsModelChanged = QtCore.Signal()
+    structureEditableChanged = QtCore.Signal()
 
     def __init__(
         self,
@@ -86,6 +87,16 @@ class ComponentsController(QtCore.QObject):
         self.components_filter_model.setSourceModel(model)
         if self.components_model is not None:
             self._connect_models()
+        self.structureEditableChanged.emit()
+
+    @property
+    def structure_editable(self) -> bool:
+        """bool: components can be added to and removed from the node shown."""
+        model = self.components_model
+        if model is None or model.node is None:
+            return True
+        node = model.node
+        return not node.is_structure_locked
 
     def _connect_models(self):
         """Clear the selection before rows are moved."""
@@ -162,7 +173,7 @@ class ComponentsController(QtCore.QObject):
             component: NodeComponent = self.components_model.itemFromIndex(
                 source_model_index
             )
-            if component.is_built_in:
+            if component.is_built_in and not component.invalid_reason:
                 LOGGER.warning("Can't delete built-in component %s", str(component.path))
                 return
 
@@ -186,6 +197,59 @@ class ComponentsController(QtCore.QObject):
             stage=component.stage, node_component=component, state=state
         )
         component.stage.push_command(set_active_command)
+
+    @QtCore.Slot(int)
+    def removeComponent(self, row: int):
+        """Remove a component through an undoable command.
+
+        Args:
+            row (int): proxy row of the component.
+        """
+        component = self.get_component_from_proxy_row(row)
+        self.stage.push_command(
+            DeleteNodeComponentCommand(
+                node=self.components_model.node, component_names=[component.name]
+            )
+        )
+
+    @QtCore.Slot(int, int, result=bool)
+    def canMoveComponent(self, row: int, step: int) -> bool:
+        """Check a component can be moved up or down by some rows.
+
+        Args:
+            row (int): proxy row of the component.
+            step (int): rows to move by, negative to move up.
+
+        Returns:
+            bool: both the component and the one it would take the place of can be
+                moved, so neither is built-in.
+        """
+        if self.components_model is None or not self.structure_editable:
+            return False
+
+        proxy = self.components_filter_model
+        from_source = proxy.mapToSource(proxy.index(row, 0))
+        to_source = proxy.mapToSource(proxy.index(row + step, 0))
+        if not from_source.isValid() or not to_source.isValid():
+            return False
+
+        return not any(
+            self.components_model.item(source.row(), 0).is_built_in
+            for source in (from_source, to_source)
+        )
+
+    @QtCore.Slot(int, int)
+    def moveComponent(self, row: int, step: int):
+        """Move a component up or down by some rows through an undoable command.
+
+        Nothing happens if the component can't be moved that way.
+
+        Args:
+            row (int): proxy row of the component.
+            step (int): rows to move by, negative to move up.
+        """
+        if self.canMoveComponent(row, step):
+            self.reorderComponent(row, row + step)
 
     @QtCore.Slot(int, int)
     def reorderComponent(self, from_row: int, to_row: int):
@@ -395,6 +459,11 @@ class ComponentsController(QtCore.QObject):
         fget=selection_model.fget,
         fset=selection_model.fset,
         constant=True,
+    )
+    structureEditable = QtCore.Property(
+        bool,
+        fget=structure_editable.fget,
+        notify=structureEditableChanged,
     )
     componentsModel = QtCore.Property(
         QtCore.QObject,

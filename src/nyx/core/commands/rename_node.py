@@ -40,6 +40,10 @@ class RenameNodeCommand(NyxCommand):
         self.node_data: dict = None
         self.renamed_node_data: pathlib.PurePosixPath = None
 
+    def target_nodes(self):
+        """list[Node]: nodes the command changes."""
+        return [self.stage.get_object(self.path_to_rename)]
+
     def redo(self) -> None:
         """Rename the node."""
         node = self.stage.get_object(self.path_to_rename)

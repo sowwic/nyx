@@ -18,12 +18,12 @@ from .contexts.serialization import NodeSerializationContext, NodeDeserializatio
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..utils import file_fn, inspect_fn
 from .node_render_options import NodeRenderOptions
-from ..static.vars import NYX_FILE_EXTENSION
 from ..static.enums import (
     CoreNodes,
     RestoreUuidOption,
     NodeExecutionStatus,
     NodeExecutionOrderFlag,
+    NodeFlag,
 )
 
 if typing.TYPE_CHECKING:
@@ -92,7 +92,6 @@ class Node(QtGui.QStandardItem, StageObject):
     ACTIVE_KEY = "active"
     POSITION_KEY = "position"
     EXECUTION_ORDER_KEY = "execution_order"
-    REFERENCE_FILE_KEY = "reference_file_path"
     COMPONENTS_KEY = "components"
     CHILDREN_KEY = "children"
     LINKS_KEY = "links"
@@ -106,7 +105,6 @@ class Node(QtGui.QStandardItem, StageObject):
         DESCRIPTION = enum.auto()
         IS_ACTIVE = enum.auto()
         POSITION = enum.auto()
-        REFERENCE_FILE_PATH = enum.auto()
         TAGS = enum.auto()
         IS_LOCKED = enum.auto()
         EXECUTION_STATUS = enum.auto()
@@ -176,7 +174,6 @@ class Node(QtGui.QStandardItem, StageObject):
         self.setData(self.get_description(), role=self.Roles.DESCRIPTION)
         self.setData(True, role=self.Roles.IS_ACTIVE)
         self.setData(QtCore.QPointF(), role=self.Roles.POSITION)
-        self.setData(None, role=self.Roles.REFERENCE_FILE_PATH)
         self.setData(False, role=self.Roles.IS_LOCKED)
         self.setData(self.get_tags(), role=self.Roles.TAGS)
         self.setData(self.get_type_display_name(), role=self.Roles.TYPE_DISPLAY_NAME)
@@ -336,21 +333,29 @@ class Node(QtGui.QStandardItem, StageObject):
         return self._components_model
 
     @property
-    def reference_file_path(self) -> pathlib.Path | None:
-        """pathlib.Path | None: file this node is referenced from."""
-        return self.data(role=self.Roles.REFERENCE_FILE_PATH)
+    def locks_children(self) -> bool:
+        """bool: the nodes inside can't be changed or linked to from the outside."""
+        return NodeFlag.LOCKS_CHILDREN in self.get_type_flags()
 
     @property
-    def is_referenced(self):
-        """bool: node or one of its parents is referenced from a file."""
-        nodes = [self]
-        nodes.extend(self.list_parents())
-        return any([node.reference_file_path is not None for node in nodes])
+    def locks_structure(self) -> bool:
+        """bool: components can't be added, removed, renamed or retyped."""
+        return NodeFlag.LOCKS_STRUCTURE in self.get_type_flags()
 
     @property
-    def is_locked(self):
-        """bool: node can't be modified."""
-        return self.data(self.Roles.IS_LOCKED)
+    def is_in_locked_scope(self) -> bool:
+        """bool: an ancestor owns this node, so it can't be changed from the outside."""
+        return any(parent.locks_children for parent in self.list_parents())
+
+    @property
+    def is_structure_locked(self) -> bool:
+        """bool: the components of the node can't be added, removed or redefined."""
+        return self.locks_structure or self.is_in_locked_scope
+
+    @property
+    def is_locked(self) -> bool:
+        """bool: node can't be modified, by choice or because an ancestor owns it."""
+        return bool(self.data(self.Roles.IS_LOCKED)) or self.is_in_locked_scope
 
     @is_locked.setter
     def is_locked(self, state: bool):
@@ -455,14 +460,6 @@ class Node(QtGui.QStandardItem, StageObject):
             position (QtCore.QPointF): new position.
         """
         self.setData(position, role=Node.Roles.POSITION)
-
-    def set_reference_file(self, path: pathlib.Path | str):
-        """Set the file this node is referenced from.
-
-        Args:
-            path (pathlib.Path | str): reference file path.
-        """
-        self.setData(pathlib.Path(path), role=Node.Roles.REFERENCE_FILE_PATH)
 
     def appendRow(self, items: Node | typing.Sequence[Node]) -> None:
         """Override Qt method.
@@ -582,6 +579,17 @@ class Node(QtGui.QStandardItem, StageObject):
         """Called when the item changes. Override in subclasses."""
         pass
 
+    def get_source_file(self) -> pathlib.Path | None:
+        """Get the stage file the contents of the node are loaded from.
+
+        Returns:
+            pathlib.Path | None: the file, None if the node isn't loaded from one.
+        """
+        return None
+
+    def reload_source(self) -> None:
+        """Load the contents from the source file again. Override in subclasses."""
+
     def serialize(
         self, context: NodeSerializationContext | None = None
     ) -> OrderedDict[str, typing.Any]:
@@ -599,21 +607,68 @@ class Node(QtGui.QStandardItem, StageObject):
         serialized_data[self.ACTIVE_KEY] = self.is_active()
         serialized_data[self.POSITION_KEY] = self.serializable_position()
         serialized_data[self.EXECUTION_ORDER_KEY] = self.execution_order
-        serialized_data.update(self.components_model.serialize())
-        context.collect_links(from_node=self)
-        if self.reference_file_path is not None:
-            serialized_data[self.REFERENCE_FILE_KEY] = (
-                self.reference_file_path.as_posix()
-            )
-        else:
-            serialized_data[self.CHILDREN_KEY] = [
-                child_node.serialize(context=context)
-                for child_node in self.list_children()
-            ]
+        serialized_data.update(self.serialize_contents(context))
+        self.collect_serialized_links(context)
 
         if context.entry_node is self:
             serialized_data[Node.LINKS_KEY] = context.get_serialized_links()
         return serialized_data
+
+    def serialize_contents(
+        self, context: NodeSerializationContext
+    ) -> OrderedDict[str, typing.Any]:
+        """Serialize what the node holds: its components and children.
+
+        Override in subclasses that get their contents from somewhere else.
+
+        Args:
+            context (NodeSerializationContext): serialization context.
+
+        Returns:
+            OrderedDict[str, typing.Any]: data merged into the serialized node.
+        """
+        contents = OrderedDict(self.components_model.serialize())
+        contents[self.CHILDREN_KEY] = [
+            child_node.serialize(context=context) for child_node in self.list_children()
+        ]
+        return contents
+
+    def collect_serialized_links(self, context: NodeSerializationContext) -> None:
+        """Tell the context which links to store with the node.
+
+        Args:
+            context (NodeSerializationContext): serialization context.
+        """
+        context.collect_links(from_node=self)
+
+    def deserialize_contents(
+        self,
+        serialized_node: OrderedDict[str, typing.Any],
+        context: NodeDeserializationContext,
+        restore_uuid: RestoreUuidOption,
+    ) -> None:
+        """Create the children and components of the node from serialized data.
+
+        Override in subclasses that get their contents from somewhere else.
+
+        Args:
+            serialized_node (OrderedDict[str, typing.Any]): serialized node.
+            context (NodeDeserializationContext): deserialization context.
+            restore_uuid (RestoreUuidOption): how serialized uuids are restored.
+        """
+        for child_data in serialized_node.get(self.CHILDREN_KEY, {}):
+            self.deserialize(
+                serialized_node=child_data,
+                parent_node=self,
+                restore_uuid=restore_uuid,
+                context=context,
+            )
+
+        self.components_model.deserialize(
+            serialized_node.get(self.COMPONENTS_KEY, []),
+            context=context,
+            restore_uuid=restore_uuid,
+        )
 
     @classmethod
     def deserialize(
@@ -672,7 +727,6 @@ class Node(QtGui.QStandardItem, StageObject):
         if uuid is not None:
             node.uuid = uuid
 
-        # Read these BEFORE the reference-file swap below replaces serialized_node
         context.register(
             serialized_uuid=serialized_node[cls.UUID_KEY], new_uuid=node.uuid
         )
@@ -687,27 +741,8 @@ class Node(QtGui.QStandardItem, StageObject):
             cls.EXECUTION_ORDER_KEY, cls.get_type_execution_order()
         )
 
-        # Get data from reference
-        reference_file_path = serialized_node.get(cls.REFERENCE_FILE_KEY)
-        if reference_file_path:
-            reference_file_path = pathlib.Path(reference_file_path)
-            node.set_reference_file(reference_file_path)
-            serialized_node = node._load_reference_file_data()
-
-        # Children
-        for child_data in serialized_node.get(cls.CHILDREN_KEY, {}):
-            cls.deserialize(
-                serialized_node=child_data,
-                parent_node=node,
-                restore_uuid=restore_uuid,
-                context=context,
-            )
-
-        # Components
-        node.components_model.deserialize(
-            serialized_node.get(cls.COMPONENTS_KEY),
-            context=context,
-            restore_uuid=restore_uuid,
+        node.deserialize_contents(
+            serialized_node, context=context, restore_uuid=restore_uuid
         )
         stage.register_node(node)
 
@@ -719,7 +754,7 @@ class Node(QtGui.QStandardItem, StageObject):
                 links_data=links_data, restore_uuid=restore_uuid, context=context
             )
 
-        # Everything this run creates exists now: let references find their targets.
+        # Everything this run creates exists now: let object paths find their targets.
         # With deferred links the caller owns the run and does it once all is created.
         if context.entry_node is node and not context.defer_links:
             context.run_deferred()
@@ -750,27 +785,6 @@ class Node(QtGui.QStandardItem, StageObject):
                 restore_uuid=restore_uuid,
             )
             self.stage.register_link(link)
-
-    def _load_reference_file_data(self) -> OrderedDict:
-        """Load the serialized data from the reference file.
-
-        Returns:
-            OrderedDict: file data, empty if the file doesn't exist.
-
-        Raises:
-            ValueError: if the file isn't a nyx file.
-        """
-        data = OrderedDict()
-        try:
-            if self.reference_file_path.suffix == NYX_FILE_EXTENSION:
-                data = file_fn.load_json(
-                    self.reference_file_path, object_pairs_hook=OrderedDict
-                )
-            else:
-                raise ValueError(f"Invalid file type: {self.reference_file_path}")
-        except FileNotFoundError:
-            LOGGER.exception(f"Reference file doesn't exist: {self.reference_file_path}")
-        return data
 
     def export_to_json(self, file_path: pathlib.Path):
         """Export node to json file.
@@ -913,6 +927,11 @@ class Node(QtGui.QStandardItem, StageObject):
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI. Subclasses must implement."""
         raise NotImplementedError
+
+    @classmethod
+    def get_type_flags(cls) -> NodeFlag:
+        """NodeFlag: what nodes of the type allow. Subclasses add to the parent flags."""
+        return NodeFlag.NONE
 
     @classmethod
     def get_type_execution_order(cls) -> NodeExecutionOrderFlag:

@@ -573,7 +573,12 @@ class StageGraphView(QtWidgets.QGraphicsView):
             return
         ACTION_ROUTER.refresh_enabled()
         menu = context_menus.build_nodes_context_menu(
-            self, has_selection=state.has_selection
+            self,
+            has_selection=state.has_selection,
+            has_reference=any(
+                gr_node.node.get_source_file() is not None
+                for gr_node in self.gr_stage.selected_gr_nodes()
+            ),
         )
         context_menus.show_menu(menu, self.mapToGlobal(point))
 

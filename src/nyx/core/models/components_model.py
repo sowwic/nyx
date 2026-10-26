@@ -207,7 +207,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             if role == NodeComponent.Roles.EDITOR_QML_FILE:
                 return component.get_qml_editor_url()
             if role == NodeComponent.Roles.IS_EDITABLE:
-                return component.is_editable
+                # The nodes of a reference belong to its source file.
+                return component.is_editable and not self.node.is_in_locked_scope
             if role == NodeComponent.Roles.IS_VALID:
                 return component.is_valid
             if role == NodeComponent.Roles.RESOLVED_DATATYPE:
@@ -371,13 +372,14 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             uuid (UUID): uuid of the component.
 
         Raises:
-            ValueError: if the component doesn't exist or is built-in.
+            ValueError: if the component doesn't exist, or is built-in and not
+                invalid.
         """
         component = self.node.stage.get_object(uuid)
         if component is None:
             raise ValueError(f"Component UUID doesn't exist in stage: {uuid}")
 
-        if component.is_built_in:
+        if component.is_built_in and not component.invalid_reason:
             raise ValueError(f"Can't remove builtin component: {component.path}")
 
         if self.node.stage:
