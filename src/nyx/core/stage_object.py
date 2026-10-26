@@ -26,12 +26,6 @@ class StageObject:
     GRAPHICS_OBJECT_ID_KEY: str = "graphics_object_id"
 
     SOURCE_PLUGIN: NyxPluginRegistryEntry | None = None
-    GRAPHICS_OBJECT_ID: str = ""
-    """str: id of the graphics object drawing the type, registered in the registry.
-
-    Override it in subclasses to draw all objects of the type differently, or set
-    `graphics_object_id` to draw a single object differently.
-    """
 
     def __init__(self, uuid: UUID | str | None = None):
         """Initialize StageObject.
@@ -68,19 +62,32 @@ class StageObject:
         self._uuid = value
         self.stage.uuid_map[self._uuid] = self
 
-    @property
-    def graphics_object_id(self) -> str:
-        """str: id of the graphics object drawing the object, registered in the registry.
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """Get the id of the graphics object drawing objects of the type.
 
-        The type default (`GRAPHICS_OBJECT_ID`) unless set on the object. Setting it
-        to the default or to None drops the override.
+        Override it in subclasses to draw all objects of the type with a graphics
+        object registered in the registry, or set `graphics_object_id` to draw a
+        single object differently.
+
+        Returns:
+            str | None: graphics object id, None if objects of the type aren't drawn.
         """
-        return self._graphics_object_id or self.GRAPHICS_OBJECT_ID
+        return None
+
+    @property
+    def graphics_object_id(self) -> str | None:
+        """str | None: id of the graphics object drawing the object, None for none.
+
+        The id of the type (`get_graphics_object_id`) unless set on the object. Setting
+        it to the id of the type or to None drops the override.
+        """
+        return self._graphics_object_id or self.get_graphics_object_id()
 
     @graphics_object_id.setter
     def graphics_object_id(self, value: str | None):
         self._graphics_object_id = (
-            None if not value or value == self.GRAPHICS_OBJECT_ID else value
+            None if not value or value == self.get_graphics_object_id() else value
         )
 
     @property

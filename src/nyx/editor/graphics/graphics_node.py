@@ -154,6 +154,7 @@ class GraphicsNode(QtWidgets.QGraphicsItem):
             component
             for component in self._node.components_model.list_components()
             if GraphicsPlug.is_plug_component(component)
+            and component.graphics_object_id is not None
         ]
         wanted = {component.uuid for component in components}
         for uuid in list(self._plugs):

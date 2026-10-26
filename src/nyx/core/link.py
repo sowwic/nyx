@@ -23,8 +23,6 @@ type LinkLike = Link | UUID | str
 class Link(StageObject):
     """Connection between a source and a target node component."""
 
-    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.LINK
-
     SOURCE_UUID_KEY = "source_uuid"
     TARGET_UUID_KEY = "target_uuid"
 
@@ -51,6 +49,11 @@ class Link(StageObject):
     def __repr__(self) -> str:
         """str: link class name and the connected paths."""
         return f"({self.__class__.__name__}): {self.path_connection_str}"
+
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """str | None: id of the graphics object drawing the type."""
+        return CoreGraphicsObjects.LINK
 
     @property
     def stage(self) -> Stage:

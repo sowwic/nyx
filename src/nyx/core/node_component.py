@@ -48,8 +48,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     PATH_SEPARATOR: str = "."
     VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
 
-    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.PLUG
-
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
@@ -938,6 +936,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def get_type_default_datatype(cls) -> str:
         """str: type id of the datatype new components of the type are hinted with."""
         return CoreDatatypes.OBJECT
+
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """str | None: id of the graphics object drawing the type."""
+        return CoreGraphicsObjects.PLUG
 
     @classmethod
     def get_type_id(cls) -> str:

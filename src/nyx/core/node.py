@@ -89,8 +89,6 @@ class Node(QtGui.QStandardItem, StageObject):
     DEFAULT_NAME = "node"
     TRACK_NYX_VERSION: bool = True
 
-    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.NODE
-
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
     ACTIVE_KEY = "active"
@@ -993,6 +991,11 @@ class Node(QtGui.QStandardItem, StageObject):
 
         total_time = time.perf_counter() - start_time
         LOGGER.info(f"Executed in {total_time:.4f}: {self.path}")
+
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """str | None: id of the graphics object drawing the type."""
+        return CoreGraphicsObjects.NODE
 
     @classmethod
     def get_type_id(cls) -> str:

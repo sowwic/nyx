@@ -9,7 +9,6 @@ from nyx.static.vars import DEFAULT_NOTE_COLOR
 class NoteObject(UtilObject):
     """Free text on a sticky note, to document what a node graph does."""
 
-    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.NOTE
     DEFAULT_SIZE = (220.0, 140.0)
 
     TEXT_KEY = "text"
@@ -29,6 +28,11 @@ class NoteObject(UtilObject):
     def get_default_color(cls) -> str:
         """str: color new notes get, the `default_note_color` config value."""
         return get_configured_color("default_note_color", DEFAULT_NOTE_COLOR)
+
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """str | None: id of the graphics object drawing the type."""
+        return CoreGraphicsObjects.NOTE
 
     @classmethod
     def get_type_id(cls) -> str:

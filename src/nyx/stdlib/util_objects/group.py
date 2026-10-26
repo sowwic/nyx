@@ -9,7 +9,6 @@ from nyx.static.vars import DEFAULT_GROUP_COLOR
 class GroupObject(UtilObject):
     """Titled frame drawn behind the nodes it surrounds, to keep them together."""
 
-    GRAPHICS_OBJECT_ID = CoreGraphicsObjects.GROUP
     DEFAULT_SIZE = (360.0, 240.0)
     MIN_SIZE = (80.0, 60.0)
     DEFAULT_TITLE = "Group"
@@ -31,6 +30,11 @@ class GroupObject(UtilObject):
     def get_default_color(cls) -> str:
         """str: color new groups get, the `default_group_color` config value."""
         return get_configured_color("default_group_color", DEFAULT_GROUP_COLOR)
+
+    @classmethod
+    def get_graphics_object_id(cls) -> str | None:
+        """str | None: id of the graphics object drawing the type."""
+        return CoreGraphicsObjects.GROUP
 
     @classmethod
     def get_type_id(cls) -> str:

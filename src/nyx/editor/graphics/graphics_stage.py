@@ -222,7 +222,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             node: The node to create a GraphicsNode for.
 
         Returns:
-            GraphicsNode | None: item for the node, None if the node is out of scope.
+            GraphicsNode | None: item for the node, None if the node is out of scope
+                or isn't drawn.
         """
         node = self.stage.get_object(node)
         if not self.is_in_scope(node):
@@ -236,6 +237,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             self.remove_node(node.uuid)
 
         gr_node = create_graphics_object(node, node)
+        if gr_node is None:
+            return None
         self._gr_nodes[node.uuid] = gr_node
         self.addItem(gr_node)
         return gr_node
@@ -302,14 +305,15 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """Check if neither a node nor a util object is selected."""
         return self.is_gr_node_selection_empty() and not self.selected_gr_util_objects()
 
-    def add_util_object(self, util_object: UtilObject) -> GraphicsUtilObject:
+    def add_util_object(self, util_object: UtilObject) -> GraphicsUtilObject | None:
         """Adds the item of a util object to the scene.
 
         Args:
             util_object (UtilObject): util object to draw.
 
         Returns:
-            GraphicsUtilObject: item for the util object.
+            GraphicsUtilObject | None: item for the util object, None if it isn't
+                drawn.
         """
         gr_util = self._gr_util_objects.get(util_object.uuid)
         if gr_util is not None:
@@ -318,6 +322,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             self.remove_util_object(util_object.uuid)
 
         gr_util = create_graphics_object(util_object, util_object)
+        if gr_util is None:
+            return None
         self._gr_util_objects[util_object.uuid] = gr_util
         self.addItem(gr_util)
         return gr_util
@@ -411,7 +417,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def add_link(
         self, link: Link, source_plug: GraphicsPlug, target_plug: GraphicsPlug
-    ) -> GraphicsLink:
+    ) -> GraphicsLink | None:
         """Adds a GraphicsLink item between two plugs.
 
         Args:
@@ -420,12 +426,14 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             target_plug (GraphicsPlug): plug the link ends at.
 
         Returns:
-            GraphicsLink: new item.
+            GraphicsLink | None: new item, None if the link isn't drawn.
         """
         self.remove_link(link.uuid)
         gr_link = create_graphics_object(
             link, source_plug, target_plug, link_uuid=link.uuid
         )
+        if gr_link is None:
+            return None
         gr_link.attach()
         self._gr_links[link.uuid] = gr_link
         self.addItem(gr_link)

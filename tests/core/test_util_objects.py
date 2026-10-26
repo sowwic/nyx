@@ -12,9 +12,11 @@ from nyx.api.v1 import (
 )
 
 
-def _create_node(stage: Stage, name="node", parent=None) -> Node:
+def _create_node(
+    stage: Stage, name="node", parent=None, type_id=CoreNodes.EMPTY
+) -> Node:
     command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.EMPTY, name=name, parent_node=parent
+        stage=stage, type_id=type_id, name=name, parent_node=parent
     )
     stage.push_command(command)
     return command.result_node
@@ -130,17 +132,64 @@ def test_graphics_object_id_override_is_serialized_and_restored():
 
 def test_node_and_component_graphics_object_ids():
     stage = Stage()
-    node = _create_node(stage)
+    node = _create_node(stage, type_id=CoreNodes.ACTION)
     assert node.graphics_object_id == CoreGraphicsObjects.NODE
+    assert Node.get_graphics_object_id() == CoreGraphicsObjects.NODE
+    assert node["flow"].graphics_object_id == CoreGraphicsObjects.PLUG
 
-    class Custom(Node):
-        GRAPHICS_OBJECT_ID = "test.custom"
-
-    assert Custom.GRAPHICS_OBJECT_ID == "test.custom"
     node.graphics_object_id = "test.custom"
     assert node.serialize()["graphics_object_id"] == "test.custom"
     node.graphics_object_id = None
     assert "graphics_object_id" not in node.serialize()
+
+
+def test_a_subclass_sets_the_graphics_object_id_of_its_type():
+    class Custom(Node):
+        @classmethod
+        def get_type_id(cls) -> str:
+            return "test:custom"
+
+        @classmethod
+        def get_type_display_name(cls) -> str:
+            return "Custom"
+
+        @classmethod
+        def get_graphics_object_id(cls) -> str | None:
+            return "test.custom"
+
+    node = Custom(name="custom")
+
+    assert node.graphics_object_id == "test.custom"
+    assert Node.get_graphics_object_id() == CoreGraphicsObjects.NODE
+    # The id of the type isn't an override: it isn't saved.
+    node.graphics_object_id = "test.custom"
+    assert node._graphics_object_id is None
+
+
+def test_types_without_a_graphics_object_id_are_not_drawn():
+    from nyx.api.v1 import StageObject
+
+    class Hidden(Node):
+        @classmethod
+        def get_type_id(cls) -> str:
+            return "test:hidden"
+
+        @classmethod
+        def get_type_display_name(cls) -> str:
+            return "Hidden"
+
+        @classmethod
+        def get_graphics_object_id(cls) -> str | None:
+            return None
+
+    assert StageObject.get_graphics_object_id() is None
+    node = Hidden(name="hidden")
+    assert node.graphics_object_id is None
+
+    node.graphics_object_id = "test.custom"
+    assert node.graphics_object_id == "test.custom"
+    node.graphics_object_id = None
+    assert node.graphics_object_id is None
 
 
 def test_set_properties_undo_redo():

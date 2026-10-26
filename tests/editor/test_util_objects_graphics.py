@@ -490,3 +490,78 @@ def test_config_defaults_are_the_default_colors(graphics_stage_config):
 
     assert defaults.default_note_color == DEFAULT_NOTE_COLOR
     assert defaults.default_group_color == DEFAULT_GROUP_COLOR
+
+
+def test_nodes_without_a_graphics_object_id_are_not_drawn(
+    stage_editor, create_node, monkeypatch
+):
+    from nyx.api.v1 import Node
+
+    node = create_node(stage_editor.stage, type_id=CoreNodes.ACTION)
+    monkeypatch.setattr(Node, "get_graphics_object_id", classmethod(lambda cls: None))
+    gr_stage = stage_editor.gr_stage
+    gr_stage.remove_node(node)
+
+    assert gr_stage.add_node(node) is None
+    assert gr_stage.get_gr_node(node) is None
+
+    gr_stage.rebuild_current_scope()
+    assert gr_stage.gr_nodes() == []
+
+
+def test_util_objects_without_a_graphics_object_id_are_not_drawn(
+    stage_editor, create_util, monkeypatch
+):
+    from nyx.stdlib.util_objects.note import NoteObject
+
+    note = create_util()
+    monkeypatch.setattr(
+        NoteObject, "get_graphics_object_id", classmethod(lambda cls: None)
+    )
+    gr_stage = stage_editor.gr_stage
+    gr_stage.remove_util_object(note)
+
+    assert gr_stage.add_util_object(note) is None
+    gr_stage.rebuild_current_scope()
+    assert gr_stage.gr_util_objects() == []
+
+
+def test_components_without_a_graphics_object_id_get_no_plug(
+    stage_editor, create_node, monkeypatch
+):
+    from nyx.api.v1 import NodeComponent
+
+    node = create_node(stage_editor.stage, type_id=CoreNodes.ACTION)
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+    assert gr_node.plugs
+
+    monkeypatch.setattr(
+        NodeComponent, "get_graphics_object_id", classmethod(lambda cls: None)
+    )
+    gr_node.refresh()
+
+    assert gr_node.plugs == []
+
+
+def test_a_node_whose_type_sets_a_graphics_object_id_is_drawn_with_it(
+    stage_editor, create_node, monkeypatch
+):
+    from nyx.api.v1 import Node
+
+    class CustomGraphicsNode(GraphicsNode):
+        @classmethod
+        def get_type_id(cls) -> str:
+            return "test.type_node"
+
+    NYX_REGISTRY.graphics_objects["test.type_node"] = CustomGraphicsNode
+    try:
+        node = create_node(stage_editor.stage, type_id=CoreNodes.ACTION)
+        monkeypatch.setattr(
+            Node, "get_graphics_object_id", classmethod(lambda cls: "test.type_node")
+        )
+        gr_stage = stage_editor.gr_stage
+        gr_stage.remove_node(node)
+
+        assert type(gr_stage.add_node(node)) is CustomGraphicsNode
+    finally:
+        NYX_REGISTRY.graphics_objects.pop("test.type_node", None)

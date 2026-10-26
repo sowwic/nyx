@@ -29,11 +29,11 @@ def register_builtin_graphics_objects() -> None:
 
 def create_graphics_object(
     stage_object: StageObject, *args: typing.Any, **kwargs: typing.Any
-) -> QtWidgets.QGraphicsItem:
+) -> QtWidgets.QGraphicsItem | None:
     """Create the graphics object that draws a stage object.
 
     The class is looked up in the registry by the `graphics_object_id` of the stage
-    object. An id that isn't registered falls back to the default of its type.
+    object. An id that isn't registered falls back to the id of its type.
 
     Args:
         stage_object (StageObject): node, component, link or util object to draw.
@@ -41,12 +41,16 @@ def create_graphics_object(
         **kwargs: keyword arguments for the graphics object.
 
     Returns:
-        QtWidgets.QGraphicsItem: new graphics object.
+        QtWidgets.QGraphicsItem | None: new graphics object, None if the stage object
+            isn't drawn: its type has no graphics object id and none is set on it.
     """
     graphics_id = stage_object.graphics_object_id
+    if graphics_id is None:
+        return None
+
     graphics_cls = NYX_REGISTRY.get_graphics_object_cls(graphics_id)
     if graphics_cls is None:
-        default_id = type(stage_object).GRAPHICS_OBJECT_ID
+        default_id = type(stage_object).get_graphics_object_id()
         LOGGER.warning(
             "Unknown graphics object %r of %s, using %r",
             graphics_id,
@@ -54,4 +58,7 @@ def create_graphics_object(
             default_id,
         )
         graphics_cls = NYX_REGISTRY.get_graphics_object_cls(default_id)
+        if graphics_cls is None:
+            LOGGER.error("No graphics object to draw %s", stage_object)
+            return None
     return graphics_cls(*args, **kwargs)
