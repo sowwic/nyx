@@ -3,8 +3,10 @@ import pathlib
 import typing
 
 import shiboken6
+from nyx_bridge.manager import BridgeServerManager
 
 from .layered_config import NyxConfig
+from .plugin_subsystem.registry import NYX_REGISTRY
 from ..api.v1 import Stage
 
 
@@ -13,7 +15,7 @@ SESSION_FILE_SUFFIX = ".nyxsession"
 
 
 class NyxSession:
-    """Backend state shared by the editor: config, recent files and open stages."""
+    """Backend state shared by the editor: config, recent files, stages and servers."""
 
     def __init__(self, config: NyxConfig | None = None) -> None:
         """Initialize NyxSession.
@@ -26,11 +28,21 @@ class NyxSession:
         if config is None:
             self._config.resolve()
         self._stages: list[Stage] = []
+        self._bridge_servers = BridgeServerManager(NYX_REGISTRY.get_server_cls)
 
     @property
     def config(self) -> NyxConfig:
         """NyxConfig: layered config used by the session."""
         return self._config
+
+    @property
+    def bridge_servers(self) -> BridgeServerManager:
+        """BridgeServerManager: servers external processes connect to."""
+        return self._bridge_servers
+
+    def shutdown(self) -> None:
+        """Release what the session holds on to, e.g. when the application quits."""
+        self._bridge_servers.stop_all()
 
     # Open stages
     @property

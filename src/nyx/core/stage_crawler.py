@@ -5,6 +5,7 @@ import typing
 from typing import Protocol, runtime_checkable
 
 
+from .contexts.execution import NodeExecutionContext
 from .execution_chain import ExecutionChain
 from ..static.enums import NodeExecutionOrderFlag
 
@@ -85,11 +86,17 @@ class StageCrawler:
         self._current_node: Node | None = None
         self._pending_steps: list[collections.abc.Callable[[], None]] = []
         self._is_running_steps = False
+        self._context = NodeExecutionContext(stage)
 
     @property
     def stage(self) -> Stage:
         """Stage: stage being crawled."""
         return self._stage
+
+    @property
+    def context(self) -> NodeExecutionContext:
+        """NodeExecutionContext: state shared by the nodes of the current crawl."""
+        return self._context
 
     @property
     def current_node(self) -> Node | None:
@@ -116,9 +123,14 @@ class StageCrawler:
     def start(self, start_node: Node | None = None) -> None:
         """Begin (or restart) a crawl from ``start_node`` or the stage root."""
         self.clear_cached_data()
+        self._context = NodeExecutionContext(self.stage)
         self.stage.execution_started.emit()
         start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
-        self._traverse_children(start_node)  # kicks off the descent
+        try:
+            self._traverse_children(start_node)  # kicks off the descent
+        finally:
+            # A failing node leaves scopes open, their cleanups still have to run.
+            self._context.unwind()
         self.stage.execution_succeeded.emit()
         self.stage.execution_finished.emit()
 
@@ -181,14 +193,20 @@ class StageCrawler:
 
         node_execution_order = node.get_type_execution_order()
 
+        # The scope of a node lasts while its children execute. It is closed by a
+        # step scheduled before them, which runs once all of them are done.
         if node_execution_order is NodeExecutionOrderFlag.BEFORE_CHILDREN:
             self._schedule(
                 functools.partial(self._execute_node_and_record_its_path, node),
+                functools.partial(self._open_scope_of_node, node),
                 functools.partial(self._resolve_children_of_node, node),
+                self._context_pop_scope,
             )
         elif node_execution_order is NodeExecutionOrderFlag.AFTER_CHILDREN:
             self._schedule(
+                functools.partial(self._open_scope_of_node, node),
                 functools.partial(self._resolve_children_of_node, node),
+                self._context_pop_scope,
                 functools.partial(self._execute_node_and_record_its_path, node),
             )
         self._run_scheduled_steps()
@@ -214,6 +232,19 @@ class StageCrawler:
         LOGGER.debug("Executing node %s", node.path)
         node.execution_hook()
         self._execution_paths_stack.append(node.path.as_posix())
+
+    def _open_scope_of_node(self, node: Node) -> None:
+        """Open the execution scope of a node and let the node fill it.
+
+        Args:
+            node (Node): node whose children are about to execute.
+        """
+        self._context.push_scope(node)
+        node.enter_scope(self._context)
+
+    def _context_pop_scope(self) -> None:
+        """Close the innermost execution scope."""
+        self._context.pop_scope()
 
     def _resolve_children_of_node(self, node: Node) -> None:
         """Schedule the traversal of the node's children from its flow start node.

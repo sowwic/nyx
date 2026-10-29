@@ -8,6 +8,7 @@ import inspect
 
 if typing.TYPE_CHECKING:
     from nyx.api.v1 import Node, NodeComponent, Datatype, UtilObject
+    from nyx_bridge.server import BridgeServer
 
 
 @dataclasses.dataclass()
@@ -24,6 +25,8 @@ class NyxPluginContents:
         graphics_objects: List of graphics object classes (QGraphicsItem subclasses with
             a `get_type_id` classmethod). Stage objects refer to them by
             `get_graphics_object_id`.
+        servers: List of BridgeServer classes. Each needs a `get_type_id`, which is
+            what the application creates servers of the class by.
     """
 
     namespace: str = ""
@@ -36,6 +39,9 @@ class NyxPluginContents:
         init=False, default_factory=list
     )
     graphics_objects: list[type] = dataclasses.field(init=False, default_factory=list)
+    servers: list[type[BridgeServer]] = dataclasses.field(
+        init=False, default_factory=list
+    )
 
     def register_function_node(
         self,

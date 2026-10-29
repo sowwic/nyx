@@ -9,6 +9,7 @@ from nyx.core.util_object import UtilObject
 from nyx.core import commands
 from nyx.core import exceptions
 from nyx.core.node_component import NodeComponent, NodeComponentLike
+from nyx.core.contexts.execution import ExecutionScope, NodeExecutionContext
 from nyx.core.contexts.serialization import (
     NodeDeserializationContext,
     NodeSerializationContext,
@@ -30,6 +31,13 @@ from nyx.static.enums import (
     GraphicsPlugShape,
     NoteFormat,
 )
+from nyx_bridge.server import (
+    BridgeServer,
+    ClientDisconnected,
+    ClientSession,
+    ExecutionResult,
+    RemoteExecutionError,
+)
 from nyx.static import vars as static_vars
 from nyx.static import paths as static_paths
 
@@ -49,6 +57,13 @@ __all__ = [
     "NodeComponentLike",
     "NodeComponentFlag",
     "NodeComponentValueMask",
+    "NodeExecutionContext",
+    "ExecutionScope",
+    "BridgeServer",
+    "ClientSession",
+    "ClientDisconnected",
+    "ExecutionResult",
+    "RemoteExecutionError",
     "NodeSerializationContext",
     "NodeDeserializationContext",
     "GraphicsPlugShape",

@@ -13,6 +13,7 @@ if typing.TYPE_CHECKING:
     from ..node_component import NodeComponent
     from ..datatypes.datatype import Datatype
     from ..util_object import UtilObject
+    from nyx_bridge.server import BridgeServer
 
 
 logging.setLoggerClass(NyxLogger)
@@ -48,6 +49,7 @@ class NyxRegistry:
         datatypes: datatypes by type id
         util_objects: util object classes by type id
         graphics_objects: graphics object classes by type id, built-in ones included
+        servers: bridge server classes by type id
         qml_import_root_directories: QML import roots of registered plugins
     """
 
@@ -69,6 +71,9 @@ class NyxRegistry:
     graphics_objects: OrderedDict[str, type] = dataclasses.field(
         init=False, default_factory=OrderedDict
     )
+    servers: OrderedDict[str, type[BridgeServer]] = dataclasses.field(
+        init=False, default_factory=OrderedDict
+    )
     qml_import_root_directories: list[pathlib.Path] = dataclasses.field(
         init=False, default_factory=list
     )
@@ -86,6 +91,7 @@ class NyxRegistry:
         self.node_components.clear()
         self.datatypes.clear()
         self.util_objects.clear()
+        self.servers.clear()
         self.plugins.clear()
         self.qml_import_root_directories.clear()
         self.reset_graphics_objects()
@@ -143,6 +149,7 @@ class NyxRegistry:
         self.node_components.clear()
         self.datatypes.clear()
         self.util_objects.clear()
+        self.servers.clear()
         self.register_core_datatypes()
         self.reset_graphics_objects()
 
@@ -164,6 +171,7 @@ class NyxRegistry:
             self.register_datatypes(plugin_entry)
             self.register_util_objects(plugin_entry)
             self.register_graphics_objects(plugin_entry)
+            self.register_servers(plugin_entry)
             self.register_qml_import_root(plugin_entry)
 
     def register_node_components(self, plugin_entry: NyxPluginRegistryEntry):
@@ -322,6 +330,50 @@ class NyxRegistry:
             type | None: class, None if not registered.
         """
         return self.graphics_objects.get(type_id)
+
+    def register_servers(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the bridge servers provided by a plugin. Duplicates are skipped.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): initialized plugin entry.
+        """
+        LOGGER.debug("Registering new bridge servers...")
+        for server_cls in plugin_entry.plugin_instance.contents.servers:
+            type_id = server_cls.get_type_id()
+            if not type_id:
+                LOGGER.error(
+                    "Failed to register bridge server class %s - empty TYPE_ID",
+                    server_cls.__name__,
+                )
+                continue
+            if type_id in self.servers:
+                LOGGER.error(
+                    "Failed to register bridge server class %s - "
+                    "TYPE_ID %s is already registered as %s",
+                    server_cls.__name__,
+                    type_id,
+                    self.servers[type_id],
+                )
+                continue
+
+            self.servers[type_id] = server_cls
+            LOGGER.debug(
+                "Registered bridge server %s (%s) from %s",
+                type_id,
+                server_cls.__name__,
+                plugin_entry.plugin_cls.get_type_id(),
+            )
+
+    def get_server_cls(self, type_id: str) -> type[BridgeServer] | None:
+        """Get a bridge server class.
+
+        Args:
+            type_id (str): bridge server type id.
+
+        Returns:
+            type[BridgeServer] | None: class, None if not registered.
+        """
+        return self.servers.get(type_id)
 
     def register_core_datatypes(self):
         """Register the built-in datatypes, which exist whatever plugins are enabled."""

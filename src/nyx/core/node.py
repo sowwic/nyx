@@ -28,6 +28,7 @@ from ..static.enums import (
 )
 
 if typing.TYPE_CHECKING:
+    from .contexts.execution import NodeExecutionContext
     from .stage import Stage
     from .node_component import NodeComponent
     from .util_object import UtilObject
@@ -927,6 +928,19 @@ class Node(QtGui.QStandardItem, StageObject):
     def pre_execution(self):
         """Clear the raised exception before executing."""
         self.setData(None, self.Roles.RAISED_EXCEPTION)
+
+    def enter_scope(self, context: NodeExecutionContext):
+        """Called by the crawler before the children of the node execute.
+
+        The node can `provide` objects to its children through the context and
+        `add_cleanup` callbacks that run when the children are done, or when the crawl
+        fails. Override in subclasses.
+
+        Args:
+            context (NodeExecutionContext): context of the crawl, with the scope of this
+                node as the current one.
+        """
+        pass
 
     def pre_execution_hook(self):
         """Called before execution. Override in subclasses."""
