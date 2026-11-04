@@ -60,7 +60,7 @@ class LogNode(Node):
             "30 warning, 40 error, 50 critical."
         )
         self.level.set_datatype(CoreDatatypes.INT)
-        self.level.push_value(10)
+        self.level.push_value(20)
         self.level.is_editable = True
         self.level.writable = True
 
