@@ -9,6 +9,7 @@ from nyx.api.v1 import (
     CoreNodeComponents,
     NodeComponentFlag,
     CoreDatatypes,
+    LiteralValueStorage,
 )
 
 
@@ -18,8 +19,11 @@ LOGGER = logging.getLogger(__name__)
 class ScriptComponent(NodeComponent):
     """Component running a python file or a module entry point when executed.
 
-    The script gets the node and the component as globals.
+    The script gets the node and the component as globals. The value is a path, so it
+    is kept as typed and never evaluated as an expression.
     """
+
+    VALUE_STORAGE_CLS = LiteralValueStorage
 
     DEFAULT_NAME = "script"
     EDITOR_QML = "ScriptComponentItem"

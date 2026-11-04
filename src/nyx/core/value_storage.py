@@ -184,3 +184,19 @@ class ValueStorage:
     def refresh_display_value(self) -> None:
         """Set the display value from the cached value."""
         self.set_display_value(str(self.cached_value))
+
+
+class LiteralValueStorage(ValueStorage):
+    """Storage keeping text as it is, instead of evaluating it as an expression.
+
+    For components holding source code meant for another process, which must not run
+    inside the application when the value is set.
+    """
+
+    def compute_value(self) -> typing.Any:
+        """Get the raw value without evaluating it.
+
+        Returns:
+            typing.Any: the raw value.
+        """
+        return self.raw_value

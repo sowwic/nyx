@@ -19,6 +19,8 @@ class CoreNodes(enum.StrEnum):
     TYPE_CAST = "core:type_cast"
     GET_TYPE = "core:get_type"
     REFERENCE = "core:reference"
+    REMOTE_CLIENT = "core:remote_client"
+    REMOTE_ACTION = "core:remote_action"
 
 
 class CoreUtilObjects(enum.StrEnum):
@@ -70,6 +72,7 @@ class CoreNodeComponents(enum.StrEnum):
     FLOW = "core:flow"
     COMMENT = "core:comment"
     SCRIPT = "core:script"
+    REMOTE_SCRIPT = "core:remote_script"
     FILE = "core:file"
     STAGE_OBJECT_PATH = "core:stage_object_path"
 

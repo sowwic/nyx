@@ -8,6 +8,7 @@ from .node_components.comment import CommentComponent
 from .node_components.value import ValueComponent
 from .node_components.flow import FlowComponent
 from .node_components.script import ScriptComponent
+from .node_components.remote_script import RemoteScriptComponent
 from .node_components.file import FileComponent
 from .node_components.object_path import StageObjectPathComponent
 
@@ -26,6 +27,8 @@ from .nodes.log import LogNode
 from .nodes.type_cast import TypeCastNode
 from .nodes.get_type import GetTypeNode
 from .nodes.reference import ReferenceNode
+from .nodes.remote_client import RemoteClientNode
+from .nodes.remote_action import RemoteActionNode
 
 from .util_objects.note import NoteObject
 from .util_objects.group import GroupObject
@@ -66,6 +69,7 @@ class NyxStdlib(NyxPlugin):
             FlowComponent,
             ValueComponent,
             ScriptComponent,
+            RemoteScriptComponent,
             FileComponent,
             StageObjectPathComponent,
         ]
@@ -85,6 +89,8 @@ class NyxStdlib(NyxPlugin):
             TypeCastNode,
             GetTypeNode,
             ReferenceNode,
+            RemoteClientNode,
+            RemoteActionNode,
         ]
         plugin.contents.util_objects = [NoteObject, GroupObject]
         plugin.contents.graphics_objects = [GraphicsNote, GraphicsGroup]
