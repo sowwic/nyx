@@ -1,6 +1,6 @@
 from PySide6 import QtCore
 
-from nyx_bridge.server import BridgeServer, ClientSession
+from nyx_bridge.server import ClientSession
 
 from nyx.api.v1 import (
     Node,
@@ -14,8 +14,8 @@ from nyx.api.v1 import (
 class RemoteClientNode(Node):
     """Node connecting its children to a client of a bridge server.
 
-    Waits for a matching external process (Blender, Maya, ...) to be connected to one
-    of the servers of the application, then lets the nodes inside of it send code to
+    Waits for a matching external process (Blender, Maya, ...) to be connected to the
+    bridge server of the application, then lets the nodes inside of it send code to
     that process, see `RemoteActionNode`.
     """
 
@@ -41,7 +41,7 @@ class RemoteClientNode(Node):
     def get_description(cls) -> str:
         """str: what the node type does, shown in the palette."""
         return (
-            "Waits for an external process to connect to a server, and lets the nodes "
+            "Waits for an external process to connect to the server, and lets the nodes "
             "inside of it run code in that process."
         )
 
@@ -59,13 +59,6 @@ class RemoteClientNode(Node):
         self.flow_cpnt.readable = True
         self.flow_cpnt.writable = True
 
-        self.server_cpnt = self._create_input(
-            "server",
-            "Name of the server to wait on. Can be empty if the application has "
-            "only one.",
-            CoreDatatypes.STRING,
-            "",
-        )
         self.client_name_cpnt = self._create_input(
             "client_name",
             "Name of the client to wait for. Empty accepts any.",
@@ -96,7 +89,6 @@ class RemoteClientNode(Node):
 
         self.components_model.add_component(self.flow_cpnt)
         for component in (
-            self.server_cpnt,
             self.client_name_cpnt,
             self.client_kind_cpnt,
             self.timeout_cpnt,
@@ -130,41 +122,17 @@ class RemoteClientNode(Node):
         self._client_session = None
         self.client_cpnt.push_value("", evaluate=False)
 
-    def _find_server(self) -> BridgeServer:
-        """Find the server to wait on among the servers of the application.
-
-        Raises:
-            RuntimeError: there is no application session.
-            LookupError: no such server, or no name given and not exactly one server.
-
-        Returns:
-            BridgeServer: server.
-        """
-        session = getattr(QtCore.QCoreApplication.instance(), "session", None)
-        if session is None:
-            raise RuntimeError("No application session to find bridge servers in")
-
-        name = self.server_cpnt.pull_value()
-        if name:
-            server = session.bridge_servers.get_server(name)
-            if server is None:
-                raise LookupError(f"No bridge server named {name!r}")
-            return server
-
-        servers = session.bridge_servers.servers
-        if len(servers) != 1:
-            raise LookupError(
-                f"Choose a server, the application has {len(servers)} bridge servers"
-            )
-        return servers[0]
-
     def execute(self) -> None:
         """Wait for the client.
 
         Raises:
+            RuntimeError: the bridge server is not running.
             TimeoutError: no matching client connected in time.
         """
-        server = self._find_server()
+        session = getattr(QtCore.QCoreApplication.instance(), "session", None)
+        server = session.bridge_server if session is not None else None
+        if server is None or not server.is_running:
+            raise RuntimeError("The bridge server is not running")
         timeout = self.timeout_cpnt.pull_value()
         try:
             self._client_session = server.wait_for_client(
@@ -174,7 +142,8 @@ class RemoteClientNode(Node):
             )
         except TimeoutError as err:
             raise TimeoutError(
-                f"No matching client connected to {server.name!r} within {timeout}s"
+                f"No matching client connected to {server.host}:{server.port} within "
+                f"{timeout}s"
             ) from err
         self.client_cpnt.push_value(self._client_session.name, evaluate=False)
 

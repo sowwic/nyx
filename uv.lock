@@ -420,7 +420,7 @@ dev = [
 requires-dist = [
     { name = "codetiming", specifier = ">=1.4.0" },
     { name = "json-config", git = "https://github.com/sowwic/json-config?tag=v1.0.5" },
-    { name = "nyx-bridge", git = "https://github.com/sowwic/nyx-bridge?rev=14e3bc52d61bb97c6023d8de84aa1b85a90d26ad" },
+    { name = "nyx-bridge", git = "https://github.com/sowwic/nyx-bridge?rev=47ab5d193f61575011fd6050f643cf43823309c3" },
     { name = "platformdirs", specifier = ">=4.5.0" },
     { name = "pyside6", specifier = ">=6.10.0" },
 ]
@@ -443,7 +443,7 @@ dev = [
 [[package]]
 name = "nyx-bridge"
 version = "0.0.1"
-source = { git = "https://github.com/sowwic/nyx-bridge?rev=14e3bc52d61bb97c6023d8de84aa1b85a90d26ad#14e3bc52d61bb97c6023d8de84aa1b85a90d26ad" }
+source = { git = "https://github.com/sowwic/nyx-bridge?rev=47ab5d193f61575011fd6050f643cf43823309c3#47ab5d193f61575011fd6050f643cf43823309c3" }
 
 [[package]]
 name = "packaging"

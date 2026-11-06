@@ -3,8 +3,9 @@ import time
 
 import pytest
 from nyx_bridge.client import NyxClient
-from nyx_bridge.server import BridgeServer, RemoteExecutionError
+from nyx_bridge.server import RemoteExecutionError
 
+from nyx.core import session as session_module
 from nyx.api.v1 import CoreDatatypes, CoreNodeComponents, CoreNodes, Stage, commands
 from nyx.stdlib.nodes.remote_action import RemoteActionNode
 
@@ -33,13 +34,15 @@ def write_script(source):
 
 
 @pytest.fixture
-def server(qapp):
-    """Server in the application session, as the Remote Client node finds it."""
-    bridge_servers = qapp.session.bridge_servers
-    running = bridge_servers.add_server(BridgeServer(name="test", port=0))
-    running.start()
+def server(qapp, tmp_path, monkeypatch):
+    """Server of the application session, as the Remote Client node finds it."""
+    session = qapp.session
+    monkeypatch.setattr(session_module, "BRIDGE_ADDRESS_FILE_PATH", tmp_path / "b.json")
+    monkeypatch.setattr(session, "_bridge_server", None)
+    monkeypatch.setattr(session.config.values.bridge, "port", 0)
+    running = session.start_bridge_server()
     yield running
-    bridge_servers.remove_server("test")
+    session.shutdown()
 
 
 @pytest.fixture
@@ -119,11 +122,11 @@ def test_remote_client_node_creation():
     STAGES.append(stage)
     node = create(stage, CoreNodes.REMOTE_CLIENT)
 
-    assert node["server"].datatype_id == CoreDatatypes.STRING
+    assert node["client_name"].datatype_id == CoreDatatypes.STRING
     assert node["timeout"].datatype_id == CoreDatatypes.FLOAT
     assert node["client"].readable and not node["client"].writable
     assert not node["client"].is_editable
-    for name in ("server", "client_name", "client_kind", "timeout"):
+    for name in ("client_name", "client_kind", "timeout"):
         assert node[name].is_editable and node[name].writable
     assert node.get_description()
 
@@ -173,20 +176,12 @@ def test_connection_fails_when_no_client_connects(server):
     assert time.monotonic() - start < 5
 
 
-def test_connection_fails_for_unknown_or_ambiguous_servers(server, qapp):
-    stage, connection, _ = build_stage("result = 1")
-    connection["server"].push_value("missing")
+def test_connection_fails_when_the_server_is_not_running(server):
+    server.stop()
+    stage, _, _ = build_stage("result = 1")
 
-    with pytest.raises(LookupError, match="No bridge server named"):
+    with pytest.raises(RuntimeError, match="not running"):
         stage.crawler.start()
-
-    connection["server"].push_value("")
-    other = qapp.session.bridge_servers.add_server(BridgeServer(name="other", port=0))
-    try:
-        with pytest.raises(LookupError, match="Choose a server"):
-            stage.crawler.start()
-    finally:
-        qapp.session.bridge_servers.remove_server(other.name)
 
 
 def test_script_error_fails_the_node_with_the_remote_error(client):

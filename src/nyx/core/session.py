@@ -4,11 +4,9 @@ import pathlib
 import typing
 
 import shiboken6
-from nyx_bridge.manager import BridgeServerManager
 from nyx_bridge.server import BridgeServer
 
 from .layered_config import NyxConfig
-from .plugin_subsystem.registry import NYX_REGISTRY
 from ..api.v1 import Stage
 from ..static.paths import BRIDGE_ADDRESS_FILE_PATH
 
@@ -21,7 +19,7 @@ BRIDGE_SERVER_NAME = "nyx"
 
 
 class NyxSession:
-    """Backend state shared by the editor: config, recent files, stages and servers."""
+    """Backend state shared by the editor: config, recent files, stages, bridge."""
 
     def __init__(self, config: NyxConfig | None = None) -> None:
         """Initialize NyxSession.
@@ -34,7 +32,7 @@ class NyxSession:
         if config is None:
             self._config.resolve()
         self._stages: list[Stage] = []
-        self._bridge_servers = BridgeServerManager(NYX_REGISTRY.get_server_cls)
+        self._bridge_server: BridgeServer | None = None
 
     @property
     def config(self) -> NyxConfig:
@@ -42,9 +40,9 @@ class NyxSession:
         return self._config
 
     @property
-    def bridge_servers(self) -> BridgeServerManager:
-        """BridgeServerManager: servers external processes connect to."""
-        return self._bridge_servers
+    def bridge_server(self) -> BridgeServer | None:
+        """BridgeServer | None: server external processes connect to, if started."""
+        return self._bridge_server
 
     def start_bridge_server(self) -> BridgeServer | None:
         """Start the server external processes connect to, as the config describes.
@@ -59,28 +57,33 @@ class NyxSession:
         """
         values = self._config.values.bridge
         if not values.enabled:
+            LOGGER.info("Bridge server is disabled in the config")
             return None
-        server = self._bridge_servers.get_server(BRIDGE_SERVER_NAME)
         try:
-            if server is None:
-                server = self._bridge_servers.add_server(
-                    BridgeServer(
-                        name=BRIDGE_SERVER_NAME,
-                        host=values.host,
-                        port=values.port,
-                        token=values.token or None,
-                        address_file=BRIDGE_ADDRESS_FILE_PATH,
-                    )
+            if self._bridge_server is None:
+                self._bridge_server = BridgeServer(
+                    name=BRIDGE_SERVER_NAME,
+                    host=values.host,
+                    port=values.port,
+                    token=values.token or None,
+                    address_file=BRIDGE_ADDRESS_FILE_PATH,
                 )
-            server.start()
+            self._bridge_server.start()
         except OSError:
             LOGGER.exception("Could not start the bridge server")
             return None
-        return server
+        LOGGER.info(
+            "Bridge server listening on %s:%s, clients find it through %s",
+            self._bridge_server.host,
+            self._bridge_server.port,
+            BRIDGE_ADDRESS_FILE_PATH,
+        )
+        return self._bridge_server
 
     def shutdown(self) -> None:
         """Release what the session holds on to, e.g. when the application quits."""
-        self._bridge_servers.stop_all()
+        if self._bridge_server is not None:
+            self._bridge_server.stop()
 
     # Open stages
     @property
