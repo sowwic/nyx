@@ -1,6 +1,6 @@
 import pytest
 from nyx_bridge.client import NyxClient
-from PySide6 import QtGui
+from PySide6 import QtGui, QtWidgets
 
 from nyx.core import session as session_module
 from nyx.core.session import NyxSession
@@ -93,3 +93,20 @@ def test_main_window_has_a_bridge_dock(main_window):
     docks = {dock.objectName(): dock for dock in main_window.dock_widgets}
 
     assert docks[EditorUIObject.BRIDGE_DOCK].widget() is main_window.bridge_panel
+
+
+def test_the_name_column_takes_the_free_width(panel):
+    header = panel.clients_table.horizontalHeader()
+    stretch = QtWidgets.QHeaderView.ResizeMode.Stretch
+
+    assert header.sectionResizeMode(0) == stretch
+    assert not header.stretchLastSection()
+    for column in range(1, panel.clients_table.columnCount()):
+        assert header.sectionResizeMode(column) != stretch
+
+
+def test_the_other_columns_keep_a_reasonable_width_with_no_clients(panel):
+    header = panel.clients_table.horizontalHeader()
+
+    for column, width in enumerate(panel.CLIENT_COLUMN_WIDTHS, start=1):
+        assert header.sectionSize(column) == width

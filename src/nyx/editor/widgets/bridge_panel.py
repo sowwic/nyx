@@ -15,6 +15,8 @@ class BridgePanel(QtWidgets.QWidget):
     """
 
     CLIENT_COLUMNS = ("Name", "Kind", "Version", "Id")
+    CLIENT_COLUMN_WIDTHS = (90, 80, 90)
+    """Initial widths of the columns after the name, which takes the rest."""
     HIDDEN_TOKEN_TEXT = "••••••••"
 
     def __init__(
@@ -40,7 +42,15 @@ class BridgePanel(QtWidgets.QWidget):
         self.clients_table = QtWidgets.QTableWidget(0, len(self.CLIENT_COLUMNS), self)
         self.clients_table.setHorizontalHeaderLabels(list(self.CLIENT_COLUMNS))
         self.clients_table.verticalHeader().setVisible(False)
-        self.clients_table.horizontalHeader().setStretchLastSection(True)
+        header = self.clients_table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        # Widths the user can change, so an empty table looks like a full one.
+        for column, width in enumerate(self.CLIENT_COLUMN_WIDTHS, start=1):
+            header.setSectionResizeMode(
+                column, QtWidgets.QHeaderView.ResizeMode.Interactive
+            )
+            header.resizeSection(column, width)
         self.clients_table.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers
         )
