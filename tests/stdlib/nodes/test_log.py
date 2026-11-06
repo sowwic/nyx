@@ -1,5 +1,5 @@
 import typing
-from nyx.api.v1 import Stage, CoreNodes, CoreNodeComponents, commands
+from nyx.api.v1 import Stage, NodeComponent, CoreNodes, CoreNodeComponents, commands
 
 if typing.TYPE_CHECKING:
     from nyx.stdlib.nodes.log import LogNode
@@ -29,7 +29,7 @@ def test_log_node_creation():
     level_cpnt = result_node.components_model.get_component("level")
     assert level_cpnt is not None
     assert level_cpnt.get_type_id() == CoreNodeComponents.VALUE
-    assert level_cpnt.pull_value() == 10
+    assert level_cpnt.pull_value() == result_node.DEFAULT_LEVEL
 
 
 def test_execute_components_creates_logger_with_expected_name():
@@ -65,9 +65,9 @@ def test_invalid_level_is_flagged_and_keeps_previous_value():
     stage = Stage()
     command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
     stage.push_command(command)
-    level = stage.get_object(command.result_node)["level"]
+    level: NodeComponent = stage.get_object(command.result_node)["level"]
 
     level.push_value("loud")
 
     assert not level.is_valid
-    assert level.cached_value == 10
+    assert level.cached_value == level.default_value

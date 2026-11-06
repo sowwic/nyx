@@ -162,7 +162,7 @@ def test_setter_raises_and_leaves_the_target_when_the_cast_fails():
     with pytest.raises(DatatypeCastError):
         setter_node.execute()
 
-    assert log_node["level"].cached_value == 10
+    assert log_node["level"].cached_value == log_node["level"].default_value
     assert log_node["level"].is_valid
 
 
