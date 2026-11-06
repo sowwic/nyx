@@ -461,6 +461,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menubar_view_menu.set_show_address_names_checked(enabled)
         for stage in self.application.session.stages:
             stage.show_address_names = enabled
+        # The views redraw what they show, with the names in the new form.
+        for sub_window in self.mdi_area.subWindowList():
+            stage_graph = sub_window.widget()
+            if isinstance(stage_graph, StageGraphEditor):
+                stage_graph.gr_stage.rebuild_current_scope()
 
     def _apply_viewport_debug_overlay(self):
         """Show the config value of the debug overlay in the menu and the views."""

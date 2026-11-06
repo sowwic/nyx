@@ -173,3 +173,38 @@ def test_component_row_rename_sets_the_display_name(
     assert component.display_name == "Who to wait for"
     assert component.name == "who_to_wait_for"
     qtbot.waitUntil(lambda: "Who to wait for" in texts(view.rootObject()), timeout=3000)
+
+
+def test_toggle_rebuilds_the_current_scope_of_every_editor(
+    main_window, stage_editor, qapp, monkeypatch
+):
+    rebuilt = []
+    monkeypatch.setattr(qapp.config, "save", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        stage_editor.gr_stage,
+        "rebuild_current_scope",
+        lambda: rebuilt.append(stage_editor),
+    )
+
+    main_window.set_show_address_names(True)
+
+    assert rebuilt == [stage_editor]
+
+
+def test_toggle_shows_the_names_of_the_nodes_of_the_current_scope(
+    main_window, stage_editor, create_node, qapp, monkeypatch
+):
+    monkeypatch.setattr(qapp.config, "save", lambda *args, **kwargs: None)
+    stage = stage_editor.stage
+    group = create_node(stage, "group")
+    inner = create_node(stage, "inner", parent=group.path)
+    stage.push_command(commands.RenameNodeCommand(stage, inner, "Inner Node"))
+    stage_editor.set_scope_path(group.path)
+    gr_inner = stage_editor.gr_stage.get_gr_node(inner)
+    assert titled(gr_inner) == "Inner Node"
+
+    main_window.set_show_address_names(True)
+    assert titled(stage_editor.gr_stage.get_gr_node(inner)) == "inner_node"
+
+    main_window.set_show_address_names(False)
+    assert titled(stage_editor.gr_stage.get_gr_node(inner)) == "Inner Node"

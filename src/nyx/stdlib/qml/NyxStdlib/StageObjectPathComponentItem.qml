@@ -42,7 +42,24 @@ ComponentValue {
         Keys.onEscapePressed: stageObjectPathRoot.cancelEdit()
     }
 
+    // Ask for the object in a tree of the stage. Done by the controller, like the file
+    // picker of the File component, so the dialog is a window of the editor.
+    function pickStageObject() {
+        const path = controller.pickStageObjectPath(component.index);
+        if (path.length > 0)
+            finishEdit(path);
+    }
+
     EditButton {
         editor: stageObjectPathRoot
+    }
+
+    ToolButton {
+        objectName: "browseStageObjectButton"
+        icon.source: "qrc:/icons/folder_open"
+        enabled: stageObjectPathRoot.editable
+        ToolTip.visible: hovered
+        ToolTip.text: qsTr("Browse the stage")
+        onClicked: stageObjectPathRoot.pickStageObject()
     }
 }
