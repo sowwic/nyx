@@ -238,6 +238,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         ):
             # The views can't show classes or collections, they get text
             return value_to_view_text(value)
+        if role == NodeComponent.Roles.DISPLAY_NAME:
+            # Nothing is stored until the component is renamed: views get the name
+            # made from the address.
+            return value or self.itemFromIndex(index).display_name
         if role == NodeComponent.Roles.LINKS:
             return [str(uuid) for uuid in (value or ())]
         if role == NodeComponent.Roles.TAGS:

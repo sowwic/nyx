@@ -301,3 +301,16 @@ def test_loading_a_stage_keeps_the_root_display_name(tmp_path):
     Node.deserialize(serialized_node=data, node=other.root_node)
 
     assert other.root_node.display_name == "stage"
+
+
+def test_display_name_role_is_never_empty_for_views():
+    stage = new_stage()
+    node = create(stage, CoreNodes.REMOTE_CLIENT)
+    component = component_of(node, "client_name")
+    model = node.components_model
+    role = NodeComponent.Roles.DISPLAY_NAME
+
+    assert model.data(component.index(), role) == "Client Name"
+
+    stage.push_command(commands.RenameNodeComponentCommand(stage, component, "Who"))
+    assert model.data(component.index(), role) == "Who"
