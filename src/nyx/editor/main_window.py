@@ -384,6 +384,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # self.toggle_always_on_top(self.config.window_always_on_top)
         LOGGER.setLevel(self.config.values.logging_level)
         self._apply_viewport_debug_overlay()
+        self._apply_show_address_names()
         self._apply_stage_render_options()
 
         # The log dock's expansion state and size constraints must be in place
@@ -444,6 +445,22 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """
         self.config.values.editor_widgets.graphics_stage.viewport_debug_overlay = enabled
         self._apply_viewport_debug_overlay()
+
+    def set_show_address_names(self, enabled: bool):
+        """Show address names instead of display names in every stage, and remember it.
+
+        Args:
+            enabled (bool): show the address names.
+        """
+        self.application.session.set_show_address_names(enabled)
+        self._apply_show_address_names()
+
+    def _apply_show_address_names(self):
+        """Show the config value of the names toggle in the menu and the stages."""
+        enabled = self.application.session.show_address_names
+        self.menubar_view_menu.set_show_address_names_checked(enabled)
+        for stage in self.application.session.stages:
+            stage.show_address_names = enabled
 
     def _apply_viewport_debug_overlay(self):
         """Show the config value of the debug overlay in the menu and the views."""

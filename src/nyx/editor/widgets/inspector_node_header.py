@@ -89,19 +89,19 @@ class InspectorNodeHeader(QtWidgets.QWidget):
             self.active_checkbox.setEnabled(not node.is_locked)
             self.name_field.setEnabled(not node.is_locked)
             self.active_checkbox.setChecked(node.is_active())
-            self.name_field.setText(node.name)
+            self.name_field.setText(node.display_name)
+            self.name_field.setToolTip(f"Address: {node.name}")
 
     def _on_name_edited(self):
         """Rename the node through an undoable command."""
-        self.name_field.setText(
-            NameValidator.get_valid_stage_object_name(self.name_field.text())
-        )
         node: Node = self.node
-        if self.node.name == self.name_field.text():
+        new_name = self.name_field.text().strip()
+        if not NameValidator.to_address_name(new_name) or new_name == node.display_name:
+            self.name_field.setText(node.display_name)
             return
 
         rename_node_command = commands.RenameNodeCommand(
-            stage=node.stage, node=node, new_name=self.name_field.text()
+            stage=node.stage, node=node, new_name=new_name
         )
         node.stage.push_command(rename_node_command)
 

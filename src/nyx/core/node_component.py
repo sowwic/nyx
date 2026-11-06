@@ -9,6 +9,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
+from .name_validator import NameValidator
 from .datatypes.datatype import Datatype, value_to_class_name
 from .exceptions import DatatypeCastError
 from .value_storage import ValueStorage
@@ -74,6 +75,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         LINKS_EXPANDED = enum.auto()
         NOTE_EXPANDED = enum.auto()
         INVALID_REASON = enum.auto()
+        DISPLAY_NAME = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
@@ -90,6 +92,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         IS_VALID = enum.auto()
         RESOLVED_DATATYPE = enum.auto()
         IS_DATATYPE_LOCKED = enum.auto()
+        LABEL = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -114,6 +117,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_VALID,
                 cls.RESOLVED_DATATYPE,
                 cls.IS_DATATYPE_LOCKED,
+                cls.LABEL,
             )
 
     def __repr__(self) -> str:
@@ -239,6 +243,46 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     @name.setter
     def name(self, new_name: str):
         self.setData(new_name, self.Roles.NAME)
+
+    @property
+    def display_name(self) -> str:
+        """str: name shown to the user, made from the name unless one was set."""
+        return self.data(self.Roles.DISPLAY_NAME) or NameValidator.humanize(self.name)
+
+    @display_name.setter
+    def display_name(self, display_name: str):
+        self.setData(display_name, self.Roles.DISPLAY_NAME)
+
+    @property
+    def label(self) -> str:
+        """str: name the views show, the address name if the stage is set to."""
+        stage = self.stage
+        if stage is not None and stage.show_address_names:
+            return self.name
+        return self.display_name
+
+    def rename_display(self, display_name: str) -> None:
+        """Rename the component: set the display name, and the address name follows.
+
+        The address name is made from the display name, with a number added when
+        another component of the node has it already.
+
+        Args:
+            display_name (str): new display name.
+
+        Raises:
+            ValueError: the name has no letters or digits to make an address from.
+        """
+        display_name = display_name.strip()
+        address_name = NameValidator.to_address_name(display_name)
+        if not address_name:
+            raise ValueError(f"Cannot make a component name out of {display_name!r}")
+        if address_name != self.name:
+            self.name = self.model().compose_unique_component_name(
+                address_name, exclude=self
+            )
+        self.display_name = display_name
+        self.emitDataChanged()
 
     @property
     def raw_value(self) -> typing.Any:
@@ -807,6 +851,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         data["type_id"] = self.get_type_id()
         data["flags"] = self.component_flags
         data["name"] = self.name
+        data["display_name"] = self.data(self.Roles.DISPLAY_NAME) or ""
         data["datatype"] = self.datatype_id
         data["value"] = self.serialize_value()
         data["default_value"] = self.serialize_default_value()
@@ -845,6 +890,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.uuid = uuid
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
+        component.display_name = data.get("display_name") or ""
         component.setData(
             data.get("datatype") or component.datatype_id, role=cls.Roles.DATATYPE
         )

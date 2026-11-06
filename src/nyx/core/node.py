@@ -11,6 +11,7 @@ from collections.abc import Iterable
 from uuid import UUID
 from PySide6 import QtCore, QtGui
 
+from .name_validator import NameValidator
 from .stage_object import StageObject
 from .link import Link
 from .models.components_model import NodeComponentsModel
@@ -92,6 +93,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
+    DISPLAY_NAME_KEY = "display_name"
     ACTIVE_KEY = "active"
     POSITION_KEY = "position"
     EXECUTION_ORDER_KEY = "execution_order"
@@ -115,23 +117,32 @@ class Node(QtGui.QStandardItem, StageObject):
         EXECUTION_ORDER = enum.auto()
         RAISED_EXCEPTION = enum.auto()
         SUBTITLE = enum.auto()
+        NAME = enum.auto()
+        DISPLAY_NAME = enum.auto()
 
     def __init__(
         self,
         name: str | None = None,
         uuid: UUID | str | None = None,
         parent: Node | None = None,
+        display_name: str | None = None,
     ) -> None:
         """Initialize Node.
 
         Args:
-            name (str | None): node name. Defaults to the node type's default name.
+            name (str | None): address name. Defaults to the node type's default name.
             uuid (UUID | str | None): node uuid. Generated if omitted.
             parent (Node | None): parent node.
+            display_name (str | None): name shown to the user. Defaults to the display
+                name of the node type.
         """
         QtGui.QStandardItem.__init__(self, name or self.DEFAULT_NAME)
         StageObject.__init__(self, uuid=uuid)
         self._set_default_role_values()
+        self.setData(name or self.DEFAULT_NAME, role=self.Roles.NAME)
+        self.setData(
+            display_name or self.get_type_display_name(), role=self.Roles.DISPLAY_NAME
+        )
         self._components_model = NodeComponentsModel(node=self)
         self._util_objects: dict[UUID, UtilObject] = {}
         self._subtitle_binding: _SubtitleBinding | None = None
@@ -287,13 +298,53 @@ class Node(QtGui.QStandardItem, StageObject):
 
     @property
     def name(self) -> str:
-        """Node name
+        """str: address name, what the path is built from."""
+        return self.data(self.Roles.NAME)
 
-        Returns:
-            str: name.
+    @property
+    def display_name(self) -> str:
+        """str: name shown to the user, free text."""
+        return self.data(self.Roles.DISPLAY_NAME)
 
+    @property
+    def label(self) -> str:
+        """str: name the views show, the address name if the stage is set to."""
+        stage = self.stage
+        if stage is not None and stage.show_address_names:
+            return self.name
+        return self.display_name
+
+    def refresh_label(self) -> None:
+        """Show the current label in the item text, which is what tree views display."""
+        self.setText(self.label)
+
+    def set_display_name(self, display_name: str) -> None:
+        """Set the display name only, the address name is kept.
+
+        Args:
+            display_name (str): new display name.
         """
-        return self.text()
+        self.setData(display_name, role=self.Roles.DISPLAY_NAME)
+        self.refresh_label()
+
+    def rename_display(self, display_name: str) -> None:
+        """Rename the node: set the display name, and the address name follows.
+
+        The address name is made from the display name, with a number added when a
+        sibling has it already.
+
+        Args:
+            display_name (str): new display name.
+
+        Raises:
+            ValueError: the name has no letters or digits to make an address from.
+        """
+        display_name = display_name.strip()
+        address_name = NameValidator.to_address_name(display_name)
+        if not address_name:
+            raise ValueError(f"Cannot make a node name out of {display_name!r}")
+        self.rename(address_name)
+        self.set_display_name(display_name)
 
     @property
     def is_stage_root_node(self):
@@ -525,28 +576,27 @@ class Node(QtGui.QStandardItem, StageObject):
             unique_name = self.stage.generate_unique_node_name(
                 node.name, parent_node=self
             )
-            node.setText(unique_name)
+            node.setData(unique_name, role=Node.Roles.NAME)
             self.stage.register_node(node)
             super().appendRow(node)
+            node.refresh_label()
             node.setup()
             node.post_setup_hook()
 
     def rename(self, new_name: str):
-        """Rename node.
-
-        - Also update path for self and children in path map.
+        """Change the address name, the display name is kept.
 
         Args:
-            new_name (str): new node name.
-
+            new_name (str): new address name, made unique among the siblings.
         """
         if new_name == self.name:
             return
 
         new_name = self.stage.generate_unique_node_name(
-            new_name, parent_node=self.parent()
+            new_name, parent_node=self.parent(), exclude=self
         )
-        self.setText(new_name)
+        self.setData(new_name, role=self.Roles.NAME)
+        self.refresh_label()
 
     @property
     def child_names_set(self) -> set[str]:
@@ -646,6 +696,7 @@ class Node(QtGui.QStandardItem, StageObject):
 
         serialized_data = super().serialize()
         serialized_data[self.NAME_KEY] = self.name
+        serialized_data[self.DISPLAY_NAME_KEY] = self.display_name
         serialized_data[self.TYPE_ID_KEY] = self.get_type_id()
         serialized_data[self.ACTIVE_KEY] = self.is_active()
         serialized_data[self.POSITION_KEY] = self.serializable_position()
@@ -785,10 +836,15 @@ class Node(QtGui.QStandardItem, StageObject):
         if not node:
             node_cls = NYX_REGISTRY.get_node_cls(serialized_node[cls.TYPE_ID_KEY])
             node = node_cls(
-                name=serialized_node[cls.NAME_KEY], uuid=uuid, parent=parent_node
+                name=serialized_node[cls.NAME_KEY],
+                uuid=uuid,
+                parent=parent_node,
+                display_name=cls._read_display_name(serialized_node),
             )
         else:
             node.rename(serialized_node[cls.NAME_KEY])
+            if not node.is_stage_root_node:  # the root is always called "stage"
+                node.set_display_name(cls._read_display_name(serialized_node))
 
         context = context or NodeDeserializationContext(
             stage=stage,
@@ -834,6 +890,20 @@ class Node(QtGui.QStandardItem, StageObject):
             context.run_deferred()
 
         return node
+
+    @classmethod
+    def _read_display_name(cls, serialized_node: OrderedDict[str, typing.Any]) -> str:
+        """Get the display name of a serialized node.
+
+        Args:
+            serialized_node (OrderedDict[str, typing.Any]): serialized node.
+
+        Returns:
+            str: the stored display name, made from the name for older data.
+        """
+        return serialized_node.get(cls.DISPLAY_NAME_KEY) or NameValidator.humanize(
+            serialized_node[cls.NAME_KEY]
+        )
 
     def deserialize_links(
         self,

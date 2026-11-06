@@ -121,6 +121,7 @@ class NyxSession:
         """
         if stage not in self._stages:
             self._stages.append(stage)
+        stage.show_address_names = self.show_address_names
 
     def unregister_stage(self, stage: Stage) -> None:
         """Stop tracking a stage.
@@ -141,6 +142,23 @@ class NyxSession:
             ):
                 return stage
         return None
+
+    # Names
+    @property
+    def show_address_names(self) -> bool:
+        """bool: views show address names instead of display names."""
+        return self._config.values.editor_behaviour.show_address_names
+
+    def set_show_address_names(self, enabled: bool) -> None:
+        """Show address names instead of display names in every open stage, and keep it.
+
+        Args:
+            enabled (bool): show the address names.
+        """
+        self._config.values.editor_behaviour.show_address_names = enabled
+        for stage in self.stages:
+            stage.show_address_names = enabled
+        self._config.save()
 
     # Recent files
     @property

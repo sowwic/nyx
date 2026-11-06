@@ -53,7 +53,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
         self._component = component
         self._uuid: UUID = component.uuid
         self._width = gr_node.width
-        self._label = component.name
+        self._label = component.label
         self._writable = False
         self._readable = False
         self._input_linked = False
@@ -127,7 +127,7 @@ class GraphicsPlug(QtWidgets.QGraphicsItem):
     def refresh(self):
         """Re-read the state of the component and repaint if it changed."""
         state = (
-            self._component.name,
+            self._component.label,
             self._component.writable,
             self._component.readable,
             bool(self._component.input_links_uuids),

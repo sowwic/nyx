@@ -21,7 +21,7 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         Args:
             gr_node (GraphicsNode): graphics node the title belongs to.
         """
-        super().__init__(gr_node.node.name, gr_node)
+        super().__init__(gr_node.node.label, gr_node)
         self.gr_node = gr_node
         self._editor_proxy: QtWidgets.QGraphicsProxyWidget | None = None
         self.setFont(self.TITLE_FONT)
@@ -54,15 +54,17 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         return self.boundingRect().width()
 
     def refresh(self) -> bool:
-        """Show the current node name.
+        """Show the current node label, display or address name.
 
         Returns:
             bool: text changed, so the owner needs a new layout.
         """
-        name = self.gr_node.node.name
-        if name == self.toPlainText():
+        node = self.gr_node.node
+        self.setToolTip(f"Display name: {node.display_name}\nAddress: {node.name}")
+        label = node.label
+        if label == self.toPlainText():
             return False
-        self.setPlainText(name)
+        self.setPlainText(label)
         return True
 
     def edit(self):
@@ -72,7 +74,7 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         line_edit = QtWidgets.QLineEdit()
         line_edit.setFont(self.font())
         line_edit.setMaximumWidth(int(self.gr_node.width))
-        line_edit.setText(self.toPlainText())
+        line_edit.setText(self.gr_node.node.display_name)
 
         proxy = QtWidgets.QGraphicsProxyWidget(self)
         proxy.setWidget(line_edit)
@@ -97,13 +99,15 @@ class GraphicsNodeTitle(QtWidgets.QGraphicsTextItem):
         self.apply_edit(new_text)
 
     def apply_edit(self, new_text: str):
-        """Rename the node through an undoable command if the name changed.
+        """Rename the node through an undoable command if the display name changed.
 
         Args:
-            new_text (str): edited name, sanitized to a valid object name.
+            new_text (str): edited display name, the address name follows it.
         """
-        new_text = NameValidator.get_valid_stage_object_name(new_text)
-        if not new_text or new_text == self.gr_node.node.name:
+        new_text = new_text.strip()
+        if not NameValidator.to_address_name(new_text) or (
+            new_text == self.gr_node.node.display_name
+        ):
             return
         rename_cmd = commands.RenameNodeCommand(
             stage=self.gr_node.node.stage, node=self.gr_node.node, new_name=new_text

@@ -14,6 +14,8 @@ DraggableDelegate {
     // `index` is NOT redeclared here: DraggableDelegate already requires it.
     required property var model
     required property string name
+    required property string displayName
+    required property string label
     required property string typeDisplayName
     required property bool isActive
     required property bool isExpanded
@@ -53,7 +55,7 @@ DraggableDelegate {
         if (isBuiltIn || !structureEditable)
             return;
         isRenaming = true;
-        renameField.text = name;
+        renameField.text = displayName;
         // Deferred so a closing context menu doesn't take focus back right after we set it.
         Qt.callLater(function () {
             renameField.forceActiveFocus();
@@ -66,7 +68,7 @@ DraggableDelegate {
             return;
         isRenaming = false;
         const newName = renameField.text.trim();
-        if (newName.length > 0 && newName !== name)
+        if (newName.length > 0 && newName !== displayName)
             root.componentsController.renameComponent(model.index, newName);
     }
 
@@ -194,7 +196,7 @@ DraggableDelegate {
                         id: componentNameLabel
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
-                        text: itemRoot.name
+                        text: itemRoot.label
                         font.bold: true
                         elide: Text.ElideRight
                         opacity: itemRoot.isActive ? 1.0 : 0.5

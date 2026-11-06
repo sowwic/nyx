@@ -215,6 +215,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.resolved_datatype_id
             if role == NodeComponent.Roles.IS_DATATYPE_LOCKED:
                 return component.is_datatype_locked
+            if role == NodeComponent.Roles.LABEL:
+                return component.label
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:
@@ -398,9 +400,29 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 continue
             self.remove_component(component.uuid)
 
-    def compose_unique_component_name(self, name: str) -> str:
-        """Returns a unique name for the component, indexed if it already exists."""
-        existing_names = [component.name for component in self.list_components()]
+    def notify_labels_changed(self) -> None:
+        """Tell the views that the labels of the components changed."""
+        count = self.rowCount()
+        if count:
+            self.dataChanged.emit(
+                self.index(0, 0), self.index(count - 1, 0), [NodeComponent.Roles.LABEL]
+            )
+
+    def compose_unique_component_name(
+        self, name: str, exclude: NodeComponent | None = None
+    ) -> str:
+        """Returns a unique name for the component, indexed if it already exists.
+
+        Args:
+            name (str): preferred name.
+            exclude (NodeComponent | None): component that does not count, e.g. the
+                one being renamed.
+        """
+        existing_names = [
+            component.name
+            for component in self.list_components()
+            if component is not exclude
+        ]
         index = 1
         result_name = name
         while name in existing_names:

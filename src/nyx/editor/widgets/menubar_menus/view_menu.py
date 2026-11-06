@@ -32,14 +32,25 @@ class ViewMenu(BaseMenu):
             "Show performance numbers in the corner of the graph views"
         )
 
+        self.show_address_names_action = QtGui.QAction("Show Address Names", self)
+        self.show_address_names_action.setCheckable(True)
+        self.show_address_names_action.setToolTip(
+            "Show the names paths are made of, instead of the display names of nodes "
+            "and components"
+        )
+
     def populate(self):
         """Add the toggles."""
         self.addAction(self.debug_overlay_action)
+        self.addAction(self.show_address_names_action)
 
     def create_connections(self):
         """Apply the toggle to the config and the views."""
         self.debug_overlay_action.toggled.connect(
             self.main_window.set_viewport_debug_overlay
+        )
+        self.show_address_names_action.toggled.connect(
+            self.main_window.set_show_address_names
         )
 
     def set_debug_overlay_checked(self, checked: bool):
@@ -50,4 +61,14 @@ class ViewMenu(BaseMenu):
         """
         blocker = QtCore.QSignalBlocker(self.debug_overlay_action)
         self.debug_overlay_action.setChecked(checked)
+        blocker.unblock()
+
+    def set_show_address_names_checked(self, checked: bool):
+        """Show the state of the address names toggle without triggering it.
+
+        Args:
+            checked (bool): address names are shown.
+        """
+        blocker = QtCore.QSignalBlocker(self.show_address_names_action)
+        self.show_address_names_action.setChecked(checked)
         blocker.unblock()
