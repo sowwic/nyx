@@ -1,17 +1,23 @@
 import json
+import logging
 import pathlib
 import typing
 
 import shiboken6
 from nyx_bridge.manager import BridgeServerManager
+from nyx_bridge.server import BridgeServer
 
 from .layered_config import NyxConfig
 from .plugin_subsystem.registry import NYX_REGISTRY
 from ..api.v1 import Stage
+from ..static.paths import BRIDGE_ADDRESS_FILE_PATH
 
+
+LOGGER = logging.getLogger(__name__)
 
 SESSION_FILE_VERSION = 1
 SESSION_FILE_SUFFIX = ".nyxsession"
+BRIDGE_SERVER_NAME = "nyx"
 
 
 class NyxSession:
@@ -39,6 +45,38 @@ class NyxSession:
     def bridge_servers(self) -> BridgeServerManager:
         """BridgeServerManager: servers external processes connect to."""
         return self._bridge_servers
+
+    def start_bridge_server(self) -> BridgeServer | None:
+        """Start the server external processes connect to, as the config describes.
+
+        There is one server for all stages and clients. It writes the address file
+        clients use to find it, and the file is removed when it stops. A failure is
+        logged and leaves the application running without a server.
+
+        Returns:
+            BridgeServer | None: the running server, None if it is disabled or
+                could not start.
+        """
+        values = self._config.values.bridge
+        if not values.enabled:
+            return None
+        server = self._bridge_servers.get_server(BRIDGE_SERVER_NAME)
+        try:
+            if server is None:
+                server = self._bridge_servers.add_server(
+                    BridgeServer(
+                        name=BRIDGE_SERVER_NAME,
+                        host=values.host,
+                        port=values.port,
+                        token=values.token or None,
+                        address_file=BRIDGE_ADDRESS_FILE_PATH,
+                    )
+                )
+            server.start()
+        except OSError:
+            LOGGER.exception("Could not start the bridge server")
+            return None
+        return server
 
     def shutdown(self) -> None:
         """Release what the session holds on to, e.g. when the application quits."""

@@ -4,6 +4,7 @@ from pydantic.dataclasses import Field
 
 from nyx.core.config_values.base_values import NyxBaseConfigValues
 
+from nyx.core.config_values.bridge_values import NyxBridgeConfigValues
 from nyx.core.config_values.editor_values import (
     NyxEditorBehaviourConfigValues,
     NyxEditorSessionConfigValues,
@@ -21,6 +22,10 @@ class NyxConfigValues(NyxBaseConfigValues):
     )
     """Main window settings."""
 
+    bridge: NyxBridgeConfigValues = Field(
+        default_factory=NyxBridgeConfigValues, alias="bridge"
+    )
+    """Server external processes connect to."""
     editor_behaviour: NyxEditorBehaviourConfigValues = Field(
         default_factory=NyxEditorBehaviourConfigValues, alias="editor_behaviour"
     )
