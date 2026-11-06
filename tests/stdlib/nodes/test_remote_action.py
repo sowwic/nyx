@@ -184,6 +184,58 @@ def test_connection_fails_when_the_server_is_not_running(server):
         stage.crawler.start()
 
 
+class OtherKindClient(NyxClient):
+    CLIENT_KIND = "other"
+
+
+@pytest.fixture
+def two_clients(server, client):
+    """The `tester` client (kind python) and a second one of another kind."""
+    other = OtherKindClient(
+        name="second",
+        address=(server.host, server.port),
+        token=server.token,
+        reconnect=False,
+    )
+    other.start_in_thread()
+    server.wait_for_client(name="second", timeout=5)
+    yield client, other
+    other.stop()
+
+
+def test_connection_fails_when_several_clients_match_instead_of_picking_one(
+    two_clients,
+):
+    stage, _, (node,) = build_stage("result = 1")
+
+    with pytest.raises(LookupError, match="2 connected clients match") as info:
+        stage.crawler.start()
+
+    message = str(info.value)
+    assert "tester (python)" in message and "second (other)" in message
+    assert node["response"].pull_value() is None
+    assert stage.crawler.context.scope_depth == 0
+
+
+def test_connection_with_a_kind_picks_the_one_of_that_kind(two_clients):
+    stage, connection, (node,) = build_stage("result = 'where'")
+    connection["client_kind"].push_value("other")
+
+    stage.crawler.start()
+
+    assert connection["client"].pull_value() == "second"
+    assert node["response"].pull_value() == "where"
+
+
+def test_connection_with_a_name_picks_the_one_with_that_name(two_clients):
+    stage, connection, _ = build_stage("result = 1")
+    connection["client_name"].push_value("tester")
+
+    stage.crawler.start()
+
+    assert connection["client"].pull_value() == "tester"
+
+
 def test_script_error_fails_the_node_with_the_remote_error(client):
     stage, _, (node,) = build_stage("raise ValueError('bad module')")
 
@@ -274,6 +326,65 @@ def test_entry_point_that_does_not_exist_in_the_client_fails_there(client):
     node["script"].push_value("no_such_module_anywhere:main")
 
     with pytest.raises(RemoteExecutionError, match="ModuleNotFoundError"):
+        stage.crawler.start()
+
+
+def test_entry_point_can_go_through_the_attributes_of_a_module(client):
+    stage, _, (node,) = build_stage("", args={"obj": {"a": 1}, "indent": None})
+    node["script"].push_value("json:dumps")
+
+    stage.crawler.start()
+
+    assert node["response"].pull_value() == '{"a": 1}'
+
+    node["script"].push_value("os.path:basename")
+    node["args"].push_value({"p": "/some/where/file.txt"})
+    stage.crawler.start()
+
+    assert node["response"].pull_value() == "file.txt"
+
+
+def write_attribute_namespace_module(monkeypatch):
+    """A module with `ops.mesh.make`, an attribute chain like bpy.ops.mesh."""
+    (SCRIPT_DIR[0] / "fake_ops.py").write_text(
+        "import types\n"
+        "def make(size=1, location=(0, 0, 0)):\n"
+        "    return {'size': size, 'location': list(location)}\n"
+        "ops = types.SimpleNamespace(mesh=types.SimpleNamespace(make=make))\n"
+    )
+    monkeypatch.syspath_prepend(str(SCRIPT_DIR[0]))
+
+
+def test_entry_point_can_name_an_attribute_that_is_not_a_module(client, monkeypatch):
+    write_attribute_namespace_module(monkeypatch)
+    stage, _, (node,) = build_stage("", args={"size": 2, "location": [0, 0, 1]})
+    node["script"].push_value("fake_ops.ops.mesh:make")
+
+    stage.crawler.start()
+
+    assert node["response"].pull_value() == {"size": 2, "location": [0, 0, 1]}
+
+
+def test_entry_point_with_a_missing_attribute_fails_there(client, monkeypatch):
+    write_attribute_namespace_module(monkeypatch)
+    stage, _, (node,) = build_stage("")
+    node["script"].push_value("fake_ops.ops.nothing:make")
+
+    with pytest.raises(RemoteExecutionError, match="AttributeError"):
+        stage.crawler.start()
+
+
+def test_entry_point_whose_module_fails_to_import_something_reports_that(
+    client, monkeypatch
+):
+    (SCRIPT_DIR[0] / "needs_missing.py").write_text(
+        "import a_dependency_nobody_has\n\ndef main():\n    pass\n"
+    )
+    monkeypatch.syspath_prepend(str(SCRIPT_DIR[0]))
+    stage, _, (node,) = build_stage("")
+    node["script"].push_value("needs_missing:main")
+
+    with pytest.raises(RemoteExecutionError, match="a_dependency_nobody_has"):
         stage.crawler.start()
 
 

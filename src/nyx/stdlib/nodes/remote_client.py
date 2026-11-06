@@ -16,7 +16,8 @@ class RemoteClientNode(Node):
 
     Waits for a matching external process to be connected to the
     bridge server of the application, then lets the nodes inside of it send code to
-    that process, see `RemoteActionNode`.
+    that process, see `RemoteActionNode`. It fails when several clients match, so code
+    never goes to the wrong application: give the client name or kind to choose.
     """
 
     DEFAULT_NAME = "remote_client"
@@ -61,13 +62,15 @@ class RemoteClientNode(Node):
 
         self.client_name_cpnt = self._create_input(
             "client_name",
-            "Name of the client to wait for. Empty accepts any.",
+            "Name of the client to wait for. Empty accepts any, as long as only one "
+            "client matches.",
             CoreDatatypes.STRING,
             "",
         )
         self.client_kind_cpnt = self._create_input(
             "client_kind",
-            "Kind of the client to wait for, as it reports itself. Empty accepts any.",
+            "Kind of the client to wait for, as it reports itself. Empty accepts any, "
+            "as long as only one client matches.",
             CoreDatatypes.STRING,
             "",
         )
@@ -128,16 +131,19 @@ class RemoteClientNode(Node):
         Raises:
             RuntimeError: the bridge server is not running.
             TimeoutError: no matching client connected in time.
+            LookupError: more than one connected client matches.
         """
         session = getattr(QtCore.QCoreApplication.instance(), "session", None)
         server = session.bridge_server if session is not None else None
         if server is None or not server.is_running:
             raise RuntimeError("The bridge server is not running")
         timeout = self.timeout_cpnt.pull_value()
+        name = self.client_name_cpnt.pull_value() or None
+        kind = self.client_kind_cpnt.pull_value() or None
         try:
-            self._client_session = server.wait_for_client(
-                name=self.client_name_cpnt.pull_value() or None,
-                kind=self.client_kind_cpnt.pull_value() or None,
+            session = server.wait_for_client(
+                name=name,
+                kind=kind,
                 timeout=timeout if timeout and timeout > 0 else None,
             )
         except TimeoutError as err:
@@ -145,7 +151,22 @@ class RemoteClientNode(Node):
                 f"No matching client connected to {server.host}:{server.port} within "
                 f"{timeout}s"
             ) from err
-        self.client_cpnt.push_value(self._client_session.name, evaluate=False)
+
+        # Code sent to the wrong application can do harm there: never pick one of
+        # several.
+        matches = server.find_clients(name=name, kind=kind)
+        if len(matches) > 1:
+            raise LookupError(
+                f"{len(matches)} connected clients match, set the client name or kind "
+                f"to choose one: {', '.join(self._describe(each) for each in matches)}"
+            )
+        self._client_session = session
+        self.client_cpnt.push_value(session.name, evaluate=False)
+
+    @staticmethod
+    def _describe(session: ClientSession) -> str:
+        """str: a client as `name (kind)`, for messages."""
+        return f"{session.name} ({session.kind})"
 
     def enter_scope(self, context: NodeExecutionContext) -> None:
         """Provide the client to the nodes inside.
