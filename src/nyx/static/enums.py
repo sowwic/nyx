@@ -213,6 +213,7 @@ class EditorUIObject(enum.StrEnum):
     LOG_OUTPUT_DOCK = "log_output_dock"
     TOOLBAR_DOCK = "toolbar_dock"
     INSPECTOR_DOCK = "inspector_dock"
+    BRIDGE_DOCK = "bridge_dock"
 
 
 class GraphicsPlugShape(enum.IntEnum):

@@ -70,9 +70,10 @@ def test_starting_twice_keeps_one_server(session):
 def test_disabled_server_is_not_started(session, address_file, monkeypatch):
     monkeypatch.setattr(session.config.values.bridge, "enabled", False)
 
-    assert session.start_bridge_server() is None
+    assert session.autostart_bridge_server() is None
     assert session.bridge_server is None
     assert not address_file.exists()
+    assert session.start_bridge_server().is_running
 
 
 def test_unavailable_port_is_logged_and_not_raised(session, monkeypatch):

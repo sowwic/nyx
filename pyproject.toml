@@ -72,4 +72,4 @@ markers = [
 
 [tool.uv.sources]
 json-config = { git = "https://github.com/sowwic/json-config", tag="v1.0.5"}
-nyx-bridge = { git = "https://github.com/sowwic/nyx-bridge", rev = "47ab5d193f61575011fd6050f643cf43823309c3" }
+nyx-bridge = { git = "https://github.com/sowwic/nyx-bridge", rev = "c392ced57ba8fd09fa8ce8241a0360261e05d3cf" }

@@ -14,7 +14,7 @@ def main():
     from nyx.application import NyxEditorApplication
 
     app = NyxEditorApplication()
-    app.session.start_bridge_server()
+    app.session.autostart_bridge_server()
     status_code = app.exec()
     if status_code:
         LOGGER.error(f"Application exit with code {status_code}")

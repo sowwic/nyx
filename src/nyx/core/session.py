@@ -6,6 +6,7 @@ import typing
 import shiboken6
 from nyx_bridge.server import BridgeServer
 
+from .bridge_events import BridgeEvents
 from .layered_config import NyxConfig
 from ..api.v1 import Stage
 from ..static.paths import BRIDGE_ADDRESS_FILE_PATH
@@ -33,6 +34,7 @@ class NyxSession:
             self._config.resolve()
         self._stages: list[Stage] = []
         self._bridge_server: BridgeServer | None = None
+        self._bridge_events = BridgeEvents()
 
     @property
     def config(self) -> NyxConfig:
@@ -44,21 +46,35 @@ class NyxSession:
         """BridgeServer | None: server external processes connect to, if started."""
         return self._bridge_server
 
-    def start_bridge_server(self) -> BridgeServer | None:
-        """Start the server external processes connect to, as the config describes.
+    @property
+    def bridge_events(self) -> BridgeEvents:
+        """BridgeEvents: signals of the bridge server and its clients."""
+        return self._bridge_events
 
-        There is one server for all stages and clients. It writes the address file
-        clients use to find it, and the file is removed when it stops. A failure is
-        logged and leaves the application running without a server.
+    def autostart_bridge_server(self) -> BridgeServer | None:
+        """Start the bridge server if the config enables it, e.g. at launch.
 
         Returns:
             BridgeServer | None: the running server, None if it is disabled or
                 could not start.
         """
-        values = self._config.values.bridge
-        if not values.enabled:
+        if not self._config.values.bridge.enabled:
             LOGGER.info("Bridge server is disabled in the config")
             return None
+        return self.start_bridge_server()
+
+    def start_bridge_server(self) -> BridgeServer | None:
+        """Start the server external processes connect to, as the config describes.
+
+        There is one server for all stages and clients. It writes the address file
+        clients use to find it, and the file is removed when it stops. A failure is
+        logged and leaves the application running without a server. A stopped server
+        starts again on the same token.
+
+        Returns:
+            BridgeServer | None: the running server, None if it could not start.
+        """
+        values = self._config.values.bridge
         try:
             if self._bridge_server is None:
                 self._bridge_server = BridgeServer(
@@ -68,6 +84,7 @@ class NyxSession:
                     token=values.token or None,
                     address_file=BRIDGE_ADDRESS_FILE_PATH,
                 )
+                self._bridge_server.add_listener(self._bridge_events)
             self._bridge_server.start()
         except OSError:
             LOGGER.exception("Could not start the bridge server")
@@ -80,10 +97,14 @@ class NyxSession:
         )
         return self._bridge_server
 
-    def shutdown(self) -> None:
-        """Release what the session holds on to, e.g. when the application quits."""
+    def stop_bridge_server(self) -> None:
+        """Stop the bridge server, it can be started again."""
         if self._bridge_server is not None:
             self._bridge_server.stop()
+
+    def shutdown(self) -> None:
+        """Release what the session holds on to, e.g. when the application quits."""
+        self.stop_bridge_server()
 
     # Open stages
     @property
