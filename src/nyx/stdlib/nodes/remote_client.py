@@ -14,7 +14,7 @@ from nyx.api.v1 import (
 class RemoteClientNode(Node):
     """Node connecting its children to a client of a bridge server.
 
-    Waits for a matching external process (Blender, Maya, ...) to be connected to the
+    Waits for a matching external process to be connected to the
     bridge server of the application, then lets the nodes inside of it send code to
     that process, see `RemoteActionNode`.
     """
@@ -67,7 +67,7 @@ class RemoteClientNode(Node):
         )
         self.client_kind_cpnt = self._create_input(
             "client_kind",
-            'Kind of the client to wait for, like "maya". Empty accepts any.',
+            "Kind of the client to wait for, as it reports itself. Empty accepts any.",
             CoreDatatypes.STRING,
             "",
         )

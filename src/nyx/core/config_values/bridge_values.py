@@ -4,7 +4,7 @@ from nyx.core.config_values.base_values import NyxBaseConfigValues
 
 
 class NyxBridgeConfigValues(NyxBaseConfigValues):
-    """Config values of the server external processes (Blender, Maya...) connect to."""
+    """Config values of the server external processes connect to."""
 
     enabled: bool = Field(default=True)
     """Start the server when the application launches. It can be started later."""

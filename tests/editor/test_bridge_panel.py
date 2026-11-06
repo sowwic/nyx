@@ -75,15 +75,15 @@ def test_clients_are_listed_while_they_are_connected(panel, session, qtbot):
     server = session.start_bridge_server()
 
     client = NyxClient(
-        name="blender-1", address=("127.0.0.1", server.port), token=server.token
+        name="client-1", address=("127.0.0.1", server.port), token=server.token
     )
     client.connect()
     try:
         qtbot.waitUntil(lambda: panel.clients_table.rowCount() == 1, timeout=5000)
-        assert panel.clients_table.item(0, 0).text() == "blender-1"
+        assert panel.clients_table.item(0, 0).text() == "client-1"
         assert panel.clients_table.item(0, 1).text() == client.CLIENT_KIND
 
-        server.wait_for_client(name="blender-1", timeout=5).close()
+        server.wait_for_client(name="client-1", timeout=5).close()
         qtbot.waitUntil(lambda: panel.clients_table.rowCount() == 0, timeout=5000)
     finally:
         client.stop()
