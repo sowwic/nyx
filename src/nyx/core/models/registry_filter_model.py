@@ -33,7 +33,7 @@ class RegistryFilterModel(QtCore.QSortFilterProxyModel):
     """
 
     TOKEN_ROLES: dict[str, RegistryListModel.Roles] = {
-        "tags": RegistryListModel.Roles.TYPE_TAGS,
+        "tag": RegistryListModel.Roles.TYPE_TAGS,
         "section": RegistryListModel.Roles.PALETTE_SECTION,
         "id": RegistryListModel.Roles.TYPE_ID,
     }
