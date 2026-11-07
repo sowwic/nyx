@@ -221,6 +221,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:
                 return component.is_static
+            if role == NodeComponent.Roles.IS_INSPECTOR_HIDDEN:
+                return component.inspector_hidden
             if role == NodeComponent.Roles.WRITABLE:
                 return component.writable
             if role == NodeComponent.Roles.READABLE:

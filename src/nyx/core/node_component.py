@@ -1,3 +1,4 @@
+import dataclasses
 import enum
 import pathlib
 import typing
@@ -36,6 +37,19 @@ type NodeComponentLike = NodeComponent | UUID | pathlib.PurePosixPath | str
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass(frozen=True)
+class ComponentProviders:
+    """Callables a node can plug into a component to supply what it can't know itself.
+
+    Each one replaces the matching `NodeComponent` method when set.
+    """
+
+    pull: typing.Callable[[NodeComponentValueMask], typing.Any] | None = None
+    display: typing.Callable[[], str] | None = None
+    plug_color: typing.Callable[[], QtGui.QColor] | None = None
+    datatype_source: typing.Callable[[], NodeComponent | None] | None = None
+
+
 class NodeComponent(QtGui.QStandardItem, StageObject):
     """Base class for components attached to a node (values, scripts, flow, ...).
 
@@ -48,6 +62,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     EDITOR_QML: str | None = None
     PATH_SEPARATOR: str = "."
     VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
+
+    # Not set in `__init__`: the base class pushes its default value before that.
+    _providers: ComponentProviders = ComponentProviders()
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
@@ -88,6 +105,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         EDITOR_QML_FILE = enum.auto()
         IS_EDITABLE = enum.auto()
         IS_STATIC = enum.auto()
+        IS_INSPECTOR_HIDDEN = enum.auto()
         IS_BUILT_IN = enum.auto()
         IS_VALID = enum.auto()
         RESOLVED_DATATYPE = enum.auto()
@@ -114,6 +132,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,
+                cls.IS_INSPECTOR_HIDDEN,
                 cls.IS_VALID,
                 cls.RESOLVED_DATATYPE,
                 cls.IS_DATATYPE_LOCKED,
@@ -361,6 +380,35 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         return self.datatype.accepts(source.datatype)
 
+    def set_providers(
+        self,
+        pull: typing.Callable[[NodeComponentValueMask], typing.Any] | None = None,
+        display: typing.Callable[[], str] | None = None,
+        plug_color: typing.Callable[[], QtGui.QColor] | None = None,
+        datatype_source: typing.Callable[[], NodeComponent | None] | None = None,
+    ) -> None:
+        """Let the owning node supply the value, display text, plug color or datatype.
+
+        Only the given providers change, the others are kept.
+
+        Args:
+            pull (Callable | None): replaces `pull_value`, gets the value mask.
+            display (Callable | None): replaces `get_display_value`, returns text.
+            plug_color (Callable | None): replaces `get_plug_color`.
+            datatype_source (Callable | None): replaces `get_datatype_source`.
+        """
+        changes = {
+            key: provider
+            for key, provider in (
+                ("pull", pull),
+                ("display", display),
+                ("plug_color", plug_color),
+                ("datatype_source", datatype_source),
+            )
+            if provider is not None
+        }
+        self._providers = dataclasses.replace(self._providers, **changes)
+
     def get_datatype_source(self) -> NodeComponent | None:
         """Get the component the datatype is taken from, like the value is pulled.
 
@@ -368,6 +416,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             NodeComponent | None: source of the input link for components inheriting
                 their datatype, None if there is none or the datatype is the own one.
         """
+        if self._providers.datatype_source is not None:
+            return self._providers.datatype_source()
         if not self.inherits_datatype:
             return None
         input_links = self.input_links
@@ -493,6 +543,19 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def is_static(self, state: bool) -> None:
         self.set_component_flag(
             flag=NodeComponentFlag.STATIC, role=self.Roles.IS_STATIC, state=state
+        )
+
+    @property
+    def inspector_hidden(self) -> bool:
+        """bool: component is not listed in the inspector."""
+        return NodeComponentFlag.INSPECTOR_HIDDEN in self.component_flags
+
+    @inspector_hidden.setter
+    def inspector_hidden(self, state: bool) -> None:
+        self.set_component_flag(
+            flag=NodeComponentFlag.INSPECTOR_HIDDEN,
+            role=self.Roles.IS_INSPECTOR_HIDDEN,
+            state=state,
         )
 
     @property
@@ -629,6 +692,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             str: display value, the one of the component itself if the linked value
                 can't be pulled, like when the source points at something missing.
         """
+        if self._providers.display is not None:
+            return self._providers.display()
         if self.input_links:
             source = self.input_links[0].source_component
             try:
@@ -681,6 +746,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             typing.Any: requested value.
         """
+        if self._providers.pull is not None:
+            return self._providers.pull(value_mask)
         input_links = self.input_links
         if input_links:
             value = input_links[0].source_component.pull_value(value_mask=value_mask)
@@ -938,6 +1005,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             QtGui.QColor: plug color.
         """
+        if self._providers.plug_color is not None:
+            return self._providers.plug_color()
         return QtGui.QColor(self.datatype.color)
 
     def get_plug_shape(self) -> GraphicsPlugShape:

@@ -3,6 +3,8 @@ import typing
 
 from PySide6 import QtCore
 
+from ..node_component import NodeComponent
+
 if typing.TYPE_CHECKING:
     from .components_model import NodeComponentsModel
 
@@ -20,3 +22,20 @@ class NodeComponentsFilterModel(QtCore.QSortFilterProxyModel):
             LOGGER.error("Can't get node: source model is not set")
             return None
         return source_model.node
+
+    def filterAcceptsRow(
+        self, source_row: int, source_parent: QtCore.QModelIndex
+    ) -> bool:
+        """Reject components hidden from the inspector, then apply the text filter.
+
+        Args:
+            source_row (int): row in the source model.
+            source_parent (QtCore.QModelIndex): parent index in the source model.
+
+        Returns:
+            bool: the row is shown.
+        """
+        source_index = self.sourceModel().index(source_row, 0, source_parent)
+        if source_index.data(NodeComponent.Roles.IS_INSPECTOR_HIDDEN):
+            return False
+        return super().filterAcceptsRow(source_row, source_parent)

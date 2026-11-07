@@ -11,6 +11,7 @@ class CoreNodes(enum.StrEnum):
     ACTION = "core:action"
     FLOW_START = "core:flow_start"
     BRANCH = "core:branch"
+    DICT = "core:dictionary"
     SEQUENCE = "core:sequence"
     FOR_LOOP = "core:for_loop"
     FOR_EACH_LOOP = "core:for_each_loop"
@@ -150,6 +151,7 @@ class NodeComponentFlag(enum.IntFlag):
         SINGLE_OUTPUT: can be the source of one link at most
         INHERITS_DATATYPE: datatype follows the component it takes its value from,
             and can be changed by the user while there is none
+        INSPECTOR_HIDDEN: not listed in the inspector
     """
 
     NONE = 0
@@ -160,6 +162,7 @@ class NodeComponentFlag(enum.IntFlag):
     STATIC = enum.auto()
     SINGLE_OUTPUT = enum.auto()
     INHERITS_DATATYPE = enum.auto()
+    INSPECTOR_HIDDEN = enum.auto()
 
 
 class NodeComponentValueMask(enum.IntEnum):
