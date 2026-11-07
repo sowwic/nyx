@@ -23,8 +23,7 @@ class ListNode(ValueCollectorNode):
     @classmethod
     def get_type_icon(cls) -> str:
         """str: resource path of the type icon."""
-        # No list icon yet
-        return ":/core/icons/dictionary"
+        return ":/core/icons/array"
 
     @classmethod
     def get_description(cls) -> str:
