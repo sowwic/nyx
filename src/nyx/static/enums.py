@@ -11,6 +11,7 @@ class CoreNodes(enum.StrEnum):
     ACTION = "core:action"
     FLOW_START = "core:flow_start"
     BRANCH = "core:branch"
+    DICT = "core:dictionary"
     SEQUENCE = "core:sequence"
     FOR_LOOP = "core:for_loop"
     FOR_EACH_LOOP = "core:for_each_loop"

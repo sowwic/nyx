@@ -17,6 +17,7 @@ from .nodes.setter import SetterNode
 from .nodes.getter import GetterNode
 from .nodes.value import ValueNode
 from .nodes.branch import BranchNode
+from .nodes.dictionary import DictionaryNode
 from .nodes.for_loop import ForLoopNode
 from .nodes.for_each_loop import ForEachLoopNode
 from .nodes.flow_start import FlowStartNode
@@ -80,6 +81,7 @@ class NyxStdlib(NyxPlugin):
             ActionNode,
             ValueNode,
             BranchNode,
+            DictionaryNode,
             ForLoopNode,
             ForEachLoopNode,
             WhileLoopNode,

@@ -108,11 +108,13 @@ class GetterNode(Node):
             self.in_component_path.name, lambda path: path.current_name_text()
         )
 
-        # Replace pull value to pull path from inputs
-        self.value_cpnt.pull_value = self.get_pull_value_from_path
-        self.value_cpnt.get_display_value = self.get_pulled_display_value
-        self.value_cpnt.get_plug_color = self.get_pulled_plug_color
-        self.value_cpnt.get_datatype_source = self.get_pointed_component
+        # Take everything from the component the path points at
+        self.value_cpnt.set_providers(
+            pull=self.get_pull_value_from_path,
+            display=self.get_pulled_display_value,
+            plug_color=self.get_pulled_plug_color,
+            datatype_source=self.get_pointed_component,
+        )
 
         # The value is the one of the component the path points at: when the path
         # changes, views have to ask for it again.
