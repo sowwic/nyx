@@ -21,11 +21,11 @@ def type_ids(model):
 
 
 def test_parse_token():
-    assert RegistryFilterModel.parse_token("tags:logic") == SearchToken("tags", "logic")
+    assert RegistryFilterModel.parse_token("tag:logic") == SearchToken("tag", "logic")
     assert RegistryFilterModel.parse_token(" Tags: logic ") is None
-    assert RegistryFilterModel.parse_token("TAGS:Logic ") == SearchToken("tags", "Logic")
+    assert RegistryFilterModel.parse_token("TAG:Logic ") == SearchToken("tag", "Logic")
     assert RegistryFilterModel.parse_token("unknown:logic") is None
-    assert RegistryFilterModel.parse_token("tags:") is None
+    assert RegistryFilterModel.parse_token("tag:") is None
     assert RegistryFilterModel.parse_token("plain text") is None
 
 
@@ -49,7 +49,7 @@ def test_tag_token_matches_tags(filter_model):
         for type_id, cls in NYX_REGISTRY.nodes.items()
         if "function" in cls.get_tags()
     }
-    filter_model.setQuery("", ["tags:function"])
+    filter_model.setQuery("", ["tag:function"])
 
     assert type_ids(filter_model) == expected or not expected
 
