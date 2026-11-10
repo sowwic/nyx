@@ -1,0 +1,292 @@
+import os
+import shlex
+import sys
+import time
+
+import pytest
+from nyx_bridge.client import NyxClient
+from nyx_bridge.server import RemoteExecutionError
+
+from nyx.api.v1 import CoreNodes, Stage, commands
+from nyx.core import session as session_module
+
+STAGES = []
+"""Stages of the running test: a node doesn't keep its stage alive."""
+
+CLIENT_CODE = (
+    "import os; from nyx_bridge.client import NyxClient; "
+    "NyxClient(name=os.environ['NYX_BRIDGE_CLIENT_NAME'], reconnect=False)"
+    ".serve_forever()"
+)
+CLIENT_COMMAND = f"{shlex.quote(sys.executable)} -c {shlex.quote(CLIENT_CODE)}"
+SLEEP_COMMAND = f"{shlex.quote(sys.executable)} -c 'import time; time.sleep(60)'"
+
+
+@pytest.fixture(autouse=True)
+def keep_stages_alive():
+    yield
+    STAGES.clear()
+
+
+@pytest.fixture
+def server(qapp, tmp_path, monkeypatch):
+    """Server of the application session, as the nodes find it."""
+    session = qapp.session
+    monkeypatch.setattr(session_module, "BRIDGE_ADDRESS_FILE_PATH", tmp_path / "b.json")
+    monkeypatch.setattr(session, "_bridge_server", None)
+    monkeypatch.setattr(session.config.values.bridge, "port", 0)
+    running = session.start_bridge_server()
+    yield running
+    session.shutdown()
+
+
+def create(stage, type_id, parent=None, name=None):
+    command = commands.CreateNodeCommand(
+        stage=stage, type_id=type_id, parent_node=parent, name=name
+    )
+    stage.push_command(command)
+    return command.result_node
+
+
+def build_stage(command, *scripts, remote_client=True):
+    """Build flow_start -> launch_process [-> remote_client] -> remote_action nodes.
+
+    Returns the stage, the launch node, the remote client (None without) and the
+    actions. The actions run `scripts` (source text), each in a file.
+    """
+    stage = Stage()
+    STAGES.append(stage)
+    start = create(stage, CoreNodes.FLOW_START)
+    launch = create(stage, CoreNodes.LAUNCH_PROCESS)
+    start["flow"] >> launch["flow"]
+    launch["command"].push_value(command)
+    inner_start = create(stage, CoreNodes.FLOW_START, parent=launch.path)
+
+    parent, previous, remote = launch.path, inner_start, None
+    if remote_client:
+        remote = create(stage, CoreNodes.REMOTE_CLIENT, parent=launch.path)
+        inner_start["flow"] >> remote["flow"]
+        parent = remote.path
+        previous = create(stage, CoreNodes.FLOW_START, parent=remote.path)
+
+    actions = []
+    for index, source in enumerate(scripts):
+        action = create(stage, CoreNodes.REMOTE_ACTION, parent=parent)
+        path = SCRIPT_DIR[0] / f"script_{index}.py"
+        path.write_text(source)
+        action["script"].push_value(str(path))
+        previous["flow"] >> action["flow"]
+        previous = action
+        actions.append(action)
+    return stage, launch, remote, actions
+
+
+SCRIPT_DIR = []
+
+
+@pytest.fixture(autouse=True)
+def script_dir(tmp_path):
+    SCRIPT_DIR[:] = [tmp_path]
+    yield
+    SCRIPT_DIR.clear()
+
+
+def is_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def wait_until_gone(pid, timeout=10):
+    deadline = time.monotonic() + timeout
+    while is_alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    return not is_alive(pid)
+
+
+def test_launched_client_connects_and_the_nodes_inside_run_in_it(server):
+    stage, launch, _, (action,) = build_stage(
+        CLIENT_COMMAND, "import os\nresult = os.getpid()"
+    )
+
+    stage.crawler.start()
+
+    pid = launch["process_id"].pull_value()
+    assert pid and action["response"].pull_value() == pid
+    assert launch["client"].pull_value().startswith("launched-")
+
+
+def test_the_process_is_stopped_when_the_stage_is_done(server):
+    stage, launch, _, _ = build_stage(CLIENT_COMMAND, "result = 1")
+
+    stage.crawler.start()
+
+    assert wait_until_gone(launch["process_id"].pull_value())
+    assert not server.clients
+
+
+def test_the_process_is_stopped_when_a_node_inside_fails(server):
+    stage, launch, _, _ = build_stage(CLIENT_COMMAND, "raise ValueError('inside')")
+
+    with pytest.raises(RemoteExecutionError, match="inside"):
+        stage.crawler.start()
+
+    assert wait_until_gone(launch["process_id"].pull_value())
+
+
+def test_the_bridge_settings_are_in_the_environment_of_the_process(server):
+    source = (
+        "import os\n"
+        "result = {k: os.environ.get(k) for k in ('NYX_BRIDGE_ADDRESS', "
+        "'NYX_BRIDGE_TOKEN', 'NYX_BRIDGE_CLIENT_NAME')}"
+    )
+    stage, launch, _, (action,) = build_stage(CLIENT_COMMAND, source)
+
+    stage.crawler.start()
+
+    assert action["response"].pull_value() == {
+        "NYX_BRIDGE_ADDRESS": f"{server.host}:{server.port}",
+        "NYX_BRIDGE_TOKEN": server.token,
+        "NYX_BRIDGE_CLIENT_NAME": launch["client"].pull_value(),
+    }
+
+
+def test_variables_of_env_are_expanded_in_the_command_and_given_to_the_process(
+    server, tmp_path
+):
+    command = f'"$PYEXE" -c {shlex.quote(CLIENT_CODE)}'
+    source = (
+        "import os\nresult = [os.environ['PYEXE'], os.environ['EXTRA'], os.getcwd()]"
+    )
+    stage, launch, _, (action,) = build_stage(command, source)
+    launch["env"].push_value({"PYEXE": sys.executable, "EXTRA": "from env"})
+    launch["working_directory"].push_value(str(tmp_path))
+
+    stage.crawler.start()
+
+    assert action["response"].pull_value() == [
+        sys.executable,
+        "from env",
+        os.path.realpath(tmp_path),
+    ]
+
+
+def test_a_given_client_name_is_used(server):
+    stage, launch, _, _ = build_stage(CLIENT_COMMAND, "result = 1")
+    launch["client_name"].push_value("my-launched-client")
+
+    stage.crawler.start()
+
+    assert launch["client"].pull_value() == "my-launched-client"
+
+
+def test_every_run_gets_its_own_client_name(server):
+    stage, launch, _, _ = build_stage(CLIENT_COMMAND, "result = 1")
+
+    stage.crawler.start()
+    first = launch["client"].pull_value()
+    stage.crawler.start()
+
+    assert launch["client"].pull_value() != first
+
+
+def test_the_remote_client_inside_uses_the_launched_client_not_another(server):
+    bystander = NyxClient(
+        name="bystander",
+        address=(server.host, server.port),
+        token=server.token,
+        reconnect=False,
+    )
+    bystander.start_in_thread()
+    server.wait_for_client(name="bystander", timeout=5)
+    stage, launch, remote, (action,) = build_stage(
+        CLIENT_COMMAND, "import os\nresult = os.getpid()"
+    )
+    try:
+        stage.crawler.start()
+    finally:
+        bystander.stop()
+
+    assert remote["client"].pull_value() == launch["client"].pull_value()
+    assert action["response"].pull_value() == launch["process_id"].pull_value()
+
+
+def test_without_waiting_the_nodes_run_at_once_and_the_process_is_still_stopped(server):
+    stage, launch, _, _ = build_stage(SLEEP_COMMAND, remote_client=False)
+    launch["wait_for_client"].push_value(False)
+
+    start = time.monotonic()
+    stage.crawler.start()
+
+    assert time.monotonic() - start < 10
+    assert wait_until_gone(launch["process_id"].pull_value())
+
+
+def test_a_process_that_ends_before_connecting_fails_with_its_output(server):
+    code = "print('boom on start'); raise SystemExit(3)"
+    command = f"{shlex.quote(sys.executable)} -c {shlex.quote(code)}"
+    stage, _, _, _ = build_stage(command, "result = 1")
+
+    start = time.monotonic()
+    with pytest.raises(RuntimeError, match="ended before it connected") as info:
+        stage.crawler.start()
+
+    assert time.monotonic() - start < 20
+    assert "exit code 3" in str(info.value) and "boom on start" in str(info.value)
+
+
+def test_a_process_that_never_connects_times_out_and_is_stopped(server):
+    stage, launch, _, _ = build_stage(SLEEP_COMMAND, "result = 1")
+    launch["timeout"].push_value(0.5)
+
+    start = time.monotonic()
+    with pytest.raises(TimeoutError, match="did not connect"):
+        stage.crawler.start()
+
+    assert time.monotonic() - start < 20
+    assert stage.crawler.context.scope_depth == 0
+
+
+def test_a_program_that_does_not_exist_is_reported(server):
+    stage, _, _, _ = build_stage("/no/such/program --flag", remote_client=False)
+
+    with pytest.raises(RuntimeError, match="Could not start"):
+        stage.crawler.start()
+
+
+@pytest.mark.parametrize("command", ["", "   ", "echo 'unterminated"])
+def test_an_empty_or_unreadable_command_is_refused(server, command):
+    stage, _, _, _ = build_stage(command, remote_client=False)
+
+    with pytest.raises(ValueError):
+        stage.crawler.start()
+
+
+def test_it_needs_the_bridge_server(server):
+    stage, _, _, _ = build_stage(CLIENT_COMMAND, remote_client=False)
+    server.stop()
+
+    with pytest.raises(RuntimeError, match="not running"):
+        stage.crawler.start()
+
+
+def test_text_is_kept_as_typed_and_survives_saving(tmp_path):
+    stage, launch, _, _ = build_stage("1 + 1", remote_client=False)
+    assert launch["command"].pull_value() == "1 + 1"
+    file_path = tmp_path / "stage.nyx"
+    stage.export_json(file_path)
+
+    other = Stage()
+    STAGES.append(other)
+    other.import_json(file_path)
+
+    restored = next(
+        node
+        for node in other.root_node.list_children()
+        if node.get_type_id() == CoreNodes.LAUNCH_PROCESS
+    )
+    assert restored["command"].pull_value() == "1 + 1"
+    assert restored["timeout"].pull_value() == 60.0
+    assert restored["process_id"].readable and not restored["process_id"].is_editable

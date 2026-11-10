@@ -31,6 +31,7 @@ from .nodes.get_type import GetTypeNode
 from .nodes.reference import ReferenceNode
 from .nodes.remote_client import RemoteClientNode
 from .nodes.remote_action import RemoteActionNode
+from .nodes.launch_process import LaunchProcessNode
 
 from .util_objects.note import NoteObject
 from .util_objects.group import GroupObject
@@ -95,6 +96,7 @@ class NyxStdlib(NyxPlugin):
             ReferenceNode,
             RemoteClientNode,
             RemoteActionNode,
+            LaunchProcessNode,
         ]
         plugin.contents.util_objects = [NoteObject, GroupObject]
         plugin.contents.graphics_objects = [GraphicsNote, GraphicsGroup]

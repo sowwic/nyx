@@ -2,6 +2,7 @@ from PySide6 import QtCore
 
 from nyx_bridge.server import ClientSession
 
+from .launch_process import LaunchedProcess
 from nyx.api.v1 import (
     Node,
     NodeExecutionContext,
@@ -17,7 +18,9 @@ class RemoteClientNode(Node):
     Waits for a matching external process to be connected to the
     bridge server of the application, then lets the nodes inside of it send code to
     that process, see `RemoteActionNode`. It fails when several clients match, so code
-    never goes to the wrong application: give the client name or kind to choose.
+    never goes to the wrong application: give the client name or kind to choose. Inside
+    a Launch Process node it waits for the process that node started, unless given a
+    name or kind.
     """
 
     DEFAULT_NAME = "remote_client"
@@ -66,6 +69,7 @@ class RemoteClientNode(Node):
             "client matches.",
             CoreDatatypes.STRING,
             "",
+            literal=True,
         )
         self.client_kind_cpnt = self._create_input(
             "client_kind",
@@ -73,6 +77,7 @@ class RemoteClientNode(Node):
             "as long as only one client matches.",
             CoreDatatypes.STRING,
             "",
+            literal=True,
         )
         self.timeout_cpnt = self._create_input(
             "timeout",
@@ -99,7 +104,9 @@ class RemoteClientNode(Node):
         ):
             self.components_model.add_component(component)
 
-    def _create_input(self, name: str, description: str, datatype: str, default):
+    def _create_input(
+        self, name: str, description: str, datatype: str, default, literal: bool = False
+    ):
         """Create an editable input value component.
 
         Args:
@@ -107,6 +114,7 @@ class RemoteClientNode(Node):
             description (str): component description.
             datatype (str): datatype id.
             default (Any): initial value.
+            literal (bool): keep text as typed instead of evaluating it.
 
         Returns:
             NodeComponent: new component, not added to the node yet.
@@ -116,6 +124,7 @@ class RemoteClientNode(Node):
         component.description = description
         component.is_editable = True
         component.writable = True
+        component.is_literal = literal
         component.set_datatype(datatype)
         component.push_value(default)
         return component
@@ -140,6 +149,10 @@ class RemoteClientNode(Node):
         timeout = self.timeout_cpnt.pull_value()
         name = self.client_name_cpnt.pull_value() or None
         kind = self.client_kind_cpnt.pull_value() or None
+        if name is None and kind is None:
+            # Inside a Launch Process node the client is the process it started.
+            launched = self.stage.crawler.context.find(LaunchedProcess)
+            name = launched.client_name if launched is not None else None
         try:
             session = server.wait_for_client(
                 name=name,

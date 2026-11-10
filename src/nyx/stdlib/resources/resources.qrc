@@ -13,5 +13,6 @@
     <file>icons/flow_cpnt.png</file>
     <file>icons/comment_cpnt.png</file>
     <file>icons/script_cpnt.png</file>
+    <file>icons/launch.png</file>
   </qresource>
 </RCC>

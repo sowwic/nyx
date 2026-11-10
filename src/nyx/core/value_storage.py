@@ -166,9 +166,12 @@ class ValueStorage:
         """Compute the evaluated value. Strings are evaluated as python expressions.
 
         Returns:
-            typing.Any: evaluated value, the raw value if evaluation fails.
+            typing.Any: evaluated value, the raw value if evaluation fails or the
+                component is literal.
         """
         out_value = self.raw_value
+        if self.component.is_literal:
+            return out_value
         if isinstance(self.raw_value, str) and self.raw_value:
             try:
                 out_value = eval(self.raw_value)
@@ -184,19 +187,3 @@ class ValueStorage:
     def refresh_display_value(self) -> None:
         """Set the display value from the cached value."""
         self.set_display_value(str(self.cached_value))
-
-
-class LiteralValueStorage(ValueStorage):
-    """Storage keeping text as it is, instead of evaluating it as an expression.
-
-    For components holding source code meant for another process, which must not run
-    inside the application when the value is set.
-    """
-
-    def compute_value(self) -> typing.Any:
-        """Get the raw value without evaluating it.
-
-        Returns:
-            typing.Any: the raw value.
-        """
-        return self.raw_value

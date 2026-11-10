@@ -22,7 +22,6 @@ def test_dictionary_result_pulls_a_dict_and_displays_text():
     assert result.get_display_value() == str(result.pull_value())
 
 
-
 def test_dictionary_result_is_hidden_from_the_inspector():
     from nyx.core.models.components_filter_model import NodeComponentsFilterModel
 

@@ -546,6 +546,21 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         )
 
     @property
+    def is_literal(self) -> bool:
+        """bool: text values are kept as typed, never evaluated as an expression."""
+        return NodeComponentFlag.LITERAL in self.component_flags
+
+    @is_literal.setter
+    def is_literal(self, state: bool) -> None:
+        changed = state != self.is_literal
+        self.set_component_flag(
+            NodeComponentFlag.LITERAL, self.Roles.COMPONENT_FLAGS, state=state
+        )
+        raw_value = self.raw_value
+        if changed and isinstance(raw_value, str) and raw_value:
+            self.push_value(raw_value)  # evaluate it again, or stop evaluating it
+
+    @property
     def inspector_hidden(self) -> bool:
         """bool: component is not listed in the inspector."""
         return NodeComponentFlag.INSPECTOR_HIDDEN in self.component_flags
@@ -961,6 +976,10 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.setData(
             data.get("datatype") or component.datatype_id, role=cls.Roles.DATATYPE
         )
+        # Before the value: a literal component must not evaluate it while restoring.
+        component.component_flags = (
+            NodeComponentFlag(data["flags"]) | component.get_type_enforced_flags()
+        )
         component.restore_value(data["value"], context)
         component.default_value = component.deserialize_default_value(
             value=data.get("default_value")
@@ -969,9 +988,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         note = data.get("note") or {}
         component.note = note.get("text", "")
         component.note_format = note.get("format", NoteFormat.PLAIN)
-        component.component_flags = (
-            NodeComponentFlag(data["flags"]) | component.get_type_enforced_flags()
-        )
 
         return component
 

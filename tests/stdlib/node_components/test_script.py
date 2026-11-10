@@ -157,3 +157,11 @@ def test_script_value_is_never_evaluated_as_an_expression():
 
     assert node["test_script"].pull_value() == "1 + 1"
     assert "ran_in_nyx" not in sys.modules
+
+
+def test_script_components_are_literal_even_when_saved_without_the_flag():
+    from nyx.api.v1 import NodeComponentFlag
+    from nyx.stdlib.node_components.script import ScriptComponent
+
+    assert ScriptComponent.get_type_default_flags() & NodeComponentFlag.LITERAL
+    assert ScriptComponent.get_type_enforced_flags() & NodeComponentFlag.LITERAL

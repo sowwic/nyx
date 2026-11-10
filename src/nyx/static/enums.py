@@ -23,6 +23,7 @@ class CoreNodes(enum.StrEnum):
     REFERENCE = "core:reference"
     REMOTE_CLIENT = "core:remote_client"
     REMOTE_ACTION = "core:remote_action"
+    LAUNCH_PROCESS = "core:launch_process"
 
 
 class CoreUtilObjects(enum.StrEnum):
@@ -153,6 +154,7 @@ class NodeComponentFlag(enum.IntFlag):
         INHERITS_DATATYPE: datatype follows the component it takes its value from,
             and can be changed by the user while there is none
         INSPECTOR_HIDDEN: not listed in the inspector
+        LITERAL: text values are kept as typed, never evaluated as an expression
     """
 
     NONE = 0
@@ -164,6 +166,7 @@ class NodeComponentFlag(enum.IntFlag):
     SINGLE_OUTPUT = enum.auto()
     INHERITS_DATATYPE = enum.auto()
     INSPECTOR_HIDDEN = enum.auto()
+    LITERAL = enum.auto()
 
 
 class NodeComponentValueMask(enum.IntEnum):

@@ -227,6 +227,19 @@ def test_connection_with_a_kind_picks_the_one_of_that_kind(two_clients):
     assert node["response"].pull_value() == "where"
 
 
+@pytest.mark.parametrize("text", ["max", "1 + 1", "None"])
+def test_client_name_and_kind_are_kept_as_typed(text):
+    stage = Stage()
+    STAGES.append(stage)
+    node = create(stage, CoreNodes.REMOTE_CLIENT)
+
+    node["client_name"].push_value(text)
+    node["client_kind"].push_value(text)
+
+    assert node["client_name"].pull_value() == text
+    assert node["client_kind"].pull_value() == text
+
+
 def test_connection_with_a_name_picks_the_one_with_that_name(two_clients):
     stage, connection, _ = build_stage("result = 1")
     connection["client_name"].push_value("tester")

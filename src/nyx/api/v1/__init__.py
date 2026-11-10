@@ -31,7 +31,7 @@ from nyx.static.enums import (
     GraphicsPlugShape,
     NoteFormat,
 )
-from nyx.core.value_storage import ValueStorage, LiteralValueStorage
+from nyx.core.value_storage import ValueStorage
 from nyx_bridge.server import (
     BridgeServer,
     ClientDisconnected,
@@ -60,7 +60,6 @@ __all__ = [
     "NodeComponentValueMask",
     "NodeExecutionContext",
     "ValueStorage",
-    "LiteralValueStorage",
     "ExecutionScope",
     "BridgeServer",
     "ClientSession",
