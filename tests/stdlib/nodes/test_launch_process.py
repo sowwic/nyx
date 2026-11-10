@@ -13,6 +13,7 @@ from nyx.core import session as session_module
 STAGES = []
 """Stages of the running test: a node doesn't keep its stage alive."""
 
+SCRIPT_DIR = []
 CLIENT_CODE = (
     "import os; from nyx_bridge.client import NyxClient; "
     "NyxClient(name=os.environ['NYX_BRIDGE_CLIENT_NAME'], reconnect=False)"
@@ -38,6 +39,13 @@ def server(qapp, tmp_path, monkeypatch):
     running = session.start_bridge_server()
     yield running
     session.shutdown()
+
+
+@pytest.fixture(autouse=True)
+def script_dir(tmp_path):
+    SCRIPT_DIR[:] = [tmp_path]
+    yield
+    SCRIPT_DIR.clear()
 
 
 def create(stage, type_id, parent=None, name=None):
@@ -79,16 +87,6 @@ def build_stage(command, *scripts, remote_client=True):
         previous = action
         actions.append(action)
     return stage, launch, remote, actions
-
-
-SCRIPT_DIR = []
-
-
-@pytest.fixture(autouse=True)
-def script_dir(tmp_path):
-    SCRIPT_DIR[:] = [tmp_path]
-    yield
-    SCRIPT_DIR.clear()
 
 
 def is_alive(pid):
@@ -331,7 +329,10 @@ def test_cancelling_while_the_process_boots_stops_it_and_ends_the_run(server):
 def test_events_are_processed_while_waiting_for_the_process(server):
     from PySide6 import QtCore
 
-    stage, _, _, _ = build_stage(CLIENT_COMMAND, "result = 1")
+    # A client that takes its time, so there is a wait to process events in
+    slow_code = "import time; time.sleep(0.5); " + CLIENT_CODE
+    slow_command = f"{shlex.quote(sys.executable)} -c {shlex.quote(slow_code)}"
+    stage, _, _, _ = build_stage(slow_command, "result = 1")
     ticks = []
     timer = QtCore.QTimer()
     timer.setInterval(20)
