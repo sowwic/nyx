@@ -13,6 +13,7 @@ class NyxConfig(LayeredConfig[NyxConfigValues]):
         ROOT_CONFIG_LAYER: Root config layer
     """
 
+    NAME = "general"
     VALUES_CLASS = NyxConfigValues
     ROOT_CONFIG_LAYER = ConfigLayer(name="user", file_path=USER_CONFIG_FILE_PATH)
 

@@ -15,8 +15,13 @@ dependencies = [
     "pyside6>=6.10.0",
     "platformdirs>=4.5.0",
     "json-config",
+    "nyx-bridge",
     "codetiming>=1.4.0",
 ]
+
+[project.scripts]
+nyx = "nyx.cli:main"
+nyx-run-stage = "nyx.cli:run_stage_main"
 
 [build-system]
 requires = ["uv_build>=0.10.6"]
@@ -70,4 +75,5 @@ markers = [
 ]
 
 [tool.uv.sources]
-json-config = { git = "https://github.com/sowwic/json-config", tag="v1.0.4"}
+json-config = { git = "https://github.com/sowwic/json-config", tag = "v1.0.5"}
+nyx-bridge = { git = "https://github.com/sowwic/nyx-bridge", tag = "v1.0.0" }

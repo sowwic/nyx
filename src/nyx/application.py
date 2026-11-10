@@ -29,6 +29,7 @@ class NyxApplication(QtWidgets.QApplication):
         super().__init__(sys.argv)
         self._session = NyxSession()
         self._plugin_manager = NyxPluginManager()
+        self.aboutToQuit.connect(self._session.shutdown)
         self.setApplicationDisplayName("Nyx")
         self.setWindowIcon(QtGui.QIcon(":/icons/nyx"))
         self.setApplicationVersion(__version__)

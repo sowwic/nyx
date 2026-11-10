@@ -11,6 +11,8 @@ class CoreNodes(enum.StrEnum):
     ACTION = "core:action"
     FLOW_START = "core:flow_start"
     BRANCH = "core:branch"
+    DICT = "core:dictionary"
+    LIST = "core:list"
     SEQUENCE = "core:sequence"
     FOR_LOOP = "core:for_loop"
     FOR_EACH_LOOP = "core:for_each_loop"
@@ -19,6 +21,9 @@ class CoreNodes(enum.StrEnum):
     TYPE_CAST = "core:type_cast"
     GET_TYPE = "core:get_type"
     REFERENCE = "core:reference"
+    REMOTE_CLIENT = "core:remote_client"
+    REMOTE_ACTION = "core:remote_action"
+    LAUNCH_PROCESS = "core:launch_process"
 
 
 class CoreUtilObjects(enum.StrEnum):
@@ -70,6 +75,7 @@ class CoreNodeComponents(enum.StrEnum):
     FLOW = "core:flow"
     COMMENT = "core:comment"
     SCRIPT = "core:script"
+    REMOTE_SCRIPT = "core:remote_script"
     FILE = "core:file"
     STAGE_OBJECT_PATH = "core:stage_object_path"
 
@@ -147,6 +153,8 @@ class NodeComponentFlag(enum.IntFlag):
         SINGLE_OUTPUT: can be the source of one link at most
         INHERITS_DATATYPE: datatype follows the component it takes its value from,
             and can be changed by the user while there is none
+        INSPECTOR_HIDDEN: not listed in the inspector
+        LITERAL: text values are kept as typed, never evaluated as an expression
     """
 
     NONE = 0
@@ -157,6 +165,8 @@ class NodeComponentFlag(enum.IntFlag):
     STATIC = enum.auto()
     SINGLE_OUTPUT = enum.auto()
     INHERITS_DATATYPE = enum.auto()
+    INSPECTOR_HIDDEN = enum.auto()
+    LITERAL = enum.auto()
 
 
 class NodeComponentValueMask(enum.IntEnum):
@@ -210,6 +220,7 @@ class EditorUIObject(enum.StrEnum):
     LOG_OUTPUT_DOCK = "log_output_dock"
     TOOLBAR_DOCK = "toolbar_dock"
     INSPECTOR_DOCK = "inspector_dock"
+    BRIDGE_DOCK = "bridge_dock"
 
 
 class GraphicsPlugShape(enum.IntEnum):

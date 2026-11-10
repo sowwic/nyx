@@ -6,6 +6,7 @@ class LogNode(Node):
     """Node writing a message to the log."""
 
     DEFAULT_NAME = "log"
+    DEFAULT_LEVEL = 20
 
     @classmethod
     def get_type_id(cls) -> str:
@@ -60,7 +61,8 @@ class LogNode(Node):
             "30 warning, 40 error, 50 critical."
         )
         self.level.set_datatype(CoreDatatypes.INT)
-        self.level.push_value(10)
+        self.level.push_value(self.DEFAULT_LEVEL)
+        self.level.default_value = self.DEFAULT_LEVEL
         self.level.is_editable = True
         self.level.writable = True
 

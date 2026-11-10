@@ -203,8 +203,8 @@ wheels = [
 
 [[package]]
 name = "json-config"
-version = "1.0.4"
-source = { git = "https://github.com/sowwic/json-config?tag=v1.0.4#53ed1d2340d41ee92685411546fb8dacb66b2951" }
+version = "1.0.5"
+source = { git = "https://github.com/sowwic/json-config?tag=v1.0.5#4a9f5e16afd7e809b66406178b702f379f3422a5" }
 dependencies = [
     { name = "pydantic" },
 ]
@@ -396,6 +396,7 @@ source = { editable = "." }
 dependencies = [
     { name = "codetiming" },
     { name = "json-config" },
+    { name = "nyx-bridge" },
     { name = "platformdirs" },
     { name = "pyside6" },
 ]
@@ -418,7 +419,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "codetiming", specifier = ">=1.4.0" },
-    { name = "json-config", git = "https://github.com/sowwic/json-config?tag=v1.0.4" },
+    { name = "json-config", git = "https://github.com/sowwic/json-config?tag=v1.0.5" },
+    { name = "nyx-bridge", git = "https://github.com/sowwic/nyx-bridge?tag=v1.0.0" },
     { name = "platformdirs", specifier = ">=4.5.0" },
     { name = "pyside6", specifier = ">=6.10.0" },
 ]
@@ -437,6 +439,11 @@ dev = [
     { name = "pytest-qt", specifier = ">=4.5.0" },
     { name = "ruff" },
 ]
+
+[[package]]
+name = "nyx-bridge"
+version = "1.0.0"
+source = { git = "https://github.com/sowwic/nyx-bridge?tag=v1.0.0#d0e05a1b4af2c4bbbb113925f39edf78f1ec421d" }
 
 [[package]]
 name = "packaging"

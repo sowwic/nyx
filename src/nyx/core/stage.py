@@ -52,6 +52,8 @@ class Stage(QtGui.QStandardItemModel):
     execution_finished = QtCore.Signal()
     execution_succeeded = QtCore.Signal()
     execution_failed = QtCore.Signal(Node)
+    execution_cancelled = QtCore.Signal()
+    labels_changed = QtCore.Signal()
 
     def __repr__(self) -> str:
         """str: node count and file path."""
@@ -82,6 +84,7 @@ class Stage(QtGui.QStandardItemModel):
         super().__init__()
         self.file_path: pathlib.Path | None = None
         self._uuid_map: dict[UUID, Node] = {}
+        self._show_address_names = False
         self._crawler = StageCrawler(self)
         self.undo_stack = QtGui.QUndoStack(self)
         self.undo_limit = undo_limit
@@ -120,7 +123,11 @@ class Stage(QtGui.QStandardItemModel):
         self.setItemRoleNames(names)
 
     def create_node(
-        self, type_id: str, name: str | None = None, uuid: UUID | str | None = None
+        self,
+        type_id: str,
+        name: str | None = None,
+        uuid: UUID | str | None = None,
+        display_name: str | None = None,
     ) -> Node:
         """Instantiate a registered node type without adding it to the stage.
 
@@ -128,17 +135,22 @@ class Stage(QtGui.QStandardItemModel):
             type_id (str): registered node type id.
             name (str | None): node name.
             uuid (UUID | str | None): node uuid.
+            display_name (str | None): name shown to the user, the type's by default.
 
         Returns:
             Node: new node.
         """
         node_cls = NYX_REGISTRY.get_node_cls(type_id=type_id)
-        node = node_cls(name=name, uuid=uuid, parent=None)
+        node = node_cls(name=name, uuid=uuid, parent=None, display_name=display_name)
         return node
 
     def _create_root_node(self):
         """Create and register the locked root node."""
-        root_node = self.create_node(type_id=CoreNodes.EMPTY, name=ROOT_NODE_PATH.name)
+        root_node = self.create_node(
+            type_id=CoreNodes.EMPTY,
+            name=ROOT_NODE_PATH.name,
+            display_name=ROOT_NODE_PATH.name,
+        )
         root_node.is_locked = True
         self.appendRow(root_node)
         self.register_node(root_node)
@@ -150,6 +162,23 @@ class Stage(QtGui.QStandardItemModel):
     def is_new(self):
         """bool: stage is untouched and was never saved."""
         return not self.undo_stack.count() and self.file_path is None
+
+    @property
+    def show_address_names(self) -> bool:
+        """bool: views show the address names of nodes and components, not display."""
+        return self._show_address_names
+
+    @show_address_names.setter
+    def show_address_names(self, enabled: bool) -> None:
+        enabled = bool(enabled)
+        if enabled == self._show_address_names:
+            return
+        self._show_address_names = enabled
+        for stage_object in list(self.uuid_map.values()):
+            if isinstance(stage_object, Node):
+                stage_object.refresh_label()
+                stage_object.components_model.notify_labels_changed()
+        self.labels_changed.emit()
 
     @property
     def undo_limit(self) -> int:
@@ -233,12 +262,15 @@ class Stage(QtGui.QStandardItemModel):
         self,
         base_name: str,
         parent_node: NodeLike | None = None,
+        exclude: Node | None = None,
     ):
         """Generate a node name not used by the siblings under a parent.
 
         Args:
             base_name (str): preferred name.
             parent_node (NodeLike | None): parent node. Defaults to the root node.
+            exclude (Node | None): sibling that does not count, e.g. the node being
+                renamed.
 
         Returns:
             str: unique valid node name.
@@ -247,7 +279,9 @@ class Stage(QtGui.QStandardItemModel):
         parent_node: Node = (
             self.get_object(parent_node) if parent_node else self.root_node
         )
-        existing_children_names: set[str] = parent_node.child_names_set
+        existing_children_names: set[str] = {
+            child.name for child in parent_node.list_children() if child is not exclude
+        }
         if base_name not in existing_children_names:
             return base_name
 

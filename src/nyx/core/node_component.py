@@ -1,3 +1,4 @@
+import dataclasses
 import enum
 import pathlib
 import typing
@@ -9,6 +10,7 @@ from uuid import UUID
 
 from .stage_object import StageObject
 from .link import Link
+from .name_validator import NameValidator
 from .datatypes.datatype import Datatype, value_to_class_name
 from .exceptions import DatatypeCastError
 from .value_storage import ValueStorage
@@ -35,6 +37,19 @@ type NodeComponentLike = NodeComponent | UUID | pathlib.PurePosixPath | str
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass(frozen=True)
+class ComponentProviders:
+    """Callables a node can plug into a component to supply what it can't know itself.
+
+    Each one replaces the matching `NodeComponent` method when set.
+    """
+
+    pull: typing.Callable[[NodeComponentValueMask], typing.Any] | None = None
+    display: typing.Callable[[], str] | None = None
+    plug_color: typing.Callable[[], QtGui.QColor] | None = None
+    datatype_source: typing.Callable[[], NodeComponent | None] | None = None
+
+
 class NodeComponent(QtGui.QStandardItem, StageObject):
     """Base class for components attached to a node (values, scripts, flow, ...).
 
@@ -47,6 +62,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     EDITOR_QML: str | None = None
     PATH_SEPARATOR: str = "."
     VALUE_STORAGE_CLS: type[ValueStorage] = ValueStorage
+
+    # Not set in `__init__`: the base class pushes its default value before that.
+    _providers: ComponentProviders = ComponentProviders()
 
     TYPE_ID_KEY = "type_id"
     NAME_KEY = "name"
@@ -74,6 +92,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         LINKS_EXPANDED = enum.auto()
         NOTE_EXPANDED = enum.auto()
         INVALID_REASON = enum.auto()
+        DISPLAY_NAME = enum.auto()
         # Virtual roles, computed in NodeComponentsModel.data()
         UUID = enum.auto()
         PATH = enum.auto()
@@ -86,10 +105,12 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         EDITOR_QML_FILE = enum.auto()
         IS_EDITABLE = enum.auto()
         IS_STATIC = enum.auto()
+        IS_INSPECTOR_HIDDEN = enum.auto()
         IS_BUILT_IN = enum.auto()
         IS_VALID = enum.auto()
         RESOLVED_DATATYPE = enum.auto()
         IS_DATATYPE_LOCKED = enum.auto()
+        LABEL = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -111,9 +132,11 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.IS_BUILT_IN,
                 cls.IS_EDITABLE,
                 cls.IS_STATIC,
+                cls.IS_INSPECTOR_HIDDEN,
                 cls.IS_VALID,
                 cls.RESOLVED_DATATYPE,
                 cls.IS_DATATYPE_LOCKED,
+                cls.LABEL,
             )
 
     def __repr__(self) -> str:
@@ -241,6 +264,46 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self.setData(new_name, self.Roles.NAME)
 
     @property
+    def display_name(self) -> str:
+        """str: name shown to the user, made from the name unless one was set."""
+        return self.data(self.Roles.DISPLAY_NAME) or NameValidator.humanize(self.name)
+
+    @display_name.setter
+    def display_name(self, display_name: str):
+        self.setData(display_name, self.Roles.DISPLAY_NAME)
+
+    @property
+    def label(self) -> str:
+        """str: name the views show, the address name if the stage is set to."""
+        stage = self.stage
+        if stage is not None and stage.show_address_names:
+            return self.name
+        return self.display_name
+
+    def rename_display(self, display_name: str) -> None:
+        """Rename the component: set the display name, and the address name follows.
+
+        The address name is made from the display name, with a number added when
+        another component of the node has it already.
+
+        Args:
+            display_name (str): new display name.
+
+        Raises:
+            ValueError: the name has no letters or digits to make an address from.
+        """
+        display_name = display_name.strip()
+        address_name = NameValidator.to_address_name(display_name)
+        if not address_name:
+            raise ValueError(f"Cannot make a component name out of {display_name!r}")
+        if address_name != self.name:
+            self.name = self.model().compose_unique_component_name(
+                address_name, exclude=self
+            )
+        self.display_name = display_name
+        self.emitDataChanged()
+
+    @property
     def raw_value(self) -> typing.Any:
         """typing.Any: value as set, before evaluation."""
         return self.value_storage.raw_value
@@ -317,6 +380,35 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """
         return self.datatype.accepts(source.datatype)
 
+    def set_providers(
+        self,
+        pull: typing.Callable[[NodeComponentValueMask], typing.Any] | None = None,
+        display: typing.Callable[[], str] | None = None,
+        plug_color: typing.Callable[[], QtGui.QColor] | None = None,
+        datatype_source: typing.Callable[[], NodeComponent | None] | None = None,
+    ) -> None:
+        """Let the owning node supply the value, display text, plug color or datatype.
+
+        Only the given providers change, the others are kept.
+
+        Args:
+            pull (Callable | None): replaces `pull_value`, gets the value mask.
+            display (Callable | None): replaces `get_display_value`, returns text.
+            plug_color (Callable | None): replaces `get_plug_color`.
+            datatype_source (Callable | None): replaces `get_datatype_source`.
+        """
+        changes = {
+            key: provider
+            for key, provider in (
+                ("pull", pull),
+                ("display", display),
+                ("plug_color", plug_color),
+                ("datatype_source", datatype_source),
+            )
+            if provider is not None
+        }
+        self._providers = dataclasses.replace(self._providers, **changes)
+
     def get_datatype_source(self) -> NodeComponent | None:
         """Get the component the datatype is taken from, like the value is pulled.
 
@@ -324,6 +416,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             NodeComponent | None: source of the input link for components inheriting
                 their datatype, None if there is none or the datatype is the own one.
         """
+        if self._providers.datatype_source is not None:
+            return self._providers.datatype_source()
         if not self.inherits_datatype:
             return None
         input_links = self.input_links
@@ -449,6 +543,34 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def is_static(self, state: bool) -> None:
         self.set_component_flag(
             flag=NodeComponentFlag.STATIC, role=self.Roles.IS_STATIC, state=state
+        )
+
+    @property
+    def is_literal(self) -> bool:
+        """bool: text values are kept as typed, never evaluated as an expression."""
+        return NodeComponentFlag.LITERAL in self.component_flags
+
+    @is_literal.setter
+    def is_literal(self, state: bool) -> None:
+        changed = state != self.is_literal
+        self.set_component_flag(
+            NodeComponentFlag.LITERAL, self.Roles.COMPONENT_FLAGS, state=state
+        )
+        raw_value = self.raw_value
+        if changed and isinstance(raw_value, str) and raw_value:
+            self.push_value(raw_value)  # evaluate it again, or stop evaluating it
+
+    @property
+    def inspector_hidden(self) -> bool:
+        """bool: component is not listed in the inspector."""
+        return NodeComponentFlag.INSPECTOR_HIDDEN in self.component_flags
+
+    @inspector_hidden.setter
+    def inspector_hidden(self, state: bool) -> None:
+        self.set_component_flag(
+            flag=NodeComponentFlag.INSPECTOR_HIDDEN,
+            role=self.Roles.IS_INSPECTOR_HIDDEN,
+            state=state,
         )
 
     @property
@@ -585,6 +707,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             str: display value, the one of the component itself if the linked value
                 can't be pulled, like when the source points at something missing.
         """
+        if self._providers.display is not None:
+            return self._providers.display()
         if self.input_links:
             source = self.input_links[0].source_component
             try:
@@ -637,6 +761,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             typing.Any: requested value.
         """
+        if self._providers.pull is not None:
+            return self._providers.pull(value_mask)
         input_links = self.input_links
         if input_links:
             value = input_links[0].source_component.pull_value(value_mask=value_mask)
@@ -807,6 +933,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         data["type_id"] = self.get_type_id()
         data["flags"] = self.component_flags
         data["name"] = self.name
+        data["display_name"] = self.data(self.Roles.DISPLAY_NAME) or ""
         data["datatype"] = self.datatype_id
         data["value"] = self.serialize_value()
         data["default_value"] = self.serialize_default_value()
@@ -845,8 +972,13 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         component.uuid = uuid
         context.register(serialized_uuid=data.get(cls.UUID_KEY), new_uuid=component.uuid)
         component.name = data["name"]
+        component.display_name = data.get("display_name") or ""
         component.setData(
             data.get("datatype") or component.datatype_id, role=cls.Roles.DATATYPE
+        )
+        # Before the value: a literal component must not evaluate it while restoring.
+        component.component_flags = (
+            NodeComponentFlag(data["flags"]) | component.get_type_enforced_flags()
         )
         component.restore_value(data["value"], context)
         component.default_value = component.deserialize_default_value(
@@ -856,9 +988,6 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         note = data.get("note") or {}
         component.note = note.get("text", "")
         component.note_format = note.get("format", NoteFormat.PLAIN)
-        component.component_flags = (
-            NodeComponentFlag(data["flags"]) | component.get_type_enforced_flags()
-        )
 
         return component
 
@@ -892,6 +1021,8 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         Returns:
             QtGui.QColor: plug color.
         """
+        if self._providers.plug_color is not None:
+            return self._providers.plug_color()
         return QtGui.QColor(self.datatype.color)
 
     def get_plug_shape(self) -> GraphicsPlugShape:

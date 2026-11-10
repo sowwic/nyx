@@ -1,3 +1,4 @@
+import sys
 import typing
 import pytest
 
@@ -138,3 +139,29 @@ def test_script_path_object_is_cast_to_a_string(make_script: typing.Callable):
 
     assert isinstance(script.cached_value, str)
     script.execute()  # runs the file
+
+
+def test_script_value_is_never_evaluated_as_an_expression():
+    stage = Stage()
+    node_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.ACTION)
+    stage.push_command(node_command)
+    node = stage.get_object(node_command.result_node.uuid)
+    stage.push_command(
+        commands.AddNodeComponentCommand(
+            node=node, type_id=CoreNodeComponents.SCRIPT, name="test_script"
+        )
+    )
+
+    node["test_script"].push_value("__import__('sys').modules['ran_in_nyx'] = 1")
+    node["test_script"].push_value("1 + 1")
+
+    assert node["test_script"].pull_value() == "1 + 1"
+    assert "ran_in_nyx" not in sys.modules
+
+
+def test_script_components_are_literal_even_when_saved_without_the_flag():
+    from nyx.api.v1 import NodeComponentFlag
+    from nyx.stdlib.node_components.script import ScriptComponent
+
+    assert ScriptComponent.get_type_default_flags() & NodeComponentFlag.LITERAL
+    assert ScriptComponent.get_type_enforced_flags() & NodeComponentFlag.LITERAL

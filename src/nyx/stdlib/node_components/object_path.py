@@ -48,6 +48,10 @@ class StageObjectPathComponent(NodeComponent):
     # Not set in `__init__`: the base class pushes its default value before that.
     _target_uuid: UUID | None = None
 
+    @property
+    def is_empty(self):
+        return not self.pull_value(value_mask=NodeComponentValueMask.RAW)
+
     @classmethod
     def get_type_id(cls) -> str:
         """str: component type id."""

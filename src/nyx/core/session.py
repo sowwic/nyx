@@ -1,19 +1,26 @@
 import json
+import logging
 import pathlib
 import typing
 
 import shiboken6
+from nyx_bridge.server import BridgeServer
 
+from .bridge_events import BridgeEvents
 from .layered_config import NyxConfig
 from ..api.v1 import Stage
+from ..static.paths import BRIDGE_ADDRESS_FILE_PATH
 
+
+LOGGER = logging.getLogger(__name__)
 
 SESSION_FILE_VERSION = 1
 SESSION_FILE_SUFFIX = ".nyxsession"
+BRIDGE_SERVER_NAME = "nyx"
 
 
 class NyxSession:
-    """Backend state shared by the editor: config, recent files and open stages."""
+    """Backend state shared by the editor: config, recent files, stages, bridge."""
 
     def __init__(self, config: NyxConfig | None = None) -> None:
         """Initialize NyxSession.
@@ -26,11 +33,78 @@ class NyxSession:
         if config is None:
             self._config.resolve()
         self._stages: list[Stage] = []
+        self._bridge_server: BridgeServer | None = None
+        self._bridge_events = BridgeEvents()
 
     @property
     def config(self) -> NyxConfig:
         """NyxConfig: layered config used by the session."""
         return self._config
+
+    @property
+    def bridge_server(self) -> BridgeServer | None:
+        """BridgeServer | None: server external processes connect to, if started."""
+        return self._bridge_server
+
+    @property
+    def bridge_events(self) -> BridgeEvents:
+        """BridgeEvents: signals of the bridge server and its clients."""
+        return self._bridge_events
+
+    def autostart_bridge_server(self) -> BridgeServer | None:
+        """Start the bridge server if the config enables it, e.g. at launch.
+
+        Returns:
+            BridgeServer | None: the running server, None if it is disabled or
+                could not start.
+        """
+        if not self._config.values.bridge.enabled:
+            LOGGER.info("Bridge server is disabled in the config")
+            return None
+        return self.start_bridge_server()
+
+    def start_bridge_server(self) -> BridgeServer | None:
+        """Start the server external processes connect to, as the config describes.
+
+        There is one server for all stages and clients. It writes the address file
+        clients use to find it, and the file is removed when it stops. A failure is
+        logged and leaves the application running without a server. A stopped server
+        starts again on the same token.
+
+        Returns:
+            BridgeServer | None: the running server, None if it could not start.
+        """
+        values = self._config.values.bridge
+        try:
+            if self._bridge_server is None:
+                self._bridge_server = BridgeServer(
+                    name=BRIDGE_SERVER_NAME,
+                    host=values.host,
+                    port=values.port,
+                    token=values.token or None,
+                    address_file=BRIDGE_ADDRESS_FILE_PATH,
+                )
+                self._bridge_server.add_listener(self._bridge_events)
+            self._bridge_server.start()
+        except OSError:
+            LOGGER.exception("Could not start the bridge server")
+            return None
+        LOGGER.info(
+            "Bridge server listening on %s:%s, clients find it through %s",
+            self._bridge_server.host,
+            self._bridge_server.port,
+            BRIDGE_ADDRESS_FILE_PATH,
+        )
+        return self._bridge_server
+
+    def stop_bridge_server(self) -> None:
+        """Stop the bridge server, it can be started again."""
+        if self._bridge_server is not None:
+            self._bridge_server.stop()
+
+    def shutdown(self) -> None:
+        """Release what the session holds on to, e.g. when the application quits."""
+        self.stop_bridge_server()
 
     # Open stages
     @property
@@ -47,6 +121,7 @@ class NyxSession:
         """
         if stage not in self._stages:
             self._stages.append(stage)
+        stage.show_address_names = self.show_address_names
 
     def unregister_stage(self, stage: Stage) -> None:
         """Stop tracking a stage.
@@ -67,6 +142,23 @@ class NyxSession:
             ):
                 return stage
         return None
+
+    # Names
+    @property
+    def show_address_names(self) -> bool:
+        """bool: views show address names instead of display names."""
+        return self._config.values.editor_behaviour.show_address_names
+
+    def set_show_address_names(self, enabled: bool) -> None:
+        """Show address names instead of display names in every open stage, and keep it.
+
+        Args:
+            enabled (bool): show the address names.
+        """
+        self._config.values.editor_behaviour.show_address_names = enabled
+        for stage in self.stages:
+            stage.show_address_names = enabled
+        self._config.save()
 
     # Recent files
     @property

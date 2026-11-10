@@ -166,9 +166,12 @@ class ValueStorage:
         """Compute the evaluated value. Strings are evaluated as python expressions.
 
         Returns:
-            typing.Any: evaluated value, the raw value if evaluation fails.
+            typing.Any: evaluated value, the raw value if evaluation fails or the
+                component is literal.
         """
         out_value = self.raw_value
+        if self.component.is_literal:
+            return out_value
         if isinstance(self.raw_value, str) and self.raw_value:
             try:
                 out_value = eval(self.raw_value)

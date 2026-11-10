@@ -153,7 +153,8 @@ def test_var_arguments_get_no_components(register):
     def variadic(a: int, *args, **kwargs) -> int:
         return a
 
-    node = make_node(Stage(), register(variadic).get_type_id())
+    stage = Stage()
+    node = make_node(stage, register(variadic).get_type_id())
 
     assert node["a"] is not None
     for name in ("args", "kwargs"):

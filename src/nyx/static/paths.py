@@ -1,5 +1,6 @@
 import pathlib
 import platformdirs
+from nyx_bridge.protocol import DEFAULT_ADDRESS_FILE_NAME
 
 from .vars import APPLICATION_TITLE, ORGANIZATION_NAME
 
@@ -12,6 +13,7 @@ APP_DATA_DIR = platformdirs.user_data_path(
 )
 USER_CONFIG_FILE_PATH = APP_DATA_DIR / "user_config.json"
 LAST_SESSION_FILE_PATH = APP_DATA_DIR / "session.nyxsession"
+BRIDGE_ADDRESS_FILE_PATH = APP_DATA_DIR / DEFAULT_ADDRESS_FILE_NAME
 LOGS_DIRECTORY = APP_DATA_DIR / "logs"
 PROFILING_DIR = APP_DATA_DIR / "profiling"
 

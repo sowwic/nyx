@@ -28,3 +28,7 @@ class ActionLookupError(RuntimeError):
 
 class DatatypeCastError(ValueError):
     """Raised when a value can't be converted to a datatype."""
+
+
+class StageExecutionCancelled(Exception):
+    """Raised inside a stage run that was asked to stop."""

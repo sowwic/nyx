@@ -11,6 +11,9 @@ class NyxEditorBehaviourConfigValues(NyxBaseConfigValues):
 
     new_stage_on_launch: bool = Field(default=True)
     """Create an empty stage at startup."""
+    show_address_names: bool = Field(default=False)
+    """Show the address names of nodes and components, which paths are made of, instead
+    of their display names."""
     undo_limit: int = Field(default=DEFAULT_UNDO_LIMIT, ge=0)
     """Number of undoable steps each stage remembers, 0 for no limit.
 

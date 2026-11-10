@@ -29,15 +29,16 @@ class RenameNodeComponentCommand(NyxCommand):
         Args:
             stage (Stage): target stage.
             node_component (NodeComponentLike): component to rename.
-            new_name (str): new name, sanitized to a valid object name.
+            new_name (str): new display name, the address name is made from it.
             parent (QtGui.QUndoCommand | None): parent command.
         """
         super().__init__(stage=stage, text="Rename component", parent=parent)
 
         self.path_to_rename = self.stage.pathify(node_component)
         self.component_uuid = None
-        self.new_name = NameValidator.get_valid_stage_object_name(new_name)
+        self.new_name = new_name.strip()
         self.old_name: str = None
+        self.old_display_name: str = None
 
     def target_nodes(self):
         """list[Node]: nodes the command changes."""
@@ -48,22 +49,27 @@ class RenameNodeComponentCommand(NyxCommand):
         node_component: NodeComponent = self.stage.get_object(self.path_to_rename)
         self.component_uuid = node_component.uuid
         self.old_name = node_component.name
+        self.old_display_name = node_component.data(NodeComponent.Roles.DISPLAY_NAME)
         self.setText(f"Rename component ({node_component.path} -> {self.new_name})")
 
-        self.new_name = node_component.model().compose_unique_component_name(
-            self.new_name
-        )
-        node_component.name = self.new_name
+        node_component.rename_display(self.new_name)
         return super().redo()
 
     def undo(self) -> None:
         """Restore the previous component name."""
         component: NodeComponent = self.stage.get_object(self.component_uuid)
         component.name = self.old_name
+        component.display_name = self.old_display_name or ""
+        component.emitDataChanged()
         return super().undo()
 
     def validate(self):
-        """Check the component exists."""
+        """Check the component exists and the new name can make an address name."""
+        if not NameValidator.to_address_name(self.new_name):
+            raise NyxCommandValidationError(
+                f"Invalid component name, it needs a letter or a digit: "
+                f"{self.new_name!r}"
+            )
         status = self.stage.get_object(self.path_to_rename) is not None
         if not status:
             raise NyxCommandValidationError(

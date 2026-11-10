@@ -215,10 +215,14 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.resolved_datatype_id
             if role == NodeComponent.Roles.IS_DATATYPE_LOCKED:
                 return component.is_datatype_locked
+            if role == NodeComponent.Roles.LABEL:
+                return component.label
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:
                 return component.is_static
+            if role == NodeComponent.Roles.IS_INSPECTOR_HIDDEN:
+                return component.inspector_hidden
             if role == NodeComponent.Roles.WRITABLE:
                 return component.writable
             if role == NodeComponent.Roles.READABLE:
@@ -236,6 +240,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         ):
             # The views can't show classes or collections, they get text
             return value_to_view_text(value)
+        if role == NodeComponent.Roles.DISPLAY_NAME:
+            # Nothing is stored until the component is renamed: views get the name
+            # made from the address.
+            return value or self.itemFromIndex(index).display_name
         if role == NodeComponent.Roles.LINKS:
             return [str(uuid) for uuid in (value or ())]
         if role == NodeComponent.Roles.TAGS:
@@ -398,9 +406,29 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 continue
             self.remove_component(component.uuid)
 
-    def compose_unique_component_name(self, name: str) -> str:
-        """Returns a unique name for the component, indexed if it already exists."""
-        existing_names = [component.name for component in self.list_components()]
+    def notify_labels_changed(self) -> None:
+        """Tell the views that the labels of the components changed."""
+        count = self.rowCount()
+        if count:
+            self.dataChanged.emit(
+                self.index(0, 0), self.index(count - 1, 0), [NodeComponent.Roles.LABEL]
+            )
+
+    def compose_unique_component_name(
+        self, name: str, exclude: NodeComponent | None = None
+    ) -> str:
+        """Returns a unique name for the component, indexed if it already exists.
+
+        Args:
+            name (str): preferred name.
+            exclude (NodeComponent | None): component that does not count, e.g. the
+                one being renamed.
+        """
+        existing_names = [
+            component.name
+            for component in self.list_components()
+            if component is not exclude
+        ]
         index = 1
         result_name = name
         while name in existing_names:

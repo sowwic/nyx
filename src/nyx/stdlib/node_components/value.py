@@ -65,4 +65,6 @@ class ValueComponent(NodeComponent):
 
     def get_plug_color(self) -> QtGui.QColor:
         """QtGui.QColor: color of the shown datatype."""
+        if self._providers.plug_color is not None:
+            return self._providers.plug_color()
         return QtGui.QColor(self.get_shown_datatype().color)

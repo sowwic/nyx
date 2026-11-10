@@ -17,8 +17,10 @@ from ...core.commands import (
 )
 from ...core.exceptions import NyxCommandValidationError
 from ...core.node_component import NodeComponent
+from ...core.path_resolver import StagePathResolver
 from ...core.plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import ItemSelectionMode, NodeComponentFlag, NoteFormat
+from ..widgets.dialogs.stage_object_picker import StageObjectPickerDialog
 
 
 if typing.TYPE_CHECKING:
@@ -433,6 +435,29 @@ class ComponentsController(QtCore.QObject):
             name_filters,
         )
         return file_path
+
+    @QtCore.Slot(int, result=str)
+    def pickStageObjectPath(self, row: int) -> str:
+        """Ask for the node or component a path component should point at.
+
+        A widget dialog is used for the same reason as in `selectFile`.
+
+        Args:
+            row (int): proxy row of the path component.
+
+        Returns:
+            str: path of the chosen object relative to the scope of the component's
+                node, empty if the dialog was cancelled.
+        """
+        component = self.get_component_from_proxy_row(row)
+        chosen = StageObjectPickerDialog.pick(
+            component.stage, component, QtWidgets.QApplication.activeWindow()
+        )
+        if chosen is None:
+            return ""
+        return StagePathResolver.compute_relative_path(
+            component.node.scope, chosen.path
+        ).as_posix()
 
     @staticmethod
     def _dialog_start_path(path: str) -> str:

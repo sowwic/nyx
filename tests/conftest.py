@@ -88,6 +88,9 @@ def isolate_user_config(qapp, monkeypatch):
     monkeypatch.setattr(qapp.config, "save", lambda *args, **kwargs: None)
     session = qapp.config.values.editor_session
     monkeypatch.setattr(session, "recent_files", [])
+    # Tests expect display names, whatever the user toggled in the editor.
+    behaviour = qapp.config.values.editor_behaviour
+    monkeypatch.setattr(behaviour, "show_address_names", False)
 
 
 @pytest.fixture

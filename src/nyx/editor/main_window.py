@@ -19,6 +19,9 @@ from .views.stage_graph_debug_overlay import StageGraphDebugOverlay
 from .views.stage_tree_view import StageTreeView
 from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
+from .widgets.bridge_panel import BridgePanel
+from .widgets.notifications import NotificationManager
+from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
 from .widgets.output_log.output_log_dock import OutputLogDockWidget
 from .widgets.inspector import Inspector
 from .widgets.editor_toolbar import EditorToolBar
@@ -45,7 +48,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     _INSTANCE: NyxEditorMainWindow = None
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
-    LAYOUT_VERSION = 1
+    LAYOUT_VERSION = 2
     MINIMUM_SIZE = (1000, 600)
 
     @classmethod
@@ -98,6 +101,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.create_connections()
 
         self.apply_config_values()
+        NotificationManager.set_host(self)
 
     @property
     def config(self) -> NyxConfig:
@@ -207,6 +211,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.inspector = Inspector(self)
         self.nodes_palette_view = NodesPaletteView(drag_enabled=True, parent=self)
 
+        self.bridge_panel = BridgePanel(self.application.session, self)
+
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
         self.tool_bar = EditorToolBar(self)
@@ -236,6 +242,11 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             title="Undo History",
             object_name=EditorUIObject.UNDO_HISTORY_DOCK,
             widget=self.undo_view,
+        )
+        self.bridge_dock = self._create_dock(
+            title="Bridge",
+            object_name=EditorUIObject.BRIDGE_DOCK,
+            widget=self.bridge_panel,
         )
         self.logger_dock: OutputLogDockWidget = self._create_dock(
             title="Output Log",
@@ -268,6 +279,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.bridge_dock)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.inspector_dock)
         self.addDockWidget(
@@ -278,6 +290,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Tabify dock widgets
         self.tabifyDockWidget(self.stage_tree_dock, self.nodes_palette_dock)
         self.tabifyDockWidget(self.stage_tree_dock, self.undo_dock)
+        self.tabifyDockWidget(self.stage_tree_dock, self.bridge_dock)
 
         for dock in self.dock_widgets:
             dock.show()
@@ -374,6 +387,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # self.toggle_always_on_top(self.config.window_always_on_top)
         LOGGER.setLevel(self.config.values.logging_level)
         self._apply_viewport_debug_overlay()
+        self._apply_show_address_names()
         self._apply_stage_render_options()
 
         # The log dock's expansion state and size constraints must be in place
@@ -434,6 +448,27 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """
         self.config.values.editor_widgets.graphics_stage.viewport_debug_overlay = enabled
         self._apply_viewport_debug_overlay()
+
+    def set_show_address_names(self, enabled: bool):
+        """Show address names instead of display names in every stage, and remember it.
+
+        Args:
+            enabled (bool): show the address names.
+        """
+        self.application.session.set_show_address_names(enabled)
+        self._apply_show_address_names()
+
+    def _apply_show_address_names(self):
+        """Show the config value of the names toggle in the menu and the stages."""
+        enabled = self.application.session.show_address_names
+        self.menubar_view_menu.set_show_address_names_checked(enabled)
+        for stage in self.application.session.stages:
+            stage.show_address_names = enabled
+        # The views redraw what they show, with the names in the new form.
+        for sub_window in self.mdi_area.subWindowList():
+            stage_graph = sub_window.widget()
+            if isinstance(stage_graph, StageGraphEditor):
+                stage_graph.gr_stage.rebuild_current_scope()
 
     def _apply_viewport_debug_overlay(self):
         """Show the config value of the debug overlay in the menu and the views."""
@@ -675,7 +710,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """
         try:
             data = self.application.session.read_file(file_path)
-        except (OSError, ValueError):
+        except OSError, ValueError:
             LOGGER.exception("Failed to read session file: %s", file_path)
             return
         for entry in data["stages"]:
@@ -731,7 +766,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """Execute the active stage."""
         if not self.current_stage_graph:
             return
-        self.current_stage_graph.stage.crawler.start()
+        self._run_crawler_with_progress()
 
     def execute_from_selected_node(self):
         """Execute the active stage starting from the selected node."""
@@ -743,4 +778,42 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             LOGGER.warning("No node selected for execution")
             return
 
-        self.current_stage_graph.stage.crawler.start(start_node=selected_nodes[-1])
+        self._run_crawler_with_progress(start_node=selected_nodes[-1])
+
+    def _run_crawler_with_progress(self, **start_kwargs) -> None:
+        """Run the active stage with a dialog showing progress and a Cancel button.
+
+        Args:
+            **start_kwargs: forwarded to `StageCrawler.start`.
+        """
+        stage = self.current_stage_graph.stage
+        crawler = stage.crawler
+        dialog = ExecutionProgressDialog(crawler, parent=self)
+        outcome: list[str] = []
+
+        def on_succeeded() -> None:
+            outcome.append("succeeded")
+
+        def on_cancelled() -> None:
+            outcome.append("cancelled")
+
+        stage.execution_succeeded.connect(on_succeeded)
+        stage.execution_cancelled.connect(on_cancelled)
+        try:
+            with dialog.watching():
+                crawler.start(**start_kwargs)
+        except Exception:
+            NotificationManager.add_message(
+                "Execution failed", fade=5, icon=":/icons/red_error"
+            )
+            raise
+        finally:
+            stage.execution_succeeded.disconnect(on_succeeded)
+            stage.execution_cancelled.disconnect(on_cancelled)
+            dialog.deleteLater()
+        if "succeeded" in outcome:
+            NotificationManager.add_message(
+                "Execution succeeded", fade=5, icon=":/icons/green_check"
+            )
+        elif "cancelled" in outcome:
+            NotificationManager.add_message("Execution cancelled", fade=5)

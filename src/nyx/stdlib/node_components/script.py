@@ -18,7 +18,8 @@ LOGGER = logging.getLogger(__name__)
 class ScriptComponent(NodeComponent):
     """Component running a python file or a module entry point when executed.
 
-    The script gets the node and the component as globals.
+    The script gets the node and the component as globals. The value is a path, so it
+    is kept as typed and never evaluated as an expression.
     """
 
     DEFAULT_NAME = "script"
@@ -65,8 +66,13 @@ class ScriptComponent(NodeComponent):
 
     @classmethod
     def get_type_default_flags(cls) -> NodeComponentFlag:
-        """NodeComponentFlag: editable."""
-        return NodeComponentFlag.EDITABLE
+        """NodeComponentFlag: editable, literal."""
+        return NodeComponentFlag.EDITABLE | NodeComponentFlag.LITERAL
+
+    @classmethod
+    def get_type_enforced_flags(cls) -> NodeComponentFlag:
+        """NodeComponentFlag: literal, the path is never evaluated as an expression."""
+        return NodeComponentFlag.LITERAL
 
     @classmethod
     def get_default_expanded_state(cls) -> bool:
