@@ -20,6 +20,7 @@ from .views.stage_tree_view import StageTreeView
 from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
 from .widgets.bridge_panel import BridgePanel
+from .widgets.notifications import NotificationManager
 from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
 from .widgets.output_log.output_log_dock import OutputLogDockWidget
 from .widgets.inspector import Inspector
@@ -100,6 +101,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.create_connections()
 
         self.apply_config_values()
+        NotificationManager.set_host(self)
 
     @property
     def config(self) -> NyxConfig:
@@ -708,7 +710,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """
         try:
             data = self.application.session.read_file(file_path)
-        except (OSError, ValueError):
+        except OSError, ValueError:
             LOGGER.exception("Failed to read session file: %s", file_path)
             return
         for entry in data["stages"]:
@@ -784,10 +786,34 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         Args:
             **start_kwargs: forwarded to `StageCrawler.start`.
         """
-        crawler = self.current_stage_graph.stage.crawler
+        stage = self.current_stage_graph.stage
+        crawler = stage.crawler
         dialog = ExecutionProgressDialog(crawler, parent=self)
+        outcome: list[str] = []
+
+        def on_succeeded() -> None:
+            outcome.append("succeeded")
+
+        def on_cancelled() -> None:
+            outcome.append("cancelled")
+
+        stage.execution_succeeded.connect(on_succeeded)
+        stage.execution_cancelled.connect(on_cancelled)
         try:
             with dialog.watching():
                 crawler.start(**start_kwargs)
+        except Exception:
+            NotificationManager.add_message(
+                "Execution failed", fade=5, icon=":/icons/red_error"
+            )
+            raise
         finally:
+            stage.execution_succeeded.disconnect(on_succeeded)
+            stage.execution_cancelled.disconnect(on_cancelled)
             dialog.deleteLater()
+        if "succeeded" in outcome:
+            NotificationManager.add_message(
+                "Execution succeeded", fade=5, icon=":/icons/green_check"
+            )
+        elif "cancelled" in outcome:
+            NotificationManager.add_message("Execution cancelled", fade=5)
