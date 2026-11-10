@@ -14,6 +14,7 @@ from PySide6 import QtCore, QtGui
 from .name_validator import NameValidator
 from .stage_object import StageObject
 from .link import Link
+from .exceptions import StageExecutionCancelled
 from .models.components_model import NodeComponentsModel
 from .contexts.serialization import NodeSerializationContext, NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
@@ -1063,6 +1064,9 @@ class Node(QtGui.QStandardItem, StageObject):
             self.execute_components()
             self.execute()
             self.post_execution_hook()
+        except StageExecutionCancelled:
+            self.execution_status = NodeExecutionStatus.NOT_RAN
+            raise
         except Exception as err:
             LOGGER.exception(f"{self} | Execution error: {err}")
             self.raised_exception = err

@@ -290,3 +290,39 @@ def test_text_is_kept_as_typed_and_survives_saving(tmp_path):
     assert restored["command"].pull_value() == "1 + 1"
     assert restored["timeout"].pull_value() == 60.0
     assert restored["process_id"].readable and not restored["process_id"].is_editable
+
+
+def test_cancelling_while_the_process_boots_stops_it_and_ends_the_run(server):
+    from PySide6 import QtCore
+
+    stage, launch, _, _ = build_stage(SLEEP_COMMAND, "result = 1")
+    cancelled = []
+    stage.execution_cancelled.connect(lambda: cancelled.append(True))
+    QtCore.QTimer.singleShot(400, stage.crawler.request_cancel)
+
+    started = time.monotonic()
+    stage.crawler.start()
+
+    assert time.monotonic() - started < 5
+    assert cancelled == [True]
+    assert not stage.crawler.is_running
+    assert not server.clients
+    from nyx.api.v1 import NodeExecutionStatus
+
+    assert launch.execution_status is NodeExecutionStatus.NOT_RAN
+
+
+def test_events_are_processed_while_waiting_for_the_process(server):
+    from PySide6 import QtCore
+
+    stage, _, _, _ = build_stage(CLIENT_COMMAND, "result = 1")
+    ticks = []
+    timer = QtCore.QTimer()
+    timer.setInterval(20)
+    timer.timeout.connect(lambda: ticks.append(1))
+    timer.start()
+
+    stage.crawler.start()
+    timer.stop()
+
+    assert ticks

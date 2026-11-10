@@ -52,6 +52,7 @@ class Stage(QtGui.QStandardItemModel):
     execution_finished = QtCore.Signal()
     execution_succeeded = QtCore.Signal()
     execution_failed = QtCore.Signal(Node)
+    execution_cancelled = QtCore.Signal()
     labels_changed = QtCore.Signal()
 
     def __repr__(self) -> str:

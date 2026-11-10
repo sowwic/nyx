@@ -20,6 +20,7 @@ from .views.stage_tree_view import StageTreeView
 from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
 from .widgets.bridge_panel import BridgePanel
+from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
 from .widgets.output_log.output_log_dock import OutputLogDockWidget
 from .widgets.inspector import Inspector
 from .widgets.editor_toolbar import EditorToolBar
@@ -763,7 +764,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """Execute the active stage."""
         if not self.current_stage_graph:
             return
-        self.current_stage_graph.stage.crawler.start()
+        self._run_crawler_with_progress()
 
     def execute_from_selected_node(self):
         """Execute the active stage starting from the selected node."""
@@ -775,4 +776,18 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             LOGGER.warning("No node selected for execution")
             return
 
-        self.current_stage_graph.stage.crawler.start(start_node=selected_nodes[-1])
+        self._run_crawler_with_progress(start_node=selected_nodes[-1])
+
+    def _run_crawler_with_progress(self, **start_kwargs) -> None:
+        """Run the active stage with a dialog showing progress and a Cancel button.
+
+        Args:
+            **start_kwargs: forwarded to `StageCrawler.start`.
+        """
+        crawler = self.current_stage_graph.stage.crawler
+        dialog = ExecutionProgressDialog(crawler, parent=self)
+        try:
+            with dialog.watching():
+                crawler.start(**start_kwargs)
+        finally:
+            dialog.deleteLater()

@@ -154,7 +154,8 @@ class RemoteClientNode(Node):
             launched = self.stage.crawler.context.find(LaunchedProcess)
             name = launched.client_name if launched is not None else None
         try:
-            session = server.wait_for_client(
+            session = self.stage.crawler.wait_for(
+                server.wait_for_client,
                 name=name,
                 kind=kind,
                 timeout=timeout if timeout and timeout > 0 else None,

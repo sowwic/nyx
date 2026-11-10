@@ -152,7 +152,8 @@ class RemoteActionNode(Node):
         # The code and the arguments are built before anything is sent, so a problem
         # in them doesn't leave a half done request behind.
         args = self.build_args()
-        result = session.execute(
+        result = self.stage.crawler.wait_for(
+            session.execute,
             self.build_script(args),
             args=args,
             timeout=timeout if timeout and timeout > 0 else None,

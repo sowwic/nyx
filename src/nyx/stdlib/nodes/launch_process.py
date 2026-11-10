@@ -1,4 +1,6 @@
 import collections
+import collections.abc
+import functools
 import logging
 import os
 import shlex
@@ -29,6 +31,7 @@ class LaunchedProcess:
     """
 
     OUTPUT_LINES = 50
+    PUMP_INTERVAL = 0.05
 
     def __init__(
         self,
@@ -83,25 +86,56 @@ class LaunchedProcess:
             text += ", last output:\n" + "\n".join(self.output_tail)
         return text
 
-    def stop(self, grace: float = 10.0, kill_after: float = 5.0) -> None:
+    def _wait(
+        self, seconds: float, pump: collections.abc.Callable[[], None] | None
+    ) -> bool:
+        """Wait for the process to exit, calling `pump` often while waiting.
+
+        Args:
+            seconds (float): longest time to wait.
+            pump (Callable | None): called between short waits, e.g. to keep a UI alive.
+
+        Returns:
+            bool: the process has exited.
+        """
+        deadline = time.monotonic() + seconds
+        while True:
+            if not self.is_running:
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            try:
+                self.process.wait(
+                    min(remaining, self.PUMP_INTERVAL if pump else remaining)
+                )
+            except subprocess.TimeoutExpired:
+                pass
+            if pump is not None:
+                pump()
+
+    def stop(
+        self,
+        grace: float = 10.0,
+        kill_after: float = 5.0,
+        pump: collections.abc.Callable[[], None] | None = None,
+    ) -> None:
         """Stop the process: ask its client to quit, then terminate, then kill.
 
         Args:
             grace (float): seconds the process gets to exit after being asked to.
             kill_after (float): seconds it gets after being terminated.
+            pump (Callable | None): called while waiting, to keep a UI alive. Must
+                not raise.
         """
         if self.is_running:
             # Only a connected client can be asked to quit, and given time to.
             session = self.session
             if session is not None:
                 session.request_shutdown()
-            try:
-                self.process.wait(grace if session is not None else 0)
-            except subprocess.TimeoutExpired:
+            if not self._wait(grace if session is not None else 0, pump):
                 self.process.terminate()
-                try:
-                    self.process.wait(kill_after)
-                except subprocess.TimeoutExpired:
+                if not self._wait(kill_after, pump):
                     self.process.kill()
                     self.process.wait()
         self._reader.join(timeout=2)
@@ -124,7 +158,7 @@ class LaunchProcessNode(Node):
     ADDRESS_VARIABLE = "NYX_BRIDGE_ADDRESS"
     TOKEN_VARIABLE = "NYX_BRIDGE_TOKEN"
     CLIENT_NAME_VARIABLE = "NYX_BRIDGE_CLIENT_NAME"
-    POLL_INTERVAL = 0.25
+    POLL_INTERVAL = 0.05
 
     @classmethod
     def get_type_id(cls) -> str:
@@ -311,10 +345,14 @@ class LaunchProcessNode(Node):
             if self.wait_cpnt.pull_value():
                 self._wait_for_client()
         except BaseException:
-            self._launched.stop(grace=0)
+            self._launched.stop(grace=0, pump=self._pump_without_cancel)
             raise
         self.client_cpnt.push_value(client_name, evaluate=False)
         self.process_id_cpnt.push_value(process.pid, evaluate=False)
+
+    def _pump_without_cancel(self) -> None:
+        """Keep the UI alive while cleaning up, whatever was asked of the run."""
+        self.stage.crawler.process_events(check_cancel=False)
 
     def _build_environment(self, server: BridgeServer, client_name: str) -> dict:
         """Get the environment of the process.
@@ -370,6 +408,7 @@ class LaunchProcessNode(Node):
         timeout = self.timeout_cpnt.pull_value()
         deadline = time.monotonic() + timeout if timeout and timeout > 0 else None
         while True:
+            self.stage.crawler.process_events()
             try:
                 launched.server.wait_for_client(
                     name=launched.client_name, timeout=self.POLL_INTERVAL
@@ -398,4 +437,6 @@ class LaunchProcessNode(Node):
         if launched is None:
             return
         context.provide(launched)
-        context.add_cleanup(launched.stop)
+        context.add_cleanup(
+            functools.partial(launched.stop, pump=self._pump_without_cancel)
+        )

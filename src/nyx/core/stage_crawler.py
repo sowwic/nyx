@@ -1,9 +1,14 @@
 import collections.abc
 import functools
 import logging
+import threading
+import time
 import typing
 from typing import Protocol, runtime_checkable
 
+from PySide6 import QtCore
+
+from .exceptions import StageExecutionCancelled
 
 from .contexts.execution import NodeExecutionContext
 from .execution_chain import ExecutionChain
@@ -87,6 +92,86 @@ class StageCrawler:
         self._pending_steps: list[collections.abc.Callable[[], None]] = []
         self._is_running_steps = False
         self._context = NodeExecutionContext(stage)
+        self._is_running = False
+        self._cancel_requested = False
+        self._last_pump = 0.0
+        # Set once something on screen lets the user cancel, until then clicks are
+        # not delivered while events are processed.
+        self.accept_user_input = False
+
+    PUMP_INTERVAL = 0.05
+
+    @property
+    def is_running(self) -> bool:
+        """bool: a run is in progress."""
+        return self._is_running
+
+    @property
+    def is_cancel_requested(self) -> bool:
+        """bool: the current run was asked to stop."""
+        return self._cancel_requested
+
+    def request_cancel(self) -> None:
+        """Ask the current run to stop at the next chance it gets."""
+        self._cancel_requested = True
+
+    def process_events(self, check_cancel: bool = True, force: bool = False) -> None:
+        """Let the application handle events, so the UI stays alive during a run.
+
+        Does nothing more often than every `PUMP_INTERVAL` seconds, unless forced.
+
+        Args:
+            check_cancel (bool): raise when the run was asked to stop.
+            force (bool): handle events even if they were just handled.
+
+        Raises:
+            StageExecutionCancelled: the run was asked to stop.
+        """
+        now = time.monotonic()
+        if QtCore.QCoreApplication.instance() is not None and (
+            force or now - self._last_pump >= self.PUMP_INTERVAL
+        ):
+            self._last_pump = now
+            flags = QtCore.QEventLoop.ProcessEventsFlag.AllEvents
+            if not self.accept_user_input:
+                flags = QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
+            QtCore.QCoreApplication.processEvents(flags)
+        if check_cancel and self._cancel_requested:
+            raise StageExecutionCancelled("Execution cancelled")
+
+    def wait_for(self, func: collections.abc.Callable, *args, **kwargs):
+        """Call a blocking function without freezing the UI while it blocks.
+
+        The function runs in another thread, so it must be safe to call from one. If
+        the run is cancelled meanwhile, it is left to finish and its result dropped.
+
+        Args:
+            func (Callable): function to call.
+            *args: positional arguments of the function.
+            **kwargs: keyword arguments of the function.
+
+        Returns:
+            Any: what the function returned.
+
+        Raises:
+            StageExecutionCancelled: the run was asked to stop.
+        """
+        outcome: dict[str, typing.Any] = {}
+
+        def call() -> None:
+            try:
+                outcome["value"] = func(*args, **kwargs)
+            except BaseException as err:  # re-raised in the calling thread
+                outcome["error"] = err
+
+        thread = threading.Thread(target=call, name="StageCrawler.wait_for", daemon=True)
+        thread.start()
+        while thread.is_alive():
+            thread.join(self.PUMP_INTERVAL)
+            self.process_events()
+        if "error" in outcome:
+            raise outcome["error"]
+        return outcome.get("value")
 
     @property
     def stage(self) -> Stage:
@@ -121,16 +206,37 @@ class StageCrawler:
         self.execution_paths_stack.clear()
 
     def start(self, start_node: Node | None = None) -> None:
-        """Begin (or restart) a crawl from ``start_node`` or the stage root."""
-        self.clear_cached_data()
-        self._context = NodeExecutionContext(self.stage)
-        self.stage.execution_started.emit()
-        start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
+        """Begin (or restart) a crawl from ``start_node`` or the stage root.
+
+        A run that is asked to stop with ``request_cancel`` ends quietly, after the
+        cleanups of the open scopes, with ``execution_cancelled`` emitted.
+        """
+        if self._is_running:
+            LOGGER.warning("%s | Already running, not starting again", self.stage)
+            return
+        self._is_running = True
+        self._cancel_requested = False
+        self._last_pump = 0.0
+        cancelled = False
         try:
-            self._traverse_children(start_node)  # kicks off the descent
+            self.clear_cached_data()
+            self._context = NodeExecutionContext(self.stage)
+            self.stage.execution_started.emit()
+            start_node: Node | FlowStartNode | None = start_node or self.stage.root_node
+            try:
+                self._traverse_children(start_node)  # kicks off the descent
+            except StageExecutionCancelled:
+                cancelled = True
+            finally:
+                # A failing node leaves scopes open, their cleanups still have to run.
+                self._context.unwind()
         finally:
-            # A failing node leaves scopes open, their cleanups still have to run.
-            self._context.unwind()
+            self._is_running = False
+            self.accept_user_input = False
+        if cancelled:
+            LOGGER.info("Execution cancelled")
+            self.stage.execution_cancelled.emit()
+            return
         self.stage.execution_succeeded.emit()
         self.stage.execution_finished.emit()
 
@@ -228,6 +334,7 @@ class StageCrawler:
         Args:
             node (Node): node to execute.
         """
+        self.process_events()
         self._current_node = node
         LOGGER.debug("Executing node %s", node.path)
         node.execution_hook()
