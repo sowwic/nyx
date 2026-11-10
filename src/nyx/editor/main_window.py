@@ -11,6 +11,8 @@ from PySide6 import QtCore
 from PySide6 import QtGui
 from PySide6 import QtWidgets
 
+from json_config_qt.editor_dialog import ConfigEditorDialog
+
 from ..version import __version__
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.action_router import ACTION_ROUTER
@@ -177,6 +179,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         register(ActionId.SAVE_SESSION, self.on_session_save)
         register(ActionId.LOAD_SESSION, self.on_session_load)
         register(ActionId.RESTORE_LAST_SESSION, self.on_session_restore_last)
+        register(ActionId.EDIT_CONFIG, self.show_config_editor)
         register(ActionId.RESET_CONFIG, self.reset_application_config)
         # Fallbacks so toolbar buttons work before the tree view has focus
         register(ActionId.CREATE_NODE, self.show_nodes_palette)
@@ -434,6 +437,27 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         LOGGER.info("Using saved main window layout")
         return True
+
+    def show_config_editor(self) -> ConfigEditorDialog:
+        """Show the config editor, applying the config whenever a layer is saved.
+
+        Returns:
+            ConfigEditorDialog: the dialog, one is shared by every call.
+        """
+        dialog = ConfigEditorDialog.show_for(self.config, parent=self)
+        # The dialog is reused while open, so the connection is made only once.
+        dialog.saved.connect(
+            self.on_config_saved, QtCore.Qt.ConnectionType.UniqueConnection
+        )
+        return dialog
+
+    def on_config_saved(self, layer_name: str = "") -> None:
+        """Apply the config after the editor saved a layer of it.
+
+        Args:
+            layer_name (str): name of the saved layer.
+        """
+        QtCore.QTimer.singleShot(0, self.apply_config_values)
 
     def reset_application_config(self):
         """Reset application config and apply changes."""

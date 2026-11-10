@@ -27,6 +27,7 @@ class ActionId(StrEnum):
     UNDO = "edit.undo"
     REDO = "edit.redo"
     RENAME_NODE = "edit.rename_node"
+    EDIT_CONFIG = "edit.edit_config"
     RESET_CONFIG = "edit.reset_config"
     COPY = "edit.copy"
     CUT = "edit.cut"
@@ -83,6 +84,7 @@ def default_definitions() -> list[ActionDefinition]:
             "Edit",
             default_shortcut="F2",
         ),
+        D(ActionId.EDIT_CONFIG, "Config...", "Edit"),
         D(ActionId.RESET_CONFIG, "Reset Config", "Edit"),
         D(ActionId.COPY, "Copy", "Edit", default_shortcut="Ctrl+C"),
         D(ActionId.CUT, "Cut", "Edit", default_shortcut="Ctrl+X"),

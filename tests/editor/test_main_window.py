@@ -170,6 +170,9 @@ def test_menus_use_registry_actions(main_window):
     edit_actions = main_window.menubar_edit_menu.actions()
     assert ACTION_REGISTRY.action(ActionId.RENAME_NODE) in edit_actions
     assert ACTION_REGISTRY.action(ActionId.RESET_CONFIG) in edit_actions
+    assert edit_actions.index(ACTION_REGISTRY.action(ActionId.EDIT_CONFIG)) + 1 == (
+        edit_actions.index(ACTION_REGISTRY.action(ActionId.RESET_CONFIG))
+    )
     assert main_window.menubar_edit_menu.undo_action in edit_actions
 
 
@@ -432,3 +435,32 @@ def test_session_menu_lists_open_editors_and_activates(
 
     actions[0].trigger()
     assert main_window.current_mdi_window is first_wnd
+
+
+def test_config_action_opens_the_config_editor_once(main_window, monkeypatch):
+    from json_config_qt.editor_dialog import ConfigEditorDialog
+
+    ACTION_REGISTRY.action(ActionId.EDIT_CONFIG).trigger()
+    dialog = ConfigEditorDialog.show_for(main_window.config)
+    try:
+        assert dialog.isVisible()
+        ACTION_REGISTRY.action(ActionId.EDIT_CONFIG).trigger()
+        assert ConfigEditorDialog.show_for(main_window.config) is dialog
+    finally:
+        dialog.close()
+
+
+def test_saving_in_the_config_editor_applies_the_config(main_window, monkeypatch, qtbot):
+    apply = mock.Mock()
+    monkeypatch.setattr(main_window, "apply_config_values", apply)
+    dialog = main_window.show_config_editor()
+    try:
+        dialog.saved.emit("user")
+        qtbot.waitUntil(lambda: apply.called, timeout=2000)
+        apply.reset_mock()
+        main_window.show_config_editor()  # reused dialog must not connect twice
+        dialog.saved.emit("user")
+        qtbot.wait(100)
+        apply.assert_called_once_with()
+    finally:
+        dialog.close()
