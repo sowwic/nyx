@@ -495,7 +495,8 @@ class Node(QtGui.QStandardItem, StageObject):
         self.setData(status, role=self.Roles.EXECUTION_STATUS)
 
     def reset_execution_status(self):
-        """Set the execution status back to not ran."""
+        """Set the execution status back to not ran and forget the last error."""
+        self.setData(None, role=self.Roles.RAISED_EXCEPTION)
         self.execution_status = NodeExecutionStatus.NOT_RAN
 
     def get_self_driven_flow_components(self) -> tuple[FlowComponent, ...]:
