@@ -92,6 +92,21 @@ def script_dir(tmp_path):
 
 
 def is_alive(pid):
+    if sys.platform == "win32":
+        # os.kill(pid, 0) would terminate the process on Windows.
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        kernel32.OpenProcess.restype = ctypes.c_void_p
+        handle = kernel32.OpenProcess(0x1000, False, pid)  # QUERY_LIMITED_INFORMATION
+        if not handle:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            kernel32.GetExitCodeProcess(ctypes.c_void_p(handle), ctypes.byref(code))
+            return code.value == 259  # STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(ctypes.c_void_p(handle))
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -108,13 +123,14 @@ def wait_until_gone(pid, timeout=10):
 
 def test_launched_client_connects_and_the_nodes_inside_run_in_it(server):
     stage, launch, _, (action,) = build_stage(
-        CLIENT_COMMAND, "import os\nresult = os.getpid()"
+        CLIENT_COMMAND, "import os\nresult = os.environ['NYX_BRIDGE_CLIENT_NAME']"
     )
 
     stage.crawler.start()
 
-    pid = launch["process_id"].pull_value()
-    assert pid and action["response"].pull_value() == pid
+    # Not compared by pid: a venv python on Windows starts the real one as a child.
+    assert launch["process_id"].pull_value()
+    assert action["response"].pull_value() == launch["client"].pull_value()
     assert launch["client"].pull_value().startswith("launched-")
 
 
@@ -202,7 +218,7 @@ def test_the_remote_client_inside_uses_the_launched_client_not_another(server):
     bystander.start_in_thread()
     server.wait_for_client(name="bystander", timeout=5)
     stage, launch, remote, (action,) = build_stage(
-        CLIENT_COMMAND, "import os\nresult = os.getpid()"
+        CLIENT_COMMAND, "import os\nresult = os.environ['NYX_BRIDGE_CLIENT_NAME']"
     )
     try:
         stage.crawler.start()
@@ -210,7 +226,7 @@ def test_the_remote_client_inside_uses_the_launched_client_not_another(server):
         bystander.stop()
 
     assert remote["client"].pull_value() == launch["client"].pull_value()
-    assert action["response"].pull_value() == launch["process_id"].pull_value()
+    assert action["response"].pull_value() == launch["client"].pull_value()
 
 
 def test_without_waiting_the_nodes_run_at_once_and_the_process_is_still_stopped(server):
