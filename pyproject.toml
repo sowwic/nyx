@@ -12,7 +12,7 @@ packages = [
     {include = "nyx", from = "src"},
 ]
 dependencies = [
-    "pyside6>=6.10.0",
+    "pyside6>=6.10.0,<=6.12",
     "platformdirs>=4.5.0",
     "json-config",
     "json-config-qt",

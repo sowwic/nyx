@@ -433,7 +433,7 @@ requires-dist = [
     { name = "json-config-qt", git = "https://github.com/sowwic/json-config-qt?tag=v1.0.0" },
     { name = "nyx-bridge", git = "https://github.com/sowwic/nyx-bridge?tag=v1.0.0" },
     { name = "platformdirs", specifier = ">=4.5.0" },
-    { name = "pyside6", specifier = ">=6.10.0" },
+    { name = "pyside6", specifier = ">=6.10.0,<=6.12" },
 ]
 
 [package.metadata.requires-dev]
