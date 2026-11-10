@@ -7,6 +7,7 @@ import importlib.util
 from importlib.machinery import ModuleSpec
 
 from ...utils.profiling import profile
+from ..layered_config import get_app_config
 
 
 LOGGER = logging.getLogger("NyxPluginLoader")
@@ -30,15 +31,17 @@ class NyxPluginLoader:
         Args:
             plugin_source_paths: optional paths override.
                 If not provided will default to the standard library plugin, the built-in
-                plugins and the `NYX_PLUGIN_PATH` env variable paths
+                plugins, the `plugin_paths` config value and the `NYX_PLUGIN_PATH` env
+                variable paths
         """
+        self.plugin_source_paths = [self._stdlib_path()]
         if plugin_source_paths is None:
             plugin_source_paths = [
-                self._stdlib_path(),
                 self._builtin_plugins_path(),
+                *self._config_plugin_paths(),
                 *self._env_plugin_paths(),
             ]
-        self.plugin_source_paths = plugin_source_paths
+        self.plugin_source_paths.extend(plugin_source_paths)
 
     @staticmethod
     def _stdlib_path() -> pathlib.Path:
@@ -89,6 +92,23 @@ class NyxPluginLoader:
         if spec.submodule_search_locations is None:
             raise ValueError("No path found for builtt-in plugins")
         return pathlib.Path(spec.submodule_search_locations[0])
+
+    @staticmethod
+    def _config_plugin_paths() -> list[pathlib.Path]:
+        """Get paths from the `plugin_paths` config value.
+
+        Returns:
+            Additional plugin paths.
+        """
+        paths = [
+            pathlib.Path(p).expanduser()
+            for p in get_app_config().values.plugin_paths
+            if p
+        ]
+        for each_path in paths:
+            if not each_path.is_dir():
+                LOGGER.warning("Plugin path from config does not exist: %s", each_path)
+        return paths
 
     @staticmethod
     def _env_plugin_paths() -> list[pathlib.Path]:

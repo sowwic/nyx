@@ -44,3 +44,5 @@ class NyxConfigValues(NyxBaseConfigValues):
     """Settings of the editor widgets."""
     logging_level: int = Field(default=logging.INFO)
     """Logging level of the application."""
+    plugin_paths: list[str] = Field(default_factory=list)
+    """Additional directories to discover plugins in."""
