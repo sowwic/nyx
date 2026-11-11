@@ -161,3 +161,6 @@ cython_debug/
 # Platform-specific files
 # macOS
 .DS_Store
+
+# Keep the PyInstaller spec of the application
+!nyx.spec
