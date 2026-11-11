@@ -20,6 +20,26 @@ def move_window_to_screen_center(window: QtWidgets.QWidget):
     window.move(center_position)
 
 
+def screen_for_window_geometry(
+    position: tuple[int, int] | None, size: tuple[int, int] | None
+) -> QtGui.QScreen:
+    """Find the screen a window with the given geometry opens on.
+
+    Args:
+        position (tuple[int, int] | None): window position, None for the default.
+        size (tuple[int, int] | None): window size, None for the default.
+
+    Returns:
+        QtGui.QScreen: screen holding the window center, the primary screen if the
+            geometry is not set or lies outside every screen.
+    """
+    primary_screen = QtGui.QGuiApplication.primaryScreen()
+    if not position or not size:
+        return primary_screen
+    window_rect = QtCore.QRect(QtCore.QPoint(*position), QtCore.QSize(*size))
+    return QtGui.QGuiApplication.screenAt(window_rect.center()) or primary_screen
+
+
 def dark_fusion_palette() -> QtGui.QPalette:
     """Build the dark palette.
 

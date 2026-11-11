@@ -39,12 +39,14 @@ nyx stage run path/to/stage.nyx            # run a stage headless (same as nyx-r
 - **Plugins** (`core/plugin_subsystem/`): `PluginLoader` discovers `nyx_plugin.py` files in the stdlib, `nyx/plugins/functions/*`, the `plugin_paths` config value and the `NYX_PLUGIN_PATH` env var. A `NyxPlugin.initialize` fills `NyxPluginContents` (nodes, components, datatypes, util and graphics objects; `register_function_node` wraps a plain function as a node), and everything ends up in `NYX_REGISTRY`. `nyx.stdlib` is the core plugin the others rely on; its nodes and components are all registered there.
 - **Session and config**: `NyxSession` holds the config, open stages and the bridge server. `NyxConfig` is a `json_config` `LayeredConfig`; its typed values are in `core/config_values/`. `get_app_config()` returns the running app's config.
 - **Bridge**: `NyxSession` runs a TCP `BridgeServer` so external processes (Maya, Blender, ...) can run code for Remote Client and Remote Action nodes. The protocol is the separate `nyx-bridge` repo and the DCC plugins live in their own repos. `json-config`, `json-config-qt` and `nyx-bridge` are git dependencies pinned by tag in `pyproject.toml`.
+- **Startup hooks**: `NyxApplication.__init__` registers the builtin content, calls `pre_initialize()`, loads plugins, then calls `post_initialize()`. Subclasses override the hooks to run code at those points; `NyxEditorApplication` shows the startup splash in `pre_initialize` (the plugin log messages need it up before loading) and builds the QML engine and main window in `post_initialize`. Don't work around the order with flags such as `initialize_plugins=False` followed by a manual call in the subclass `__init__`; that duplicates the base startup sequence.
 - **`nyx.editor`**: widgets, the QGraphics scene (`graphics/`), views, and QML UI (`editor/qml/NyxEditor`, `stdlib/qml/NyxStdlib`, each with a `qmldir`). Editor actions go through `core/action_registry.py` and `action_router.py`. `application.py` has `NyxApplication` (usable without the editor window) and `NyxEditorApplication`.
 - **Paths**: `nyx/static/paths.py` defines all user files (config, last session, bridge address file, logs, profiling) from a single `platformdirs` data dir.
 
 ## Conventions
 
 - Google-style docstrings (`Args:`, `Returns:`, `Raises:`).
+- Prefer flexibility: when a subclass or plugin needs to run code at a point inside a base class's sequence (before or after a step), add an overridable hook (`pre_*` / `post_*`, a no-op in the base class) rather than changing constructor arguments, reordering the subclass `__init__` around `super().__init__`, or copying the base sequence. Example: `NyxApplication.pre_initialize` / `post_initialize` for the editor splash screen.
 - `develop` is the default and PR branch; `main` is the release branch. `VERSION` is the version source (`make update-version` syncs `pyproject.toml`). Record user-visible changes in `CHANGELOG.rst`.
 
 ## Development
