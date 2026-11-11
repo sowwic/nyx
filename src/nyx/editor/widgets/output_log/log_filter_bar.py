@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-SEARCH_FIELD_MAX_WIDTH = 300
 
 LEVEL_CHOICES: tuple[tuple[str, int], ...] = (
     ("Debug", logging.DEBUG),
@@ -29,6 +28,8 @@ class LogFilterBar(QWidget):
         minimum_level_changed: emitted with the new minimum logging level
         clear_requested: emitted when Clear Log is chosen in the settings menu
     """
+
+    SEARCH_FIELD_MIN_WIDTH = 300
 
     search_text_changed = Signal(str)
     minimum_level_changed = Signal(int)
@@ -70,7 +71,7 @@ class LogFilterBar(QWidget):
         self._search_field = QLineEdit(self)
         self._search_field.setPlaceholderText("Search")
         self._search_field.setClearButtonEnabled(True)
-        self._search_field.setMaximumWidth(SEARCH_FIELD_MAX_WIDTH)
+        self._search_field.setMinimumWidth(self.SEARCH_FIELD_MIN_WIDTH)
 
         self._level_combo_box = QComboBox(self)
         for label, level in LEVEL_CHOICES:
