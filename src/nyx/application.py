@@ -9,9 +9,10 @@ from nyx.core.session import NyxSession
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.api.v1 import NyxPluginManager
 from nyx.editor.main_window import NyxEditorMainWindow
+from nyx.editor.widgets.startup_splash import NyxStartupSplash
 from nyx.editor.core.actions import register_default_actions
 from nyx.editor.graphics.graphics_factory import register_builtin_graphics_objects
-from nyx.utils import pyside_fn
+from nyx.utils import logging_fn, pyside_fn
 from nyx.version import __version__
 
 LOGGER = logging.getLogger(__name__)
@@ -31,13 +32,21 @@ class NyxApplication(QtWidgets.QApplication):
         self._plugin_manager = NyxPluginManager()
         self.aboutToQuit.connect(self._session.shutdown)
         self.setApplicationDisplayName("Nyx")
-        self.setWindowIcon(QtGui.QIcon(":/icons/nyx"))
+        self.setWindowIcon(QtGui.QIcon(":/icons/nyx/512"))
         self.setApplicationVersion(__version__)
         LOGGER.setLevel(self.config.values.logging_level)
 
         self.register_builtin_content()
+        self.pre_initialize()
         if initialize_plugins:
             self._plugin_manager.initialize_plugins()
+        self.post_initialize()
+
+    def pre_initialize(self) -> None:
+        """Hook run after the builtin content is registered, before plugins load."""
+
+    def post_initialize(self) -> None:
+        """Hook run after the plugins are loaded, the last step of the startup."""
 
     def register_builtin_content(self) -> None:
         """Register what the application provides itself, before plugins are loaded.
@@ -64,19 +73,52 @@ class NyxApplication(QtWidgets.QApplication):
 class NyxEditorApplication(NyxApplication):
     """Nyx application with the editor UI (main window, QML engine, actions)."""
 
-    def __init__(self) -> None:
-        """Initialize the editor application, its QML engine and main window."""
-        super().__init__()
+    def pre_initialize(self) -> None:
+        """Apply the style and show the startup splash."""
+        self._startup_splash = None
         if self.config.values.editor_style.dark_mode:
             pyside_fn.set_dark_fusion_palette(self)
+        self._startup_splash = self._show_startup_splash()
 
-        self._load_resources()
-        register_default_actions()
-        self._setup_qml_engine()
+    def post_initialize(self) -> None:
+        """Create the QML engine and main window, then close the startup splash."""
+        try:
+            self._load_resources()
+            register_default_actions()
+            self._setup_qml_engine()
 
-        NyxEditorMainWindow.display()
-        if self.config.values.editor_behaviour.new_stage_on_launch:
-            self.main_window().on_stage_new()
+            NyxEditorMainWindow.display()
+            if self.config.values.editor_behaviour.new_stage_on_launch:
+                self.main_window().on_stage_new()
+        finally:
+            if self._startup_splash:
+                self._startup_splash.finish(self.main_window())
+                self._startup_splash = None
+
+    def _show_startup_splash(self) -> NyxStartupSplash | None:
+        """Show the splash on the screen the main window opens on.
+
+        Returns:
+            NyxStartupSplash | None: the shown splash, None if it is turned off or
+                there is no screen to show it on.
+        """
+        if (
+            not self.config.values.editor_behaviour.show_splash_screen
+            or self.platformName() == "offscreen"
+        ):
+            return None
+
+        window_config = self.config.values.main_window
+        splash = NyxStartupSplash(
+            pyside_fn.screen_for_window_geometry(
+                window_config.position, window_config.size
+            )
+        )
+        splash.connect_to_logger(logging_fn.add_signal_handler(logging.getLogger()))
+        splash.show()
+        splash.raise_()
+        splash.show_log_message("Starting...")
+        return splash
 
     def register_builtin_content(self) -> None:
         """Register the graphics objects that draw nodes, plugs and links."""

@@ -11,6 +11,8 @@ class NyxEditorBehaviourConfigValues(NyxBaseConfigValues):
 
     new_stage_on_launch: bool = Field(default=True)
     """Create an empty stage at startup."""
+    show_splash_screen: bool = Field(default=True)
+    """Show a splash screen with the startup progress while the editor launches."""
     show_address_names: bool = Field(default=False)
     """Show the address names of nodes and components, which paths are made of, instead
     of their display names."""
