@@ -13,17 +13,40 @@ MAKEFILES_MODULES = general/python
 	@curl -fsSL $(MAKEFILES_URL)/$*.mk -o $@
 include $(MAKEFILES_MODULES:%=.make/%.mk)
 
+# Building the application lives in scripts/build.py so it works without make (Windows).
+BUILD_SCRIPT = uv run python scripts/build.py
+
 .PHONY: pstats
 pstats: ## Open profiler stats dir using snakeviz
 	snakeviz "$$(python -c 'from nyx.static.paths import PROFILING_DIR; print(PROFILING_DIR)')"
 
 .PHONY: qrc
-qrc: ## Generates Python resources from the Qt resource file
-	$(call banner, Generating QRC resources...)
-	@pyside6-rcc src/nyx/resources/resources.qrc -o src/nyx/resources/resources_rc.py
-	$(call banner, Generating NyxStdlib QRC resources...)
-	@pyside6-rcc src/nyx/stdlib/resources/resources.qrc -o src/nyx/stdlib/resources/resources_rc.py 
-	@printf "$(GREEN)QRC generation complete.$(RESET)\n"
+qrc: ## Generates Python resources from the Qt resource files
+	@$(BUILD_SCRIPT) qrc
+
+.PHONY: icons
+icons: ## Generate the app icon file of this platform into build/icons
+	@$(BUILD_SCRIPT) icons
+
+.PHONY: build-app
+build-app: ## Build the standalone app with PyInstaller: dist/nyx.app (macOS) or dist/nyx
+	@$(BUILD_SCRIPT) build-app
+
+.PHONY: archive-app
+archive-app: ## Build the app and zip it (tar.gz on Linux): dist/nyx-<version>-<os>-<arch>
+	@$(BUILD_SCRIPT) archive-app
+
+.PHONY: test-app
+test-app: ## Run the built app's executables: help, missing file, a real stage
+	@$(BUILD_SCRIPT) test-app
+
+.PHONY: install-app
+install-app: ## Copy dist/nyx.app into /Applications (macOS)
+	@$(BUILD_SCRIPT) install-app
+
+.PHONY: install-cli
+install-cli: ## Link the nyx and nyx-run-stage commands of the app into /usr/local/bin
+	@$(BUILD_SCRIPT) install-cli
 
 .PHONY: config-file-path
 config-file: ## Print out config file path
