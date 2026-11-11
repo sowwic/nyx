@@ -1,7 +1,7 @@
 import pytest
 from unittest import mock
 
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
@@ -464,3 +464,30 @@ def test_saving_in_the_config_editor_applies_the_config(main_window, monkeypatch
         apply.assert_called_once_with()
     finally:
         dialog.close()
+
+
+def test_always_on_top_toggle_applies_flag_and_config(main_window):
+    hint = QtCore.Qt.WindowType.WindowStaysOnTopHint
+    action = main_window.menubar_view_menu.always_on_top_action
+    try:
+        action.trigger()
+        assert main_window.config.values.main_window.is_always_on_top
+        assert main_window.windowFlags() & hint
+
+        action.trigger()
+        assert not main_window.config.values.main_window.is_always_on_top
+        assert not main_window.windowFlags() & hint
+    finally:
+        main_window.set_always_on_top(False)
+
+
+def test_always_on_top_config_value_is_applied(main_window):
+    hint = QtCore.Qt.WindowType.WindowStaysOnTopHint
+    action = main_window.menubar_view_menu.always_on_top_action
+    try:
+        main_window.config.values.main_window.is_always_on_top = True
+        main_window.apply_config_values()
+        assert main_window.windowFlags() & hint
+        assert action.isChecked()
+    finally:
+        main_window.set_always_on_top(False)

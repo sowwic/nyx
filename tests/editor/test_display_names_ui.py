@@ -50,14 +50,14 @@ def test_view_menu_toggle_switches_titles_and_plug_labels(
     assert not action.isChecked()
     assert (titled(gr_node), plug._label) == ("My Client", "Client Name")
 
-    action.setChecked(True)
+    action.trigger()
 
     assert qapp.session.show_address_names
     assert qapp.config.values.editor_behaviour.show_address_names
     assert stage_editor.stage.show_address_names
     assert (titled(gr_node), plug._label) == ("my_client", "client_name")
 
-    action.setChecked(False)
+    action.trigger()
     assert (titled(gr_node), plug._label) == ("My Client", "Client Name")
 
 

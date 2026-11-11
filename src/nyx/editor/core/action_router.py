@@ -198,13 +198,21 @@ class ActionRouter(QtCore.QObject):
         binding = self.resolve_binding(action_id, focus_widget)
         return binding.handler() if binding else None
 
-    def dispatch(self, action_id: str) -> bool:
-        """Run the active handler for `action_id`. Returns False if none."""
+    def dispatch(self, action_id: str, *args: typing.Any) -> bool:
+        """Run the active handler for `action_id`. Returns False if none.
+
+        Args:
+            action_id (str): action id.
+            *args (typing.Any): passed to the handler, the checked state for toggles.
+
+        Returns:
+            bool: a handler ran.
+        """
         handler = self.resolve_handler(action_id)
         if handler is None:
             LOGGER.warning("No handler for action: %s", action_id)
             return False
-        handler()
+        handler(*args)
         return True
 
     # ---- Enabled state ----
@@ -231,7 +239,11 @@ class ActionRouter(QtCore.QObject):
             action_id (str): action id.
             action (QtGui.QAction): created action.
         """
-        action.triggered.connect(lambda _checked=False, i=action_id: self.dispatch(i))
+        action.triggered.connect(
+            lambda checked=False, i=action_id, a=action: self.dispatch(
+                i, *((checked,) if a.isCheckable() else ())
+            )
+        )
         self.refresh_enabled(action_id)
         self._connect_focus_tracking()
 

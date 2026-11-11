@@ -1,15 +1,17 @@
 import typing
 
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore
 
 if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.core.actions import ActionId
 from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
 
 
 class ViewMenu(BaseMenu):
-    """View menu with the display toggles of the graph views."""
+    """View menu with the display toggles of the editor."""
 
     def __init__(
         self, main_window: NyxEditorMainWindow, title: str = "&View", parent=None
@@ -24,34 +26,18 @@ class ViewMenu(BaseMenu):
         super().__init__(main_window, title, parent)
 
     def create_actions(self):
-        """Create the toggle of the viewport debug overlay."""
-        self.debug_overlay_action = QtGui.QAction("Viewport Debug Overlay", self)
-        self.debug_overlay_action.setCheckable(True)
-        self.debug_overlay_action.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key.Key_F3))
-        self.debug_overlay_action.setToolTip(
-            "Show performance numbers in the corner of the graph views"
-        )
-
-        self.show_address_names_action = QtGui.QAction("Show Address Names", self)
-        self.show_address_names_action.setCheckable(True)
-        self.show_address_names_action.setToolTip(
-            "Show the names paths are made of, instead of the display names of nodes "
-            "and components"
-        )
+        """Get the shared toggle actions, their handlers are set by the main window."""
+        action = ACTION_REGISTRY.action
+        self.debug_overlay_action = action(ActionId.VIEWPORT_DEBUG_OVERLAY)
+        self.show_address_names_action = action(ActionId.SHOW_ADDRESS_NAMES)
+        self.always_on_top_action = action(ActionId.ALWAYS_ON_TOP)
 
     def populate(self):
         """Add the toggles."""
         self.addAction(self.debug_overlay_action)
         self.addAction(self.show_address_names_action)
-
-    def create_connections(self):
-        """Apply the toggle to the config and the views."""
-        self.debug_overlay_action.toggled.connect(
-            self.main_window.set_viewport_debug_overlay
-        )
-        self.show_address_names_action.toggled.connect(
-            self.main_window.set_show_address_names
-        )
+        self.addSeparator()
+        self.addAction(self.always_on_top_action)
 
     def set_debug_overlay_checked(self, checked: bool):
         """Show the state of the overlay toggle without triggering it.
@@ -59,9 +45,7 @@ class ViewMenu(BaseMenu):
         Args:
             checked (bool): the overlay is on.
         """
-        blocker = QtCore.QSignalBlocker(self.debug_overlay_action)
-        self.debug_overlay_action.setChecked(checked)
-        blocker.unblock()
+        self._set_checked(self.debug_overlay_action, checked)
 
     def set_show_address_names_checked(self, checked: bool):
         """Show the state of the address names toggle without triggering it.
@@ -69,6 +53,24 @@ class ViewMenu(BaseMenu):
         Args:
             checked (bool): address names are shown.
         """
-        blocker = QtCore.QSignalBlocker(self.show_address_names_action)
-        self.show_address_names_action.setChecked(checked)
+        self._set_checked(self.show_address_names_action, checked)
+
+    def set_always_on_top_checked(self, checked: bool):
+        """Show the state of the always on top toggle without triggering it.
+
+        Args:
+            checked (bool): the window stays on top.
+        """
+        self._set_checked(self.always_on_top_action, checked)
+
+    @staticmethod
+    def _set_checked(action, checked: bool):
+        """Set the checked state of a toggle without emitting its signals.
+
+        Args:
+            action (QtGui.QAction): toggle action.
+            checked (bool): checked state.
+        """
+        blocker = QtCore.QSignalBlocker(action)
+        action.setChecked(checked)
         blocker.unblock()
