@@ -69,6 +69,7 @@ class OutputLogDockWidget(QtWidgets.QDockWidget):
         self._last_user_expanded_height = config_values.expanded_height
         self._is_restore_of_expanded_height_pending = True
         self.output_log_widget.set_expanded(config_values.is_expanded)
+        self.output_log_widget.set_minimum_level(config_values.minimum_level)
         # set_expanded may not emit expansion_state_changed when the state is
         # unchanged, so always apply the constraints explicitly.
         self._apply_size_constraints_for_expansion_state(
@@ -84,6 +85,7 @@ class OutputLogDockWidget(QtWidgets.QDockWidget):
         config_values = config.values.editor_widgets.log_widget
         config_values.expanded_height = self._last_user_expanded_height
         config_values.is_expanded = self.output_log_widget.is_expanded()
+        config_values.minimum_level = self.output_log_widget.get_minimum_level()
 
     # ---- Sizing ----
     def sizeHint(self) -> QtCore.QSize:

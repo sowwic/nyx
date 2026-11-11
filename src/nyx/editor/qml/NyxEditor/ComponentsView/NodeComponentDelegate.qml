@@ -256,6 +256,7 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Rename"
+                                icon.source: "qrc:/icons/edit"
                                 visible: !itemRoot.isBuiltIn && itemRoot.structureEditable
                                 // A hidden MenuItem keeps its slot in the menu; collapse it explicitly.
                                 height: visible ? implicitHeight : 0
@@ -264,6 +265,7 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Remove"
+                                icon.source: "qrc:/icons/delete"
                                 visible: itemRoot.isInvalid
                                 height: visible ? implicitHeight : 0
                                 onClicked: root.componentsController.removeComponent(itemRoot.index)
@@ -271,6 +273,7 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Move Up"
+                                icon.source: "qrc:/icons/arrow_double_up"
                                 visible: itemRoot.dragEnabled
                                 height: visible ? implicitHeight : 0
                                 enabled: componentOptionsMenu.canMoveUp
@@ -279,6 +282,7 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Move Down"
+                                icon.source: "qrc:/icons/arrow_double_down"
                                 visible: itemRoot.dragEnabled
                                 height: visible ? implicitHeight : 0
                                 enabled: componentOptionsMenu.canMoveDown
@@ -316,6 +320,7 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Edit Note"
+                                icon.source: "qrc:/icons/sticky_note"
                                 visible: itemRoot.structureEditable
                                 height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startNoteEdit()
@@ -323,6 +328,7 @@ DraggableDelegate {
 
                             MenuItem {
                                 text: "Help"
+                                icon.source: "qrc:/icons/info"
                                 onClicked: itemRoot.helpRequested()
                             }
                         }
