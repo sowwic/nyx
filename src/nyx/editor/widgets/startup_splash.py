@@ -127,6 +127,26 @@ class NyxStartupSplash(QtWidgets.QSplashScreen):
         # Startup blocks the event loop, the message is only painted when it spins.
         QtWidgets.QApplication.processEvents()
 
+    def event(self, event: QtCore.QEvent) -> bool:
+        """Handle events without `QSplashScreen.event`.
+
+        `QSplashScreen.event` makes the show event block for a second on macOS,
+        before the first message can be shown. Skipping it, the splash paints its
+        pixmap and contents itself, and the rest is handled by `QWidget`.
+
+        Args:
+            event (QtCore.QEvent): event.
+
+        Returns:
+            bool: event was handled.
+        """
+        if event.type() != QtCore.QEvent.Type.Paint:
+            return QtWidgets.QWidget.event(self, event)
+        painter = QtGui.QPainter(self)
+        painter.drawPixmap(0, 0, self.pixmap())
+        self.drawContents(painter)
+        return True
+
     def drawContents(self, painter: QtGui.QPainter) -> None:
         """Draw the message at the left of the footer, elided to leave the version.
 
