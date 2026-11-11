@@ -30,7 +30,8 @@ def dark_fusion_palette() -> QtGui.QPalette:
     palette.setColor(QtGui.QPalette.Window, QtGui.QColor(45, 45, 45))
     palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(208, 208, 208))
     palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
-    palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(208, 208, 208))
+    # Stripes of alternating rows, a step lighter than the base
+    palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(34, 34, 34))
     palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(208, 208, 208))
     palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(208, 208, 208))
     palette.setColor(QtGui.QPalette.Text, QtGui.QColor(208, 208, 208))

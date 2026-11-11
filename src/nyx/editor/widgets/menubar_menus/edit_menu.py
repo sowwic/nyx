@@ -45,6 +45,7 @@ class EditMenu(BaseMenu):
         self.addSeparator()
         self.addAction(action(ActionId.RENAME_NODE))
         self.addSection("Editor")
+        self.addAction(action(ActionId.EDIT_CONFIG))
         self.addAction(action(ActionId.RESET_CONFIG))
 
     def on_rename_selected_node(self):

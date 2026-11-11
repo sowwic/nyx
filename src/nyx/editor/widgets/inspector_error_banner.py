@@ -34,7 +34,7 @@ class InspectorErrorBanner(QtWidgets.QFrame):
         self.setObjectName("InspectorErrorBanner")
         self.setStyleSheet(
             f"#InspectorErrorBanner {{ border: 1px solid {self.ERROR_COLOR}; "
-            "border-radius: 4px; }}"
+            "border-radius: 4px; }"
             f"#InspectorErrorBanner QLabel {{ color: {self.ERROR_COLOR}; }}"
         )
         self._label = QtWidgets.QLabel(self)

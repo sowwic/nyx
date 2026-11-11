@@ -45,6 +45,9 @@ ItemDelegate {
         return data;
     }
 
+    // Resets the drag for the next one, whichever Qt version ran it.
+    Drag.onDragFinished: itemRoot.Drag.active = false
+
     DragHandler {
         id: dragHandler
         enabled: itemRoot.dragEnabled
@@ -66,8 +69,15 @@ ItemDelegate {
                     // mouse as coming from the trackpad device.
                     if (!(dragHandler.centroid.pressedButtons & Qt.LeftButton))
                         return;
-                    itemRoot.Drag.active = true;
+                    // Qt 6.10 runs the QDrag right here and returns when it ended. Qt 6.12
+                    // starts it after this returns, so deactivating now would cancel it.
+                    // The drag is deactivated when it finished, see onDragFinished.
+                    // Setting a property to the value it has does nothing, so should a
+                    // drag be left active (one that never finished) the next one would
+                    // not start. Deactivating first makes every press start clean. This
+                    // is a guard, no such drag was seen on 6.10 or 6.12.
                     itemRoot.Drag.active = false;
+                    itemRoot.Drag.active = true;
                 });
         }
     }
