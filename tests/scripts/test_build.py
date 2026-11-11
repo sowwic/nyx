@@ -66,7 +66,7 @@ def test_clear_executable_stacks_only_patches_elf_libraries(
     (tmp_path / "lib" / "libqt.so.6").symlink_to(elf)
     (tmp_path / "lib" / "notes.so.txt").write_text("not a library")
     (tmp_path / "lib" / "nyx").write_bytes(b"\x7fELF" + bytes(16))
-    monkeypatch.setattr(build.shutil, "which", lambda name: "/usr/bin/patchelf")
+    monkeypatch.setattr(build, "find_tool", lambda name: f"/usr/bin/{name}")
     calls = []
     monkeypatch.setattr(build, "run", calls.append)
 

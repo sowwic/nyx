@@ -129,12 +129,30 @@ def run(command: list[str | pathlib.Path], **kwargs) -> None:
     subprocess.run(command, cwd=ROOT, check=True, **kwargs)
 
 
+def find_tool(name: str) -> str:
+    """Find a command line tool of the environment, or on the PATH.
+
+    Args:
+        name (str): program name without the extension.
+
+    Returns:
+        str: path to the program.
+
+    Raises:
+        SystemExit: the tool is not installed.
+    """
+    in_environment = pathlib.Path(sys.executable).parent / f"{name}{EXE_SUFFIX}"
+    if in_environment.is_file():
+        return str(in_environment)
+    found = shutil.which(name)
+    if found is None:
+        raise SystemExit(f"{name} not found, run with `uv run` after `uv sync --dev`")
+    return found
+
+
 def build_qrc() -> None:
     """Compile the Qt resource files into `resources_rc.py` modules."""
-    rcc = pathlib.Path(sys.executable).parent / f"pyside6-rcc{EXE_SUFFIX}"
-    program = str(rcc) if rcc.is_file() else shutil.which("pyside6-rcc")
-    if program is None:
-        raise SystemExit("pyside6-rcc not found, run with `uv run`")
+    program = find_tool("pyside6-rcc")
     for qrc_file in QRC_FILES:
         run([program, qrc_file, "-o", qrc_file.with_name("resources_rc.py")])
 
@@ -160,10 +178,7 @@ def clear_executable_stacks(root: pathlib.Path) -> None:
     Args:
         root (pathlib.Path): bundle directory to scan.
     """
-    patchelf = pathlib.Path(sys.executable).parent / "patchelf"
-    program = str(patchelf) if patchelf.is_file() else shutil.which("patchelf")
-    if program is None:
-        raise SystemExit("patchelf not found, run with `uv run` after `uv sync --dev`")
+    program = find_tool("patchelf")
     for path in sorted(root.rglob("*.so*")):
         if path.is_symlink() or not path.is_file():
             continue
