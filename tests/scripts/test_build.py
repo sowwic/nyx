@@ -1,5 +1,6 @@
 import importlib.util
 import pathlib
+import sys
 
 import pytest
 
@@ -52,4 +53,23 @@ def test_parser_requires_a_command(build):
 def test_parser_reads_install_directories(build):
     args = build.build_parser().parse_args(["install-cli", "--bin-dir", "/tmp/bin"])
 
-    assert (args.command, str(args.bin_dir)) == ("install-cli", "/tmp/bin")
+    assert (args.command, args.bin_dir) == ("install-cli", pathlib.Path("/tmp/bin"))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux only, needs symlinks")
+def test_clear_executable_stacks_only_patches_elf_libraries(
+    build, monkeypatch, tmp_path
+):
+    elf = tmp_path / "lib" / "libpython3.14.so.1.0"
+    elf.parent.mkdir()
+    elf.write_bytes(b"\x7fELF" + bytes(16))
+    (tmp_path / "lib" / "libqt.so.6").symlink_to(elf)
+    (tmp_path / "lib" / "notes.so.txt").write_text("not a library")
+    (tmp_path / "lib" / "nyx").write_bytes(b"\x7fELF" + bytes(16))
+    monkeypatch.setattr(build.shutil, "which", lambda name: "/usr/bin/patchelf")
+    calls = []
+    monkeypatch.setattr(build, "run", calls.append)
+
+    build.clear_executable_stacks(tmp_path)
+
+    assert calls == [["/usr/bin/patchelf", "--clear-execstack", elf]]

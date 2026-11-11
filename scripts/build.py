@@ -149,6 +149,30 @@ def build_icons() -> None:
         print("==> No icon file to generate on Linux")
 
 
+def clear_executable_stacks(root: pathlib.Path) -> None:
+    """Clear the executable stack flag of the shared libraries of a Linux bundle.
+
+    Recent glibc refuses to load a library that asks for an executable stack ("cannot
+    enable executable stack as shared object requires"), which some of the libraries
+    PyInstaller collects do, such as libpython of standalone Python builds. Nothing in
+    them needs it.
+
+    Args:
+        root (pathlib.Path): bundle directory to scan.
+    """
+    patchelf = pathlib.Path(sys.executable).parent / "patchelf"
+    program = str(patchelf) if patchelf.is_file() else shutil.which("patchelf")
+    if program is None:
+        raise SystemExit("patchelf not found, run with `uv run` after `uv sync --dev`")
+    for path in sorted(root.rglob("*.so*")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        with path.open("rb") as library:
+            if library.read(4) != b"\x7fELF":
+                continue
+        run([program, "--clear-execstack", path])
+
+
 def build_app() -> None:
     """Build the application with PyInstaller."""
     build_qrc()
@@ -167,6 +191,7 @@ def build_app() -> None:
         ]
     )
     if platform_name() == "linux":
+        clear_executable_stacks(bundle_path())
         # No launcher can be made from a folder, ship the pieces to make one.
         shutil.copy(ICON_SOURCE_DIR / "512.png", bundle_path() / f"{APP_NAME}.png")
         (bundle_path() / f"{APP_NAME}.desktop").write_text(DESKTOP_ENTRY)
