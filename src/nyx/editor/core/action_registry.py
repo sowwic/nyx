@@ -31,6 +31,7 @@ class ActionDefinition:
         default_shortcut: key sequence text, empty for no shortcut
         shortcut_context: where the shortcut is active by default
         status_tip: text shown in status bar / tooltip
+        checkable: the action is a toggle, its handler receives the checked state
     """
 
     action_id: str
@@ -42,6 +43,7 @@ class ActionDefinition:
         QtCore.Qt.ShortcutContext.WindowShortcut
     )
     status_tip: str = ""
+    checkable: bool = False
 
 
 class ActionRegistry(QtCore.QObject):
@@ -163,6 +165,7 @@ class ActionRegistry(QtCore.QObject):
         definition = self.get_definition(action_id)
         action = QtGui.QAction(definition.text, self)
         action.setObjectName(action_id)
+        action.setCheckable(definition.checkable)
         action.setStatusTip(definition.status_tip)
         if definition.status_tip:
             action.setToolTip(definition.status_tip)

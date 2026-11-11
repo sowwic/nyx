@@ -181,6 +181,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         register(ActionId.RESTORE_LAST_SESSION, self.on_session_restore_last)
         register(ActionId.EDIT_CONFIG, self.show_config_editor)
         register(ActionId.RESET_CONFIG, self.reset_application_config)
+        register(ActionId.VIEWPORT_DEBUG_OVERLAY, self.set_viewport_debug_overlay)
+        register(ActionId.SHOW_ADDRESS_NAMES, self.set_show_address_names)
+        register(ActionId.ALWAYS_ON_TOP, self.set_always_on_top)
         # Fallbacks so toolbar buttons work before the tree view has focus
         register(ActionId.CREATE_NODE, self.show_nodes_palette)
         register(
@@ -374,7 +377,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.config.values.main_window.layout.state = base64.b64encode(
             bytes(self.saveState(self.LAYOUT_VERSION))
         ).decode("ascii")
-        # self.config.window_always_on_top = self.pin_window_btn.isChecked()
         self.logger_dock.save_config_values(self.config)
 
     def apply_config_values(self):
@@ -386,8 +388,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         else:
             self._apply_default_geometry()
 
-        # TODO: add always on top toggle
-        # self.toggle_always_on_top(self.config.window_always_on_top)
+        self._apply_always_on_top()
         LOGGER.setLevel(self.config.values.logging_level)
         self._apply_viewport_debug_overlay()
         self._apply_show_address_names()
@@ -463,6 +464,28 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """Reset application config and apply changes."""
         self.config.reset()
         QtCore.QTimer.singleShot(0, self.apply_config_values)
+
+    def set_always_on_top(self, enabled: bool):
+        """Keep the window above other windows or not, and remember it.
+
+        Args:
+            enabled (bool): keep the window on top.
+        """
+        self.config.values.main_window.is_always_on_top = enabled
+        self._apply_always_on_top()
+
+    def _apply_always_on_top(self):
+        """Show the config value of the always on top toggle in the menu and window."""
+        enabled = self.config.values.main_window.is_always_on_top
+        self.menubar_view_menu.set_always_on_top_checked(enabled)
+        hint = QtCore.Qt.WindowType.WindowStaysOnTopHint
+        if bool(self.windowFlags() & hint) == enabled:
+            return
+        # Changing the flags hides the window, so it has to be shown again.
+        was_visible = self.isVisible()
+        self.setWindowFlag(hint, enabled)
+        if was_visible:
+            self.show()
 
     def set_viewport_debug_overlay(self, enabled: bool):
         """Turn the debug overlay of the graph views on or off, and remember it.

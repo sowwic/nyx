@@ -43,6 +43,10 @@ class ActionId(StrEnum):
     RELOAD_REFERENCE = "node.reload_reference"
     OPEN_REFERENCED_STAGE = "node.open_referenced_stage"
     SHOW_PALETTE = "node.show_palette"
+    # View
+    VIEWPORT_DEBUG_OVERLAY = "view.viewport_debug_overlay"
+    SHOW_ADDRESS_NAMES = "view.show_address_names"
+    ALWAYS_ON_TOP = "view.always_on_top"
     # Stage
     EXECUTE_STAGE = "stage.execute"
     EXECUTE_FROM_SELECTED = "stage.execute_from_selected"
@@ -179,6 +183,29 @@ def default_definitions() -> list[ActionDefinition]:
         D(ActionId.RELOAD_REFERENCE, "Reload reference", "Node"),
         D(ActionId.OPEN_REFERENCED_STAGE, "Open referenced stage", "Node"),
         D(ActionId.SHOW_PALETTE, "Add Node...", "Node", default_shortcut="Tab"),
+        D(
+            ActionId.VIEWPORT_DEBUG_OVERLAY,
+            "Viewport Debug Overlay",
+            "View",
+            default_shortcut="F3",
+            status_tip="Show performance numbers in the corner of the graph views",
+            checkable=True,
+        ),
+        D(
+            ActionId.SHOW_ADDRESS_NAMES,
+            "Show Address Names",
+            "View",
+            status_tip="Show the names paths are made of, instead of the display "
+            "names of nodes and components",
+            checkable=True,
+        ),
+        D(
+            ActionId.ALWAYS_ON_TOP,
+            "Always on Top",
+            "View",
+            status_tip="Keep the main window above other windows",
+            checkable=True,
+        ),
         D(
             ActionId.EXECUTE_STAGE,
             "Execute stage",

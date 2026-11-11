@@ -86,13 +86,13 @@ def test_view_menu_toggle_sets_config_and_attaches_the_overlay(
     assert overlay.view is None
     assert stage_editor.gr_view.debug_overlay is None
 
-    action.setChecked(True)
+    action.trigger()
 
     assert overlay_config(main_window).viewport_debug_overlay
     assert overlay.view is stage_editor.gr_view
     assert stage_editor.gr_view.debug_overlay is overlay
 
-    action.setChecked(False)
+    action.trigger()
 
     assert not overlay_config(main_window).viewport_debug_overlay
     assert overlay.view is None
@@ -113,7 +113,7 @@ def test_overlay_toggle_has_the_f3_shortcut(main_window):
 
 def test_overlay_follows_the_active_window(main_window, stage_editor):
     first = stage_editor
-    main_window.menubar_view_menu.debug_overlay_action.setChecked(True)
+    main_window.menubar_view_menu.debug_overlay_action.trigger()
     overlay = main_window.viewport_debug_overlay
 
     main_window.on_stage_new()
@@ -136,7 +136,7 @@ def test_overlay_follows_the_active_window(main_window, stage_editor):
 
 
 def test_overlay_survives_its_view_being_closed(main_window, stage_editor):
-    main_window.menubar_view_menu.debug_overlay_action.setChecked(True)
+    main_window.menubar_view_menu.debug_overlay_action.trigger()
     overlay = main_window.viewport_debug_overlay
 
     main_window.mdi_area.currentSubWindow().close()
