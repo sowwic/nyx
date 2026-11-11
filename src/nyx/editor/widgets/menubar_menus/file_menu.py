@@ -2,14 +2,17 @@ import functools
 import pathlib
 import typing
 
-if typing.TYPE_CHECKING:
-    from nyx.editor.main_window import NyxEditorMainWindow
+from PySide6 import QtGui
+
 
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils.io import import_stages_from_explorer
 from nyx.editor.widgets.menubar_menus._base_menu import BaseMenu
+
+if typing.TYPE_CHECKING:
+    from nyx.editor.main_window import NyxEditorMainWindow
 
 
 class FileMenu(BaseMenu):
@@ -46,6 +49,7 @@ class FileMenu(BaseMenu):
         self.addAction(action(ActionId.IMPORT_STAGE))
         self.addAction(action(ActionId.REFERENCE_STAGE))
         self.recent_menu = self.addMenu("Recent Files...")
+        self.recent_menu.setIcon(QtGui.QIcon(":/icons/history"))
         self.recent_menu.setToolTipsVisible(True)
         self.recent_menu.aboutToShow.connect(self.rebuild_recent_menu)
         self.rebuild_recent_menu()

@@ -99,9 +99,11 @@ def dock(qtbot):
     yield dock  # `window` stays alive in this frame
 
 
-def _fake_config(is_expanded=False, expanded_height=250):
+def _fake_config(is_expanded=False, expanded_height=250, minimum_level=logging.DEBUG):
     log_widget = types.SimpleNamespace(
-        is_expanded=is_expanded, expanded_height=expanded_height
+        is_expanded=is_expanded,
+        expanded_height=expanded_height,
+        minimum_level=minimum_level,
     )
     return types.SimpleNamespace(
         values=types.SimpleNamespace(
@@ -136,6 +138,79 @@ def test_dock_applies_and_saves_config(dock):
     assert values.expanded_height == 300
 
 
+def test_dock_applies_and_saves_minimum_level(dock):
+    dock.apply_config_values(_fake_config(minimum_level=logging.WARNING))
+    assert dock.output_log_widget.get_minimum_level() == logging.WARNING
+    assert dock.output_log_widget._filter_model._minimum_level == logging.WARNING
+
+    saved = _fake_config(minimum_level=logging.DEBUG)
+    dock.save_config_values(saved)
+    assert saved.values.editor_widgets.log_widget.minimum_level == logging.WARNING
+
+
 def test_dock_size_hint_uses_remembered_height_when_expanded(dock):
     dock.apply_config_values(_fake_config(is_expanded=True, expanded_height=321))
     assert dock.sizeHint().height() == 321
+
+
+def _fill(log_model):
+    log_model.append_log_record(make_record("alpha debug", logging.DEBUG))
+    log_model.append_log_record(make_record("beta info", logging.INFO))
+    log_model.append_log_record(make_record("gamma warning", logging.WARNING))
+    log_model.append_log_record(make_record("delta error", logging.ERROR))
+
+
+def test_filter_bar_shown_only_when_expanded(log_widget):
+    assert not log_widget._filter_bar.isVisibleTo(log_widget)
+    log_widget.set_expanded(True)
+    assert log_widget._filter_bar.isVisibleTo(log_widget)
+
+
+def test_search_text_filters_rows(log_widget, log_model):
+    _fill(log_model)
+    log_widget._filter_bar.search_text_changed.emit("GAMMA")
+    assert log_widget._filter_model.rowCount() == 1
+    log_widget._filter_bar.search_text_changed.emit("")
+    assert log_widget._filter_model.rowCount() == 4
+
+
+def test_minimum_level_filters_rows(log_widget, log_model):
+    _fill(log_model)
+    log_widget._filter_bar._level_combo_box.setCurrentIndex(2)
+    assert log_widget._filter_model.rowCount() == 2
+    log_widget._filter_bar._level_combo_box.setCurrentIndex(0)
+    assert log_widget._filter_model.rowCount() == 4
+
+
+def test_filters_do_not_change_header(log_widget, log_model):
+    _fill(log_model)
+    log_widget._filter_bar.search_text_changed.emit("alpha")
+    assert log_widget._latest_message_label.toolTip() == "delta error"
+
+
+def test_clear_action_empties_model(log_widget, log_model):
+    _fill(log_model)
+    log_widget._clear_action.trigger()
+    assert log_model.rowCount() == 0
+    assert log_widget._latest_message_label.toolTip() == "Ready"
+
+
+def test_filter_bar_settings_menu_clear_empties_model(log_widget, log_model):
+    _fill(log_model)
+    assert log_widget._filter_bar._settings_button.menu() is not None
+    log_widget._filter_bar._clear_log_action.trigger()
+    assert log_model.rowCount() == 0
+
+
+def test_copy_action_copies_selected_records(log_widget, log_model):
+    _fill(log_model)
+    log_widget.set_expanded(True)
+    log_widget._log_message_list_view.selectAll()
+    log_widget._copy_action.trigger()
+    text = QtWidgets.QApplication.clipboard().text()
+    assert text.splitlines() == [
+        "alpha debug",
+        "beta info",
+        "gamma warning",
+        "delta error",
+    ]

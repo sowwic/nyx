@@ -1,3 +1,5 @@
+import logging
+
 from pydantic.dataclasses import Field
 
 from nyx.core.config_values.base_values import NyxBaseConfigValues
@@ -14,6 +16,8 @@ class NyxEditorLogWidgetConfigValues(NyxBaseConfigValues):
     """Height of the expanded log dock in pixels."""
     is_expanded: bool = Field(default=False)
     """The log dock is expanded."""
+    minimum_level: int = Field(default=logging.DEBUG)
+    """Minimum logging level shown in the log."""
 
 
 class NyxEditorWidgetsConfigValues(NyxBaseConfigValues):
