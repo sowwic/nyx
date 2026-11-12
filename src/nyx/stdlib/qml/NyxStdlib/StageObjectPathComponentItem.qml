@@ -56,7 +56,7 @@ ComponentValue {
 
     ToolButton {
         objectName: "browseStageObjectButton"
-        icon.source: "qrc:/icons/folder_open"
+        icon.source: "qrc:/core/icons/browse_stage"
         enabled: stageObjectPathRoot.editable
         ToolTip.visible: hovered
         ToolTip.text: qsTr("Browse the stage")
