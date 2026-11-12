@@ -365,7 +365,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                 gr_util.refresh()
 
     def commit_moves(self) -> None:
-        """Push one command for all node and util object items moved with the mouse."""
+        """Push one command for all node, util object and link pin items moved."""
         stage = self.stage
         nodes, node_positions = [], []
         for gr_node in self.gr_nodes():
@@ -377,7 +377,13 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
             for gr_util in self.gr_util_objects()
             if gr_util.pos() != gr_util.util_object.position
         }
-        if not nodes and not util_changes:
+        pin_changes = {
+            gr_link.uuid: gr_link.pins
+            for gr_link in self.gr_links()
+            if gr_link.uuid is not None
+            and gr_link.pins != stage.get_object(gr_link.uuid).pins
+        }
+        if not nodes and not util_changes and not pin_changes:
             return
 
         move_commands = []
@@ -393,9 +399,14 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
                     stage, util_changes, text="Moved util objects"
                 )
             )
+        move_commands.extend(
+            commands.SetLinkPinsCommand(stage, link_uuid, pins)
+            for link_uuid, pins in pin_changes.items()
+        )
         if len(move_commands) == 1:
             stage.push_command(move_commands[0])
             return
+
         stage.undo_stack.beginMacro("Moved items")
         try:
             stage.push_command(*move_commands)
