@@ -53,11 +53,13 @@ def test_token_is_hidden_until_shown(panel, session):
     panel.toggle_button.click()
     token = session.bridge_server.token
 
-    assert token not in panel.token_label.text()
+    password = QtWidgets.QLineEdit.EchoMode.Password
+    assert panel.token_edit.text() == token
+    assert panel.token_edit.echoMode() == password
     panel.show_token_button.click()
-    assert panel.token_label.text() == token
+    assert panel.token_edit.echoMode() == QtWidgets.QLineEdit.EchoMode.Normal
     panel.show_token_button.click()
-    assert token not in panel.token_label.text()
+    assert panel.token_edit.echoMode() == password
 
 
 def test_copy_buttons_put_address_and_token_on_the_clipboard(panel, session):
