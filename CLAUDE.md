@@ -55,6 +55,7 @@ nyx stage run path/to/stage.nyx            # run a stage headless (same as nyx-r
 - Do not commit unless asked to.
 - Do not update CHANGELOG unless asked to
 - Do not push extra created worktrees to remote. Once work in them is done - patch it back into feature branch and delete extra worktree created.
+- When a task done in a worktree is finished, do this without being asked: exit the worktree (`ExitWorktree` keep), cherry-pick its commit(s) onto the feature branch in the main checkout, then remove the worktree and its branch. Git can't reach the main checkout from inside the worktree session.
 
 ## Qt Notes
 
