@@ -1,0 +1,73 @@
+<!DOCTYPE RCC>
+<RCC>
+  <qresource prefix="/">
+    <!-- Application logo -->
+    <file>icons/nyx.png</file>
+    <file>icons/nyx/64.png</file>
+    <file>icons/nyx/128.png</file>
+    <file>icons/nyx/256.png</file>
+    <file>icons/nyx/512.png</file>
+    <file>icons/nyx/1024.png</file>
+
+    <!-- Images -->
+    <file>images/splash_background.png</file>
+
+    <!-- File and stage actions -->
+    <file>icons/delete.png</file>
+    <file>icons/delete_entries.png</file>
+    <file>icons/edit.png</file>
+    <file>icons/file_open.png</file>
+    <file>icons/folder_open.png</file>
+    <file>icons/history.png</file>
+    <file>icons/home.png</file>
+    <file>icons/import.png</file>
+    <file>icons/new_file.png</file>
+    <file>icons/reset_settings.png</file>
+    <file>icons/restore_page.png</file>
+    <file>icons/save.png</file>
+    <file>icons/save_as.png</file>
+    <file>icons/settings.png</file>
+    <file>icons/tab.png</file>
+
+    <!-- Clipboard -->
+    <file>icons/copy.png</file>
+    <file>icons/cut.png</file>
+    <file>icons/paste.png</file>
+
+    <!-- Execution -->
+    <file>icons/exec_from.png</file>
+    <file>icons/exec_stage.png</file>
+
+    <!-- Graph objects -->
+    <file>icons/drag_indicator.png</file>
+    <file>icons/focus.png</file>
+    <file>icons/function.png</file>
+    <file>icons/group.png</file>
+    <file>icons/link.png</file>
+    <file>icons/lock.png</file>
+    <file>icons/remote_action.png</file>
+    <file>icons/remote_client.png</file>
+    <file>icons/stage_object.png</file>
+    <file>icons/stage_object_path.png</file>
+    <file>icons/sticky_note.png</file>
+
+    <!-- Status and general -->
+    <file>icons/arrow_back.png</file>
+    <file>icons/arrow_double_down.png</file>
+    <file>icons/arrow_double_up.png</file>
+    <file>icons/asterisk.png</file>
+    <file>icons/check.png</file>
+    <file>icons/cross.png</file>
+    <file>icons/frame_bug.png</file>
+    <file>icons/green_check.png</file>
+    <file>icons/info.png</file>
+    <file>icons/plus.png</file>
+    <file>icons/red_error.png</file>
+
+    <!-- Fonts -->
+    <file alias="fonts/zed-mono">fonts/zed-mono.ttf</file>
+    <file alias="fonts/zed-mono-bold">fonts/zed-mono-bold.ttf</file>
+    <file alias="fonts/zed-mono-italic">fonts/zed-mono-italic.ttf</file>
+    <file alias="fonts/zed-mono-bold-italic">fonts/zed-mono-bold-italic.ttf</file>
+  </qresource>
+</RCC>

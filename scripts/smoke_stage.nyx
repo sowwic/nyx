@@ -1,0 +1,132 @@
+{
+    "uuid": "2abb80df-dbf2-4e39-b644-812903c98ed9",
+    "metadata": {},
+    "source_plugin": "NyxStdlib",
+    "name": "stage",
+    "display_name": "stage",
+    "type_id": "core:node",
+    "active": true,
+    "position": [
+        0.0,
+        0.0
+    ],
+    "execution_order": 1,
+    "components": [],
+    "children": [
+        {
+            "uuid": "325a8987-8a76-43d8-aa6b-1d43abd9da55",
+            "metadata": {},
+            "source_plugin": "NyxStdlib",
+            "name": "start",
+            "display_name": "Flow Start",
+            "type_id": "core:flow_start",
+            "active": true,
+            "position": [
+                0.0,
+                0.0
+            ],
+            "execution_order": 1,
+            "components": [
+                {
+                    "uuid": "02de7db5-131e-44fe-996c-b4cef5b26cda",
+                    "metadata": {},
+                    "source_plugin": "NyxStdlib",
+                    "type_id": "core:flow",
+                    "flags": 53,
+                    "name": "flow",
+                    "display_name": "",
+                    "datatype": "core:flow",
+                    "value": null,
+                    "default_value": null,
+                    "is_active": true,
+                    "note": {
+                        "text": "",
+                        "format": "plain"
+                    }
+                }
+            ],
+            "children": [],
+            "util_objects": []
+        },
+        {
+            "uuid": "7d5b8fc9-ac4b-4b46-92a6-e31fdd27ce31",
+            "metadata": {},
+            "source_plugin": "NyxStdlib",
+            "name": "log",
+            "display_name": "Log",
+            "type_id": "core:log",
+            "active": true,
+            "position": [
+                0.0,
+                0.0
+            ],
+            "execution_order": 1,
+            "components": [
+                {
+                    "uuid": "8765498c-2ba0-47b5-94f1-f7be341fc34c",
+                    "metadata": {},
+                    "source_plugin": "NyxStdlib",
+                    "type_id": "core:flow",
+                    "flags": 55,
+                    "name": "flow",
+                    "display_name": "",
+                    "datatype": "core:flow",
+                    "value": null,
+                    "default_value": null,
+                    "is_active": true,
+                    "note": {
+                        "text": "",
+                        "format": "plain"
+                    }
+                },
+                {
+                    "uuid": "be844998-1339-44af-b1ad-cd982b678da4",
+                    "metadata": {},
+                    "source_plugin": "NyxStdlib",
+                    "type_id": "core:value",
+                    "flags": 27,
+                    "name": "message",
+                    "display_name": "",
+                    "datatype": "core:string",
+                    "value": "",
+                    "default_value": null,
+                    "is_active": true,
+                    "note": {
+                        "text": "",
+                        "format": "plain"
+                    }
+                },
+                {
+                    "uuid": "b9b8730b-292d-47d1-91d4-53e0d9df3989",
+                    "metadata": {},
+                    "source_plugin": "NyxStdlib",
+                    "type_id": "core:value",
+                    "flags": 27,
+                    "name": "level",
+                    "display_name": "",
+                    "datatype": "core:int",
+                    "value": 20,
+                    "default_value": 20,
+                    "is_active": true,
+                    "note": {
+                        "text": "",
+                        "format": "plain"
+                    }
+                }
+            ],
+            "children": [],
+            "util_objects": []
+        }
+    ],
+    "util_objects": [],
+    "links": [
+        {
+            "uuid": "667a6e52-348e-4cf6-beb2-850c8fe89f85",
+            "metadata": {
+                "relative_path": "../log.flow"
+            },
+            "source_uuid": "02de7db5-131e-44fe-996c-b4cef5b26cda",
+            "target_uuid": "8765498c-2ba0-47b5-94f1-f7be341fc34c"
+        }
+    ]
+}

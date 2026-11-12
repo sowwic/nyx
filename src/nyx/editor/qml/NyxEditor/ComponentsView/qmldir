@@ -1,0 +1,8 @@
+module NyxEditor.ComponentsView
+
+LinksView 1.0 LinksView.qml
+NodeComponentDelegate 1.0 NodeComponentDelegate.qml
+NodeComponentItem 1.0 NodeComponentItem.qml
+NodeComponentNoteItem 1.0 NodeComponentNoteItem.qml
+NodeComponentsSectionHeader 1.0 NodeComponentsSectionHeader.qml
+NodeComponentsView 1.0 NodeComponentsView.qml

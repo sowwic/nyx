@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Cheap platforms first, in parallel. A failure here cancels the sibling job
+  # and skips the (10x more expensive) macOS job.
+  unit-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
+
+  # macOS minutes are billed at 10x: only run once Linux and Windows pass, and
+  # skip draft pull requests.
+  unit-tests-macos:
+    needs: unit-tests
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: ./.github/actions/run-tests
