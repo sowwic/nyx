@@ -7,9 +7,6 @@ import "../Common"
 DraggableDelegate {
     id: itemRoot
 
-    // Emitted when the "?" button in the header is clicked.
-    signal helpRequested
-
     // Injected by the ListView into this root object.
     // `index` is NOT redeclared here: DraggableDelegate already requires it.
     required property var model
@@ -324,12 +321,6 @@ DraggableDelegate {
                                 visible: itemRoot.structureEditable
                                 height: visible ? implicitHeight : 0
                                 onClicked: itemRoot.startNoteEdit()
-                            }
-
-                            MenuItem {
-                                text: "Help"
-                                icon.source: "qrc:/icons/info"
-                                onClicked: itemRoot.helpRequested()
                             }
                         }
                     }

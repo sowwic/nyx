@@ -15,6 +15,7 @@ components with links, and run it, in the editor or from the command line.
 | --- | --- |
 | [How a graph executes](execution.md) | How the flow moves from node to node, what a node does when it runs, how values are evaluated and pulled. |
 | [Datatypes](datatypes.md) | The built-in datatypes, which components can be linked, and how values are converted. |
+| [Built-ins](stdlib/index.md) | A page for every component, node and utility object of the standard library. |
 | [Referencing stages](referencing.md) | Reusing a stage file inside another stage. |
 | [Remote nodes and the bridge](remote-nodes.md) | Running code in Maya, Blender or any other Python process. |
 | [Running stages in batch mode](batch.md) | Running stages without the editor, exit codes, CI. |
