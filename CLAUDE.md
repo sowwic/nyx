@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Nyx is a Python nodal execution graph: a PySide6 editor plus a headless runner. Python is pinned to `==3.14.3`; dependencies are managed with `uv`.
+Nyx is a Python nodal execution graph: a PySide6 editor plus a headless runner. Python is pinned to `>=3.14.3`; dependencies are managed with `uv`.
 
 ## Commands
 
