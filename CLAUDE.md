@@ -54,7 +54,7 @@ nyx stage run path/to/stage.nyx            # run a stage headless (same as nyx-r
 - If the current branch is `develop`, ask the user for the GitHub issue number before starting work. Use related branch
 - Do not commit unless asked to.
 - Do not update CHANGELOG unless asked to
-- Do not create extra worktrees. If one is needed (only for testing), patch its changes into the current feature branch and delete the worktree afterwards.
+- Do not push extra created worktrees to remote. Once work in them is done - patch it back into feature branch and delete extra worktree created.
 
 ## Qt Notes
 
