@@ -1,6 +1,6 @@
 [project]
 name = "nyx"
-version = "0.0.1"
+version = "1.0.0"
 description = "Python nodal execution graph"
 authors = [
     {name = "sowwic",email = "47799401+sowwic@users.noreply.github.com"}

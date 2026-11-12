@@ -1,6 +1,6 @@
 nyx
 =========================
 
-v 0.0.1
+v 1.0.0
 -------
-* <Change description goes here>.
+* Initial release
