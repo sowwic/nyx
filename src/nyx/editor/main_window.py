@@ -379,14 +379,30 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         ).decode("ascii")
         self.logger_dock.save_config_values(self.config)
 
+    def _apply_window_geometry(self):
+        """Apply the saved window geometry, or the default one if there is none."""
+        window_config = self.config.values.main_window
+        if not (window_config.size and window_config.position):
+            self._apply_default_geometry()
+            return
+
+        # A window without a native handle is placed on the primary screen and
+        # clamped to it, so assign the saved screen before moving.
+        screen = pyside_fn.screen_for_window_geometry(
+            window_config.position, window_config.size
+        )
+        self.createWinId()
+        self.windowHandle().setScreen(screen)
+        self.setGeometry(
+            QtCore.QRect(
+                QtCore.QPoint(*window_config.position),
+                QtCore.QSize(*window_config.size),
+            )
+        )
+
     def apply_config_values(self):
         """Apply values from application config."""
-        window_config = self.config.values.main_window
-        if window_config.size and window_config.position:
-            self.resize(QtCore.QSize(*window_config.size))
-            self.move(QtCore.QPoint(*window_config.position))
-        else:
-            self._apply_default_geometry()
+        self._apply_window_geometry()
 
         self._apply_always_on_top()
         LOGGER.setLevel(self.config.values.logging_level)
@@ -399,6 +415,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # to its collapsed/default size while placing it.
         self.logger_dock.apply_config_values(self.config)
         self._load_layout_from_config()
+        # Restoring the dock layout shrinks the window to its minimum size
+        self._apply_window_geometry()
 
     def _apply_stage_render_options(self):
         """Redraw the open stages with the render options of the config.
