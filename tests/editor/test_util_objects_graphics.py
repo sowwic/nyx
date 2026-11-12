@@ -31,7 +31,7 @@ def fancy_note_registered():
 
 
 @pytest.fixture
-def create_util(stage_editor):
+def create_util_object(stage_editor):
     def _create(type_id=CoreUtilObjects.NOTE, position=(0, 0), node=None, **kwargs):
         command = commands.CreateUtilObjectCommand(
             stage_editor.stage, type_id, node=node, position=position, **kwargs
@@ -102,9 +102,11 @@ def test_note_and_group_graphics_come_from_the_stdlib_plugin(stage_editor):
     assert contents.graphics_objects == [GraphicsNote, GraphicsGroup]
 
 
-def test_util_objects_are_drawn_with_their_graphics_object(stage_editor, create_util):
-    note = create_util(CoreUtilObjects.NOTE)
-    group = create_util(CoreUtilObjects.GROUP)
+def test_util_objects_are_drawn_with_their_graphics_object(
+    stage_editor, create_util_object
+):
+    note = create_util_object(CoreUtilObjects.NOTE)
+    group = create_util_object(CoreUtilObjects.GROUP)
 
     gr_stage = stage_editor.gr_stage
 
@@ -113,11 +115,11 @@ def test_util_objects_are_drawn_with_their_graphics_object(stage_editor, create_
 
 
 def test_a_util_object_type_can_be_drawn_with_another_graphics_object(
-    stage_editor, create_util, fancy_note_registered, monkeypatch
+    stage_editor, create_util_object, fancy_note_registered, monkeypatch
 ):
     from nyx.stdlib.util_objects.note import NoteObject
 
-    note = create_util()
+    note = create_util_object()
     monkeypatch.setattr(
         NoteObject, "get_graphics_object_id", classmethod(lambda cls: "test.fancy_note")
     )
@@ -128,11 +130,11 @@ def test_a_util_object_type_can_be_drawn_with_another_graphics_object(
 
 
 def test_an_unregistered_graphics_object_id_is_not_drawn(
-    stage_editor, create_util, monkeypatch, caplog
+    stage_editor, create_util_object, monkeypatch, caplog
 ):
     from nyx.stdlib.util_objects.note import NoteObject
 
-    note = create_util()
+    note = create_util_object()
     monkeypatch.setattr(
         NoteObject, "get_graphics_object_id", classmethod(lambda cls: "test.missing")
     )
@@ -145,8 +147,8 @@ def test_an_unregistered_graphics_object_id_is_not_drawn(
     assert "test.missing" in caplog.text
 
 
-def test_undo_and_redo_update_the_scene(stage_editor, create_util):
-    note = create_util()
+def test_undo_and_redo_update_the_scene(stage_editor, create_util_object):
+    note = create_util_object()
     gr_stage = stage_editor.gr_stage
     assert gr_stage.get_gr_util_object(note) is not None
 
@@ -158,11 +160,11 @@ def test_undo_and_redo_update_the_scene(stage_editor, create_util):
 
 
 def test_only_the_util_objects_of_the_scope_are_drawn(
-    stage_editor, create_node, create_util
+    stage_editor, create_node, create_util_object
 ):
     inner = create_node(stage_editor.stage, "inner")
-    root_note = create_util()
-    inner_note = create_util(node=inner)
+    root_note = create_util_object()
+    inner_note = create_util_object(node=inner)
     gr_stage = stage_editor.gr_stage
     assert gr_stage.get_gr_util_object(root_note) is not None
     assert gr_stage.get_gr_util_object(inner_note) is None
@@ -173,8 +175,10 @@ def test_only_the_util_objects_of_the_scope_are_drawn(
     assert gr_stage.get_gr_util_object(inner_note) is not None
 
 
-def test_item_follows_the_properties_of_the_util_object(stage_editor, create_util):
-    note = create_util(position=(10, 20), size=(300, 200))
+def test_item_follows_the_properties_of_the_util_object(
+    stage_editor, create_util_object
+):
+    note = create_util_object(position=(10, 20), size=(300, 200))
     gr_note = stage_editor.gr_stage.get_gr_util_object(note)
 
     assert gr_note.pos() == QtCore.QPointF(10, 20)
@@ -221,10 +225,10 @@ def test_create_group_wraps_the_selected_nodes(stage_editor, create_node):
 
 
 def test_selecting_a_note_is_not_undone_by_the_node_selection_sync(
-    stage_editor, create_node, create_util
+    stage_editor, create_node, create_util_object
 ):
     node = create_node(stage_editor.stage, "n")
-    note = create_util()
+    note = create_util_object()
     gr_stage = stage_editor.gr_stage
     gr_note = gr_stage.get_gr_util_object(note)
 
@@ -238,8 +242,8 @@ def test_selecting_a_note_is_not_undone_by_the_node_selection_sync(
     assert gr_stage.get_gr_node(node).isSelected()
 
 
-def test_selection_survives_a_rebuild(stage_editor, create_util):
-    note = create_util()
+def test_selection_survives_a_rebuild(stage_editor, create_util_object):
+    note = create_util_object()
     gr_stage = stage_editor.gr_stage
     gr_stage.get_gr_util_object(note).setSelected(True)
 
@@ -249,10 +253,10 @@ def test_selection_survives_a_rebuild(stage_editor, create_util):
 
 
 def test_delete_selected_removes_nodes_and_util_objects_in_one_step(
-    stage_editor, create_node, create_util
+    stage_editor, create_node, create_util_object
 ):
     node = create_node(stage_editor.stage, "n")
-    note = create_util()
+    note = create_util_object()
     gr_stage = stage_editor.gr_stage
     select_nodes(stage_editor, node)
     gr_stage.get_gr_util_object(note).setSelected(True)
@@ -269,9 +273,9 @@ def test_delete_selected_removes_nodes_and_util_objects_in_one_step(
     assert gr_stage.get_gr_util_object(note.uuid) is not None
 
 
-def test_moving_items_pushes_one_command(stage_editor, create_node, create_util):
+def test_moving_items_pushes_one_command(stage_editor, create_node, create_util_object):
     node = create_node(stage_editor.stage, "n")
-    note = create_util(position=(0, 0))
+    note = create_util_object(position=(0, 0))
     gr_stage = stage_editor.gr_stage
     undo_stack = stage_editor.stage.undo_stack
     count = undo_stack.count()
@@ -289,8 +293,8 @@ def test_moving_items_pushes_one_command(stage_editor, create_node, create_util)
     assert note.position == QtCore.QPointF(0, 0)
 
 
-def test_commit_moves_without_a_move_pushes_nothing(stage_editor, create_util):
-    create_util()
+def test_commit_moves_without_a_move_pushes_nothing(stage_editor, create_util_object):
+    create_util_object()
     count = stage_editor.stage.undo_stack.count()
 
     stage_editor.gr_stage.commit_moves()
@@ -298,8 +302,8 @@ def test_commit_moves_without_a_move_pushes_nothing(stage_editor, create_util):
     assert stage_editor.stage.undo_stack.count() == count
 
 
-def test_resizing_pushes_a_command(stage_editor, create_util):
-    note = create_util(size=(200, 100))
+def test_resizing_pushes_a_command(stage_editor, create_util_object):
+    note = create_util_object(size=(200, 100))
     gr_note = stage_editor.gr_stage.get_gr_util_object(note)
 
     gr_note._resizing = True
@@ -311,12 +315,14 @@ def test_resizing_pushes_a_command(stage_editor, create_util):
     assert note.size == QtCore.QSizeF(200, 100)
 
 
-def test_moving_a_group_moves_the_nodes_inside(stage_editor, create_node, create_util):
+def test_moving_a_group_moves_the_nodes_inside(
+    stage_editor, create_node, create_util_object
+):
     inside = create_node(stage_editor.stage, "inside")
     outside = create_node(stage_editor.stage, "outside")
     inside.set_position(QtCore.QPointF(20, 40))
     outside.set_position(QtCore.QPointF(2000, 2000))
-    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    group = create_util_object(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
     gr_stage = stage_editor.gr_stage
     gr_stage.rebuild_current_scope()
     gr_group = gr_stage.get_gr_util_object(group)
@@ -330,8 +336,8 @@ def test_moving_a_group_moves_the_nodes_inside(stage_editor, create_node, create
     assert outside.position() == QtCore.QPointF(2000, 2000)
 
 
-def test_util_object_context_menu(qtbot, stage_editor, create_util):
-    gr_note = stage_editor.gr_stage.get_gr_util_object(create_util())
+def test_util_object_context_menu(qtbot, stage_editor, create_util_object):
+    gr_note = stage_editor.gr_stage.get_gr_util_object(create_util_object())
     parent = QtWidgets.QWidget()
     qtbot.addWidget(parent)
 
@@ -342,8 +348,8 @@ def test_util_object_context_menu(qtbot, stage_editor, create_util):
     assert "Delete" in labels
 
 
-def test_set_color_pushes_a_command(stage_editor, create_util):
-    note = create_util()
+def test_set_color_pushes_a_command(stage_editor, create_util_object):
+    note = create_util_object()
     gr_note = stage_editor.gr_stage.get_gr_util_object(note)
 
     gr_note.set_color("#102030")
@@ -353,11 +359,11 @@ def test_set_color_pushes_a_command(stage_editor, create_util):
     assert note.color == DEFAULT_NOTE_COLOR
 
 
-def test_notes_and_groups_paint(stage_editor, create_util):
+def test_notes_and_groups_paint(stage_editor, create_util_object):
     from PySide6 import QtGui
 
-    create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(300, 200))
-    note = create_util(
+    create_util_object(CoreUtilObjects.GROUP, position=(0, 0), size=(300, 200))
+    note = create_util_object(
         position=(20, 40), size=(120, 80), properties={"text": "hello\nworld"}
     )
     stage_editor.gr_stage.get_gr_util_object(note).setSelected(True)
@@ -373,14 +379,16 @@ def test_notes_and_groups_paint(stage_editor, create_util):
     assert image.pixelColor(60, 80) == QtGui.QColor(note.color)
 
 
-def test_moving_a_group_moves_the_notes_and_groups_inside(stage_editor, create_util):
-    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
-    inner_note = create_util(position=(20, 40), size=(100, 60))
-    inner_group = create_util(
+def test_moving_a_group_moves_the_notes_and_groups_inside(
+    stage_editor, create_util_object
+):
+    group = create_util_object(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    inner_note = create_util_object(position=(20, 40), size=(100, 60))
+    inner_group = create_util_object(
         CoreUtilObjects.GROUP, position=(200, 100), size=(150, 100)
     )
-    straddling = create_util(position=(550, 350), size=(200, 100))
-    far_away = create_util(position=(2000, 2000))
+    straddling = create_util_object(position=(550, 350), size=(200, 100))
+    far_away = create_util_object(position=(2000, 2000))
     gr_stage = stage_editor.gr_stage
     gr_group = gr_stage.get_gr_util_object(group)
 
@@ -400,9 +408,11 @@ def test_moving_a_group_moves_the_notes_and_groups_inside(stage_editor, create_u
     assert inner_group.position == QtCore.QPointF(200, 100)
 
 
-def test_selected_notes_inside_a_group_are_not_moved_twice(stage_editor, create_util):
-    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
-    note = create_util(position=(20, 40), size=(100, 60))
+def test_selected_notes_inside_a_group_are_not_moved_twice(
+    stage_editor, create_util_object
+):
+    group = create_util_object(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    note = create_util_object(position=(20, 40), size=(100, 60))
     gr_stage = stage_editor.gr_stage
     gr_stage.get_gr_util_object(note).setSelected(True)
 
@@ -412,11 +422,11 @@ def test_selected_notes_inside_a_group_are_not_moved_twice(stage_editor, create_
 
 
 def test_pressing_a_group_carries_a_node_that_was_selected(
-    stage_editor, create_node, create_util
+    stage_editor, create_node, create_util_object
 ):
     node = create_node(stage_editor.stage, "n")
     node.set_position(QtCore.QPointF(20, 40))
-    group = create_util(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
+    group = create_util_object(CoreUtilObjects.GROUP, position=(0, 0), size=(600, 400))
     gr_stage = stage_editor.gr_stage
     gr_stage.rebuild_current_scope()
     gr_node = gr_stage.get_gr_node(node)
@@ -502,11 +512,11 @@ def test_nodes_without_a_graphics_object_id_are_not_drawn(
 
 
 def test_util_objects_without_a_graphics_object_id_are_not_drawn(
-    stage_editor, create_util, monkeypatch
+    stage_editor, create_util_object, monkeypatch
 ):
     from nyx.stdlib.util_objects.note import NoteObject
 
-    note = create_util()
+    note = create_util_object()
     monkeypatch.setattr(
         NoteObject, "get_graphics_object_id", classmethod(lambda cls: None)
     )

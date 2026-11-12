@@ -76,6 +76,7 @@ invalid-method-override="ignore"
 
 [tool.pytest.ini_options]
 addopts = "--cov=nyx"
+pythonpath = ["tests"]
 log_cli = true
 log_cli_level = "ERROR"
 markers = [

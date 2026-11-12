@@ -19,65 +19,65 @@ def make_branch(stage: Stage):
 
 
 @pytest.fixture
-def value():
+def value_component():
     stage = Stage()  # owns the component, it must outlive the test
     component = make_branch(stage)["condition"]
     component.set_datatype(CoreDatatypes.OBJECT)
     yield component
 
 
-def test_default_datatype_is_object(value):
-    assert value.datatype_id == CoreDatatypes.OBJECT
-    assert value.datatype.is_wildcard
+def test_default_datatype_is_object(value_component):
+    assert value_component.datatype_id == CoreDatatypes.OBJECT
+    assert value_component.datatype.is_wildcard
 
 
-def test_object_evaluates_without_casting(value):
-    value.push_value("[1, 2]")
-    assert value.cached_value == [1, 2]
-    assert value.is_valid
+def test_object_evaluates_without_casting(value_component):
+    value_component.push_value("[1, 2]")
+    assert value_component.cached_value == [1, 2]
+    assert value_component.is_valid
 
 
-def test_typed_value_is_cast_after_evaluation(value):
-    value.set_datatype(CoreDatatypes.INT)
-    value.push_value("3.0")
-    assert value.cached_value == 3
-    assert value.display_value == "3"
+def test_typed_value_is_cast_after_evaluation(value_component):
+    value_component.set_datatype(CoreDatatypes.INT)
+    value_component.push_value("3.0")
+    assert value_component.cached_value == 3
+    assert value_component.display_value == "3"
 
 
-def test_setting_datatype_recasts_current_value(value):
-    value.push_value("5")
-    value.set_datatype(CoreDatatypes.STRING)
-    assert value.cached_value == "5"
+def test_setting_datatype_recasts_current_value(value_component):
+    value_component.push_value("5")
+    value_component.set_datatype(CoreDatatypes.STRING)
+    assert value_component.cached_value == "5"
 
 
-def test_failed_cast_keeps_previous_value_and_marks_invalid(value):
-    value.set_datatype(CoreDatatypes.INT)
-    value.push_value("4")
-    value.push_value("abc")
-    assert value.cached_value == 4
-    assert value.raw_value == "abc"
-    assert not value.is_valid
-    assert value.value_storage.cast_error
+def test_failed_cast_keeps_previous_value_and_marks_invalid(value_component):
+    value_component.set_datatype(CoreDatatypes.INT)
+    value_component.push_value("4")
+    value_component.push_value("abc")
+    assert value_component.cached_value == 4
+    assert value_component.raw_value == "abc"
+    assert not value_component.is_valid
+    assert value_component.value_storage.cast_error
 
 
-def test_next_valid_value_clears_invalid_state(value):
-    value.set_datatype(CoreDatatypes.INT)
-    value.push_value("abc")
-    value.push_value("2")
-    assert value.is_valid
-    assert value.cached_value == 2
+def test_next_valid_value_clears_invalid_state(value_component):
+    value_component.set_datatype(CoreDatatypes.INT)
+    value_component.push_value("abc")
+    value_component.push_value("2")
+    assert value_component.is_valid
+    assert value_component.cached_value == 2
 
 
-def test_none_becomes_the_default_of_the_datatype(value):
-    value.set_datatype(CoreDatatypes.INT)
-    value.push_value(None)
-    assert value.cached_value == 0
-    assert value.is_valid
+def test_none_becomes_the_default_of_the_datatype(value_component):
+    value_component.set_datatype(CoreDatatypes.INT)
+    value_component.push_value(None)
+    assert value_component.cached_value == 0
+    assert value_component.is_valid
 
 
-def test_none_stays_none_for_datatypes_without_a_default(value):
-    value.push_value(None)
-    assert value.cached_value is None
+def test_none_stays_none_for_datatypes_without_a_default(value_component):
+    value_component.push_value(None)
+    assert value_component.cached_value is None
 
 
 def test_setting_a_datatype_on_an_empty_value_pushes_its_default():
@@ -113,18 +113,18 @@ def test_reset_to_type_default_uses_the_datatype_default():
     assert component.cached_value == 0
 
 
-def test_unknown_datatype_falls_back_to_object_but_is_kept(value):
-    value.set_datatype("missing:type")
-    assert value.datatype.is_wildcard
-    assert value.datatype_id == "missing:type"
-    assert value.serialize()["datatype"] == "missing:type"
+def test_unknown_datatype_falls_back_to_object_but_is_kept(value_component):
+    value_component.set_datatype("missing:type")
+    assert value_component.datatype.is_wildcard
+    assert value_component.datatype_id == "missing:type"
+    assert value_component.serialize()["datatype"] == "missing:type"
 
 
-def test_datatype_survives_serialization(value):
-    value.set_datatype(CoreDatatypes.FLOAT)
-    value.push_value("1")
-    node = value.node
-    data = value.serialize()
+def test_datatype_survives_serialization(value_component):
+    value_component.set_datatype(CoreDatatypes.FLOAT)
+    value_component.push_value("1")
+    node = value_component.node
+    data = value_component.serialize()
     context = NodeDeserializationContext(stage=node.stage, entry_node=node)
 
     restored = NodeComponent.deserialize(data=data, node=node, context=context)
@@ -133,10 +133,10 @@ def test_datatype_survives_serialization(value):
     assert restored.cached_value == 1.0
 
 
-def test_legacy_data_without_datatype_deserializes(value):
-    data = value.serialize()
+def test_legacy_data_without_datatype_deserializes(value_component):
+    data = value_component.serialize()
     del data["datatype"]
-    node = value.node
+    node = value_component.node
     context = NodeDeserializationContext(stage=node.stage, entry_node=node)
 
     restored = NodeComponent.deserialize(data=data, node=node, context=context)
@@ -218,12 +218,12 @@ def test_valid_type_default_is_used(caplog):
     assert "not valid for datatype" not in caplog.text
 
 
-def test_plug_shape_follows_the_datatype(value):
+def test_plug_shape_follows_the_datatype(value_component):
     from nyx.api.v1 import GraphicsPlugShape
 
-    assert value.get_plug_shape() is GraphicsPlugShape.SQUARE_MATRIX
-    value.set_datatype(CoreDatatypes.FLOW)
-    assert value.get_plug_shape() is GraphicsPlugShape.PENTAGON
+    assert value_component.get_plug_shape() is GraphicsPlugShape.SQUARE_MATRIX
+    value_component.set_datatype(CoreDatatypes.FLOW)
+    assert value_component.get_plug_shape() is GraphicsPlugShape.PENTAGON
 
 
 def test_linked_value_is_converted_to_the_datatype_of_the_component():

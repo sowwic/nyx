@@ -18,6 +18,7 @@ from nyx.api.v1 import (
     commands,
     exceptions,
 )
+from stage_helpers import create_node
 
 
 def add_component(stage, node, name, value, datatype=CoreDatatypes.INT):
@@ -34,20 +35,12 @@ def add_component(stage, node, name, value, datatype=CoreDatatypes.INT):
     return component
 
 
-def create(stage, type_id, name=None, parent=None):
-    command = commands.CreateNodeCommand(
-        stage=stage, type_id=type_id, name=name, parent_node=parent
-    )
-    stage.push_command(command)
-    return command.result_node
-
-
 def make_source(path: pathlib.Path) -> Stage:
     """Stage file with two top components and an inner node fed by one of them."""
     source = Stage()
     add_component(source, source.root_node, "amount", 5)
     add_component(source, source.root_node, "label", "hello", CoreDatatypes.STRING)
-    inner = create(source, CoreNodes.VALUE, name="inner")
+    inner = create_node(source, CoreNodes.VALUE, name="inner")
     inner["value"].set_datatype(CoreDatatypes.INT)
     inner["value"].writable = True
     source.push_command(
@@ -60,7 +53,7 @@ def make_source(path: pathlib.Path) -> Stage:
 
 
 def reference(stage, source_path, name="ref") -> Node:
-    node = create(stage, CoreNodes.REFERENCE, name=name)
+    node = create_node(stage, CoreNodes.REFERENCE, name=name)
     node["source"].push_value(str(source_path))
     return node
 
@@ -85,7 +78,7 @@ def source_path(tmp_path) -> pathlib.Path:
 
 def test_reference_has_source_and_is_creatable():
     stage = Stage()
-    node = create(stage, CoreNodes.REFERENCE)
+    node = create_node(stage, CoreNodes.REFERENCE)
 
     assert node.get_type_id() == CoreNodes.REFERENCE
     assert node["source"].get_type_id() == CoreNodeComponents.FILE
@@ -108,7 +101,7 @@ def test_children_of_a_reference_have_a_locked_structure(source_path):
     assert node.locks_children and node.locks_structure
     assert not inner.locks_structure
     assert inner.is_structure_locked
-    assert not create(stage, CoreNodes.VALUE).is_structure_locked
+    assert not create_node(stage, CoreNodes.VALUE).is_structure_locked
 
 
 def test_reference_takes_top_components_and_children(source_path):
@@ -131,7 +124,7 @@ def test_values_and_links_to_the_reference_survive_reopen(tmp_path, source_path)
     stage = Stage()
     node = reference(stage, source_path)
     node["amount"].push_value(42)
-    sink = create(stage, CoreNodes.VALUE, name="sink")
+    sink = create_node(stage, CoreNodes.VALUE, name="sink")
     sink["value"].set_datatype(CoreDatatypes.INT)
     sink["value"].writable = True
     stage.push_command(
@@ -245,7 +238,7 @@ def test_clearing_the_source_marks_the_components_invalid(source_path):
 
 def test_relative_source_is_relative_to_the_stage_file(tmp_path, source_path):
     stage = Stage()
-    node = create(stage, CoreNodes.REFERENCE, name="ref")
+    node = create_node(stage, CoreNodes.REFERENCE, name="ref")
     node["source"].push_value(source_path.name)
     assert node.load_error != ""
 
@@ -261,7 +254,7 @@ def test_relative_source_is_relative_to_the_stage_file(tmp_path, source_path):
 
 def link_to_reference(stage, node, name):
     """Link a new string value node into a component of the reference."""
-    feeder = create(stage, CoreNodes.VALUE, name="feeder")
+    feeder = create_node(stage, CoreNodes.VALUE, name="feeder")
     feeder["value"].set_datatype(CoreDatatypes.STRING)
     stage.push_command(
         commands.LinkNodeComponentsCommand(
@@ -371,7 +364,7 @@ def test_views_cant_edit_the_values_of_the_children(source_path):
     stage = Stage()
     node = reference(stage, source_path)
     inner = node.find_child_by_name("inner")
-    outside = create(stage, CoreNodes.VALUE, name="outside")
+    outside = create_node(stage, CoreNodes.VALUE, name="outside")
 
     def editable(component):
         model = component.model()
@@ -386,7 +379,7 @@ def test_children_cant_be_linked(source_path):
     stage = Stage()
     node = reference(stage, source_path)
     inner = node.find_child_by_name("inner")
-    outside = create(stage, CoreNodes.VALUE, name="outside")
+    outside = create_node(stage, CoreNodes.VALUE, name="outside")
     outside["value"].set_datatype(CoreDatatypes.INT)
     outside["value"].writable = True
 
@@ -501,7 +494,7 @@ def test_link_to_a_pasted_reference_survives_undo_and_redo(source_path):
         )
     )
     node = at(stage, "/ref")
-    feeder = create(stage, CoreNodes.VALUE, name="feeder")
+    feeder = create_node(stage, CoreNodes.VALUE, name="feeder")
     feeder["value"].set_datatype(CoreDatatypes.STRING)
     stage.push_command(
         commands.LinkNodeComponentsCommand(

@@ -4,6 +4,8 @@ import pytest
 from PySide6 import QtCore, QtWidgets
 
 from nyx.api.v1 import CoreNodes, commands
+from nyx.editor.core.action_registry import ActionRegistry
+from nyx.editor.core.actions import register_default_actions
 
 
 def close_all_stage_windows(main_window) -> None:
@@ -11,6 +13,13 @@ def close_all_stage_windows(main_window) -> None:
         sub_window.widget().maybe_save = lambda: True  # avoid modal save prompt
         sub_window.close()
     QtWidgets.QApplication.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
+
+
+@pytest.fixture
+def action_registry(qtbot) -> ActionRegistry:
+    registry = ActionRegistry()
+    register_default_actions(registry)
+    return registry
 
 
 @pytest.fixture

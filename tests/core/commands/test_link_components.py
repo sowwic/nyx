@@ -9,12 +9,7 @@ from nyx.api.v1 import (
     commands,
     exceptions,
 )
-
-
-def make_node(stage: Stage, type_id: str):
-    command = commands.CreateNodeCommand(stage=stage, type_id=type_id)
-    stage.push_command(command)
-    return command.result_node
+from stage_helpers import create_node
 
 
 def make_link(stage: Stage, source: NodeComponentLike, target: NodeComponentLike):
@@ -53,9 +48,9 @@ def test_single_link_push():
 
 def test_linking_with_existing_link_restores_original_on_undo():
     stage = Stage()
-    node1 = make_node(stage=stage, type_id=CoreNodes.ACTION)
-    node2 = make_node(stage=stage, type_id=CoreNodes.ACTION)
-    node3 = make_node(stage=stage, type_id=CoreNodes.ACTION)
+    node1 = create_node(stage=stage, type_id=CoreNodes.ACTION)
+    node2 = create_node(stage=stage, type_id=CoreNodes.ACTION)
+    node3 = create_node(stage=stage, type_id=CoreNodes.ACTION)
 
     # Create link node1.flow >> node2.flow
     link1_command = make_link(stage, node1["flow"], node2["flow"])
@@ -79,8 +74,8 @@ def test_linking_with_existing_link_restores_original_on_undo():
 
 def test_linking_to_not_writable_component_raises_link_error():
     stage = Stage()
-    node1 = make_node(stage=stage, type_id=CoreNodes.ACTION)
-    node2 = make_node(stage=stage, type_id=CoreNodes.FLOW_START)
+    node1 = create_node(stage=stage, type_id=CoreNodes.ACTION)
+    node2 = create_node(stage=stage, type_id=CoreNodes.FLOW_START)
     node2["flow"].writable = False
 
     with pytest.raises(
@@ -91,8 +86,8 @@ def test_linking_to_not_writable_component_raises_link_error():
 
 def test_linking_from_not_readable_component_raises_link_error():
     stage = Stage()
-    node1 = make_node(stage=stage, type_id=CoreNodes.ACTION)
-    node2 = make_node(stage=stage, type_id=CoreNodes.LOG)
+    node1 = create_node(stage=stage, type_id=CoreNodes.ACTION)
+    node2 = create_node(stage=stage, type_id=CoreNodes.LOG)
 
     add_cpnt_command = commands.AddNodeComponentCommand(
         node=node1, type_id=CoreNodeComponents.VALUE, name="test_cpnt"
@@ -107,7 +102,7 @@ def test_linking_from_not_readable_component_raises_link_error():
 
 def test_flow_component_allows_a_single_output_link():
     stage = Stage()
-    node1, node2, node3 = (make_node(stage, CoreNodes.ACTION) for _ in range(3))
+    node1, node2, node3 = (create_node(stage, CoreNodes.ACTION) for _ in range(3))
     assert node1["flow"].single_output
 
     stage.link_components(node1["flow"], node2["flow"])
@@ -118,8 +113,8 @@ def test_flow_component_allows_a_single_output_link():
 
 def test_value_component_allows_many_output_links():
     stage = Stage()
-    node1 = make_node(stage, CoreNodes.ACTION)
-    node2, node3 = make_node(stage, CoreNodes.LOG), make_node(stage, CoreNodes.LOG)
+    node1 = create_node(stage, CoreNodes.ACTION)
+    node2, node3 = create_node(stage, CoreNodes.LOG), create_node(stage, CoreNodes.LOG)
     add = commands.AddNodeComponentCommand(
         node=node1, type_id=CoreNodeComponents.VALUE, name="out"
     )
@@ -135,7 +130,7 @@ def test_value_component_allows_many_output_links():
 
 def test_linking_from_a_single_output_component_replaces_its_link_in_one_undo_step():
     stage = Stage()
-    node1, node2, node3 = (make_node(stage, CoreNodes.ACTION) for _ in range(3))
+    node1, node2, node3 = (create_node(stage, CoreNodes.ACTION) for _ in range(3))
     first = make_link(stage, node1["flow"], node2["flow"])
     second = make_link(stage, node1["flow"], node3["flow"])
 

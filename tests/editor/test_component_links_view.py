@@ -12,7 +12,7 @@ LINK_DELEGATE_QML = (
 
 
 @pytest.fixture
-def linked(main_window, stage_editor, create_node, qtbot):
+def inspector_controller(main_window, stage_editor, create_node, qtbot):
     """Controller of the inspector showing `target`, whose value is fed by `source`."""
     stage = stage_editor.stage
     source = create_node(stage, "source", type_id=CoreNodes.VALUE)
@@ -42,8 +42,8 @@ def linked(main_window, stage_editor, create_node, qtbot):
     return controller, row, source, target, stage
 
 
-def test_unlinking_removes_the_input_link(linked):
-    controller, row, source, target, stage = linked
+def test_unlinking_removes_the_input_link(inspector_controller):
+    controller, row, source, target, stage = inspector_controller
     assert target["value"].input_links
 
     assert controller.unlinkComponent(row, "Input", source["value"].path.as_posix())
@@ -52,8 +52,8 @@ def test_unlinking_removes_the_input_link(linked):
     assert source["value"].output_links == []
 
 
-def test_unlinking_can_be_undone(linked):
-    controller, row, source, target, stage = linked
+def test_unlinking_can_be_undone(inspector_controller):
+    controller, row, source, target, stage = inspector_controller
     controller.unlinkComponent(row, "Input", source["value"].path.as_posix())
 
     stage.undo_stack.undo()
@@ -61,8 +61,10 @@ def test_unlinking_can_be_undone(linked):
     assert len(target["value"].input_links) == 1
 
 
-def test_unlinking_the_output_side(linked, main_window, stage_editor, qtbot):
-    controller, _row, source, target, stage = linked
+def test_unlinking_the_output_side(
+    inspector_controller, main_window, stage_editor, qtbot
+):
+    controller, _row, source, target, stage = inspector_controller
     stage_editor.selection_model.clearSelection()
     stage_editor.selection_model.select(
         source.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
@@ -84,8 +86,8 @@ def test_unlinking_the_output_side(linked, main_window, stage_editor, qtbot):
     assert source["value"].output_links == []
 
 
-def test_unlinking_an_unknown_path_changes_nothing(linked, caplog):
-    controller, row, _source, target, stage = linked
+def test_unlinking_an_unknown_path_changes_nothing(inspector_controller, caplog):
+    controller, row, _source, target, stage = inspector_controller
     count = stage.undo_stack.count()
 
     with caplog.at_level("WARNING"):
@@ -124,8 +126,10 @@ def find_items(item, object_name):
     return found
 
 
-def test_clicking_the_x_button_in_the_inspector_removes_the_link(linked, qtbot):
-    controller, _row, _source, target, _stage = linked
+def test_clicking_the_x_button_in_the_inspector_removes_the_link(
+    inspector_controller, qtbot
+):
+    controller, _row, _source, target, _stage = inspector_controller
     qtbot.waitUntil(
         lambda: bool(find_items(controller.view_root, "unlinkButton")), timeout=3000
     )
@@ -159,9 +163,9 @@ def test_the_x_button_is_at_the_right_end_of_the_item(qapp):
 
 
 def test_in_the_inspector_the_row_keeps_its_height_and_the_x_is_at_its_right(
-    linked, qtbot
+    inspector_controller, qtbot
 ):
-    controller, *_ = linked
+    controller, *_ = inspector_controller
     qtbot.waitUntil(
         lambda: bool(find_items(controller.view_root, "unlinkButton")), timeout=3000
     )

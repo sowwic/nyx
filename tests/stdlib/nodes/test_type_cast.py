@@ -2,32 +2,19 @@ import pathlib
 
 import pytest
 
-from nyx.api.v1 import CoreDatatypes, CoreNodes, Stage, commands
+from nyx.api.v1 import CoreDatatypes, CoreNodes, Stage
+from stage_helpers import create_node
 
 
-STAGES = []
 """Stages of the running test: a node doesn't keep its stage alive, so a test holding
 only the node would lose the stage to the garbage collector."""
-
-
-@pytest.fixture(autouse=True)
-def keep_stages_alive():
-    yield
-    STAGES.clear()
-
-
-def make_node(stage, type_id, name=None):
-    STAGES.append(stage)
-    command = commands.CreateNodeCommand(stage=stage, type_id=type_id, name=name)
-    stage.push_command(command)
-    return command.result_node
 
 
 def make_cast(object_value, target_type, stage=None):
     """Build flow_start -> type_cast with the inputs set."""
     stage = stage or Stage()
-    start = make_node(stage, CoreNodes.FLOW_START, name="start")
-    node = make_node(stage, CoreNodes.TYPE_CAST, name="cast")
+    start = create_node(stage, CoreNodes.FLOW_START, name="start")
+    node = create_node(stage, CoreNodes.TYPE_CAST, name="cast")
     start["flow"] >> node["flow"]
     node["type"].push_value(target_type)
     node["object"].push_value(object_value)
@@ -40,7 +27,7 @@ def run(node):
 
 
 def test_type_cast_node_creation():
-    node = make_node(Stage(), CoreNodes.TYPE_CAST)
+    node = create_node(Stage(), CoreNodes.TYPE_CAST)
 
     assert node.get_type_id() == CoreNodes.TYPE_CAST
     assert node["flow"].readable and node["flow"].writable
@@ -103,7 +90,7 @@ def test_result_is_not_there_before_the_node_runs():
 def test_result_can_be_linked_to_other_nodes():
     stage = Stage()
     cast = make_cast(3, str, stage)
-    log = make_node(stage, CoreNodes.LOG, name="log")
+    log = create_node(stage, CoreNodes.LOG, name="log")
     cast["flow"] >> log["flow"]
     cast["result"] >> log["message"]
 
@@ -114,7 +101,7 @@ def test_result_can_be_linked_to_other_nodes():
 
 def test_object_is_taken_through_links():
     stage = Stage()
-    source = make_node(stage, CoreNodes.VALUE, name="source")
+    source = create_node(stage, CoreNodes.VALUE, name="source")
     source["value"].push_value("42")
     cast = make_cast(0, int, stage)
     source["value"] >> cast["object"]
@@ -145,7 +132,7 @@ def test_subtitle_shows_the_type():
 def test_class_values_can_be_shown_and_saved():
     import json
 
-    node = make_node(Stage(), CoreNodes.TYPE_CAST)
+    node = create_node(Stage(), CoreNodes.TYPE_CAST)
     node["type"].push_value(float)
     model = node.components_model
     index = node["type"].index()
@@ -162,12 +149,12 @@ def test_class_values_can_be_shown_and_saved():
 
 
 def test_class_value_is_restored_from_a_saved_file(tmp_path):
-    node = make_node(Stage(), CoreNodes.TYPE_CAST, name="cast")
+    node = create_node(Stage(), CoreNodes.TYPE_CAST, name="cast")
     node["type"].push_value(float)
     file_path = tmp_path / "cast.nyx"
     node.export_to_json(file_path)
 
-    restored = make_node(Stage(), CoreNodes.TYPE_CAST, name="restored")
+    restored = create_node(Stage(), CoreNodes.TYPE_CAST, name="restored")
     restored["type"].push_value(int)
     restored.load_from_json(file_path)
 

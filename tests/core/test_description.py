@@ -1,5 +1,6 @@
 from nyx.api.v1 import NYX_REGISTRY, Node, NodeComponent, Stage, StageObject, commands
 from nyx.core.models.registry_model import RegistryListModel
+from stage_helpers import create_node
 
 
 def test_description_is_empty_by_default():
@@ -58,15 +59,9 @@ def test_registry_model_provides_the_description():
         assert index.data(RegistryListModel.Roles.DESCRIPTION) == cls.get_description()
 
 
-def make_node(stage, type_id):
-    command = commands.CreateNodeCommand(stage=stage, type_id=type_id)
-    stage.push_command(command)
-    return command.result_node
-
-
 def test_component_description_defaults_to_the_type_description():
     stage = Stage()
-    node = make_node(stage, "core:node")
+    node = create_node(stage, "core:node")
     command = commands.AddNodeComponentCommand(node=node, type_id="core:flow")
     stage.push_command(command)
 
@@ -76,7 +71,7 @@ def test_component_description_defaults_to_the_type_description():
 
 def test_component_description_can_be_changed():
     stage = Stage()
-    node = make_node(stage, "core:branch")
+    node = create_node(stage, "core:branch")
     node["condition"].description = "Something else."
 
     assert node["condition"].description == "Something else."
@@ -90,7 +85,7 @@ def test_every_component_of_a_predefined_node_describes_itself():
     for type_id, node_cls in NYX_REGISTRY.nodes.items():
         if type_id.startswith("function:"):
             continue
-        node = make_node(stage, type_id)
+        node = create_node(stage, type_id)
         for component in node.components_model.list_components():
             assert component.description.strip(), f"{type_id}.{component.name}"
             # More than the name of the component type

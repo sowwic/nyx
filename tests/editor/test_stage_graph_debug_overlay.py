@@ -20,7 +20,7 @@ def clean_overlay(main_window, stage_config):
 
 
 @pytest.fixture
-def overlay(stage_editor):
+def debug_overlay(stage_editor):
     overlay = StageGraphDebugOverlay()
     overlay.attach(stage_editor.gr_view)
     yield overlay
@@ -55,10 +55,10 @@ def test_paint_times_are_zero_while_idle():
     assert overlay.paint_times(now=10.0) == (0.0, 0.0)
 
 
-def test_lines_describe_the_view(stage_editor, create_node, overlay):
+def test_lines_describe_the_view(stage_editor, create_node, debug_overlay):
     create_node(stage_editor.stage, "a", type_id=CoreNodes.ACTION)
 
-    text = "\n".join(overlay.lines())
+    text = "\n".join(debug_overlay.lines())
 
     for label in ("paints/s", "zoom", "detail", "nodes", "links", "plugs", "animated"):
         assert label in text
@@ -66,10 +66,10 @@ def test_lines_describe_the_view(stage_editor, create_node, overlay):
     assert "FULL" in text
 
 
-def test_detail_follows_the_zoom(stage_editor, overlay):
+def test_detail_follows_the_zoom(stage_editor, debug_overlay):
     stage_editor.gr_view.setTransform(QtGui.QTransform.fromScale(0.1, 0.1))
 
-    assert any("MINIMAL" in line for line in overlay.lines())
+    assert any("MINIMAL" in line for line in debug_overlay.lines())
 
 
 def overlay_config(main_window):
@@ -153,20 +153,22 @@ def test_applying_the_config_attaches_the_overlay(main_window, stage_editor):
     assert main_window.viewport_debug_overlay.view is stage_editor.gr_view
 
 
-def test_attaching_forgets_the_paints_of_the_previous_view(overlay, stage_editor):
-    overlay.record_paint(0.01, now=1.0)
+def test_attaching_forgets_the_paints_of_the_previous_view(debug_overlay, stage_editor):
+    debug_overlay.record_paint(0.01, now=1.0)
 
-    overlay.attach(None)
-    overlay.attach(stage_editor.gr_view)
+    debug_overlay.attach(None)
+    debug_overlay.attach(stage_editor.gr_view)
 
-    assert overlay.paint_rate(now=1.0) == 0
+    assert debug_overlay.paint_rate(now=1.0) == 0
 
 
 def test_detached_overlay_has_nothing_to_show():
     assert StageGraphDebugOverlay().lines() == []
 
 
-def test_overlay_is_drawn_over_the_viewport_and_counts_paints(stage_editor, overlay):
+def test_overlay_is_drawn_over_the_viewport_and_counts_paints(
+    stage_editor, debug_overlay
+):
     view = stage_editor.gr_view
     view.resize(400, 300)
 
@@ -175,23 +177,23 @@ def test_overlay_is_drawn_over_the_viewport_and_counts_paints(stage_editor, over
     # The corner holds the dark box of the overlay, not the plain background.
     corner = image.pixelColor(14, 14)
     assert corner != view.backgroundBrush().color()
-    assert overlay.paint_rate() >= 1
+    assert debug_overlay.paint_rate() >= 1
 
 
-def test_view_without_the_overlay_does_not_count_paints(stage_editor, overlay):
-    overlay.attach(None)
+def test_view_without_the_overlay_does_not_count_paints(stage_editor, debug_overlay):
+    debug_overlay.attach(None)
 
     stage_editor.gr_view.grab()
 
-    assert overlay.paint_rate() == 0
+    assert debug_overlay.paint_rate() == 0
 
 
-def animated_line(overlay) -> str:
-    return next(line for line in overlay.lines() if line.startswith("animated"))
+def animated_line(debug_overlay) -> str:
+    return next(line for line in debug_overlay.lines() if line.startswith("animated"))
 
 
 def test_animated_line_counts_active_and_skipped_links(
-    stage_editor, create_node, overlay
+    stage_editor, create_node, debug_overlay
 ):
     from nyx.api.v1 import commands
 
@@ -209,15 +211,17 @@ def test_animated_line_counts_active_and_skipped_links(
 
     view.setTransform(QtGui.QTransform.fromScale(1.0, 1.0))
     if view.isVisible():
-        assert animated_line(overlay).split()[1:] == ["1", "(0", "skipped)"]
+        assert animated_line(debug_overlay).split()[1:] == ["1", "(0", "skipped)"]
 
     # Too small to see: the timer runs, the pulse is skipped.
     view.setTransform(QtGui.QTransform.fromScale(0.1, 0.1))
     assert animator.is_running
-    assert animated_line(overlay).split()[1:] == ["0", "(1", "skipped)"]
+    assert animated_line(debug_overlay).split()[1:] == ["0", "(1", "skipped)"]
 
 
-def test_links_outside_of_the_view_count_as_skipped(stage_editor, create_node, overlay):
+def test_links_outside_of_the_view_count_as_skipped(
+    stage_editor, create_node, debug_overlay
+):
     from nyx.api.v1 import commands
 
     stage = stage_editor.stage
@@ -232,8 +236,8 @@ def test_links_outside_of_the_view_count_as_skipped(stage_editor, create_node, o
     for gr_node in stage_editor.gr_stage.gr_nodes():
         gr_node.setPos(100000, 100000)
 
-    assert animated_line(overlay).split()[1:] == ["0", "(1", "skipped)"]
+    assert animated_line(debug_overlay).split()[1:] == ["0", "(1", "skipped)"]
 
 
-def test_animated_line_without_animations(overlay):
-    assert animated_line(overlay).split()[1:] == ["0", "(0", "skipped)"]
+def test_animated_line_without_animations(debug_overlay):
+    assert animated_line(debug_overlay).split()[1:] == ["0", "(0", "skipped)"]

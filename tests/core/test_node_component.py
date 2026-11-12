@@ -1,3 +1,6 @@
+import pytest
+
+import stage_helpers
 from nyx.api.v1 import (
     Stage,
     NodeComponent,
@@ -127,81 +130,21 @@ def test_deserialized_flow_component_gets_the_enforced_flags():
     assert loaded.single_output
 
 
-def test_rshift_operator():
+@pytest.mark.parametrize(
+    "link_nodes",
+    [
+        pytest.param(lambda a, b: a["flow"] >> b["flow"], id="rshift"),
+        pytest.param(lambda a, b: a["flow"].path >> b["flow"], id="rrshift"),
+        pytest.param(lambda a, b: b["flow"] << a["flow"], id="lshift"),
+        pytest.param(lambda a, b: b["flow"].path << a["flow"], id="rlshift"),
+    ],
+)
+def test_shift_operators_link_the_first_node_to_the_second(link_nodes):
     stage = Stage()
-    create_node1_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    create_node2_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    stage.push_command(create_node1_command)
-    stage.push_command(create_node2_command)
-    node1 = create_node1_command.result_node
-    node2 = create_node2_command.result_node
+    node1, node2 = (stage_helpers.create_node(stage, CoreNodes.ACTION) for _ in range(2))
 
-    link = node1["flow"] >> node2["flow"]
+    link = link_nodes(node1, node2)
 
-    assert link.source_component is node1["flow"]
-    assert link.target_component is node2["flow"]
-    assert link.uuid in node1["flow"].links_uuids
-    assert link.uuid in node2["flow"].links_uuids
-
-
-def test_rrshift_operator():
-    stage = Stage()
-    create_node1_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    create_node2_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    stage.push_command(create_node1_command)
-    stage.push_command(create_node2_command)
-    node1 = create_node1_command.result_node
-    node2 = create_node2_command.result_node
-
-    link = node1["flow"].path >> node2["flow"]
-    assert link.source_component is node1["flow"]
-    assert link.target_component is node2["flow"]
-    assert link.uuid in node1["flow"].links_uuids
-    assert link.uuid in node2["flow"].links_uuids
-
-
-def test_lshift_operator():
-    stage = Stage()
-    create_node1_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    create_node2_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    stage.push_command(create_node1_command)
-    stage.push_command(create_node2_command)
-    node1 = create_node1_command.result_node
-    node2 = create_node2_command.result_node
-
-    link = node2["flow"] << node1["flow"]
-    assert link.source_component is node1["flow"]
-    assert link.target_component is node2["flow"]
-    assert link.uuid in node1["flow"].links_uuids
-    assert link.uuid in node2["flow"].links_uuids
-
-
-def test_rlshift_operator():
-    stage = Stage()
-    create_node1_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    create_node2_command = commands.CreateNodeCommand(
-        stage=stage, type_id=CoreNodes.ACTION
-    )
-    stage.push_command(create_node1_command)
-    stage.push_command(create_node2_command)
-    node1 = create_node1_command.result_node
-    node2 = create_node2_command.result_node
-
-    link = node2["flow"].path << node1["flow"]
     assert link.source_component is node1["flow"]
     assert link.target_component is node2["flow"]
     assert link.uuid in node1["flow"].links_uuids

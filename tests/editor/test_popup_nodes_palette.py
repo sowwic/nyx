@@ -7,7 +7,7 @@ from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 
 
 @pytest.fixture
-def no_exec(monkeypatch):
+def captured_dialogs(monkeypatch):
     """Replace the blocking `exec` with a recorder capturing the dialog."""
     captured = []
 
@@ -19,14 +19,16 @@ def no_exec(monkeypatch):
     return captured
 
 
-def test_popup_centered_without_stage_graph_does_nothing(main_window, no_exec):
+def test_popup_centered_without_stage_graph_does_nothing(main_window, captured_dialogs):
     assert PopupNodesPalette.popup_centered() is None
-    assert no_exec == []
+    assert captured_dialogs == []
 
 
-def test_popup_centered_is_centered_over_window(stage_editor, main_window, no_exec):
+def test_popup_centered_is_centered_over_window(
+    stage_editor, main_window, captured_dialogs
+):
     palette = PopupNodesPalette.popup_centered()
-    assert no_exec == [palette]
+    assert captured_dialogs == [palette]
     assert palette.parent() is main_window
     center = main_window.geometry().center()
     screen = (
@@ -39,14 +41,16 @@ def test_popup_centered_is_centered_over_window(stage_editor, main_window, no_ex
     assert palette.pos() == expected
 
 
-def test_popup_centered_stays_inside_screen(stage_editor, main_window, no_exec):
+def test_popup_centered_stays_inside_screen(stage_editor, main_window, captured_dialogs):
     palette = PopupNodesPalette.popup_centered()
     screen = QtGui.QGuiApplication.screenAt(main_window.geometry().center())
     available = (screen or QtGui.QGuiApplication.primaryScreen()).availableGeometry()
     assert available.contains(palette.pos())
 
 
-def test_popup_at_cursor_is_moved_inside_screen(stage_editor, no_exec, monkeypatch):
+def test_popup_at_cursor_is_moved_inside_screen(
+    stage_editor, captured_dialogs, monkeypatch
+):
     screen = QtGui.QGuiApplication.primaryScreen()
     available = screen.availableGeometry()
     corner = available.bottomRight()
@@ -87,20 +91,20 @@ def test_clamp_to_bounds_keeps_top_left_when_rect_is_bigger_than_bounds():
     assert (result.x(), result.y()) == (100, 50)
 
 
-def test_popup_centered_passes_spawn_position_to_spawner(stage_editor, no_exec):
+def test_popup_centered_passes_spawn_position_to_spawner(stage_editor, captured_dialogs):
     position = QtCore.QPointF(33, 44)
     palette = PopupNodesPalette.popup_centered(position)
     assert palette._nodes_palette_view.nodes_spawner.spawn_position == position
 
 
-def test_palette_is_modal_dialog_with_fixed_size(stage_editor, no_exec):
+def test_palette_is_modal_dialog_with_fixed_size(stage_editor, captured_dialogs):
     palette = PopupNodesPalette.popup_centered()
     assert isinstance(palette, QtWidgets.QDialog)
     assert palette.size() == QtCore.QSize(400, 500)
     assert palette.testAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
 
 
-def test_spawned_node_closes_palette(stage_editor, no_exec, qtbot):
+def test_spawned_node_closes_palette(stage_editor, captured_dialogs, qtbot):
     from nyx.api.v1 import CoreNodes
 
     palette = PopupNodesPalette.popup_centered()

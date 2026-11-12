@@ -107,7 +107,7 @@ class Editor:
 
 
 @pytest.fixture
-def make_editor(qapp):
+def make_value_editor(qapp):
     editors = []
 
     def _make(qml_file, source=None, **component_overrides):
@@ -126,8 +126,8 @@ def make_editor(qapp):
 
 
 @pytest.fixture
-def value_editor(make_editor):
-    return make_editor(CORE_QML_DIR / "ValueComponentItem.qml")
+def value_editor(make_value_editor):
+    return make_value_editor(CORE_QML_DIR / "ValueComponentItem.qml")
 
 
 def test_editor_shows_display_value_read_only_by_default(value_editor):
@@ -181,22 +181,24 @@ def test_edit_finished_signal_carries_typed_value(value_editor):
     assert finished == ["x"]
 
 
-def test_non_editable_component_ignores_edit_request(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isEditable=False)
+def test_non_editable_component_ignores_edit_request(make_value_editor):
+    editor = make_value_editor(CORE_QML_DIR / "ValueComponentItem.qml", isEditable=False)
     editor.run("requestEdit()")
     assert editor.prop("editing") is False
     editor.run("finishEdit('x')")
     assert editor.controller.calls == []
 
 
-def test_value_with_input_link_is_not_editable(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", inputLinks=["a.b"])
+def test_value_with_input_link_is_not_editable(make_value_editor):
+    editor = make_value_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", inputLinks=["a.b"]
+    )
     editor.run("requestEdit()")
     assert editor.prop("editing") is False
 
 
-def test_value_editor_ignores_missing_component(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml")
+def test_value_editor_ignores_missing_component(make_value_editor):
+    editor = make_value_editor(CORE_QML_DIR / "ValueComponentItem.qml")
     editor.item.setProperty("component", None)
     assert editor.prop("maskedText") == ""
     editor.run("requestEdit()")
@@ -212,8 +214,8 @@ def test_masks_select_which_value_is_shown(value_editor, mask, expected):
     assert value_editor.run(f"textOf({mask})") == expected
 
 
-def test_comment_is_multiline_and_sets_value_without_evaluating(make_editor):
-    editor = make_editor(
+def test_comment_is_multiline_and_sets_value_without_evaluating(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="a\nb", displayValue="a\nb"
     )
     # Shown rendered, as Markdown
@@ -225,8 +227,8 @@ def test_comment_is_multiline_and_sets_value_without_evaluating(make_editor):
     assert editor.controller.calls == [(3, "changed", True)]
 
 
-def test_script_sets_value_without_evaluating(make_editor):
-    editor = make_editor(
+def test_script_sets_value_without_evaluating(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "ScriptComponentItem.qml",
         rawValue="pkg.mod:main",
         displayValue="",
@@ -292,8 +294,8 @@ def test_editor_in_inspector_sets_value_through_undoable_command(
     assert component.raw_value == "1+1"
 
 
-def test_script_file_button_sets_chosen_path(make_editor):
-    editor = make_editor(
+def test_script_file_button_sets_chosen_path(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "ScriptComponentItem.qml", rawValue="pkg.mod:main"
     )
     editor.controller.chosen_file = "/scripts/run.py"
@@ -305,8 +307,8 @@ def test_script_file_button_sets_chosen_path(make_editor):
     assert editor.controller.calls == [(3, "/scripts/run.py", True)]
 
 
-def test_script_file_button_cancelled_dialog_changes_nothing(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ScriptComponentItem.qml")
+def test_script_file_button_cancelled_dialog_changes_nothing(make_value_editor):
+    editor = make_value_editor(CORE_QML_DIR / "ScriptComponentItem.qml")
     editor.run("selectScriptFile()")
     assert editor.controller.file_dialogs
     assert editor.controller.calls == []
@@ -336,8 +338,8 @@ def test_controller_select_file_cancelled_returns_empty(monkeypatch):
     assert ComponentsController().selectFile("Pick", "All (*)", "") == ""
 
 
-def test_stage_object_path_item_sets_path_without_evaluating(make_editor):
-    editor = make_editor(
+def test_stage_object_path_item_sets_path_without_evaluating(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "StageObjectPathComponentItem.qml",
         rawValue="./target.message",
         displayValue="/stage/target.message",
@@ -352,8 +354,8 @@ def test_stage_object_path_item_sets_path_without_evaluating(make_editor):
 
 
 @pytest.mark.parametrize("is_valid", [True, False])
-def test_stage_object_path_item_marks_unresolved_reference(make_editor, is_valid):
-    editor = make_editor(
+def test_stage_object_path_item_marks_unresolved_reference(make_value_editor, is_valid):
+    editor = make_value_editor(
         CORE_QML_DIR / "StageObjectPathComponentItem.qml", isValid=is_valid
     )
     assert (editor.field.property("color").name() == "#b22222") is (not is_valid)
@@ -502,8 +504,8 @@ def test_getter_value_in_inspector_updates_when_the_path_changes(
     assert value.property("field").property("text") == ""
 
 
-def test_datatype_selector_shows_the_datatype_of_the_component(make_editor):
-    editor = make_editor(
+def test_datatype_selector_shows_the_datatype_of_the_component(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "ValueComponentItem.qml", resolvedDatatype="core:bool"
     )
 
@@ -511,8 +513,8 @@ def test_datatype_selector_shows_the_datatype_of_the_component(make_editor):
     assert selector.property("currentText") == "Boolean"
 
 
-def test_picking_a_datatype_goes_through_the_controller(make_editor):
-    editor = make_editor(
+def test_picking_a_datatype_goes_through_the_controller(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "ValueComponentItem.qml", resolvedDatatype="core:object"
     )
 
@@ -526,14 +528,18 @@ def test_picking_a_datatype_goes_through_the_controller(make_editor):
     assert editor.controller.datatype_calls == [(3, "core:bool")]
 
 
-def test_datatype_selector_is_disabled_when_the_datatype_is_locked(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=True)
+def test_datatype_selector_is_disabled_when_the_datatype_is_locked(make_value_editor):
+    editor = make_value_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=True
+    )
     selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
     assert selector.property("enabled") is False
 
 
-def test_datatype_selector_is_enabled_when_the_datatype_is_not_locked(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=False)
+def test_datatype_selector_is_enabled_when_the_datatype_is_not_locked(make_value_editor):
+    editor = make_value_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", isDatatypeLocked=False
+    )
     selector = editor.item.findChild(QtCore.QObject, "datatypeSelector")
     assert selector.property("enabled") is True
 
@@ -565,9 +571,9 @@ def find_edit_button(editor):
     ],
 )
 def test_core_components_have_an_edit_button_following_the_editing_state(
-    make_editor, qml_file
+    make_value_editor, qml_file
 ):
-    editor = make_editor(CORE_QML_DIR / qml_file)
+    editor = make_value_editor(CORE_QML_DIR / qml_file)
     button = find_edit_button(editor)
 
     assert button is not None
@@ -594,8 +600,8 @@ def test_edit_button_starts_and_applies_the_edit(value_editor):
     assert value_editor.controller.calls == [(3, "5", False)]
 
 
-def test_edit_button_is_hidden_when_the_value_is_not_editable(make_editor):
-    editor = make_editor(CORE_QML_DIR / "ValueComponentItem.qml", isEditable=False)
+def test_edit_button_is_hidden_when_the_value_is_not_editable(make_value_editor):
+    editor = make_value_editor(CORE_QML_DIR / "ValueComponentItem.qml", isEditable=False)
 
     assert find_edit_button(editor).property("visible") is False
 
@@ -744,8 +750,8 @@ def _text_format(editor):
     return value
 
 
-def test_comment_is_shown_as_markdown(make_editor):
-    editor = make_editor(
+def test_comment_is_shown_as_markdown(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="**a**", displayValue="**a**"
     )
 
@@ -753,8 +759,8 @@ def test_comment_is_shown_as_markdown(make_editor):
     assert editor.field.property("text") == "**a**"
 
 
-def test_empty_comment_shows_a_hint_instead_of_markdown(make_editor):
-    editor = make_editor(
+def test_empty_comment_shows_a_hint_instead_of_markdown(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="", displayValue=""
     )
 
@@ -762,8 +768,8 @@ def test_empty_comment_shows_a_hint_instead_of_markdown(make_editor):
     assert _text_format(editor) == QtCore.Qt.TextFormat.PlainText.value
 
 
-def test_comment_editor_has_a_tall_text_area_and_the_three_buttons(make_editor):
-    editor = make_editor(
+def test_comment_editor_has_a_tall_text_area_and_the_three_buttons(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
     )
     editor.run("requestEdit()")
@@ -782,8 +788,8 @@ def test_comment_editor_has_a_tall_text_area_and_the_three_buttons(make_editor):
     assert editor.field.property("text") == "hello"
 
 
-def test_comment_editor_clear_and_apply(make_editor):
-    editor = make_editor(
+def test_comment_editor_clear_and_apply(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
     )
     editor.run("requestEdit()")
@@ -802,8 +808,8 @@ def test_comment_editor_clear_and_apply(make_editor):
     assert editor.controller.calls == [(3, "", True)]
 
 
-def test_comment_editor_cancel_changes_nothing(make_editor):
-    editor = make_editor(
+def test_comment_editor_cancel_changes_nothing(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
     )
     editor.run("requestEdit()")
@@ -820,8 +826,8 @@ def test_comment_editor_cancel_changes_nothing(make_editor):
     assert editor.controller.calls == []
 
 
-def test_comment_edit_button_gives_way_to_the_editor_buttons(make_editor):
-    editor = make_editor(
+def test_comment_edit_button_gives_way_to_the_editor_buttons(make_value_editor):
+    editor = make_value_editor(
         CORE_QML_DIR / "CommentComponentItem.qml", rawValue="hello", displayValue="hello"
     )
     button = find_edit_button(editor)

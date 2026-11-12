@@ -18,7 +18,7 @@ def link(stage, source, target):
 
 
 @pytest.fixture
-def chain(stage_editor, create_node):
+def flow_chain(stage_editor, create_node):
     """Flow start -> a -> b, plus a node nobody reaches."""
     stage = stage_editor.stage
     start = create_node(stage, "start", type_id=CoreNodes.FLOW_START)
@@ -55,8 +55,8 @@ def disable_highlight(monkeypatch):
 # ======== Scene ========= #
 
 
-def test_flow_links_on_the_chain_pulse(chain):
-    editor, *_ = chain
+def test_flow_links_on_the_chain_pulse(flow_chain):
+    editor, *_ = flow_chain
     animator = editor.gr_stage.link_animator
 
     assert len(editor.gr_stage.gr_links()) == 2
@@ -76,8 +76,8 @@ def test_flow_link_off_the_chain_does_not_pulse(stage_editor, create_node):
     assert not stage_editor.gr_stage.link_animator.is_running
 
 
-def test_data_links_never_pulse(chain):
-    editor, _start, a, b, _loose = chain  # both nodes are on the chain
+def test_data_links_never_pulse(flow_chain):
+    editor, _start, a, b, _loose = flow_chain  # both nodes are on the chain
     stage = editor.stage
     components = []
     for node in (a, b):
@@ -101,8 +101,8 @@ def test_data_links_never_pulse(chain):
     assert len(pulsing_links(editor)) == 2  # the flow links still do
 
 
-def test_pulse_follows_links_added_and_removed(chain, create_node):
-    editor, start, a, b, loose = chain
+def test_pulse_follows_links_added_and_removed(flow_chain, create_node):
+    editor, start, a, b, loose = flow_chain
     stage = editor.stage
     assert len(pulsing_links(editor)) == 2
 
@@ -113,8 +113,8 @@ def test_pulse_follows_links_added_and_removed(chain, create_node):
     assert len(pulsing_links(editor)) == 2
 
 
-def test_deleting_the_start_stops_the_pulses(chain):
-    editor, start, *_ = chain
+def test_deleting_the_start_stops_the_pulses(flow_chain):
+    editor, start, *_ = flow_chain
     stage = editor.stage
 
     stage.push_command(commands.DeleteNodeCommand(stage=stage, nodes=[start]))
@@ -133,8 +133,8 @@ def test_highlight_defaults():
     assert values.highlight_flow_chain_style == "pulse"
 
 
-def test_an_unknown_style_falls_back_to_the_default(chain, stage_config, caplog):
-    editor, *_ = chain
+def test_an_unknown_style_falls_back_to_the_default(flow_chain, stage_config, caplog):
+    editor, *_ = flow_chain
     stage_config.highlight_flow_chain_style = "sparkle"
 
     with caplog.at_level("WARNING"):
@@ -144,8 +144,8 @@ def test_an_unknown_style_falls_back_to_the_default(chain, stage_config, caplog)
     assert len(pulsing_links(editor)) == 2
 
 
-def test_the_highlight_follows_the_live_config(chain, stage_config):
-    editor, *_ = chain
+def test_the_highlight_follows_the_live_config(flow_chain, stage_config):
+    editor, *_ = flow_chain
     animator = editor.gr_stage.link_animator
     stage_config.highlight_flow_chain = False
 
@@ -181,8 +181,8 @@ def test_disabled_highlight_does_nothing(stage_editor, create_node, monkeypatch)
 # ======== Dragging ========= #
 
 
-def test_pulses_pause_while_a_link_is_dragged(chain):
-    editor, *_ = chain
+def test_pulses_pause_while_a_link_is_dragged(flow_chain):
+    editor, *_ = flow_chain
     gr_stage = editor.gr_stage
     animator = gr_stage.link_animator
     animator.tick(500)
@@ -201,8 +201,8 @@ def test_pulses_pause_while_a_link_is_dragged(chain):
 # ======== Painting ========= #
 
 
-def test_pulse_is_drawn_only_for_a_pulsing_link_with_an_offset(chain):
-    editor, *_ = chain
+def test_pulse_is_drawn_only_for_a_pulsing_link_with_an_offset(flow_chain):
+    editor, *_ = flow_chain
     gr_link = pulsing_links(editor)[0]
     assert pulse_of(gr_link).offset is None
     assert not has_pixels(paint_pulse(gr_link))
@@ -214,8 +214,8 @@ def test_pulse_is_drawn_only_for_a_pulsing_link_with_an_offset(chain):
     assert not has_pixels(paint_pulse(gr_link))
 
 
-def test_pulse_head_is_at_the_offset_along_the_curve(chain):
-    editor, *_ = chain
+def test_pulse_head_is_at_the_offset_along_the_curve(flow_chain):
+    editor, *_ = flow_chain
     gr_link = pulsing_links(editor)[0]
     pulse_of(gr_link).offset = 40.0
     path = gr_link.path()
@@ -228,8 +228,8 @@ def test_pulse_head_is_at_the_offset_along_the_curve(chain):
     assert pixel.rgb() == PulseAnimation().color.rgb()
 
 
-def test_pulse_wraps_around_the_length_of_the_link(chain):
-    editor, *_ = chain
+def test_pulse_wraps_around_the_length_of_the_link(flow_chain):
+    editor, *_ = flow_chain
     gr_link = pulsing_links(editor)[0]
     pulse_of(gr_link).offset = gr_link.path_length * 3 + 40.0
     wrapped = paint_pulse(gr_link)
@@ -238,8 +238,8 @@ def test_pulse_wraps_around_the_length_of_the_link(chain):
     assert wrapped == paint_pulse(gr_link)
 
 
-def test_pulse_is_not_drawn_on_a_preview(chain):
-    editor, *_ = chain
+def test_pulse_is_not_drawn_on_a_preview(flow_chain):
+    editor, *_ = flow_chain
     plug = pulsing_links(editor)[0].source_plug
     preview = GraphicsLink(source_plug=plug)
     pulse = PulseAnimation()
@@ -249,8 +249,8 @@ def test_pulse_is_not_drawn_on_a_preview(chain):
     assert not has_color(render_link(preview), PulseAnimation().color)
 
 
-def test_bounds_leave_room_for_the_pulse(chain):
-    editor, *_ = chain
+def test_bounds_leave_room_for_the_pulse(flow_chain):
+    editor, *_ = flow_chain
     gr_link = pulsing_links(editor)[0]
     pulsing = gr_link.boundingRect()
 
@@ -289,8 +289,8 @@ def test_flow_link_of_an_inactive_component_does_not_pulse(stage_editor, create_
     assert len(pulsing_links(stage_editor)) == 2
 
 
-def test_pulse_stops_at_an_inactive_node(chain):
-    editor, _start, a, b, _loose = chain
+def test_pulse_stops_at_an_inactive_node(flow_chain):
+    editor, _start, a, b, _loose = flow_chain
     stage = editor.stage
     assert len(pulsing_links(editor)) == 2
 
@@ -304,8 +304,8 @@ def test_pulse_stops_at_an_inactive_node(chain):
     assert len(sources) == 1
 
 
-def test_pulse_of_a_link_scrolled_out_of_the_view_is_not_animated(chain):
-    editor, *_ = chain
+def test_pulse_of_a_link_scrolled_out_of_the_view_is_not_animated(flow_chain):
+    editor, *_ = flow_chain
     animator = editor.gr_stage.link_animator
     gr_links = pulsing_links(editor)
     if not editor.gr_view.isVisible():

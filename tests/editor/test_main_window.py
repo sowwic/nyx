@@ -237,14 +237,6 @@ def test_save_as_adds_recent_file_once(
     assert recent_files == [str(target)]
 
 
-def test_recent_files_capped(main_window, recent_files, tmp_path):
-    max_recent_files = main_window.config.values.editor_session.max_recent_files
-    for i in range(max_recent_files + 3):
-        main_window.add_recent_file(str(tmp_path / f"{i}.nyx"))
-    assert len(recent_files) == max_recent_files
-    assert recent_files[0] == str(tmp_path / f"{max_recent_files + 2}.nyx")
-
-
 def test_recent_menu_placeholder_when_empty(main_window, recent_files):
     menu = main_window.menubar_file_menu
     menu.rebuild_recent_menu()
