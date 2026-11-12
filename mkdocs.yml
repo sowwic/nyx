@@ -3,6 +3,21 @@ site_description: Documentation Nyx graph
 site_author: Dmitrii Shevchenko
 theme:
   name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
 
 plugins:
   - search
@@ -12,6 +27,7 @@ plugins:
         - "**/version.py"
         - "**/hooks-pyside6.py"
         - "**/main.py"
+        - "**/__main__.py"
         - "**/resources/*"
         - "**/plugins/*"
         - "**/plugins/**/*"
@@ -22,9 +38,13 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: ["src/nyx"]
+          paths: ["src"]
           options:
             docstring_style: google
+            docstring_options:
+              returns_named_value: false
+              returns_type_in_property_summary: false
+              warn_missing_types: false
             show_signature: true
             show_source: true
             show_root_heading: true
@@ -36,5 +56,25 @@ plugins:
   - autorefs
 
 nav:
-  - User Guide: user/index.md
-  - Developer Guide: dev/index.md
+  - Home: index.md
+  - User Guide:
+      - Overview: user/index.md
+      - How a graph executes: user/execution.md
+      - Datatypes: user/datatypes.md
+      - Referencing stages: user/referencing.md
+      - Remote nodes and the bridge: user/remote-nodes.md
+      - Running stages in batch mode: user/batch.md
+      - Customization: user/customization.md
+  - Developer Guide:
+      - Overview: dev/index.md
+      - The registry: dev/registry.md
+      - Profiling: dev/profiling.md
+      - Writing plugins:
+          - Overview: dev/plugins/index.md
+          - New node: dev/plugins/node.md
+          - New function node: dev/plugins/function-node.md
+          - New component: dev/plugins/component.md
+          - New QML for a component: dev/plugins/component-qml.md
+          - New datatype: dev/plugins/datatype.md
+          - New util object: dev/plugins/util-object.md
+          - New graphics object: dev/plugins/graphics-object.md
