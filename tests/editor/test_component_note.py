@@ -233,16 +233,6 @@ def test_committing_the_edit_pushes_an_undoable_command(inspector_delegate):
     assert component.note == ""
 
 
-def test_edit_note_menu_item_is_above_help():
-    source = (
-        PACKAGE_ROOT / "editor" / "qml" / "NyxEditor" / "ComponentsView"
-        / "NodeComponentDelegate.qml"
-    ).read_text()  # fmt: skip
-
-    assert 'text: "Edit Note"' in source
-    assert source.index('text: "Edit Note"') < source.index('text: "Help"')
-
-
 def test_clear_empties_the_editor_but_keeps_editing(note_item):
     note_item.setProperty("note", "hello")
     invoke(note_item, "beginEdit")

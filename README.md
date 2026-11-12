@@ -3,9 +3,13 @@
 ![Tests](https://github.com/sowwic/nyx/actions/workflows/unit_tests.yml/badge.svg)
 ![Code](https://github.com/sowwic/nyx/actions/workflows/code_quality.yml/badge.svg)
 
+**[Documentation](https://sowwic.github.io/nyx/)**
+
 Nyx is a nodal execution graph written in Python. You build a *stage*: a tree of nodes
 whose components are connected by links. Data links move values between components,
 flow links decide which node runs next. Running the stage executes the nodes in order.
+
+![Nyx editor](docs/_static/images/editor_preview.png)
 
 - **Editor.** A PySide6 application to build, inspect and run stages.
 - **Headless runner.** The same stages run from the command line, for batch jobs and CI.
@@ -13,10 +17,6 @@ flow links decide which node runs next. Running the stage executes the nodes in 
   registered by a plugin. Any Python function can become a node.
 - **Bridge.** Stages can send code to other applications (Maya, Blender, anything that
   runs Python) over a small TCP protocol, and use the results in the graph.
-
-Documentation lives in [`docs/`](docs/) (`make mkdocs` serves it locally): a user guide
-(config, how a graph executes, datatypes, references, remote nodes, batch mode) and a
-developer guide (registry, profiling, writing plugins).
 
 ## Installation
 

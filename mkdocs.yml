@@ -61,6 +61,43 @@ nav:
       - Overview: user/index.md
       - How a graph executes: user/execution.md
       - Datatypes: user/datatypes.md
+      - Built-ins:
+          - Overview: user/stdlib/index.md
+          - Nodes:
+              - Overview: user/stdlib/nodes/index.md
+              - Node: user/stdlib/nodes/node.md
+              - Flow Start: user/stdlib/nodes/flow-start.md
+              - Action: user/stdlib/nodes/action.md
+              - Branch: user/stdlib/nodes/branch.md
+              - Sequence: user/stdlib/nodes/sequence.md
+              - Reference: user/stdlib/nodes/reference.md
+              - For Loop: user/stdlib/nodes/for-loop.md
+              - For Each Loop: user/stdlib/nodes/for-each-loop.md
+              - While Loop: user/stdlib/nodes/while-loop.md
+              - Value: user/stdlib/nodes/value.md
+              - Set: user/stdlib/nodes/set.md
+              - Get: user/stdlib/nodes/get.md
+              - Dict: user/stdlib/nodes/dictionary.md
+              - List: user/stdlib/nodes/list.md
+              - Type Cast: user/stdlib/nodes/type-cast.md
+              - Get Type: user/stdlib/nodes/get-type.md
+              - Log: user/stdlib/nodes/log.md
+              - Remote Client: user/stdlib/nodes/remote-client.md
+              - Remote Action: user/stdlib/nodes/remote-action.md
+              - Launch Process: user/stdlib/nodes/launch-process.md
+          - Components:
+              - Overview: user/stdlib/components/index.md
+              - Comment: user/stdlib/components/comment.md
+              - Flow: user/stdlib/components/flow.md
+              - Value: user/stdlib/components/value.md
+              - Script: user/stdlib/components/script.md
+              - Remote Script: user/stdlib/components/remote-script.md
+              - File: user/stdlib/components/file.md
+              - Object Path: user/stdlib/components/stage-object-path.md
+          - Utility objects:
+              - Overview: user/stdlib/util-objects/index.md
+              - Note: user/stdlib/util-objects/note.md
+              - Group: user/stdlib/util-objects/group.md
       - Referencing stages: user/referencing.md
       - Remote nodes and the bridge: user/remote-nodes.md
       - Running stages in batch mode: user/batch.md

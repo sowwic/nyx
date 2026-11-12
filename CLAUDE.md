@@ -57,6 +57,16 @@ nyx stage run path/to/stage.nyx            # run a stage headless (same as nyx-r
 - Do not push extra created worktrees to remote. Once work in them is done - patch it back into feature branch and delete extra worktree created.
 - When a task done in a worktree is finished, do this without being asked: exit the worktree (`ExitWorktree` keep), cherry-pick its commit(s) onto the feature branch in the main checkout, then remove the worktree and its branch. Git can't reach the main checkout from inside the worktree session.
 
+## Docs images
+
+Only when a docs update is requested.
+
+- The built-in types have a page each: `docs/user/stdlib/{nodes,components,util-objects}/<name>.md`, where `<name>` is the type id without its namespace and with `_` replaced by `-` (`core:for_loop` is `for-loop`). A page starts with `![Title](../../../_static/images/stdlib/<kind>/<name>.png)`. A new built-in type also needs a row in the `index.md` of its folder and an entry in the `mkdocs.yml` nav.
+- Render these images with `scripts/docs_images.py`, don't screenshot by hand or leave placeholders: `uv run python scripts/docs_images.py` for all, or `graph` (nodes and util objects) / `components`. It overwrites the files of the same names in `docs/_static/images/stdlib/`. `--out DIR` writes elsewhere, to compare first.
+- Nodes and util objects are crops of the graph scene. Components are their item in the Inspector, fully expanded with the Links section; the script enables a socket on the added component because that section is hidden without one, and sets the dark palette on the Inspector because the offscreen platform leaves the text dark on dark.
+- A new kind of image or a change to how a type is drawn goes into the script. Read a few of the results to check them. The look follows the editor config of whoever runs it, nothing is saved to it.
+- Other images (`editor_preview.png`, ...) are made by hand and live in `docs/_static/images/`.
+
 ## Qt Notes
 
 ### QWidgets

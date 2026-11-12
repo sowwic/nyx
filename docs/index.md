@@ -5,7 +5,9 @@ whose components are connected by links, and run it in a PySide6 editor or headl
 the command line. Plugins add nodes, components and datatypes. A TCP **bridge** lets a
 stage run code in other applications such as Maya and Blender.
 
-## Where to go
+![Nyx editor](_static/images/editor_preview.png)
+
+## Guides
 
 <div class="grid cards" markdown>
 
