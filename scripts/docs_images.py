@@ -5,11 +5,15 @@ cropped from their item in the Inspector, fully expanded. The images are written
 `docs/_static/images/stdlib/{nodes,components,util-objects}/<name>.png`, the name being
 the type id without its namespace, with `_` replaced by `-`.
 
-The two kinds need different Qt settings, so each runs in its own process:
+The link images (a link without pins and with pins) are cropped from the graph scene
+too and written to `docs/_static/images/link-pins/`.
+
+The kinds need different Qt settings, so each runs in its own process:
 
     uv run python scripts/docs_images.py              # everything
     uv run python scripts/docs_images.py graph        # nodes and util objects
     uv run python scripts/docs_images.py components   # components
+    uv run python scripts/docs_images.py links        # links and their pins
     uv run python scripts/docs_images.py --out DIR    # write somewhere else
 
 The look follows the editor config of the user running it (background style and color).
@@ -24,6 +28,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DEFAULT_OUT = ROOT / "docs" / "_static" / "images" / "stdlib"
+LINKS_OUT = ROOT / "docs" / "_static" / "images" / "link-pins"
 
 GRAPH_SCALE = 2
 GRAPH_MARGIN = 20
@@ -157,6 +162,76 @@ def render_graph(out: pathlib.Path) -> None:
     )
 
 
+def render_links(out: pathlib.Path) -> None:
+    """Render a link between two nodes without pins and with them.
+
+    Args:
+        out (pathlib.Path): folder to write the images to.
+    """
+    from PySide6 import QtCore, QtGui
+
+    from nyx.api.v1 import commands
+
+    app, window = create_editor()
+    stage = window.current_stage_graph.stage
+    gr_stage = window.current_stage_graph.gr_stage
+
+    def create_node(position):
+        command = commands.CreateNodeCommand(
+            stage=stage, type_id="core:action", position=position
+        )
+        stage.push_command(command)
+        app.processEvents()
+        return command.result_node
+
+    source = create_node((0.0, 0.0))
+    target = create_node((420.0, 40.0))
+    link_command = commands.LinkNodeComponentsCommand(
+        stage=stage, source=source["flow"], target=target["flow"]
+    )
+    stage.push_command(link_command)
+    pump(app)
+    link = link_command.result_link
+
+    def save(name: str) -> None:
+        gr_stage.clearSelection()
+        gr_link = gr_stage.get_gr_link(link)
+        rect = gr_stage.get_gr_node(source).sceneBoundingRect()
+        rect = rect.united(gr_stage.get_gr_node(target).sceneBoundingRect())
+        rect = rect.united(gr_link.sceneBoundingRect())
+        rect = rect.adjusted(-GRAPH_MARGIN, -GRAPH_MARGIN, GRAPH_MARGIN, GRAPH_MARGIN)
+        image = QtGui.QImage(
+            int(rect.width() * GRAPH_SCALE),
+            int(rect.height() * GRAPH_SCALE),
+            QtGui.QImage.Format.Format_ARGB32,
+        )
+        image.fill(QtGui.QColor("transparent"))
+        painter = QtGui.QPainter(image)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.TextAntialiasing)
+        gr_stage.render(painter, QtCore.QRectF(image.rect()), rect)
+        painter.end()
+        path = out / f"{name}.png"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        assert image.save(str(path)), path
+
+    def set_pins(pins: list[QtCore.QPointF]) -> None:
+        stage.push_command(commands.SetLinkPinsCommand(stage, link, pins))
+        pump(app)
+
+    save("link")
+    middle = gr_stage.get_gr_link(link).path().pointAtPercent(0.5)
+    set_pins([middle + QtCore.QPointF(0.0, -110.0)])
+    save("link-pin")
+    set_pins(
+        [
+            middle + QtCore.QPointF(-110.0, -110.0),
+            middle + QtCore.QPointF(110.0, 130.0),
+        ]
+    )
+    save("link-pins")
+
+
 def apply_dark_palette(app, view) -> None:
     """Give the Inspector the dark palette.
 
@@ -274,23 +349,30 @@ def render_components(out: pathlib.Path) -> None:
 def main() -> None:
     """Render the requested images, each kind in a process of its own."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("kind", nargs="?", choices=("graph", "components"))
-    parser.add_argument("--out", type=pathlib.Path, default=DEFAULT_OUT)
+    parser.add_argument("kind", nargs="?", choices=("graph", "components", "links"))
+    parser.add_argument("--out", type=pathlib.Path)
     args = parser.parse_args()
 
     if args.kind is None:
-        for kind in ("graph", "components"):
-            command = [sys.executable, __file__, kind, "--out", str(args.out)]
+        for kind in ("graph", "components", "links"):
+            command = [sys.executable, __file__, kind]
+            if args.out is not None:
+                command += ["--out", str(args.out)]
             subprocess.run(command, check=True)
         return
 
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
     if args.kind == "components":
+        out = args.out or DEFAULT_OUT
         os.environ["QT_SCALE_FACTOR"] = INSPECTOR_SCALE_FACTOR
-        render_components(args.out)
+        render_components(out)
+    elif args.kind == "links":
+        out = args.out or LINKS_OUT
+        render_links(out)
     else:
-        render_graph(args.out)
-    print(f"Rendered {args.kind} images to {args.out}")
+        out = args.out or DEFAULT_OUT
+        render_graph(out)
+    print(f"Rendered {args.kind} images to {out}")
 
 
 if __name__ == "__main__":

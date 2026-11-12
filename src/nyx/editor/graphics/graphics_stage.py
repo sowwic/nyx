@@ -80,6 +80,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """Creates signal-slot connections for the graphics stage."""
         self.selectionChanged.connect(self.on_selection_changed)
         self.stage.itemChanged.connect(self.on_node_changed)
+        self.stage.link_pins_changed.connect(self.on_link_pins_changed)
 
     @property
     def graph_editor(self) -> StageGraphEditor:
@@ -430,7 +431,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         """
         self.remove_link(link.uuid)
         gr_link = create_graphics_object(
-            link, source_plug, target_plug, link_uuid=link.uuid
+            link, source_plug, target_plug, link_uuid=link.uuid, pins=link.pins
         )
         if gr_link is None:
             return None
@@ -438,6 +439,39 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self._gr_links[link.uuid] = gr_link
         self.addItem(gr_link)
         return gr_link
+
+    def on_link_pins_changed(self, link_uuid: UUID):
+        """Show the pins a link has in the stage.
+
+        Args:
+            link_uuid (UUID): uuid of the changed link.
+        """
+        gr_link = self.get_gr_link(link_uuid)
+        if gr_link is not None:
+            gr_link.set_pins(self.stage.get_object(link_uuid).pins)
+
+    def find_link_at(
+        self, scene_pos: QtCore.QPointF, tolerance: float = 4.0
+    ) -> GraphicsLink | None:
+        """Find the link passing near a scene position.
+
+        Args:
+            scene_pos (QtCore.QPointF): scene position.
+            tolerance (float): distance from the link in scene units.
+
+        Returns:
+            GraphicsLink | None: link closest to the position in z order, if any.
+        """
+        area = QtCore.QRectF(
+            scene_pos.x() - tolerance,
+            scene_pos.y() - tolerance,
+            tolerance * 2,
+            tolerance * 2,
+        )
+        for item in self.items(area, QtCore.Qt.ItemSelectionMode.IntersectsItemShape):
+            if isinstance(item, GraphicsLink) and item.uuid in self._gr_links:
+                return item
+        return None
 
     def remove_link(self, link: GraphicsLink | Link | UUID) -> None:
         """Removes the GraphicsLink item of the given link, if there is one.

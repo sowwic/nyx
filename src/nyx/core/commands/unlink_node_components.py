@@ -3,7 +3,7 @@ import logging
 from collections.abc import Iterable
 from uuid import UUID
 
-from PySide6 import QtGui
+from PySide6 import QtCore, QtGui
 
 from ._base_nyx_command import NyxCommand
 from ..link import Link
@@ -36,6 +36,8 @@ class UnlinkNodeComponentsCommand(NyxCommand):
         self.link_uuids: list[UUID] = list(dict.fromkeys(link_uuids))
         # link uuid -> (source uuid, target uuid), filled when the links are removed
         self._ends: dict[UUID, tuple[UUID, UUID]] = {}
+        # link uuid -> pins of the link, filled when the links are removed
+        self._pins: dict[UUID, list[QtCore.QPointF]] = {}
 
     def target_nodes(self):
         """list[Node]: nodes the command changes."""
@@ -50,6 +52,7 @@ class UnlinkNodeComponentsCommand(NyxCommand):
         """Remove the links."""
         links: list[Link] = [self.stage.get_object(uuid) for uuid in self.link_uuids]
         self._ends = {link.uuid: (link.source, link.target) for link in links}
+        self._pins = {link.uuid: link.pins for link in links}
 
         if len(links) == 1:
             self.setText(f"Unlink components: {links[0].path_connection_str}")
@@ -61,14 +64,15 @@ class UnlinkNodeComponentsCommand(NyxCommand):
         return super().redo()
 
     def undo(self) -> None:
-        """Recreate the links with their original uuids."""
+        """Recreate the links with their original uuids and pins."""
         for link_uuid in reversed(self.link_uuids):
             source_uuid, target_uuid = self._ends[link_uuid]
-            self.stage.link_components(
+            link = self.stage.link_components(
                 source_component=source_uuid,
                 target_component=target_uuid,
                 use_uuid=link_uuid,
             )
+            link.pins = self._pins.get(link_uuid, [])
         return super().undo()
 
     def validate(self):

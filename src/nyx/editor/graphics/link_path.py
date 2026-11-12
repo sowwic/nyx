@@ -13,6 +13,9 @@ MIN_TANGENT = 40.0
 SQUARE_HANDLE_WEIGHT = 0.5
 """Where the vertical part of a square link is, from the source (0) to the target (1)."""
 
+PIN_SEARCH_SAMPLES = 32
+"""Points taken along every part of a link to find the one closest to a new pin."""
+
 _warned_styles: set[str] = set()
 
 
@@ -82,7 +85,10 @@ PATH_BUILDERS: dict[
 
 
 def build_link_path(
-    style: LinkStyle, start: QtCore.QPointF, end: QtCore.QPointF
+    style: LinkStyle,
+    start: QtCore.QPointF,
+    end: QtCore.QPointF,
+    pins: collections.abc.Sequence[QtCore.QPointF] = (),
 ) -> QtGui.QPainterPath:
     """Build the path of a link in a style.
 
@@ -90,11 +96,51 @@ def build_link_path(
         style (LinkStyle): style to draw the link in.
         start (QtCore.QPointF): scene position of the output socket.
         end (QtCore.QPointF): scene position of the input socket.
+        pins (Sequence[QtCore.QPointF]): scene positions the path passes through, in
+            order from the start. Every part between two points is drawn in the style.
 
     Returns:
         QtGui.QPainterPath: path from the start to the end.
     """
-    return PATH_BUILDERS[style](start, end)
+    builder = PATH_BUILDERS[style]
+    points = [start, *pins, end]
+    path = builder(points[0], points[1])
+    for segment_start, segment_end in zip(points[1:-1], points[2:]):
+        path.connectPath(builder(segment_start, segment_end))
+    return path
+
+
+def find_pin_index(
+    style: LinkStyle,
+    start: QtCore.QPointF,
+    end: QtCore.QPointF,
+    pins: collections.abc.Sequence[QtCore.QPointF],
+    pos: QtCore.QPointF,
+) -> int:
+    """Find where a new pin at a position goes in the list of pins.
+
+    Args:
+        style (LinkStyle): style the link is drawn in.
+        start (QtCore.QPointF): scene position of the output socket.
+        end (QtCore.QPointF): scene position of the input socket.
+        pins (Sequence[QtCore.QPointF]): current pins of the link.
+        pos (QtCore.QPointF): scene position of the new pin.
+
+    Returns:
+        int: index to insert the pin at, so that it lands in the part of the link
+            that passes closest to the position.
+    """
+    builder = PATH_BUILDERS[style]
+    points = [start, *pins, end]
+    best_index, best_distance = 0, float("inf")
+    for index, (segment_start, segment_end) in enumerate(zip(points, points[1:])):
+        segment = builder(segment_start, segment_end)
+        for step in range(PIN_SEARCH_SAMPLES + 1):
+            sample = segment.pointAtPercent(step / PIN_SEARCH_SAMPLES)
+            distance = QtGui.QVector2D(sample - pos).lengthSquared()
+            if distance < best_distance:
+                best_index, best_distance = index, distance
+    return best_index
 
 
 def get_link_style() -> LinkStyle:

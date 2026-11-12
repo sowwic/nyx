@@ -7,6 +7,7 @@ This guide is for people who extend Nyx with plugins or work on Nyx itself.
 | Page | What you learn |
 | --- | --- |
 | [The registry](registry.md) | How plugins are discovered and how their content ends up in `NYX_REGISTRY`. |
+| [Link pins](link-pins.md) | How pins on links are stored, changed, saved and drawn. |
 | [Profiling](profiling.md) | Timing and call profiling with `NYX_PROFILING`. |
 | [Writing plugins](plugins/index.md) | The anatomy of a plugin, and pages for each kind of content: [node](plugins/node.md), [function node](plugins/function-node.md), [component](plugins/component.md), [QML for a component](plugins/component-qml.md), [datatype](plugins/datatype.md), [util object](plugins/util-object.md), [graphics object](plugins/graphics-object.md). |
 | API reference | Generated from the docstrings of `nyx.core`, `nyx.editor` and the rest of the package (see the navigation). |
