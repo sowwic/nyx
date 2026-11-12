@@ -18,7 +18,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - uses: ./.github/actions/run-tests
 
   # macOS minutes are billed at 10x: only run once Linux and Windows pass, and
@@ -29,5 +29,5 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - uses: ./.github/actions/run-tests
