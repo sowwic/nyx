@@ -61,6 +61,7 @@ nav:
       - Overview: user/index.md
       - How a graph executes: user/execution.md
       - Datatypes: user/datatypes.md
+      - Link pins: user/link-pins.md
       - Built-ins:
           - Overview: user/stdlib/index.md
           - Nodes:
@@ -105,6 +106,7 @@ nav:
   - Developer Guide:
       - Overview: dev/index.md
       - The registry: dev/registry.md
+      - Link pins: dev/link-pins.md
       - Profiling: dev/profiling.md
       - Writing plugins:
           - Overview: dev/plugins/index.md

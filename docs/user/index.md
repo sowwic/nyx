@@ -15,6 +15,7 @@ components with links, and run it, in the editor or from the command line.
 | --- | --- |
 | [How a graph executes](execution.md) | How the flow moves from node to node, what a node does when it runs, how values are evaluated and pulled. |
 | [Datatypes](datatypes.md) | The built-in datatypes, which components can be linked, and how values are converted. |
+| [Link pins](link-pins.md) | Routing a link through dots you place on it. |
 | [Built-ins](stdlib/index.md) | A page for every component, node and utility object of the standard library. |
 | [Referencing stages](referencing.md) | Reusing a stage file inside another stage. |
 | [Remote nodes and the bridge](remote-nodes.md) | Running code in Maya, Blender or any other Python process. |
@@ -31,6 +32,7 @@ Looking to extend Nyx with your own nodes? See the [Developer Guide](../dev/inde
 | Node | A box in the graph. Can contain other nodes. |
 | Component | A plug on a node: a value, a flow connection, a script, ... |
 | Link | A connection between two components. |
+| Pin | A dot on a link that the link is drawn through, see [Link pins](link-pins.md). |
 | Flow | The path of execution, drawn with white pentagon plugs. |
 | Scope | The inside of a node. The stage root is the outermost scope. |
 | Util object | A note or a group. Organizes a graph, doesn't execute. |
