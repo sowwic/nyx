@@ -3,10 +3,10 @@
 The `.icns` (macOS) and `.ico` (Windows) containers are written here, so no platform
 tool (`iconutil`, `sips`, ImageMagick) is needed. Both formats can hold PNG images.
 
-macOS draws app icons with a transparent margin around the artwork (824 px of art on
-a 1024 px canvas), so a full-bleed icon looks too big in the Dock. The source PNGs
-stay full-bleed, they are also used inside the application, and Windows icons are
-meant to be full-bleed.
+macOS draws app icons with a transparent margin around the artwork (see
+`nyx.utils.app_icon.MACOS_ART_RATIO`), so a full-bleed icon looks too big in the
+Dock. The source PNGs stay full-bleed, they are also used inside the application, and
+Windows icons are meant to be full-bleed.
 """
 
 import pathlib
@@ -14,7 +14,7 @@ import struct
 
 from PySide6 import QtCore, QtGui
 
-MACOS_ART_RATIO = 824 / 1024
+from nyx.utils.app_icon import pad_for_macos
 
 # (icns type, pixel size). Types after `ic10` are the 2x variants of smaller sizes.
 ICNS_TYPES = (
@@ -65,18 +65,15 @@ def render_png(source_dir: pathlib.Path, size: int, margin: bool = False) -> byt
         bytes: PNG image data.
     """
     image = QtGui.QImage(str(find_source(source_dir, size)))
-    art_size = round(size * MACOS_ART_RATIO) if margin else size
-    art = image.scaled(
-        art_size,
-        art_size,
-        QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
-        QtCore.Qt.TransformationMode.SmoothTransformation,
-    )
-    canvas = QtGui.QImage(size, size, QtGui.QImage.Format.Format_ARGB32)
-    canvas.fill(QtCore.Qt.GlobalColor.transparent)
-    painter = QtGui.QPainter(canvas)
-    painter.drawImage((size - art_size) // 2, (size - art_size) // 2, art)
-    painter.end()
+    if margin:
+        canvas = pad_for_macos(image, size)
+    else:
+        canvas = image.scaled(
+            size,
+            size,
+            QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
+        ).convertToFormat(QtGui.QImage.Format.Format_ARGB32)
 
     data = QtCore.QByteArray()
     buffer = QtCore.QBuffer(data)

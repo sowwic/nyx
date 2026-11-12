@@ -12,7 +12,7 @@ from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.editor.widgets.startup_splash import NyxStartupSplash
 from nyx.editor.core.actions import register_default_actions
 from nyx.editor.graphics.graphics_factory import register_builtin_graphics_objects
-from nyx.utils import logging_fn, pyside_fn
+from nyx.utils import app_icon, logging_fn, pyside_fn
 from nyx.version import __version__
 
 LOGGER = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class NyxApplication(QtWidgets.QApplication):
         self._plugin_manager = NyxPluginManager()
         self.aboutToQuit.connect(self._session.shutdown)
         self.setApplicationDisplayName("Nyx")
-        self.setWindowIcon(QtGui.QIcon(":/icons/nyx/512"))
+        self.setWindowIcon(self._create_application_icon())
         self.setApplicationVersion(__version__)
         LOGGER.setLevel(self.config.values.logging_level)
 
@@ -41,6 +41,14 @@ class NyxApplication(QtWidgets.QApplication):
         if initialize_plugins:
             self._plugin_manager.initialize_plugins()
         self.post_initialize()
+
+    @staticmethod
+    def _create_application_icon() -> QtGui.QIcon:
+        """Create the application icon, with the margin macOS expects in the Dock."""
+        image = QtGui.QImage(":/icons/nyx/1024")
+        if sys.platform == "darwin":
+            image = app_icon.pad_for_macos(image)
+        return QtGui.QIcon(QtGui.QPixmap.fromImage(image))
 
     def pre_initialize(self) -> None:
         """Hook run after the builtin content is registered, before plugins load."""
