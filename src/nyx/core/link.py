@@ -4,6 +4,8 @@ import pathlib
 from uuid import UUID
 from collections import OrderedDict
 
+from PySide6 import QtCore
+
 from .stage_object import StageObject
 from .path_resolver import StagePathResolver
 from .exceptions import StageObjectQueryError
@@ -21,10 +23,16 @@ type LinkLike = Link | UUID | str
 
 
 class Link(StageObject):
-    """Connection between a source and a target node component."""
+    """Connection between a source and a target node component.
+
+    A link can carry pins: points in the graph that the drawn link passes through, in
+    order from the source to the target. Pins belong to one link and have no meaning
+    for execution.
+    """
 
     SOURCE_UUID_KEY = "source_uuid"
     TARGET_UUID_KEY = "target_uuid"
+    PINS_KEY = "pins"
 
     def __init__(
         self,
@@ -44,6 +52,7 @@ class Link(StageObject):
         self._stage = stage
         self.source = self.as_uuid(source)
         self.target = self.as_uuid(target)
+        self._pins: list[QtCore.QPointF] = []
         super().__init__(uuid)
 
     def __repr__(self) -> str:
@@ -59,6 +68,21 @@ class Link(StageObject):
     def stage(self) -> Stage:
         """Stage: owning stage."""
         return self._stage
+
+    @property
+    def pins(self) -> list[QtCore.QPointF]:
+        """list[QtCore.QPointF]: pins of the link in graph coordinates, source first."""
+        return [QtCore.QPointF(pin) for pin in self._pins]
+
+    @pins.setter
+    def pins(self, pins: typing.Iterable[QtCore.QPointF]):
+        """Replace the pins and tell the stage.
+
+        Args:
+            pins (Iterable[QtCore.QPointF]): new pins, source first.
+        """
+        self._pins = [QtCore.QPointF(pin) for pin in pins]
+        self.stage.link_pins_changed.emit(self.uuid)
 
     @property
     def source_component(self) -> NodeComponent:
@@ -155,6 +179,8 @@ class Link(StageObject):
         )
         serialized_data[self.SOURCE_UUID_KEY] = str(self.source)
         serialized_data[self.TARGET_UUID_KEY] = str(self.target)
+        if self._pins:
+            serialized_data[self.PINS_KEY] = [[pin.x(), pin.y()] for pin in self._pins]
         return serialized_data
 
     @classmethod
@@ -191,4 +217,7 @@ class Link(StageObject):
         else:
             link.uuid = new_uuid
 
+        link._pins = [
+            QtCore.QPointF(x, y) for x, y in serialized_link.get(cls.PINS_KEY, ())
+        ]
         return link

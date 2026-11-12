@@ -10,6 +10,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from nyx.editor.core.action_condition import CallableCondition
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.graphics.graphics_cutline import GraphCutLine
+from nyx.editor.graphics.graphics_link_pin import GraphicsLinkPin
 from nyx.editor.graphics.graphics_node import GraphicsNode
 from nyx.editor.graphics.graphics_util_object import GraphicsUtilObject
 from nyx.editor.utils import context_menus
@@ -62,6 +63,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
     HIGH_QUALITY_ZOOM = StageGraphZoom.HIGH_QUALITY_ZOOM
     DEFAULT_ZOOM = StageGraphZoom.DEFAULT_ZOOM
     FOCUS_MARGIN = 40  # scene units kept around nodes when fitting
+    LINK_PICK_DISTANCE = 6.0  # screen pixels from a link that still count as on it
 
     class InteractionMode(enum.Enum):
         """Mouse interaction modes of the view."""
@@ -346,16 +348,23 @@ class StageGraphView(QtWidgets.QGraphicsView):
             event (QtGui.QMouseEvent): event.
         """
         gr_item = self.itemAt(event.position().toPoint())
-        if not gr_item:
-            event.ignore()
-            return
-        gr_node = self._owning_gr_node(gr_item)
+        gr_node = self._owning_gr_node(gr_item) if gr_item else None
         if gr_node is not None:
             self.graph_editor.set_scope_path(gr_node.node.path)
             event.accept()
             return
-        else:
-            super().mouseDoubleClickEvent(event)
+        if not isinstance(gr_item, GraphicsLinkPin):
+            scene_pos = self.mapToScene(event.position().toPoint())
+            tolerance = self.LINK_PICK_DISTANCE / max(self.transform().m11(), 1e-6)
+            gr_link = self.scene().find_link_at(scene_pos, tolerance)
+            if gr_link is not None:
+                gr_link.add_pin(scene_pos)
+                event.accept()
+                return
+        if not gr_item:
+            event.ignore()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         """Dispatch to the handler of the pressed button.
