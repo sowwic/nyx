@@ -25,7 +25,7 @@ nyx = "nyx.cli:main"
 nyx-run-stage = "nyx.cli:run_stage_main"
 
 [build-system]
-requires = ["uv_build>=0.10.6"]
+requires = ["uv_build>=0.13.7"]
 build-backend = "uv_build"
 
 [dependency-groups]
