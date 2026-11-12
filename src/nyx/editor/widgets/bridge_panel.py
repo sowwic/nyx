@@ -17,7 +17,6 @@ class BridgePanel(QtWidgets.QWidget):
     CLIENT_COLUMNS = ("Name", "Kind", "Version", "Id")
     CLIENT_COLUMN_WIDTHS = (90, 80, 90)
     """Initial widths of the columns after the name, which takes the rest."""
-    HIDDEN_TOKEN_TEXT = "••••••••"
 
     def __init__(
         self, session: NyxSession, parent: QtWidgets.QWidget | None = None
@@ -35,7 +34,8 @@ class BridgePanel(QtWidgets.QWidget):
         self.toggle_button = QtWidgets.QPushButton(self)
         self.address_label = QtWidgets.QLabel(self)
         self.copy_address_button = QtWidgets.QPushButton("Copy", self)
-        self.token_label = QtWidgets.QLabel(self)
+        self.token_edit = QtWidgets.QLineEdit(self)
+        self.token_edit.setReadOnly(True)
         self.show_token_button = QtWidgets.QPushButton("Show", self)
         self.show_token_button.setCheckable(True)
         self.copy_token_button = QtWidgets.QPushButton("Copy", self)
@@ -58,10 +58,9 @@ class BridgePanel(QtWidgets.QWidget):
             QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows
         )
 
-        for label in (self.address_label, self.token_label):
-            label.setTextInteractionFlags(
-                QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
-            )
+        self.address_label.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
 
         grid = QtWidgets.QGridLayout()
         grid.addWidget(QtWidgets.QLabel("Status"), 0, 0)
@@ -71,7 +70,7 @@ class BridgePanel(QtWidgets.QWidget):
         grid.addWidget(self.address_label, 1, 1)
         grid.addWidget(self.copy_address_button, 1, 2, 1, 2)
         grid.addWidget(QtWidgets.QLabel("Token"), 2, 0)
-        grid.addWidget(self.token_label, 2, 1)
+        grid.addWidget(self.token_edit, 2, 1)
         grid.addWidget(self.show_token_button, 2, 2)
         grid.addWidget(self.copy_token_button, 2, 3)
         grid.setColumnStretch(1, 1)
@@ -124,12 +123,13 @@ class BridgePanel(QtWidgets.QWidget):
         self.copy_address_button.setEnabled(running)
 
         has_token = server is not None
-        if not has_token:
-            self.token_label.setText("-")
-        elif self.show_token_button.isChecked():
-            self.token_label.setText(server.token)
-        else:
-            self.token_label.setText(self.HIDDEN_TOKEN_TEXT)
+        self.token_edit.setText(server.token if has_token else "-")
+        reveal = not has_token or self.show_token_button.isChecked()
+        self.token_edit.setEchoMode(
+            QtWidgets.QLineEdit.EchoMode.Normal
+            if reveal
+            else QtWidgets.QLineEdit.EchoMode.Password
+        )
         self.show_token_button.setEnabled(has_token)
         self.copy_token_button.setEnabled(has_token)
 
