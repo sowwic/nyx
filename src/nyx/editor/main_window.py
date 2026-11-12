@@ -23,6 +23,7 @@ from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
 from .widgets.bridge_panel import BridgePanel
 from .widgets.notifications import NotificationManager
+from .widgets.dialogs.about_dialog import AboutDialog
 from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
 from .widgets.output_log.output_log_dock import OutputLogDockWidget
 from .widgets.inspector import Inspector
@@ -30,6 +31,7 @@ from .widgets.editor_toolbar import EditorToolBar
 from .widgets import menubar_menus
 from .widgets.stage_mdi_area import StageMdiArea
 from ..utils import pyside_fn
+from ..static import vars as nyx_vars
 from ..static.enums import EditorUIObject
 from ..core.session import SESSION_FILE_SUFFIX
 from ..static.paths import LAST_SESSION_FILE_PATH
@@ -184,6 +186,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         register(ActionId.VIEWPORT_DEBUG_OVERLAY, self.set_viewport_debug_overlay)
         register(ActionId.SHOW_ADDRESS_NAMES, self.set_show_address_names)
         register(ActionId.ALWAYS_ON_TOP, self.set_always_on_top)
+        register(ActionId.DOCUMENTATION, self.open_documentation)
+        register(ActionId.ABOUT, self.show_about_dialog)
         # Fallbacks so toolbar buttons work before the tree view has focus
         register(ActionId.CREATE_NODE, self.show_nodes_palette)
         register(
@@ -203,6 +207,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menubar_session_menu = menubar_menus.SessionMenu(self)
         self.menubar_view_menu = menubar_menus.ViewMenu(self)
         self.menubar_window_menu = menubar_menus.WindowMenu(self)
+        self.menubar_help_menu = menubar_menus.HelpMenu(self)
 
         self.menuBar().setNativeMenuBar(False)
         self.menuBar().addMenu(self.menubar_file_menu)
@@ -210,6 +215,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(self.menubar_session_menu)
         self.menuBar().addMenu(self.menubar_view_menu)
         self.menuBar().addMenu(self.menubar_window_menu)
+        self.menuBar().addMenu(self.menubar_help_menu)
 
     def create_widgets(self):
         """Create the window widgets."""
@@ -456,6 +462,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         LOGGER.info("Using saved main window layout")
         return True
+
+    def open_documentation(self) -> None:
+        """Open the documentation in the default browser."""
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(nyx_vars.DOCUMENTATION_URL))
+
+    def show_about_dialog(self) -> None:
+        """Show the modal about dialog."""
+        AboutDialog(self).exec()
 
     def show_config_editor(self) -> ConfigEditorDialog:
         """Show the config editor, applying the config whenever a layer is saved.

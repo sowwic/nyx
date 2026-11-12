@@ -47,6 +47,9 @@ class ActionId(StrEnum):
     VIEWPORT_DEBUG_OVERLAY = "view.viewport_debug_overlay"
     SHOW_ADDRESS_NAMES = "view.show_address_names"
     ALWAYS_ON_TOP = "view.always_on_top"
+    # Help
+    DOCUMENTATION = "help.documentation"
+    ABOUT = "help.about"
     # Stage
     EXECUTE_STAGE = "stage.execute"
     EXECUTE_FROM_SELECTED = "stage.execute_from_selected"
@@ -206,6 +209,14 @@ def default_definitions() -> list[ActionDefinition]:
             status_tip="Keep the main window above other windows",
             checkable=True,
         ),
+        D(
+            ActionId.DOCUMENTATION,
+            "Documentation",
+            "Help",
+            icon_path=":/icons/info",
+            status_tip="Open the Nyx documentation in the browser",
+        ),
+        D(ActionId.ABOUT, "About", "Help", status_tip="Show information about Nyx"),
         D(
             ActionId.EXECUTE_STAGE,
             "Execute stage",
