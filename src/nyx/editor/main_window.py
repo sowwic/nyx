@@ -23,6 +23,7 @@ from .views.nodes_palette_view import NodesPaletteView
 from .widgets.stage_graph_editor import StageGraphEditor
 from .widgets.bridge_panel import BridgePanel
 from .widgets.notifications import NotificationManager
+from .widgets.dialogs.about_dialog import AboutDialog
 from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
 from .widgets.output_log.output_log_dock import OutputLogDockWidget
 from .widgets.inspector import Inspector
@@ -30,6 +31,7 @@ from .widgets.editor_toolbar import EditorToolBar
 from .widgets import menubar_menus
 from .widgets.stage_mdi_area import StageMdiArea
 from ..utils import pyside_fn
+from ..static import vars as nyx_vars
 from ..static.enums import EditorUIObject
 from ..core.session import SESSION_FILE_SUFFIX
 from ..static.paths import LAST_SESSION_FILE_PATH
@@ -184,6 +186,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         register(ActionId.VIEWPORT_DEBUG_OVERLAY, self.set_viewport_debug_overlay)
         register(ActionId.SHOW_ADDRESS_NAMES, self.set_show_address_names)
         register(ActionId.ALWAYS_ON_TOP, self.set_always_on_top)
+        register(ActionId.DOCUMENTATION, self.open_documentation)
+        register(ActionId.ABOUT, self.show_about_dialog)
         # Fallbacks so toolbar buttons work before the tree view has focus
         register(ActionId.CREATE_NODE, self.show_nodes_palette)
         register(
@@ -203,6 +207,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menubar_session_menu = menubar_menus.SessionMenu(self)
         self.menubar_view_menu = menubar_menus.ViewMenu(self)
         self.menubar_window_menu = menubar_menus.WindowMenu(self)
+        self.menubar_help_menu = menubar_menus.HelpMenu(self)
 
         self.menuBar().setNativeMenuBar(False)
         self.menuBar().addMenu(self.menubar_file_menu)
@@ -210,6 +215,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(self.menubar_session_menu)
         self.menuBar().addMenu(self.menubar_view_menu)
         self.menuBar().addMenu(self.menubar_window_menu)
+        self.menuBar().addMenu(self.menubar_help_menu)
 
     def create_widgets(self):
         """Create the window widgets."""
@@ -379,14 +385,30 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         ).decode("ascii")
         self.logger_dock.save_config_values(self.config)
 
+    def _apply_window_geometry(self):
+        """Apply the saved window geometry, or the default one if there is none."""
+        window_config = self.config.values.main_window
+        if not (window_config.size and window_config.position):
+            self._apply_default_geometry()
+            return
+
+        # A window without a native handle is placed on the primary screen and
+        # clamped to it, so assign the saved screen before moving.
+        screen = pyside_fn.screen_for_window_geometry(
+            window_config.position, window_config.size
+        )
+        self.createWinId()
+        self.windowHandle().setScreen(screen)
+        self.setGeometry(
+            QtCore.QRect(
+                QtCore.QPoint(*window_config.position),
+                QtCore.QSize(*window_config.size),
+            )
+        )
+
     def apply_config_values(self):
         """Apply values from application config."""
-        window_config = self.config.values.main_window
-        if window_config.size and window_config.position:
-            self.resize(QtCore.QSize(*window_config.size))
-            self.move(QtCore.QPoint(*window_config.position))
-        else:
-            self._apply_default_geometry()
+        self._apply_window_geometry()
 
         self._apply_always_on_top()
         LOGGER.setLevel(self.config.values.logging_level)
@@ -399,6 +421,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # to its collapsed/default size while placing it.
         self.logger_dock.apply_config_values(self.config)
         self._load_layout_from_config()
+        # Restoring the dock layout shrinks the window to its minimum size
+        self._apply_window_geometry()
 
     def _apply_stage_render_options(self):
         """Redraw the open stages with the render options of the config.
@@ -438,6 +462,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         LOGGER.info("Using saved main window layout")
         return True
+
+    def open_documentation(self) -> None:
+        """Open the documentation in the default browser."""
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(nyx_vars.DOCUMENTATION_URL))
+
+    def show_about_dialog(self) -> None:
+        """Show the modal about dialog."""
+        AboutDialog(self).exec()
 
     def show_config_editor(self) -> ConfigEditorDialog:
         """Show the config editor, applying the config whenever a layer is saved.
