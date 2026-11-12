@@ -11,15 +11,9 @@ from nyx.api.v1 import (
 )
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.editor.widgets.dialogs.stage_object_picker import StageObjectPickerDialog
+from stage_helpers import STAGES
 
-STAGES = []
 """Stages of the running test: a node doesn't keep its stage alive."""
-
-
-@pytest.fixture(autouse=True)
-def keep_stages_alive():
-    yield
-    STAGES.clear()
 
 
 def create(stage, type_id=CoreNodes.EMPTY, parent=None, name=None):

@@ -3,21 +3,13 @@ from PySide6 import QtCore, QtWidgets
 from unittest import mock
 
 from nyx.core.exceptions import ActionLookupError
-from nyx.editor.core.action_registry import ActionRegistry
 from nyx.editor.core.action_router import ActionRouter
-from nyx.editor.core.actions import ActionId, register_default_actions
+from nyx.editor.core.actions import ActionId
 
 
 @pytest.fixture
-def registry(qtbot) -> ActionRegistry:
-    registry = ActionRegistry()
-    register_default_actions(registry)
-    return registry
-
-
-@pytest.fixture
-def router(registry) -> ActionRouter:
-    return ActionRouter(registry)
+def router(action_registry) -> ActionRouter:
+    return ActionRouter(action_registry)
 
 
 @pytest.fixture
@@ -42,12 +34,12 @@ def _focus(qtbot, widget: QtWidgets.QWidget):
     qtbot.waitUntil(widget.hasFocus, timeout=2000)
 
 
-def test_shortcut_triggers_handler(registry, router, qtbot):
+def test_shortcut_triggers_handler(action_registry, router, qtbot):
     window = QtWidgets.QWidget()
     qtbot.addWidget(window)
     calls = []
     router.register_handler(ActionId.SAVE_STAGE, lambda: calls.append(1))
-    registry.attach_shortcuts(window)
+    action_registry.attach_shortcuts(window)
     window.show()
     qtbot.waitExposed(window)
     window.activateWindow()
@@ -63,7 +55,7 @@ def test_shortcut_triggers_handler(registry, router, qtbot):
 
 
 # ---- Handler resolution ----
-def test_scoped_handler_beats_global(registry, router, qtbot):
+def test_scoped_handler_beats_global(action_registry, router, qtbot):
     calls = []
     outer = QtWidgets.QWidget()
     qtbot.addWidget(outer)
@@ -79,7 +71,7 @@ def test_scoped_handler_beats_global(registry, router, qtbot):
     assert calls == ["inner", "global"]
 
 
-def test_nearest_scope_wins(registry, router, qtbot):
+def test_nearest_scope_wins(action_registry, router, qtbot):
     calls = []
     outer = QtWidgets.QWidget()
     qtbot.addWidget(outer)
@@ -90,7 +82,7 @@ def test_nearest_scope_wins(registry, router, qtbot):
     assert calls == ["inner"]
 
 
-def test_no_handler_without_global_returns_none(registry, router, qtbot):
+def test_no_handler_without_global_returns_none(action_registry, router, qtbot):
     scoped = QtWidgets.QWidget()
     qtbot.addWidget(scoped)
     other = QtWidgets.QWidget()
@@ -99,14 +91,14 @@ def test_no_handler_without_global_returns_none(registry, router, qtbot):
     assert router.resolve_handler(ActionId.COPY, other) is None
 
 
-def test_dispatch_without_handler_warns(registry, router, caplog):
+def test_dispatch_without_handler_warns(action_registry, router, caplog):
     with caplog.at_level("WARNING"):
         assert router.dispatch(ActionId.COPY) is False
     assert "No handler" in caplog.text
 
 
-def test_unregister_handler(registry, router):
-    action = registry.action(ActionId.COPY)
+def test_unregister_handler(action_registry, router):
+    action = action_registry.action(ActionId.COPY)
     handle = router.register_handler(ActionId.COPY, lambda: None)
     assert action.isEnabled()
     router.unregister_handler(handle)
@@ -114,7 +106,7 @@ def test_unregister_handler(registry, router):
     router.unregister_handler(handle)  # unknown handle is a no-op
 
 
-def test_bound_method_handler_is_weak(registry, router):
+def test_bound_method_handler_is_weak(action_registry, router):
     class Target:
         def run(self):
             pass
@@ -126,7 +118,7 @@ def test_bound_method_handler_is_weak(registry, router):
     assert router.resolve_handler(ActionId.COPY) is None
 
 
-def test_handler_dropped_when_scope_destroyed(registry, router, qtbot):
+def test_handler_dropped_when_scope_destroyed(action_registry, router, qtbot):
     widget = QtWidgets.QWidget()
     router.register_handler(ActionId.COPY, lambda: None, scope=widget)
     assert router.resolve_binding(ActionId.COPY, widget) is not None
@@ -135,38 +127,40 @@ def test_handler_dropped_when_scope_destroyed(registry, router, qtbot):
 
 
 # ---- Triggering and enabled state ----
-def test_triggering_shared_action_dispatches(registry, router):
+def test_triggering_shared_action_dispatches(action_registry, router):
     calls = []
     router.register_handler(ActionId.COPY, lambda: calls.append(1))
-    registry.action(ActionId.COPY).trigger()
+    action_registry.action(ActionId.COPY).trigger()
     assert calls == [1]
 
 
-def test_no_handler_disables_action(registry, router):
-    action = registry.action(ActionId.COPY)
+def test_no_handler_disables_action(action_registry, router):
+    action = action_registry.action(ActionId.COPY)
     assert not action.isEnabled()
     router.register_handler(ActionId.COPY, lambda: None)
     assert action.isEnabled()
 
 
-def test_condition_controls_enabled_state(registry, router):
+def test_condition_controls_enabled_state(action_registry, router):
     state = {"on": False}
     router.register_handler(ActionId.CUT, lambda: None, condition=lambda: state["on"])
-    action = registry.action(ActionId.CUT)
+    action = action_registry.action(ActionId.CUT)
     assert not action.isEnabled()
     state["on"] = True
     router.refresh_enabled(ActionId.CUT)
     assert action.isEnabled()
 
 
-def test_focus_change_switches_handler_and_enabled(registry, router, qtbot, focus_pair):
+def test_focus_change_switches_handler_and_enabled(
+    action_registry, router, qtbot, focus_pair
+):
     _window, left_box, left, right_box, right = focus_pair
     calls = []
     router.register_handler(ActionId.COPY, lambda: calls.append("left"), scope=left_box)
     router.register_handler(
         ActionId.COPY, lambda: calls.append("right"), scope=right_box
     )
-    action = registry.action(ActionId.COPY)
+    action = action_registry.action(ActionId.COPY)
 
     _focus(qtbot, left)
     qtbot.waitUntil(action.isEnabled, timeout=2000)
@@ -177,11 +171,11 @@ def test_focus_change_switches_handler_and_enabled(registry, router, qtbot, focu
 
 
 def test_action_disabled_when_focus_leaves_all_scopes(
-    registry, router, qtbot, focus_pair
+    action_registry, router, qtbot, focus_pair
 ):
     _window, left_box, left, _right_box, right = focus_pair
     router.register_handler(ActionId.COPY, lambda: None, scope=left_box)
-    action = registry.action(ActionId.COPY)
+    action = action_registry.action(ActionId.COPY)
 
     _focus(qtbot, left)
     qtbot.waitUntil(action.isEnabled, timeout=2000)
@@ -194,29 +188,29 @@ def test_register_handler_unknown_action_raises(router):
         router.register_handler("nope", lambda: None)
 
 
-def test_action_created_after_handler_registered_is_enabled(registry, router):
+def test_action_created_after_handler_registered_is_enabled(action_registry, router):
     router.register_handler(ActionId.COPY, lambda: None)
-    assert registry.action(ActionId.COPY).isEnabled()
+    assert action_registry.action(ActionId.COPY).isEnabled()
 
 
-def test_condition_respected_for_late_created_action(registry, router):
+def test_condition_respected_for_late_created_action(action_registry, router):
     router.register_handler(ActionId.COPY, lambda: None, condition=lambda: False)
-    assert not registry.action(ActionId.COPY).isEnabled()
+    assert not action_registry.action(ActionId.COPY).isEnabled()
 
 
-def test_router_wires_actions_that_already_exist(registry):
-    action = registry.action(ActionId.COPY)
+def test_router_wires_actions_that_already_exist(action_registry):
+    action = action_registry.action(ActionId.COPY)
     calls = []
-    router = ActionRouter(registry)
+    router = ActionRouter(action_registry)
     router.register_handler(ActionId.COPY, lambda: calls.append(1))
     assert action.isEnabled()
     action.trigger()
     assert calls == [1]
 
 
-def test_registry_clear_drops_handlers(registry, router):
+def test_registry_clear_drops_handlers(action_registry, router):
     router.register_handler(ActionId.COPY, lambda: None)
-    registry.clear()
+    action_registry.clear()
     assert router.resolve_handler(ActionId.COPY) is None
 
 
@@ -257,13 +251,13 @@ def test_main_window_show_nodes_palette_delegates_to_current_graph():
     NyxEditorMainWindow.show_nodes_palette(window)  # must not raise
 
 
-def test_action_condition_changed_refreshes_action(registry, router):
+def test_action_condition_changed_refreshes_action(action_registry, router):
     from nyx.editor.core.action_condition import CallableCondition
 
     state = {"on": False}
     condition = CallableCondition(lambda: state["on"])
     router.register_handler(ActionId.CUT, lambda: None, condition=condition)
-    action = registry.action(ActionId.CUT)
+    action = action_registry.action(ActionId.CUT)
     assert not action.isEnabled()
 
     state["on"] = True
@@ -271,7 +265,7 @@ def test_action_condition_changed_refreshes_action(registry, router):
     assert action.isEnabled()
 
 
-def test_unregistered_condition_no_longer_refreshes_action(registry, router):
+def test_unregistered_condition_no_longer_refreshes_action(action_registry, router):
     from nyx.editor.core.action_condition import CallableCondition
 
     state = {"on": False}
@@ -279,7 +273,7 @@ def test_unregistered_condition_no_longer_refreshes_action(registry, router):
     handle = router.register_handler(ActionId.CUT, lambda: None, condition=condition)
     router.unregister_handler(handle)
     router.register_handler(ActionId.CUT, lambda: None)
-    action = registry.action(ActionId.CUT)
+    action = action_registry.action(ActionId.CUT)
     assert action.isEnabled()
 
     state["on"] = False

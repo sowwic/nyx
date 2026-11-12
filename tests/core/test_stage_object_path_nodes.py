@@ -15,19 +15,12 @@ from nyx.api.v1 import (
 )
 from nyx.core.contexts.serialization import NodeDeserializationContext
 from nyx.stdlib.node_components.object_path import StageObjectPathComponent
-
-
-def create(stage, type_id=CoreNodes.ACTION, name=None, parent=None):
-    command = commands.CreateNodeCommand(
-        stage=stage, type_id=type_id, name=name, parent_node=parent
-    )
-    stage.push_command(command)
-    return command.result_node
+from stage_helpers import create_node
 
 
 def create_owner(stage, name="getter", parent=None):
     """Create a node holding a `StageObjectPathComponent` named "node_path"."""
-    node = create(stage, CoreNodes.ACTION, name=name, parent=parent)
+    node = create_node(stage, CoreNodes.ACTION, name=name, parent=parent)
     command = commands.AddNodeComponentCommand(
         node=node, type_id=CoreNodeComponents.STAGE_OBJECT_PATH, name="node_path"
     )
@@ -51,7 +44,7 @@ def paste(stage, nodes, parent=None):
 def getter_and_target():
     """Stage with a getter pointing at a log node, both at the stage root."""
     stage = Stage()
-    target = create(stage, CoreNodes.LOG, name="target")
+    target = create_node(stage, CoreNodes.LOG, name="target")
     getter = create_owner(stage, name="getter")
     getter["node_path"].push_value(target.path.as_posix())
     return stage, getter, target
@@ -91,10 +84,10 @@ def test_relative_path_resolves_against_scope_of_owner(getter_and_target, text):
 
 def test_relative_path_in_child_scope():
     stage = Stage()
-    group = create(stage, CoreNodes.ACTION, name="group")
-    target = create(stage, CoreNodes.LOG, name="target", parent=group)
+    group = create_node(stage, CoreNodes.ACTION, name="group")
+    target = create_node(stage, CoreNodes.LOG, name="target", parent=group)
     getter = create_owner(stage, name="getter", parent=group)
-    outer = create(stage, CoreNodes.LOG, name="outer")
+    outer = create_node(stage, CoreNodes.LOG, name="outer")
 
     getter["node_path"].push_value("./target")
     assert getter["node_path"].resolve_node() is target
@@ -141,7 +134,7 @@ def test_path_is_not_evaluated(getter_and_target, caplog):
 
 def test_linked_object_path_provides_the_path():
     stage = Stage()
-    target = create(stage, CoreNodes.LOG, name="target")
+    target = create_node(stage, CoreNodes.LOG, name="target")
     owner = create_owner(stage, name="owner")
     source_node = create_owner(stage, name="source")
     source = source_node["node_path"]
@@ -161,7 +154,7 @@ def test_linked_object_path_provides_the_path():
 def test_plain_value_can_be_linked_into_a_object_path():
     stage = Stage()
     owner = create_owner(stage, name="owner")
-    source_node = create(stage, CoreNodes.ACTION, name="source")
+    source_node = create_node(stage, CoreNodes.ACTION, name="source")
     add_command = commands.AddNodeComponentCommand(
         node=source_node, type_id=CoreNodeComponents.VALUE, name="path"
     )
@@ -181,7 +174,7 @@ def test_plain_value_can_be_linked_into_a_object_path():
 
 def test_set_value_command_undo_redo(getter_and_target):
     stage, getter, target = getter_and_target
-    other = create(stage, CoreNodes.LOG, name="other")
+    other = create_node(stage, CoreNodes.LOG, name="other")
     object_path = getter["node_path"]
 
     stage.push_command(
@@ -234,7 +227,7 @@ def test_export_import_roundtrip(output_dir: pathlib.Path, getter_and_target):
 
 def test_plain_path_value_still_loads():
     stage = Stage()
-    target = create(stage, CoreNodes.LOG, name="target")
+    target = create_node(stage, CoreNodes.LOG, name="target")
     owner = create_owner(stage, name="owner")
     serialized = owner.serialize()
     for component in serialized["components"]:
@@ -242,7 +235,7 @@ def test_plain_path_value_still_loads():
             component["value"] = target.path.as_posix()  # a plain path, not a dict
 
     other_stage = Stage()
-    create(other_stage, CoreNodes.LOG, name="target")
+    create_node(other_stage, CoreNodes.LOG, name="target")
     (pasted,) = paste(other_stage, [_Serialized(serialized)])
     assert pasted["node_path"].get_type_id() == CoreNodeComponents.STAGE_OBJECT_PATH
     assert pasted["node_path"].resolve_node().path == target.path
@@ -298,10 +291,10 @@ def test_pasting_group_into_another_stage_points_at_the_copies(getter_and_target
 
 def test_pasting_group_into_a_child_scope_follows_the_group():
     stage = Stage()
-    target = create(stage, CoreNodes.LOG, name="target")
+    target = create_node(stage, CoreNodes.LOG, name="target")
     getter = create_owner(stage, name="getter")
     getter["node_path"].push_value("./target")
-    destination = create(stage, CoreNodes.ACTION, name="destination")
+    destination = create_node(stage, CoreNodes.ACTION, name="destination")
 
     pasted = paste(stage, [getter, target], parent=destination)
     new_getter = next(node for node in pasted if node.get_type_id() == CoreNodes.ACTION)
@@ -317,7 +310,7 @@ def test_external_target_in_another_stage_falls_back_to_relative_path(
 ):
     _stage, getter, _target = getter_and_target
     other_stage = Stage()
-    local_target = create(other_stage, CoreNodes.LOG, name="target")
+    local_target = create_node(other_stage, CoreNodes.LOG, name="target")
 
     (new_getter,) = paste(other_stage, [getter])
     assert new_getter["node_path"].resolve_node() is local_target
@@ -330,7 +323,7 @@ def test_external_target_missing_in_another_stage_is_unresolved(getter_and_targe
     (new_getter,) = paste(other_stage, [getter])
     assert not new_getter["node_path"].is_valid
     # ...and found once something shows up where the object_path looks
-    create(other_stage, CoreNodes.LOG, name="target")
+    create_node(other_stage, CoreNodes.LOG, name="target")
     assert new_getter["node_path"].is_valid
 
 
@@ -409,7 +402,7 @@ def test_views_are_told_when_the_object_path_becomes_valid():
 
 def test_views_never_end_up_with_the_previous_display_value():
     stage = Stage()
-    create(stage, CoreNodes.LOG, name="node")
+    create_node(stage, CoreNodes.LOG, name="node")
     getter = create_owner(stage, name="getter")
     object_path = getter["node_path"]
     object_path.push_value(static_vars.ROOT_NODE_PATH.as_posix())

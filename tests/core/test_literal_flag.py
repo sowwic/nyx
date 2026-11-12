@@ -3,15 +3,9 @@ import pytest
 from nyx.api.v1 import CoreDatatypes, CoreNodeComponents, CoreNodes, Stage, commands
 from nyx.core.node import Node
 from nyx.static.enums import NodeComponentFlag
+from stage_helpers import STAGES
 
-STAGES = []
 """Stages of the running test: a node doesn't keep its stage alive."""
-
-
-@pytest.fixture(autouse=True)
-def keep_stages_alive():
-    yield
-    STAGES.clear()
 
 
 def new_node(literal):

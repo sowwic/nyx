@@ -17,7 +17,7 @@ def texts(item):
 
 
 @pytest.fixture
-def remote_client(main_window, stage_editor, create_node):
+def remote_client_gr_node(main_window, stage_editor, create_node):
     node = create_node(
         stage_editor.stage, "remote_client", type_id=CoreNodes.REMOTE_CLIENT
     )
@@ -38,9 +38,9 @@ def titled(gr_node):
 
 
 def test_view_menu_toggle_switches_titles_and_plug_labels(
-    main_window, stage_editor, remote_client, qapp, monkeypatch
+    main_window, stage_editor, remote_client_gr_node, qapp, monkeypatch
 ):
-    node, gr_node = remote_client
+    node, gr_node = remote_client_gr_node
     monkeypatch.setattr(qapp.config, "save", lambda *args, **kwargs: None)
     stage_editor.stage.push_command(
         commands.RenameNodeCommand(stage_editor.stage, node, "My Client")
@@ -79,8 +79,10 @@ def test_menu_shows_the_configured_setting(main_window, qapp, monkeypatch):
     assert main_window.menubar_view_menu.show_address_names_action.isChecked()
 
 
-def test_title_edit_renames_through_the_display_name(stage_editor, remote_client):
-    node, gr_node = remote_client
+def test_title_edit_renames_through_the_display_name(
+    stage_editor, remote_client_gr_node
+):
+    node, gr_node = remote_client_gr_node
 
     gr_node.title_item.apply_edit("  My cool node ")
 
@@ -91,8 +93,10 @@ def test_title_edit_renames_through_the_display_name(stage_editor, remote_client
     assert titled(gr_node) == "Remote Client"
 
 
-def test_title_edit_ignores_unchanged_and_unusable_names(stage_editor, remote_client):
-    node, gr_node = remote_client
+def test_title_edit_ignores_unchanged_and_unusable_names(
+    stage_editor, remote_client_gr_node
+):
+    node, gr_node = remote_client_gr_node
     count = stage_editor.stage.undo_stack.count()
 
     gr_node.title_item.apply_edit("Remote Client")
@@ -102,8 +106,8 @@ def test_title_edit_ignores_unchanged_and_unusable_names(stage_editor, remote_cl
     assert node.name == "remote_client"
 
 
-def test_title_tooltip_names_both(remote_client):
-    _, gr_node = remote_client
+def test_title_tooltip_names_both(remote_client_gr_node):
+    _, gr_node = remote_client_gr_node
 
     tooltip = gr_node.title_item.toolTip()
 
@@ -111,9 +115,9 @@ def test_title_tooltip_names_both(remote_client):
 
 
 def test_inspector_header_edits_the_display_name(
-    main_window, stage_editor, remote_client, qtbot
+    main_window, stage_editor, remote_client_gr_node, qtbot
 ):
-    node, _ = remote_client
+    node, _ = remote_client_gr_node
     header = main_window.inspector._node_header
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
@@ -128,9 +132,9 @@ def test_inspector_header_edits_the_display_name(
 
 
 def test_component_rows_show_labels_and_switch_with_the_setting(
-    main_window, stage_editor, remote_client, qtbot
+    main_window, stage_editor, remote_client_gr_node, qtbot
 ):
-    node, _ = remote_client
+    node, _ = remote_client_gr_node
     main_window.inspector.show()
     main_window.inspector.resize(500, 700)
     stage_editor.selection_model.select(
@@ -148,9 +152,9 @@ def test_component_rows_show_labels_and_switch_with_the_setting(
 
 
 def test_component_row_rename_sets_the_display_name(
-    main_window, stage_editor, remote_client, qtbot
+    main_window, stage_editor, remote_client_gr_node, qtbot
 ):
-    node, _ = remote_client
+    node, _ = remote_client_gr_node
     main_window.inspector.show()
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select

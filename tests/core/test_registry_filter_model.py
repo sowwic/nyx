@@ -6,7 +6,7 @@ from nyx.core.models.registry_model import RegistryListModel
 
 
 @pytest.fixture
-def filter_model():
+def registry_filter_model():
     source = RegistryListModel(lambda: NYX_REGISTRY.nodes)
     model = RegistryFilterModel()
     model.setSourceModel(source)
@@ -29,47 +29,49 @@ def test_parse_token():
     assert RegistryFilterModel.parse_token("plain text") is None
 
 
-def test_exposes_token_keys(filter_model):
-    assert set(filter_model.tokenKeys) == set(RegistryFilterModel.TOKEN_ROLES)
+def test_exposes_token_keys(registry_filter_model):
+    assert set(registry_filter_model.tokenKeys) == set(RegistryFilterModel.TOKEN_ROLES)
 
 
-def test_everything_is_shown_without_a_query(filter_model):
-    assert type_ids(filter_model) == set(NYX_REGISTRY.nodes)
+def test_everything_is_shown_without_a_query(registry_filter_model):
+    assert type_ids(registry_filter_model) == set(NYX_REGISTRY.nodes)
 
 
-def test_text_matches_display_name_ignoring_case(filter_model):
-    filter_model.setQuery("BRANCH", [])
+def test_text_matches_display_name_ignoring_case(registry_filter_model):
+    registry_filter_model.setQuery("BRANCH", [])
 
-    assert type_ids(filter_model) == {"core:branch"}
+    assert type_ids(registry_filter_model) == {"core:branch"}
 
 
-def test_tag_token_matches_tags(filter_model):
+def test_tag_token_matches_tags(registry_filter_model):
     expected = {
         type_id
         for type_id, cls in NYX_REGISTRY.nodes.items()
         if "function" in cls.get_tags()
     }
-    filter_model.setQuery("", ["tag:function"])
+    registry_filter_model.setQuery("", ["tag:function"])
 
-    assert type_ids(filter_model) == expected or not expected
-
-
-def test_tokens_and_text_all_have_to_match(filter_model):
-    filter_model.setQuery("branch", ["id:core:"])
-    assert type_ids(filter_model) == {"core:branch"}
-
-    filter_model.setQuery("branch", ["id:nothing"])
-    assert type_ids(filter_model) == set()
+    assert type_ids(registry_filter_model) == expected or not expected
 
 
-def test_section_token(filter_model):
-    filter_model.setQuery("", ["section:core"])
+def test_tokens_and_text_all_have_to_match(registry_filter_model):
+    registry_filter_model.setQuery("branch", ["id:core:"])
+    assert type_ids(registry_filter_model) == {"core:branch"}
 
-    assert type_ids(filter_model)
-    assert all(type_id.startswith("core:") for type_id in type_ids(filter_model))
+    registry_filter_model.setQuery("branch", ["id:nothing"])
+    assert type_ids(registry_filter_model) == set()
 
 
-def test_unreadable_tokens_are_ignored(filter_model):
-    filter_model.setQuery("", ["nonsense", "bogus:x"])
+def test_section_token(registry_filter_model):
+    registry_filter_model.setQuery("", ["section:core"])
 
-    assert type_ids(filter_model) == set(NYX_REGISTRY.nodes)
+    assert type_ids(registry_filter_model)
+    assert all(
+        type_id.startswith("core:") for type_id in type_ids(registry_filter_model)
+    )
+
+
+def test_unreadable_tokens_are_ignored(registry_filter_model):
+    registry_filter_model.setQuery("", ["nonsense", "bogus:x"])
+
+    assert type_ids(registry_filter_model) == set(NYX_REGISTRY.nodes)

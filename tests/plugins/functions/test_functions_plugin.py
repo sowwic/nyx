@@ -2,7 +2,8 @@ import importlib
 
 import pytest
 
-from nyx.api.v1 import CoreDatatypes, CoreNodes, NYX_REGISTRY, Stage, commands
+from nyx.api.v1 import CoreDatatypes, CoreNodes, NYX_REGISTRY, Stage
+from stage_helpers import create_node
 
 
 pytestmark = pytest.mark.with_plugins(
@@ -37,12 +38,6 @@ FUNCTION_GROUPS = (
     "regex",
     "encoding",
 )
-
-
-def make_node(stage, type_id, name=None):
-    command = commands.CreateNodeCommand(stage=stage, type_id=type_id, name=name)
-    stage.push_command(command)
-    return command.result_node
 
 
 def test_plugin_registers_a_node_for_every_operation():
@@ -80,7 +75,7 @@ def test_plugin_registers_a_node_for_every_operation():
 
 
 def test_math_node_has_typed_components():
-    node = make_node(Stage(), "function:math.clamp")
+    node = create_node(Stage(), "function:math.clamp")
 
     assert node["value"].datatype_id == CoreDatatypes.FLOAT
     assert node["high"].raw_value == 1.0
@@ -88,7 +83,7 @@ def test_math_node_has_typed_components():
 
 
 def test_logic_node_returns_a_bool():
-    node = make_node(Stage(), "function:logic.is_equal")
+    node = create_node(Stage(), "function:logic.is_equal")
 
     assert node["a"].datatype_id == CoreDatatypes.OBJECT
     assert node["return"].datatype_id == CoreDatatypes.BOOL
@@ -96,9 +91,9 @@ def test_logic_node_returns_a_bool():
 
 def test_nodes_run_in_a_flow():
     stage = Stage()
-    start = make_node(stage, CoreNodes.FLOW_START, name="start")
-    add = make_node(stage, "function:math.add", name="add")
-    check = make_node(stage, "function:logic.is_equal", name="check")
+    start = create_node(stage, CoreNodes.FLOW_START, name="start")
+    add = create_node(stage, "function:math.add", name="add")
+    check = create_node(stage, "function:logic.is_equal", name="check")
     start["flow"] >> add["flow"]
     add["flow"] >> check["flow"]
     add["a"].push_value(2)
@@ -138,7 +133,7 @@ def test_same_function_name_in_different_plugins_does_not_conflict():
 
 
 def test_return_is_not_editable_but_parameters_are():
-    node = make_node(Stage(), "function:math.clamp")
+    node = create_node(Stage(), "function:math.clamp")
 
     assert node["return"].is_editable is False
     assert node["value"].is_editable is True

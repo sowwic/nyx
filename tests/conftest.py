@@ -6,11 +6,15 @@ from pytest import MonkeyPatch
 
 from PySide6 import QtCore, QtWidgets
 
+from nyx.core import session as session_module
 from nyx.core.logger import NyxLogger
+from nyx.core.session import NyxSession
 from nyx.application import NyxApplication, NyxEditorApplication
 from nyx.api.v1 import NyxPluginManager, NYX_REGISTRY
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.main_window import NyxEditorMainWindow
+
+import stage_helpers
 
 logging.setLoggerClass(NyxLogger)
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -93,6 +97,13 @@ def isolate_user_config(qapp, monkeypatch):
     monkeypatch.setattr(behaviour, "show_address_names", False)
 
 
+@pytest.fixture(autouse=True)
+def keep_stages_alive():
+    """Release the stages that `stage_helpers` kept alive for the test."""
+    yield
+    stage_helpers.STAGES.clear()
+
+
 @pytest.fixture
 def nyx_app(qapp):
     """Application for tests needing Qt features (clipboard, fonts, resources)."""
@@ -149,3 +160,20 @@ def importable_module(tmp_path: pathlib.Path, monkeypatch: MonkeyPatch):
         return name
 
     yield _make_module
+
+
+@pytest.fixture
+def address_file(tmp_path: pathlib.Path, monkeypatch: MonkeyPatch) -> pathlib.Path:
+    """Bridge address file inside the test directory, not the user's data dir."""
+    path = tmp_path / "bridge.json"
+    monkeypatch.setattr(session_module, "BRIDGE_ADDRESS_FILE_PATH", path)
+    return path
+
+
+@pytest.fixture
+def bridge_session(qapp, address_file, monkeypatch: MonkeyPatch):
+    """A session of its own whose bridge server takes any free port."""
+    session = NyxSession(config=qapp.config)
+    monkeypatch.setattr(session.config.values.bridge, "port", 0)
+    yield session
+    session.shutdown()

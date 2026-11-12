@@ -50,28 +50,6 @@ def test_add_component_with_custom_name():
     assert value_cpnt.name == test_cpnt_name
 
 
-def test_add_component_undo():
-    test_cpnt_type_id = "core:value"
-    test_cpnt_name = "test_value_cpnt"
-
-    stage = Stage()
-    node_create_command = CreateNodeCommand(stage=stage)
-    stage.push_command(node_create_command)
-    node = stage.get_object(node_create_command.result_node.uuid)
-
-    add_cpnt_command = AddNodeComponentCommand(
-        node=node, type_id=test_cpnt_type_id, name=test_cpnt_name
-    )
-    stage.push_command(add_cpnt_command)
-    assert node is not None
-    assert node[test_cpnt_name] is not None
-
-    stage.undo_stack.undo()
-    with pytest.raises(ValueError, match="has no component"):
-        assert node[test_cpnt_name] is None
-    assert node.components_model.rowCount() == 0
-
-
 def test_add_component_undo_redo():
     test_cpnt_type_id = "core:value"
     test_cpnt_name = "test_value_cpnt"

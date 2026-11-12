@@ -4,8 +4,9 @@ import pytest
 from nyx_bridge.client import NyxClient
 
 from nyx import cli
-from nyx.api.v1 import CoreNodes, Stage, commands
+from nyx.api.v1 import CoreNodes, Stage
 from nyx.core import session as session_module
+from stage_helpers import create_node
 
 
 @pytest.fixture
@@ -20,21 +21,13 @@ def bridge_in_tmp(qapp, tmp_path, monkeypatch):
     qapp.session.shutdown()
 
 
-def create(stage, type_id, parent=None, name=None):
-    command = commands.CreateNodeCommand(
-        stage=stage, type_id=type_id, parent_node=parent, name=name
-    )
-    stage.push_command(command)
-    return command.result_node
-
-
 def save_stage(tmp_path, *node_types, name="stage.nyx"):
     """Save flow_start -> node_types chained by flow, return the file and the stage."""
     stage = Stage()
-    previous = create(stage, CoreNodes.FLOW_START)
+    previous = create_node(stage, CoreNodes.FLOW_START)
     nodes = []
     for type_id in node_types:
-        node = create(stage, type_id)
+        node = create_node(stage, type_id)
         previous["flow"] >> node["flow"]
         previous = node
         nodes.append(node)
@@ -146,8 +139,8 @@ def test_remote_nodes_run_against_a_client_found_through_the_address_file(
 
     path, stage, (client_node,) = save_stage(tmp_path, CoreNodes.REMOTE_CLIENT)
     client_node["timeout"].push_value(10)
-    action = create(stage, CoreNodes.REMOTE_ACTION, parent=client_node.path)
-    inner_start = create(stage, CoreNodes.FLOW_START, parent=client_node.path)
+    action = create_node(stage, CoreNodes.REMOTE_ACTION, parent=client_node.path)
+    inner_start = create_node(stage, CoreNodes.FLOW_START, parent=client_node.path)
     inner_start["flow"] >> action["flow"]
     script = tmp_path / "script.py"
     script.write_text("result = 6 * 7")

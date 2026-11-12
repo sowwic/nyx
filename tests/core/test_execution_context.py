@@ -9,98 +9,98 @@ class Marker:
 
 
 @pytest.fixture
-def context():
+def execution_context():
     return NodeExecutionContext(stage=None)
 
 
-def test_find_looks_from_the_innermost_scope_outwards(context):
+def test_find_looks_from_the_innermost_scope_outwards(execution_context):
     outer, inner = Marker(), Marker()
-    context.provide(outer)
-    context.push_scope(object())
-    assert context.find(Marker) is outer
+    execution_context.provide(outer)
+    execution_context.push_scope(object())
+    assert execution_context.find(Marker) is outer
 
-    context.provide(inner)
+    execution_context.provide(inner)
 
-    assert context.find(Marker) is inner
-    context.pop_scope()
-    assert context.find(Marker) is outer
+    assert execution_context.find(Marker) is inner
+    execution_context.pop_scope()
+    assert execution_context.find(Marker) is outer
 
 
-def test_find_matches_subclasses_and_returns_none_without_a_match(context):
+def test_find_matches_subclasses_and_returns_none_without_a_match(execution_context):
     class Special(Marker):
         pass
 
-    assert context.find(Marker) is None
+    assert execution_context.find(Marker) is None
     special = Special()
-    context.provide(special)
+    execution_context.provide(special)
 
-    assert context.find(Marker) is special
-    assert context.find(Special) is special
-    assert context.find(int) is None
+    assert execution_context.find(Marker) is special
+    assert execution_context.find(Special) is special
+    assert execution_context.find(int) is None
 
 
-def test_require_raises_when_nothing_is_provided(context):
+def test_require_raises_when_nothing_is_provided(execution_context):
     with pytest.raises(LookupError, match="Marker"):
-        context.require(Marker)
+        execution_context.require(Marker)
 
     marker = Marker()
-    context.provide(marker)
-    assert context.require(Marker) is marker
+    execution_context.provide(marker)
+    assert execution_context.require(Marker) is marker
 
 
-def test_services_are_gone_after_their_scope_is_closed(context):
-    context.push_scope(object())
-    context.provide(Marker())
-    context.pop_scope()
+def test_services_are_gone_after_their_scope_is_closed(execution_context):
+    execution_context.push_scope(object())
+    execution_context.provide(Marker())
+    execution_context.pop_scope()
 
-    assert context.find(Marker) is None
-    assert context.scope_depth == 0
+    assert execution_context.find(Marker) is None
+    assert execution_context.scope_depth == 0
 
 
-def test_cleanups_run_most_recent_first_when_the_scope_closes(context):
+def test_cleanups_run_most_recent_first_when_the_scope_closes(execution_context):
     events = []
-    context.push_scope(object())
-    context.add_cleanup(lambda: events.append("first"))
-    context.add_cleanup(lambda: events.append("second"))
+    execution_context.push_scope(object())
+    execution_context.add_cleanup(lambda: events.append("first"))
+    execution_context.add_cleanup(lambda: events.append("second"))
     assert events == []
 
-    context.pop_scope()
+    execution_context.pop_scope()
 
     assert events == ["second", "first"]
 
 
-def test_failing_cleanup_does_not_keep_the_others_from_running(context):
+def test_failing_cleanup_does_not_keep_the_others_from_running(execution_context):
     events = []
 
     def fail():
         raise RuntimeError("cleanup failure")
 
-    context.push_scope(object())
-    context.add_cleanup(lambda: events.append("ran"))
-    context.add_cleanup(fail)
+    execution_context.push_scope(object())
+    execution_context.add_cleanup(lambda: events.append("ran"))
+    execution_context.add_cleanup(fail)
 
-    context.pop_scope()
+    execution_context.pop_scope()
 
     assert events == ["ran"]
 
 
-def test_unwind_closes_every_scope_and_leaves_a_usable_context(context):
+def test_unwind_closes_every_scope_and_leaves_a_usable_context(execution_context):
     events = []
-    context.add_cleanup(lambda: events.append("root"))
-    context.push_scope(object())
-    context.add_cleanup(lambda: events.append("inner"))
+    execution_context.add_cleanup(lambda: events.append("root"))
+    execution_context.push_scope(object())
+    execution_context.add_cleanup(lambda: events.append("inner"))
 
-    context.unwind()
+    execution_context.unwind()
 
     assert events == ["inner", "root"]
-    assert context.scope_depth == 0
-    context.provide(Marker())
-    assert context.find(Marker) is not None
+    assert execution_context.scope_depth == 0
+    execution_context.provide(Marker())
+    assert execution_context.find(Marker) is not None
 
 
-def test_popping_the_root_scope_is_an_error(context):
+def test_popping_the_root_scope_is_an_error(execution_context):
     with pytest.raises(RuntimeError):
-        context.pop_scope()
+        execution_context.pop_scope()
 
 
 def _build_stage():
@@ -134,11 +134,11 @@ def test_children_find_what_their_parent_provides_but_siblings_do_not(monkeypatc
     marker = Marker()
     events = []
 
-    def enter_scope(node, context):
+    def enter_scope(node, execution_context):
         if node is outer:
             events.append("enter outer")
-            context.provide(marker)
-            context.add_cleanup(lambda: events.append("cleanup outer"))
+            execution_context.provide(marker)
+            execution_context.add_cleanup(lambda: events.append("cleanup outer"))
 
     def execute(node):
         found = node.stage.crawler.context.find(Marker)
@@ -168,10 +168,10 @@ def test_scope_of_a_node_executing_after_its_children_covers_the_children(monkey
         classmethod(lambda cls: _after_children_for(cls)),
     )
 
-    def enter_scope(node, context):
+    def enter_scope(node, execution_context):
         if node is outer:
             events.append("enter outer")
-            context.add_cleanup(lambda: events.append("cleanup outer"))
+            execution_context.add_cleanup(lambda: events.append("cleanup outer"))
 
     monkeypatch.setattr(LogNode, "enter_scope", enter_scope)
     monkeypatch.setattr(
@@ -199,9 +199,9 @@ def test_cleanups_run_when_a_child_fails(monkeypatch):
     stage, outer, inner, after = _build_stage()
     events = []
 
-    def enter_scope(node, context):
+    def enter_scope(node, execution_context):
         if node is outer:
-            context.add_cleanup(lambda: events.append("cleanup outer"))
+            execution_context.add_cleanup(lambda: events.append("cleanup outer"))
 
     def execute(node):
         if node is inner:

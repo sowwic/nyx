@@ -4,24 +4,15 @@ import pytest
 from nyx_bridge import protocol
 
 from nyx.core import session as session_module
-from nyx.core.session import BRIDGE_SERVER_NAME, NyxSession
+from nyx.core.session import BRIDGE_SERVER_NAME
 
 
 @pytest.fixture
-def address_file(tmp_path, monkeypatch):
-    path = tmp_path / "bridge.json"
-    monkeypatch.setattr(session_module, "BRIDGE_ADDRESS_FILE_PATH", path)
-    return path
-
-
-@pytest.fixture
-def session(qapp, address_file, monkeypatch):
-    session = NyxSession(config=qapp.config)
-    values = session.config.values.bridge
-    for name, value in (("enabled", True), ("port", 0), ("token", "")):
+def session(bridge_session, monkeypatch):
+    values = bridge_session.config.values.bridge
+    for name, value in (("enabled", True), ("token", "")):
         monkeypatch.setattr(values, name, value)
-    yield session
-    session.shutdown()
+    return bridge_session
 
 
 def test_there_is_no_server_before_it_is_started(session):

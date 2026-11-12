@@ -89,7 +89,7 @@ def test_log_model_trims_to_maximum():
 
 # ---- Dock ----
 @pytest.fixture
-def dock(qtbot):
+def output_log_dock(qtbot):
     window = QtWidgets.QMainWindow()
     qtbot.addWidget(window)
     dock = OutputLogDockWidget("Log", window)
@@ -112,45 +112,51 @@ def _fake_config(is_expanded=False, expanded_height=250, minimum_level=logging.D
     )
 
 
-def test_dock_collapsed_height_is_pinned_to_header(dock):
-    header = dock.output_log_widget.header_height_in_pixels()
-    assert dock.output_log_widget.minimumHeight() == header
-    assert dock.output_log_widget.maximumHeight() == header
+def test_dock_collapsed_height_is_pinned_to_header(output_log_dock):
+    header = output_log_dock.output_log_widget.header_height_in_pixels()
+    assert output_log_dock.output_log_widget.minimumHeight() == header
+    assert output_log_dock.output_log_widget.maximumHeight() == header
 
 
-def test_dock_expanding_unpins_height(dock):
-    dock.output_log_widget.set_expanded(True)
-    assert dock.output_log_widget.maximumHeight() > 10_000
-    assert dock.output_log_widget.minimumHeight() > (
-        dock.output_log_widget.header_height_in_pixels()
+def test_dock_expanding_unpins_height(output_log_dock):
+    output_log_dock.output_log_widget.set_expanded(True)
+    assert output_log_dock.output_log_widget.maximumHeight() > 10_000
+    assert output_log_dock.output_log_widget.minimumHeight() > (
+        output_log_dock.output_log_widget.header_height_in_pixels()
     )
 
 
-def test_dock_applies_and_saves_config(dock):
-    dock.apply_config_values(_fake_config(is_expanded=True, expanded_height=300))
-    assert dock.output_log_widget.is_expanded()
-    assert dock._last_user_expanded_height == 300
+def test_dock_applies_and_saves_config(output_log_dock):
+    output_log_dock.apply_config_values(
+        _fake_config(is_expanded=True, expanded_height=300)
+    )
+    assert output_log_dock.output_log_widget.is_expanded()
+    assert output_log_dock._last_user_expanded_height == 300
 
     saved = _fake_config(is_expanded=False, expanded_height=0)
-    dock.save_config_values(saved)
+    output_log_dock.save_config_values(saved)
     values = saved.values.editor_widgets.log_widget
     assert values.is_expanded is True
     assert values.expanded_height == 300
 
 
-def test_dock_applies_and_saves_minimum_level(dock):
-    dock.apply_config_values(_fake_config(minimum_level=logging.WARNING))
-    assert dock.output_log_widget.get_minimum_level() == logging.WARNING
-    assert dock.output_log_widget._filter_model._minimum_level == logging.WARNING
+def test_dock_applies_and_saves_minimum_level(output_log_dock):
+    output_log_dock.apply_config_values(_fake_config(minimum_level=logging.WARNING))
+    assert output_log_dock.output_log_widget.get_minimum_level() == logging.WARNING
+    assert (
+        output_log_dock.output_log_widget._filter_model._minimum_level == logging.WARNING
+    )
 
     saved = _fake_config(minimum_level=logging.DEBUG)
-    dock.save_config_values(saved)
+    output_log_dock.save_config_values(saved)
     assert saved.values.editor_widgets.log_widget.minimum_level == logging.WARNING
 
 
-def test_dock_size_hint_uses_remembered_height_when_expanded(dock):
-    dock.apply_config_values(_fake_config(is_expanded=True, expanded_height=321))
-    assert dock.sizeHint().height() == 321
+def test_dock_size_hint_uses_remembered_height_when_expanded(output_log_dock):
+    output_log_dock.apply_config_values(
+        _fake_config(is_expanded=True, expanded_height=321)
+    )
+    assert output_log_dock.sizeHint().height() == 321
 
 
 def _fill(log_model):

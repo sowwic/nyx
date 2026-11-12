@@ -5,15 +5,9 @@ from nyx.core.exceptions import NyxCommandValidationError
 from nyx.core.name_validator import NameValidator
 from nyx.core.node import Node
 from nyx.core.node_component import NodeComponent
+from stage_helpers import STAGES
 
-STAGES = []
 """Stages of the running test: a node doesn't keep its stage alive."""
-
-
-@pytest.fixture(autouse=True)
-def keep_stages_alive():
-    yield
-    STAGES.clear()
 
 
 def new_stage():
