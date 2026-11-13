@@ -150,6 +150,11 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         """list[QtCore.QPointF]: scene positions of the pins, from the source."""
         return [pin.scenePos() for pin in self._pins]
 
+    @property
+    def pin_items(self) -> list[GraphicsLinkPin]:
+        """list[GraphicsLinkPin]: pin items of the link, from the source."""
+        return list(self._pins)
+
     def set_pins(self, positions: list[QtCore.QPointF]):
         """Show pins at positions, without telling the stage.
 
