@@ -19,6 +19,7 @@ from .set_component_flag import SetNodeComponentFlagCommand
 from .reorder_node_component import ReorderNodeComponentCommand
 from .link_node_components import LinkNodeComponentsCommand
 from .unlink_node_components import UnlinkNodeComponentsCommand
+from .set_link_pins import SetLinkPinsCommand
 
 __all__ = [
     "NyxCommand",
@@ -42,4 +43,5 @@ __all__ = [
     "ReorderNodeComponentCommand",
     "LinkNodeComponentsCommand",
     "UnlinkNodeComponentsCommand",
+    "SetLinkPinsCommand",
 ]

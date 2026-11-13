@@ -8,7 +8,8 @@ from nyx.editor.graphics.level_of_detail import LevelOfDetail
 class GraphicsGroup(GraphicsUtilObject):
     """Titled frame of a `GroupObject`, drawn behind the nodes.
 
-    The nodes, notes and groups inside the frame when it is pressed move along with it.
+    The nodes, notes, groups and link pins inside the frame when it is pressed move
+    along with it.
     """
 
     RADIUS = 10.0
@@ -86,7 +87,7 @@ class GraphicsGroup(GraphicsUtilObject):
 
         Returns:
             list[QtWidgets.QGraphicsItem]: node and util object items fully inside
-                the frame.
+                the frame, and the link pins inside it.
         """
         gr_stage = self.gr_stage
         if gr_stage is None:
@@ -100,11 +101,18 @@ class GraphicsGroup(GraphicsUtilObject):
             for gr_util in gr_stage.gr_util_objects()
             if gr_util is not self
         ]
-        return [
+        items = [
             item
             for item, size in candidates
             if not item.isSelected() and frame.contains(QtCore.QRectF(item.pos(), size))
         ]
+        items.extend(
+            pin
+            for gr_link in gr_stage.gr_links()
+            for pin in gr_link.pin_items
+            if frame.contains(pin.scenePos())
+        )
+        return items
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         """Remember the items inside the frame, they move with it.

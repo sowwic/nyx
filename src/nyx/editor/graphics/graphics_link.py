@@ -1,16 +1,22 @@
+import logging
 import typing
 from uuid import UUID
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from nyx.core import commands
+from nyx.core.exceptions import NyxCommandValidationError
 from nyx.core.node_component import NodeComponent
+from nyx.editor.graphics.graphics_link_pin import GraphicsLinkPin
 from nyx.editor.graphics.level_of_detail import LevelOfDetail
-from nyx.editor.graphics.link_path import build_link_path, get_link_style
+from nyx.editor.graphics.link_path import build_link_path, find_pin_index, get_link_style
 from nyx.static.enums import CoreGraphicsObjects, LinkStyle
 
 if typing.TYPE_CHECKING:
     from nyx.editor.graphics.graphics_plug import GraphicsPlug
     from nyx.editor.graphics.animation.link_animation import LinkAnimation
+
+LOGGER = logging.getLogger(__name__)
 
 
 class GraphicsLink(QtWidgets.QGraphicsPathItem):
@@ -26,6 +32,9 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
     The link is drawn like the component it comes from: its color, and a width that
     the component scales. A link between plugs of different colors fades from the
     color of the source to the one of the target.
+
+    A complete link can carry pins (see `GraphicsLinkPin`): the path is drawn through
+    them, in order from the source to the target. They are saved with the link.
 
     A link can carry animations (see `LinkAnimation`), such as a pulse that travels from
     the source to the target. The link only draws them, `LinkAnimator` decides when and
@@ -46,6 +55,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         target_plug: GraphicsPlug | None = None,
         link_uuid: UUID | None = None,
         style: LinkStyle | None = None,
+        pins: list[QtCore.QPointF] | None = None,
     ):
         """Initialize GraphicsLink.
 
@@ -55,6 +65,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
             link_uuid (UUID | None): uuid of the link in the stage, None for previews.
             style (LinkStyle | None): style to draw the path in, the configured one if
                 omitted.
+            pins (list[QtCore.QPointF] | None): scene positions the link passes through.
         """
         super().__init__()
         self._style = style if style is not None else get_link_style()
@@ -65,6 +76,10 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         self._attached = False
         self._animations: dict[type, LinkAnimation] = {}
         self._path_length = 0.0
+        self._pins: list[GraphicsLinkPin] = []
+        self._syncing_pins = False
+        if pins and not self.is_preview:
+            self._pins = [GraphicsLinkPin(self, pos) for pos in pins]
 
         # Links are drawn behind nodes, previews above everything.
         self.setZValue(1 if self.is_preview else -1)
@@ -103,6 +118,18 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         return self._source_plug if self._source_plug is not None else self._target_plug
 
     @property
+    def pin_color(self) -> QtGui.QColor:
+        """QtGui.QColor: color of the pins, the one of the plug the link comes from.
+
+        The pen color can't be used: a link between plugs of different colors is
+        stroked with a gradient, whose pen color is black.
+        """
+        plug = self.style_plug
+        if plug is None:
+            return QtGui.QColor(NodeComponent.DEFAULT_PLUG_COLOR)
+        return QtGui.QColor(plug.color)
+
+    @property
     def style(self) -> LinkStyle:
         """LinkStyle: style the path is drawn in."""
         return self._style
@@ -117,6 +144,94 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
             return
         self._style = style
         self.update_path()
+
+    @property
+    def pins(self) -> list[QtCore.QPointF]:
+        """list[QtCore.QPointF]: scene positions of the pins, from the source."""
+        return [pin.scenePos() for pin in self._pins]
+
+    @property
+    def pin_items(self) -> list[GraphicsLinkPin]:
+        """list[GraphicsLinkPin]: pin items of the link, from the source."""
+        return list(self._pins)
+
+    def set_pins(self, positions: list[QtCore.QPointF]):
+        """Show pins at positions, without telling the stage.
+
+        Pins that are already there are moved, so a pin being dragged survives its
+        own move being pushed.
+
+        Args:
+            positions (list[QtCore.QPointF]): scene positions, from the source.
+        """
+        self._syncing_pins = True
+        try:
+            if len(positions) == len(self._pins):
+                for pin, pos in zip(self._pins, positions):
+                    pin.setPos(pos)
+            else:
+                for pin in self._pins:
+                    pin.setParentItem(None)
+                    if pin.scene() is not None:
+                        pin.scene().removeItem(pin)
+                self._pins = [GraphicsLinkPin(self, pos) for pos in positions]
+        finally:
+            self._syncing_pins = False
+        self.update_path()
+
+    def add_pin(self, scene_pos: QtCore.QPointF):
+        """Add a pin on the link and push it to the stage.
+
+        Args:
+            scene_pos (QtCore.QPointF): scene position of the new pin.
+        """
+        if self.is_preview:
+            return
+        pins = self.pins
+        index = find_pin_index(
+            self._style,
+            self._source_plug.output_anchor(),
+            self._target_plug.input_anchor(),
+            pins,
+            scene_pos,
+        )
+        pins.insert(index, scene_pos)
+        self.set_pins(pins)
+        self.commit_pins()
+
+    def remove_pin(self, pin: GraphicsLinkPin):
+        """Remove a pin and push that to the stage.
+
+        Args:
+            pin (GraphicsLinkPin): pin of the link.
+        """
+        if pin not in self._pins:
+            return
+        pins = self.pins
+        del pins[self._pins.index(pin)]
+        self.set_pins(pins)
+        self.commit_pins()
+
+    def on_pin_moved(self):
+        """Redraw the path after a pin moved."""
+        if not self._syncing_pins:
+            self.update_path()
+
+    def commit_pins(self):
+        """Push the pins to the stage as one undoable command.
+
+        The pins are shown as the stage has them if the command is refused, for
+        example when the link belongs to a reference.
+        """
+        gr_stage = self.scene()
+        if gr_stage is None or self._uuid is None:
+            return
+        stage = gr_stage.stage
+        try:
+            stage.push_command(commands.SetLinkPinsCommand(stage, self._uuid, self.pins))
+        except NyxCommandValidationError as err:
+            LOGGER.warning(err)
+            self.set_pins(stage.get_object(self._uuid).pins)
 
     @property
     def path_length(self) -> float:
@@ -225,6 +340,8 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         pen.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
         pen.setJoinStyle(QtCore.Qt.PenJoinStyle.RoundJoin)
         self.setPen(pen)
+        for pin in self._pins:
+            pin.update_style()
 
     def _build_stroke_brush(self, color: QtGui.QColor) -> QtGui.QBrush:
         """Build the brush the link is stroked with.
@@ -281,7 +398,7 @@ class GraphicsLink(QtWidgets.QGraphicsPathItem):
         end = (
             self._target_plug.input_anchor() if self._target_plug else self._floating_pos
         )
-        path = build_link_path(self._style, start, end)
+        path = build_link_path(self._style, start, end, self.pins)
         self.setPath(path)
         self._path_length = path.length()
         # The gradient runs between the anchors, so it follows them.

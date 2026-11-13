@@ -43,11 +43,13 @@ class Stage(QtGui.QStandardItemModel):
         file_path: file the stage was loaded from or saved to
         undo_stack: undo stack for commands operating on the stage
         node_deleted: emitted with the uuid of a deleted node
+        link_pins_changed: emitted with the uuid of a link whose pins changed
     """
 
     FILE_EXTENSION = ".nyx"
 
     node_deleted = QtCore.Signal(UUID)
+    link_pins_changed = QtCore.Signal(UUID)
     execution_started = QtCore.Signal()
     execution_finished = QtCore.Signal()
     execution_succeeded = QtCore.Signal()
