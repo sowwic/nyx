@@ -10,12 +10,12 @@ readme = "README.md"
 requires-python = ">=3.14.3"
 packages = [{ include = "nyx", from = "src" }]
 dependencies = [
+  "codetiming>=1.4.0",
   "pyside6>=6.10.0,<=6.12",
   "platformdirs>=4.14.5",
   "sowwic-json-config>=1.0.7",
   "sowwic-json-config-qt>=1.0.1",
-  "nyx-bridge",
-  "codetiming>=1.4.0",
+  "sowwic-nyx-bridge>=1.0.0",
 ]
 
 [project.scripts]
@@ -42,9 +42,6 @@ dev = [
   "pyinstaller>=6.11.0",
   "patchelf>=0.17.2; sys_platform == 'linux'",
 ]
-
-[tool.uv.sources]
-nyx-bridge = { git = "https://github.com/sowwic/nyx-bridge", tag = "v1.0.0" }
 
 [tool.ruff]
 src = ["src"]
