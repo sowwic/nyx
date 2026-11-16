@@ -1,5 +1,5 @@
 [project]
-name = "nyx"
+name = "sowwic-nyx"
 version = "1.0.0"
 description = "Python nodal execution graph"
 authors = [
@@ -67,3 +67,6 @@ log_cli_level = "ERROR"
 markers = [
   "with_plugins(*plugin_ids): initialize the given plugins for the test",
 ]
+
+[tool.uv.build-backend]
+module-name = "nyx"
