@@ -63,6 +63,8 @@
     <file>icons/info.png</file>
     <file>icons/plus.png</file>
     <file>icons/red_error.png</file>
+    <file>icons/redo.png</file>
+    <file>icons/undo.png</file>
 
     <!-- Fonts -->
     <file alias="fonts/zed-mono">fonts/zed-mono.ttf</file>
