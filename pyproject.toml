@@ -3,21 +3,19 @@ name = "nyx"
 version = "1.0.0"
 description = "Python nodal execution graph"
 authors = [
-    {name = "sowwic",email = "47799401+sowwic@users.noreply.github.com"}
+  { name = "sowwic", email = "47799401+sowwic@users.noreply.github.com" },
 ]
-license = {text = "MIT"}
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.14.3"
-packages = [
-    {include = "nyx", from = "src"},
-]
+packages = [{ include = "nyx", from = "src" }]
 dependencies = [
-    "pyside6>=6.10.0,<=6.12",
-    "platformdirs>=4.14.5",
-    "json-config",
-    "json-config-qt",
-    "nyx-bridge",
-    "codetiming>=1.4.0",
+  "pyside6>=6.10.0,<=6.12",
+  "platformdirs>=4.14.5",
+  "sowwic-json-config>=1.0.7",
+  "sowwic-json-config-qt>=1.0.1",
+  "nyx-bridge",
+  "codetiming>=1.4.0",
 ]
 
 [project.scripts]
@@ -30,24 +28,22 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.2.0",
-    "pytest-cov>=7.1.0",
-    "pytest-qt>=4.5.0",
-    "pytest-mock>=3.17.0",
-    "ruff",
-    "mkdocs (>=1.6.1,<2.0.0)",
-    "mkdocs-material>=9.8.1,<10.0.0",
-    "mkdocstrings[python]>=1.0.8,<2.0.0",
-    "mkdocs-autorefs>=1.4.5,<2.0.0",
-    "mkdocs-autoapi (>=0.4.1,<0.5.0)",
-    "debugpy>=1.8.22",
-    "pyinstaller>=6.11.0",
-    "patchelf>=0.17.2; sys_platform == 'linux'",
+  "pytest>=9.2.0",
+  "pytest-cov>=7.1.0",
+  "pytest-qt>=4.5.0",
+  "pytest-mock>=3.17.0",
+  "ruff",
+  "mkdocs (>=1.6.1,<2.0.0)",
+  "mkdocs-material>=9.8.1,<10.0.0",
+  "mkdocstrings[python]>=1.0.8,<2.0.0",
+  "mkdocs-autorefs>=1.4.5,<2.0.0",
+  "mkdocs-autoapi (>=0.4.1,<0.5.0)",
+  "debugpy>=1.8.22",
+  "pyinstaller>=6.11.0",
+  "patchelf>=0.17.2; sys_platform == 'linux'",
 ]
 
 [tool.uv.sources]
-json-config = { git = "https://github.com/sowwic/json-config", tag = "v1.0.5"}
-json-config-qt = { git = "https://github.com/sowwic/json-config-qt", tag = "v1.0.0"}
 nyx-bridge = { git = "https://github.com/sowwic/nyx-bridge", tag = "v1.0.0" }
 
 [tool.ruff]
@@ -56,23 +52,15 @@ exclude = ["**/resources_rc.py"]
 
 show-fixes = true
 line-length = 89
-lint.select = [
-    "E",
-    "F",
-    "UP",
-]
-lint.ignore = [
-    "D100",
-    "D104",
-    "D103",
-]
+lint.select = ["E", "F", "UP"]
+lint.ignore = ["D100", "D104", "D103"]
 
 [tool.ty.rules]
-unresolved-attribute="ignore"
-invalid-argument-type="ignore"
-invalid-assignment="ignore"
-invalid-return-type="ignore"
-invalid-method-override="ignore"
+unresolved-attribute = "ignore"
+invalid-argument-type = "ignore"
+invalid-assignment = "ignore"
+invalid-return-type = "ignore"
+invalid-method-override = "ignore"
 
 [tool.pytest.ini_options]
 addopts = "--cov=nyx"
@@ -80,6 +68,5 @@ pythonpath = ["tests"]
 log_cli = true
 log_cli_level = "ERROR"
 markers = [
-    "with_plugins(*plugin_ids): initialize the given plugins for the test",
+  "with_plugins(*plugin_ids): initialize the given plugins for the test",
 ]
-
