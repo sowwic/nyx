@@ -35,32 +35,23 @@ uv run nyx                  # open the editor
 
 ### As a package in your project
 
-Nyx is not published on PyPI yet, install it from git. `json-config`, `json-config-qt`
-and `nyx-bridge` are git dependencies as well, and uv resolves them from the sources
-declared in Nyx's `pyproject.toml` only when Nyx is the root project. In your own
-project declare them again:
+Nyx is not published on PyPI yet, install it from git. Its other dependencies
+(`sowwic-json-config`, `sowwic-json-config-qt` and `sowwic-nyx-bridge`) come from PyPI.
 
 ```toml
 # pyproject.toml of your project
 [project]
 requires-python = "==3.14.3"
-dependencies = ["nyx"]
+dependencies = ["sowwic-nyx"]
 
 [tool.uv.sources]
-nyx = { git = "https://github.com/sowwic/nyx", tag = "<release tag>" }
-json-config = { git = "https://github.com/sowwic/json-config", tag = "v1.0.5" }
-json-config-qt = { git = "https://github.com/sowwic/json-config-qt", tag = "v1.0.0" }
-nyx-bridge = { git = "https://github.com/sowwic/nyx-bridge", tag = "v1.0.0" }
+sowwic-nyx = { git = "https://github.com/sowwic/nyx", tag = "<release tag>" }
 ```
 
-Copy the tags from the `[tool.uv.sources]` table of the Nyx release you install. pip
-ignores `[tool.uv.sources]`, so with plain pip install the git dependencies first:
+With pip:
 
 ```sh
-pip install "json-config @ git+https://github.com/sowwic/json-config@v1.0.5" \
-            "json-config-qt @ git+https://github.com/sowwic/json-config-qt@v1.0.0" \
-            "nyx-bridge @ git+https://github.com/sowwic/nyx-bridge@v1.0.0"
-pip install "nyx @ git+https://github.com/sowwic/nyx@<release tag>"
+pip install "sowwic-nyx @ git+https://github.com/sowwic/nyx@<release tag>"
 ```
 
 Then import from the public API, which is what plugins use too. Nothing outside

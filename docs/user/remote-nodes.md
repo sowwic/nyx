@@ -33,17 +33,15 @@ into the graph.
 
 The protocol, the server and the client base class live in a separate package,
 [`nyx-bridge`](https://github.com/sowwic/nyx-bridge). It has no dependencies and does
-not import Nyx or Qt, so it installs into the Python of a DCC. The DCC specific parts are
+not import Nyx or Qt, so it installs into the Python of a DCC. The DCC specific clients are
 separate repositories:
 
 | Repository | What it adds |
 | --- | --- |
-| [`nyx-bridge-maya`](https://github.com/sowwic/nyx-bridge-maya) | A Maya client (plug-in and Python API) and a Nyx plugin with Maya nodes. |
-| [`nyx-bridge-blender`](https://github.com/sowwic/nyx-bridge-blender) | A Blender add-on client and a Nyx plugin with Blender nodes. |
+| [`nyx-bridge-maya`](https://github.com/sowwic/nyx-bridge-maya) | A Maya client implementation of the bridge. |
+| [`nyx-bridge-blender`](https://github.com/sowwic/nyx-bridge-blender) | A Blender client implementation of the bridge. |
 
-Install the client half into the DCC following the README of the repository, and the
-Nyx half by adding the plugin folder to `plugin_paths` or `NYX_PLUGIN_PATH`
-(see [Customization](customization.md)).
+Install the client into the DCC following the README of its repository.
 
 ## Starting the server
 
