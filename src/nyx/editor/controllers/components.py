@@ -1,3 +1,4 @@
+import copy
 import logging
 import pathlib
 import typing
@@ -476,6 +477,22 @@ class ComponentsController(QtCore.QObject):
             return path if candidate.is_file() or candidate.is_dir() else ""
         except (OSError, ValueError):
             return ""
+
+    @QtCore.Slot(int)
+    def resetComponentToDefault(self, row: int):
+        """Set the value of a component to its default through a command.
+
+        Args:
+            row (int): proxy row.
+        """
+        component = self.get_component_from_proxy_row(row)
+        self.stage.push_command(
+            SetNodeComponentValueCommand(
+                stage=self.stage,
+                node_component=component,
+                value=copy.deepcopy(component.default_value),
+            )
+        )
 
     @QtCore.Slot(int, bool)
     def setComponentReadable(self, row: int, state: bool):

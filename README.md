@@ -35,32 +35,23 @@ uv run nyx                  # open the editor
 
 ### As a package in your project
 
-Nyx is not published on PyPI yet, install it from git. `json-config`, `json-config-qt`
-and `nyx-bridge` are git dependencies as well, and uv resolves them from the sources
-declared in Nyx's `pyproject.toml` only when Nyx is the root project. In your own
-project declare them again:
+Nyx is not published on PyPI yet, install it from git. Its other dependencies
+(`sowwic-json-config`, `sowwic-json-config-qt` and `sowwic-nyx-bridge`) come from PyPI.
 
 ```toml
 # pyproject.toml of your project
 [project]
 requires-python = "==3.14.3"
-dependencies = ["nyx"]
+dependencies = ["sowwic-nyx"]
 
 [tool.uv.sources]
-nyx = { git = "https://github.com/sowwic/nyx", tag = "<release tag>" }
-json-config = { git = "https://github.com/sowwic/json-config", tag = "v1.0.5" }
-json-config-qt = { git = "https://github.com/sowwic/json-config-qt", tag = "v1.0.0" }
-nyx-bridge = { git = "https://github.com/sowwic/nyx-bridge", tag = "v1.0.0" }
+sowwic-nyx = { git = "https://github.com/sowwic/nyx", tag = "<release tag>" }
 ```
 
-Copy the tags from the `[tool.uv.sources]` table of the Nyx release you install. pip
-ignores `[tool.uv.sources]`, so with plain pip install the git dependencies first:
+With pip:
 
 ```sh
-pip install "json-config @ git+https://github.com/sowwic/json-config@v1.0.5" \
-            "json-config-qt @ git+https://github.com/sowwic/json-config-qt@v1.0.0" \
-            "nyx-bridge @ git+https://github.com/sowwic/nyx-bridge@v1.0.0"
-pip install "nyx @ git+https://github.com/sowwic/nyx@<release tag>"
+pip install "sowwic-nyx @ git+https://github.com/sowwic/nyx@<release tag>"
 ```
 
 Then import from the public API, which is what plugins use too. Nothing outside
@@ -208,16 +199,18 @@ from Blender, call a tool that only exists inside a DCC. Nyx does this through t
   Blender), waits for it to connect and stops it when its nodes are done.
 
 Protocol, client and server classes live in a separate, dependency-free package so they
-can be imported inside the Python of a DCC (which cannot install Nyx itself):
+can be imported inside the Python of a DCC (which cannot install Nyx itself). See
+[Related projects](#related-projects) for the repositories.
+
+See the user guide ("Remote nodes") for how a stage uses the bridge.
+
+## Related projects
 
 | Repository | Purpose |
 | --- | --- |
 | [sowwic/nyx-bridge](https://github.com/sowwic/nyx-bridge) | Protocol, `BridgeServer` and the base `NyxClient`. Python 3.11+, no dependencies. Never imports Nyx or Qt. |
-| [sowwic/nyx-bridge-maya](https://github.com/sowwic/nyx-bridge-maya) | Maya client and a Nyx plugin with Maya-flavoured nodes. |
-| [sowwic/nyx-bridge-blender](https://github.com/sowwic/nyx-bridge-blender) | Blender add-on client and a Nyx plugin with Blender-flavoured nodes. |
-
-The DCC plugins are ordinary Nyx plugins: add their folder to `plugin_paths` or
-`NYX_PLUGIN_PATH`. See the user guide ("Remote nodes") for how a stage uses the bridge.
+| [sowwic/nyx-bridge-maya](https://github.com/sowwic/nyx-bridge-maya) | Maya client implementation of the bridge. |
+| [sowwic/nyx-bridge-blender](https://github.com/sowwic/nyx-bridge-blender) | Blender client implementation of the bridge. |
 
 ## Development
 

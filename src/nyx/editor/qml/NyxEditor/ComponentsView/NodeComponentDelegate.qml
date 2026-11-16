@@ -286,6 +286,12 @@ DraggableDelegate {
                                 onClicked: root.componentsController.moveComponent(itemRoot.index, 1)
                             }
 
+                            MenuItem {
+                                text: "Reset to Default"
+                                icon.source: "qrc:/icons/reset_settings"
+                                onClicked: root.componentsController.resetComponentToDefault(itemRoot.index)
+                            }
+
                             MenuSeparator {}
 
                             MenuItem {

@@ -6,7 +6,7 @@ BUILD_PREREQS = qrc update-version
 
 MAKEFILES_REF ?= v1
 MAKEFILES_URL ?= https://raw.githubusercontent.com/sowwic/makefiles/$(MAKEFILES_REF)
-MAKEFILES_MODULES = general/python
+MAKEFILES_MODULES = general/python general/repo
 
 .make/%.mk:
 	@mkdir -p $(dir $@)
