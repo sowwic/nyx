@@ -29,6 +29,7 @@ nyx stage run path/to/stage.nyx            # run a stage headless (same as nyx-r
 
 - `tests/conftest.py` sets `QT_QPA_PLATFORM=offscreen`; `tests/editor` tests start the editor app (pytest-qt).
 - The `with_plugins(*plugin_ids)` marker initializes the given plugins for a test.
+- Before writing a test helper or fixture, check `tests/conftest.py`, `tests/stage_helpers.py` (`create_node`, which also keeps the stage alive) and the `conftest.py` of the test folder, and reuse what is there.
 - Coverage (`--cov=nyx`) is always on; the `output_dir` fixture writes under `test_output/`.
 - CI runs Linux and Windows first, then macOS (skipped for draft PRs).
 

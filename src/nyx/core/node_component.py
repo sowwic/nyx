@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 import enum
 import pathlib
@@ -426,16 +427,37 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
     def set_datatype(self, type_id: str) -> None:
         """Set the datatype hint and re-evaluate the value against it.
 
+        The default value follows: the datatype default replaces the previous one,
+        a custom default is cast, or replaced if it can't be.
+
         Args:
             type_id (str): datatype type id.
         """
+        previous_datatype = self.datatype
         self.setData(str(type_id), role=self.Roles.DATATYPE)
+        self._adapt_default_value(previous_datatype)
         self._notify_datatype_changed()
         if self.raw_value is None:
             self.push_value(self.datatype.create_default())
             return
         self.value_storage.evaluate()
         self.value_storage.refresh_display_value()
+
+    def _adapt_default_value(self, previous_datatype: Datatype) -> None:
+        """Keep the default value valid after the datatype changed.
+
+        Args:
+            previous_datatype (Datatype): datatype the component had before.
+        """
+        datatype = self.datatype
+        default = self.default_value
+        if default == previous_datatype.create_default():
+            self.default_value = datatype.create_default()
+            return
+        try:
+            self.default_value = datatype.cast(default)
+        except DatatypeCastError:
+            self.default_value = datatype.create_default()
 
     def _notify_datatype_changed(self):
         """Tell the model the datatype in effect changed, so views refresh."""
@@ -677,7 +699,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
 
         self.is_active = True
         self.is_expanded = self.get_default_expanded_state()
-        self.push_value(self.get_initial_value())
+        initial_value = self.get_initial_value()
+        self.default_value = copy.deepcopy(initial_value)
+        self.push_value(initial_value)
 
     def set_component_flag(
         self, flag: NodeComponentFlag, role: NodeComponent.Roles, state: bool
