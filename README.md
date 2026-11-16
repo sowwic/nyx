@@ -208,16 +208,18 @@ from Blender, call a tool that only exists inside a DCC. Nyx does this through t
   Blender), waits for it to connect and stops it when its nodes are done.
 
 Protocol, client and server classes live in a separate, dependency-free package so they
-can be imported inside the Python of a DCC (which cannot install Nyx itself):
+can be imported inside the Python of a DCC (which cannot install Nyx itself). See
+[Related projects](#related-projects) for the repositories.
+
+See the user guide ("Remote nodes") for how a stage uses the bridge.
+
+## Related projects
 
 | Repository | Purpose |
 | --- | --- |
 | [sowwic/nyx-bridge](https://github.com/sowwic/nyx-bridge) | Protocol, `BridgeServer` and the base `NyxClient`. Python 3.11+, no dependencies. Never imports Nyx or Qt. |
-| [sowwic/nyx-bridge-maya](https://github.com/sowwic/nyx-bridge-maya) | Maya client and a Nyx plugin with Maya-flavoured nodes. |
-| [sowwic/nyx-bridge-blender](https://github.com/sowwic/nyx-bridge-blender) | Blender add-on client and a Nyx plugin with Blender-flavoured nodes. |
-
-The DCC plugins are ordinary Nyx plugins: add their folder to `plugin_paths` or
-`NYX_PLUGIN_PATH`. See the user guide ("Remote nodes") for how a stage uses the bridge.
+| [sowwic/nyx-bridge-maya](https://github.com/sowwic/nyx-bridge-maya) | Maya client implementation of the bridge. |
+| [sowwic/nyx-bridge-blender](https://github.com/sowwic/nyx-bridge-blender) | Blender client implementation of the bridge. |
 
 ## Development
 
