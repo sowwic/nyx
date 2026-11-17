@@ -1,14 +1,14 @@
 import pathlib
+import shutil
 import struct
+import subprocess
 
 import pytest
 from PySide6 import QtGui
 
 import icons
 
-SOURCE_DIR = pathlib.Path(__file__).resolve().parents[2] / (
-    "src/nyx/resources/icons/nyx"
-)
+SOURCE = pathlib.Path(__file__).resolve().parents[2] / "src/nyx/resources/icons/nyx.png"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -18,19 +18,8 @@ def decode(data: bytes) -> QtGui.QImage:
     return image
 
 
-def test_find_source_uses_the_smallest_image_that_is_large_enough():
-    assert icons.find_source(SOURCE_DIR, 16).name == "64.png"
-    assert icons.find_source(SOURCE_DIR, 256).name == "256.png"
-    assert icons.find_source(SOURCE_DIR, 300).name == "512.png"
-
-
-def test_find_source_fails_when_nothing_is_large_enough():
-    with pytest.raises(FileNotFoundError):
-        icons.find_source(SOURCE_DIR, 4096)
-
-
 def test_render_png_without_margin_fills_the_canvas():
-    image = decode(icons.render_png(SOURCE_DIR, 256))
+    image = decode(icons.render_png(SOURCE, 256))
 
     assert (image.width(), image.height()) == (256, 256)
     assert image.pixelColor(128, 128).alpha() == 255
@@ -38,7 +27,7 @@ def test_render_png_without_margin_fills_the_canvas():
 
 
 def test_render_png_with_margin_leaves_the_edges_transparent():
-    image = decode(icons.render_png(SOURCE_DIR, 256, margin=True))
+    image = decode(icons.render_png(SOURCE, 256, margin=True))
 
     assert (image.width(), image.height()) == (256, 256)
     assert image.pixelColor(0, 0).alpha() == 0
@@ -46,31 +35,33 @@ def test_render_png_with_margin_leaves_the_edges_transparent():
     assert image.pixelColor(128, 128).alpha() == 255
 
 
-def test_write_icns_has_a_valid_container(tmp_path):
+def test_small_sizes_stay_full_bleed_with_the_margin_option():
+    image = decode(icons.render_png(SOURCE, 32, margin=True))
+
+    assert (image.width(), image.height()) == (32, 32)
+    assert image.pixelColor(1, 16).alpha() == 255
+
+
+@pytest.mark.skipif(shutil.which("iconutil") is None, reason="needs macOS iconutil")
+def test_write_icns_round_trips_through_iconutil(tmp_path):
     destination = tmp_path / "out" / "nyx.icns"
+    iconset = tmp_path / "nyx.iconset"
 
-    icons.write_icns(SOURCE_DIR, destination)
+    icons.write_icns(SOURCE, destination)
+    subprocess.run(
+        ["iconutil", "--convert", "iconset", "--output", str(iconset), str(destination)],
+        check=True,
+    )
 
-    data = destination.read_bytes()
-    assert data[:4] == b"icns"
-    assert struct.unpack(">I", data[4:8])[0] == len(data)
-    sizes_by_type = {}
-    offset = 8
-    while offset < len(data):
-        chunk_type = data[offset : offset + 4].decode("ascii")
-        length = struct.unpack(">I", data[offset + 4 : offset + 8])[0]
-        payload = data[offset + 8 : offset + length]
-        assert payload.startswith(PNG_SIGNATURE)
-        sizes_by_type[chunk_type] = decode(payload).width()
-        offset += length
-    assert offset == len(data)
-    assert sizes_by_type == dict(icons.ICNS_TYPES)
+    assert destination.read_bytes()[:4] == b"icns"
+    for name, size in icons.ICONSET_IMAGES.items():
+        assert decode((iconset / f"{name}.png").read_bytes()).width() == size
 
 
 def test_write_ico_has_a_valid_container(tmp_path):
     destination = tmp_path / "nyx.ico"
 
-    icons.write_ico(SOURCE_DIR, destination)
+    icons.write_ico(SOURCE, destination)
 
     data = destination.read_bytes()
     reserved, kind, count = struct.unpack("<HHH", data[:6])

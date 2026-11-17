@@ -1,71 +1,56 @@
-"""Build the application icon files from the sized PNGs of the Nyx icon.
+"""Build the application icon files from the 1024px PNG of the Nyx icon.
 
-The `.icns` (macOS) and `.ico` (Windows) containers are written here, so no platform
-tool (`iconutil`, `sips`, ImageMagick) is needed. Both formats can hold PNG images.
+The `.icns` (macOS) is made with `iconutil`, which writes the layout Finder expects,
+the hand-packed one showed a bad icon in Finder list views. The `.ico` (Windows) is
+written here, the format can hold PNG images.
 
 macOS draws app icons with a transparent margin around the artwork (see
 `nyx.utils.app_icon.MACOS_ART_RATIO`), so a full-bleed icon looks too big in the
 Dock. The source PNGs stay full-bleed, they are also used inside the application, and
-Windows icons are meant to be full-bleed.
+Windows icons are meant to be full-bleed. Sizes below `MIN_PADDED_SIZE` stay
+full-bleed on macOS too: Finder shows them in list views, and the margin would leave
+only a few pixels for the artwork.
 """
 
 import pathlib
 import struct
+import subprocess
+import tempfile
 
 from PySide6 import QtCore, QtGui
 
-from nyx.utils.app_icon import pad_for_macos
+from nyx.utils.app_icon import MIN_PADDED_SIZE, pad_for_macos
 
-# (icns type, pixel size). Types after `ic10` are the 2x variants of smaller sizes.
-ICNS_TYPES = (
-    ("icp4", 16),
-    ("icp5", 32),
-    ("icp6", 64),
-    ("ic07", 128),
-    ("ic08", 256),
-    ("ic09", 512),
-    ("ic10", 1024),
-    ("ic11", 32),
-    ("ic12", 64),
-    ("ic13", 256),
-    ("ic14", 512),
-)
+# Names of the images of an iconset, with their pixel size.
+ICONSET_IMAGES = {
+    "icon_16x16": 16,
+    "icon_16x16@2x": 32,
+    "icon_32x32": 32,
+    "icon_32x32@2x": 64,
+    "icon_128x128": 128,
+    "icon_128x128@2x": 256,
+    "icon_256x256": 256,
+    "icon_256x256@2x": 512,
+    "icon_512x512": 512,
+    "icon_512x512@2x": 1024,
+}
 ICO_SIZES = (16, 32, 48, 64, 128, 256)
 
 
-def find_source(source_dir: pathlib.Path, size: int) -> pathlib.Path:
-    """Get the smallest source PNG that is at least `size` pixels wide.
-
-    Args:
-        source_dir (pathlib.Path): directory with `<size>.png` files.
-        size (int): wanted pixel size.
-
-    Returns:
-        pathlib.Path: source image path.
-
-    Raises:
-        FileNotFoundError: no source image is large enough.
-    """
-    available = sorted(int(path.stem) for path in source_dir.glob("[0-9]*.png"))
-    for candidate in available:
-        if candidate >= size:
-            return source_dir / f"{candidate}.png"
-    raise FileNotFoundError(f"No icon of {size}px or larger in {source_dir}")
-
-
-def render_png(source_dir: pathlib.Path, size: int, margin: bool = False) -> bytes:
+def render_png(source: pathlib.Path, size: int, margin: bool = False) -> bytes:
     """Draw the icon at the given size.
 
     Args:
-        source_dir (pathlib.Path): directory with `<size>.png` files.
+        source (pathlib.Path): full-bleed source PNG, at least as big as `size`.
         size (int): pixel size of the square image.
-        margin (bool): leave the transparent margin macOS expects around the art.
+        margin (bool): leave the transparent margin macOS expects around the art, for
+            sizes of `MIN_PADDED_SIZE` and above.
 
     Returns:
         bytes: PNG image data.
     """
-    image = QtGui.QImage(str(find_source(source_dir, size)))
-    if margin:
+    image = QtGui.QImage(str(source))
+    if margin and size >= MIN_PADDED_SIZE:
         canvas = pad_for_macos(image, size)
     else:
         canvas = image.scaled(
@@ -83,33 +68,43 @@ def render_png(source_dir: pathlib.Path, size: int, margin: bool = False) -> byt
     return bytes(data)
 
 
-def write_icns(source_dir: pathlib.Path, destination: pathlib.Path) -> None:
-    """Write a macOS icon file, with the margin macOS expects.
+def write_icns(source: pathlib.Path, destination: pathlib.Path) -> None:
+    """Write a macOS icon file with `iconutil`, with the margin macOS expects.
 
     Args:
-        source_dir (pathlib.Path): directory with `<size>.png` files.
+        source (pathlib.Path): full-bleed source PNG, at least as big as `size`.
         destination (pathlib.Path): `.icns` file path.
+
+    Raises:
+        subprocess.CalledProcessError: `iconutil` failed.
     """
-    images = {size: render_png(source_dir, size, margin=True) for _, size in ICNS_TYPES}
-    chunks = [
-        icns_type.encode("ascii")
-        + struct.pack(">I", 8 + len(images[size]))
-        + images[size]
-        for icns_type, size in ICNS_TYPES
-    ]
-    body = b"".join(chunks)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_bytes(b"icns" + struct.pack(">I", 8 + len(body)) + body)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        iconset = pathlib.Path(temp_dir) / "nyx.iconset"
+        iconset.mkdir()
+        for name, size in ICONSET_IMAGES.items():
+            (iconset / f"{name}.png").write_bytes(render_png(source, size, margin=True))
+        subprocess.run(
+            [
+                "iconutil",
+                "--convert",
+                "icns",
+                "--output",
+                str(destination),
+                str(iconset),
+            ],
+            check=True,
+        )
 
 
-def write_ico(source_dir: pathlib.Path, destination: pathlib.Path) -> None:
+def write_ico(source: pathlib.Path, destination: pathlib.Path) -> None:
     """Write a Windows icon file.
 
     Args:
-        source_dir (pathlib.Path): directory with `<size>.png` files.
+        source (pathlib.Path): full-bleed source PNG, at least as big as `size`.
         destination (pathlib.Path): `.ico` file path.
     """
-    images = [render_png(source_dir, size) for size in ICO_SIZES]
+    images = [render_png(source, size) for size in ICO_SIZES]
     header = struct.pack("<HHH", 0, 1, len(images))
     offset = len(header) + 16 * len(images)
     entries = []
