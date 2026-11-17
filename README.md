@@ -35,23 +35,27 @@ uv run nyx                  # open the editor
 
 ### As a package in your project
 
-Nyx is not published on PyPI yet, install it from git. Its other dependencies
-(`sowwic-json-config`, `sowwic-json-config-qt` and `sowwic-nyx-bridge`) come from PyPI.
+Nyx is published on [PyPI](https://pypi.org/project/sowwic-nyx/). Its other dependencies
+(`sowwic-json-config`, `sowwic-json-config-qt` and `sowwic-nyx-bridge`) come from PyPI too.
+
+```sh
+uv add sowwic-nyx
+# or
+pip install sowwic-nyx
+```
+
+Or declare it in the `pyproject.toml` of your project:
 
 ```toml
-# pyproject.toml of your project
 [project]
 requires-python = "==3.14.3"
 dependencies = ["sowwic-nyx"]
-
-[tool.uv.sources]
-sowwic-nyx = { git = "https://github.com/sowwic/nyx", tag = "<release tag>" }
 ```
 
-With pip:
+To try an unreleased version, install it from git instead:
 
 ```sh
-pip install "sowwic-nyx @ git+https://github.com/sowwic/nyx@<release tag>"
+uv add "sowwic-nyx @ git+https://github.com/sowwic/nyx@<branch or tag>"
 ```
 
 Then import from the public API, which is what plugins use too. Nothing outside
