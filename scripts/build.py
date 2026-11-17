@@ -32,7 +32,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 DIST_DIR = ROOT / "dist"
 BUILD_DIR = ROOT / "build"
 ICON_BUILD_DIR = BUILD_DIR / "icons"
-ICON_SOURCE_DIR = ROOT / "src" / "nyx" / "resources" / "icons" / "nyx"
+ICON_SOURCE = ROOT / "src" / "nyx" / "resources" / "icons" / "nyx.png"
 SPEC_FILE = ROOT / f"{APP_NAME}.spec"
 SMOKE_STAGE = ROOT / "scripts" / "smoke_stage.nyx"
 QRC_FILES = (
@@ -160,9 +160,9 @@ def build_qrc() -> None:
 def build_icons() -> None:
     """Generate the icon file the platform needs into `build/icons`."""
     if IS_MACOS:
-        icons.write_icns(ICON_SOURCE_DIR, ICON_BUILD_DIR / f"{APP_NAME}.icns")
+        icons.write_icns(ICON_SOURCE, ICON_BUILD_DIR / f"{APP_NAME}.icns")
     elif IS_WINDOWS:
-        icons.write_ico(ICON_SOURCE_DIR, ICON_BUILD_DIR / f"{APP_NAME}.ico")
+        icons.write_ico(ICON_SOURCE, ICON_BUILD_DIR / f"{APP_NAME}.ico")
     else:
         print("==> No icon file to generate on Linux")
 
@@ -208,7 +208,9 @@ def build_app() -> None:
     if platform_name() == "linux":
         clear_executable_stacks(bundle_path())
         # No launcher can be made from a folder, ship the pieces to make one.
-        shutil.copy(ICON_SOURCE_DIR / "512.png", bundle_path() / f"{APP_NAME}.png")
+        (bundle_path() / f"{APP_NAME}.png").write_bytes(
+            icons.render_png(ICON_SOURCE, 512)
+        )
         (bundle_path() / f"{APP_NAME}.desktop").write_text(DESKTOP_ENTRY)
 
 

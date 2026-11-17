@@ -26,7 +26,7 @@ class AboutDialog(QtWidgets.QDialog):
         center = QtCore.Qt.AlignmentFlag.AlignCenter
 
         self.icon_label = QtWidgets.QLabel(self)
-        self.icon_label.setPixmap(QtGui.QIcon(":/icons/nyx/128").pixmap(64, 64))
+        self.icon_label.setPixmap(QtGui.QIcon(":/icons/nyx.png").pixmap(64, 64))
         self.icon_label.setAlignment(center)
 
         self.title_label = QtWidgets.QLabel(

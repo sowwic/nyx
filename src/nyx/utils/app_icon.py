@@ -5,6 +5,9 @@ from PySide6 import QtCore, QtGui
 # macOS draws app icons with a transparent margin around the artwork, so a full-bleed
 # icon looks too big in the Dock.
 MACOS_ART_RATIO = 840 / 1024
+# Icons below this pixel size stay full-bleed, the margin would leave the artwork only a
+# few pixels.
+MIN_PADDED_SIZE = 128
 
 
 def pad_for_macos(image: QtGui.QImage, size: int | None = None) -> QtGui.QImage:

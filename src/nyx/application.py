@@ -45,7 +45,7 @@ class NyxApplication(QtWidgets.QApplication):
     @staticmethod
     def _create_application_icon() -> QtGui.QIcon:
         """Create the application icon, with the margin macOS expects in the Dock."""
-        image = QtGui.QImage(":/icons/nyx/1024")
+        image = QtGui.QImage(":/icons/nyx.png")
         if sys.platform == "darwin":
             image = app_icon.pad_for_macos(image)
         return QtGui.QIcon(QtGui.QPixmap.fromImage(image))

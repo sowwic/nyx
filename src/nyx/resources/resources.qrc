@@ -3,11 +3,6 @@
   <qresource prefix="/">
     <!-- Application logo -->
     <file>icons/nyx.png</file>
-    <file>icons/nyx/64.png</file>
-    <file>icons/nyx/128.png</file>
-    <file>icons/nyx/256.png</file>
-    <file>icons/nyx/512.png</file>
-    <file>icons/nyx/1024.png</file>
 
     <!-- Images -->
     <file>images/splash_background.png</file>

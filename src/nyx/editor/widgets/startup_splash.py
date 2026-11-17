@@ -28,7 +28,7 @@ class NyxStartupSplash(QtWidgets.QSplashScreen):
     FOOTER_PIXEL_SIZE = 13
     FOOTER_GAP = 16  # Space kept between the message and the version.
     BACKGROUND_PIXMAP_SOURCE = ":/images/splash_background"
-    APP_ICON_SOURCE = ":/icons/nyx/1024"
+    APP_ICON_SOURCE = ":/icons/nyx.png"
 
     def __init__(self, screen: QtGui.QScreen | None = None) -> None:
         """Initialize NyxStartupSplash.
