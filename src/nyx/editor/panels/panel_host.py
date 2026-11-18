@@ -47,7 +47,12 @@ class PanelHost(QtWidgets.QWidget):
         PanelArea.RIGHT: 340,
         PanelArea.BOTTOM: 260,
     }
-    MINIMUM_PANEL_SIZE = 160
+    MINIMUM_SIZES = {
+        PanelArea.LEFT: 280,
+        PanelArea.RIGHT: 300,
+        PanelArea.BOTTOM: 180,
+    }
+    """Smallest width (height for the bottom area) a panel can be given."""
     MINIMUM_FREE_SIZE = 60
     FLOATING_MARGIN = 10
     FLOATING_SPACING = 6
@@ -197,7 +202,7 @@ class PanelHost(QtWidgets.QWidget):
             panel (OverlayPanel): attached panel.
             size (int): width, or height for the bottom area, in pixels.
         """
-        self._sizes[panel] = max(size, self.MINIMUM_PANEL_SIZE)
+        self._sizes[panel] = max(size, self.MINIMUM_SIZES[panel.area])
         self.update_layout()
 
     def _open_panel(self, area: PanelArea) -> OverlayPanel | None:
@@ -224,7 +229,7 @@ class PanelHost(QtWidgets.QWidget):
         Returns:
             int: size in pixels.
         """
-        limit = max(self.MINIMUM_PANEL_SIZE, available - self.MINIMUM_FREE_SIZE)
+        limit = max(self.MINIMUM_SIZES[panel.area], available - self.MINIMUM_FREE_SIZE)
         return min(self._sizes[panel], limit)
 
     def update_layout(self) -> None:

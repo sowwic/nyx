@@ -95,6 +95,37 @@ def test_panels_are_anchored_to_their_edges(main_window, manager, qtbot):
     assert bottom.geometry().right() == right.x() - 1
 
 
+def test_every_default_size_is_above_the_minimum_of_its_area():
+    from nyx.editor.panels import PanelArea
+    from nyx.editor.panels.panel_host import PanelHost
+
+    for area in PanelArea:
+        assert PanelHost.DEFAULT_SIZES[area] > PanelHost.MINIMUM_SIZES[area]
+    # The side panels are the ones that need room for their content
+    assert PanelHost.MINIMUM_SIZES[PanelArea.LEFT] >= 280
+    assert PanelHost.MINIMUM_SIZES[PanelArea.RIGHT] >= 280
+
+
+@pytest.mark.parametrize(
+    ("panel_id", "expected_minimum"),
+    [("tree", 280), ("inspector", 300), ("console", 180)],
+)
+def test_a_panel_cannot_be_made_smaller_than_the_minimum_of_its_area(
+    main_window, manager, qtbot, panel_id, expected_minimum
+):
+    main_window.show()
+    qtbot.waitExposed(main_window)
+    manager.set_open(panel_id, True)
+    panel = manager.panel(panel_id)
+    host = main_window.panel_host
+
+    panel.size_requested.emit(20)  # what dragging the grip far inwards asks for
+
+    assert host.panel_size(panel) == expected_minimum
+    size = panel.height() if panel_id == "console" else panel.width()
+    assert size == expected_minimum
+
+
 def test_dragging_the_grip_resizes_the_panel(main_window, manager, qtbot):
     main_window.show()
     qtbot.waitExposed(main_window)
