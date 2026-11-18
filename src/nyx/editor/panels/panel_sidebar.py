@@ -124,19 +124,28 @@ class PanelSidebar(QtWidgets.QFrame):
             definition (SidebarActionDefinition): action the button triggers.
 
         Returns:
-            QtWidgets.QToolButton: button that triggers the action when clicked and
-                lists the menu actions of the definition when right-clicked.
+            QtWidgets.QToolButton: button that triggers the action when clicked. Its
+                menu actions open on a click when it has no action, else on a
+                right-click.
         """
         button = self._new_button(
             f"sidebar_action_{definition.button_id}",
             definition.title,
             definition.icon_path,
         )
-        if definition.menu_action_ids:
+        menu_actions = [
+            ACTION_REGISTRY.action(action_id) for action_id in definition.menu_action_ids
+        ]
+        if definition.action_id is None:
+            menu = QtWidgets.QMenu(button)
+            menu.addActions(menu_actions)
+            button.setMenu(menu)
+            button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
+            return button
+        if menu_actions:
             # Qt shows the actions of the button as its context menu
             button.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.ActionsContextMenu)
-            for action_id in definition.menu_action_ids:
-                button.addAction(ACTION_REGISTRY.action(action_id))
+            button.addActions(menu_actions)
         button.clicked.connect(
             lambda _checked=False, action_id=definition.action_id: (
                 ACTION_REGISTRY.action(action_id).trigger()

@@ -7,6 +7,7 @@ from PySide6 import QtCore, QtWidgets
 
 from nyx.core.node import Node
 from nyx.core.node_component import NodeComponent
+from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
     from nyx.core.stage import Stage
@@ -49,6 +50,7 @@ class StageObjectPickerDialog(QtWidgets.QDialog):
         self.search_field = QtWidgets.QLineEdit(self)
         self.search_field.setPlaceholderText("Search")
         self.search_field.setClearButtonEnabled(True)
+        pyside_fn.add_search_icon(self.search_field)
         self.tree = QtWidgets.QTreeWidget(self)
         self.tree.setColumnCount(len(self.COLUMNS))
         self.tree.setHeaderLabels(list(self.COLUMNS))

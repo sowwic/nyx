@@ -6,9 +6,27 @@ from nyx.editor.panels import PANEL_REGISTRY, FloatingAnchor, PanelRegistry
 from nyx.editor.panels.panel_registry import PanelDefinition
 
 
-def test_default_panels_are_registered():
+def test_panels_are_registered():
     ids = {definition.panel_id for definition in PANEL_REGISTRY.definitions()}
     assert {"nodes", "tree", "undo", "bridge", "inspector", "console"} <= ids
+
+
+def test_panel_definitions_register_in_order_into_a_fresh_registry():
+    from nyx.editor.panels.panel_definitions import (
+        PANELS,
+        SIDEBAR_ACTIONS,
+        register_panels,
+    )
+
+    panel_ids = [definition.panel_id for definition in PANELS]
+    button_ids = [definition.button_id for definition in SIDEBAR_ACTIONS]
+    assert len(set(panel_ids + button_ids)) == len(panel_ids + button_ids)
+
+    registry = PanelRegistry()
+    register_panels(registry)
+
+    assert tuple(registry.definitions()) == PANELS
+    assert tuple(registry.action_buttons()) == SIDEBAR_ACTIONS
 
 
 def test_registry_replaces_by_id():
@@ -235,28 +253,39 @@ def test_panel_contents_do_not_show_through_while_their_panel_is_closed(
             assert not content.isVisible()
 
 
-@pytest.mark.parametrize(
-    ("button_id", "action_id"),
-    [("docs", "help.documentation"), ("settings", "edit.edit_config")],
-)
-def test_action_buttons_trigger_their_actions_when_clicked(
-    main_window, qtbot, button_id, action_id
-):
+def test_settings_button_triggers_the_config_action_when_clicked(main_window, qtbot):
     from unittest import mock
 
     from nyx.editor.core.action_registry import ACTION_REGISTRY
 
-    button = main_window.panel_sidebar.button(button_id)
+    button = main_window.panel_sidebar.button("settings")
     assert button is not None
     assert not button.isCheckable()
     handler = mock.Mock()
-    action = ACTION_REGISTRY.action(action_id)
+    action = ACTION_REGISTRY.action("edit.edit_config")
     action.triggered.connect(handler)
     try:
         qtbot.mouseClick(button, QtCore.Qt.MouseButton.LeftButton)
     finally:
         action.triggered.disconnect(handler)
     handler.assert_called_once()
+
+
+def test_help_button_opens_a_menu_with_the_help_actions(main_window):
+    from nyx.editor.core.action_registry import ACTION_REGISTRY
+    from nyx.editor.core.actions import ActionId
+
+    button = main_window.panel_sidebar.button("help")
+
+    assert not button.isCheckable()
+    assert button.popupMode() == QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup
+    assert button.menu().actions() == [
+        ACTION_REGISTRY.action(ActionId.DOCUMENTATION),
+        ACTION_REGISTRY.action(ActionId.SUBMIT_ISSUE),
+        ACTION_REGISTRY.action(ActionId.ABOUT),
+    ]
+    assert button.text() == "Help"
+    assert not button.icon().isNull()
 
 
 def test_right_clicking_the_settings_button_lists_the_config_actions(main_window):
@@ -275,12 +304,12 @@ def test_right_clicking_the_settings_button_lists_the_config_actions(main_window
 def test_action_buttons_are_in_the_bottom_group_after_the_console_button(main_window):
     sidebar = main_window.panel_sidebar
     console_y = sidebar.button("console").y()
-    assert console_y < sidebar.button("docs").y() < sidebar.button("settings").y()
+    assert console_y < sidebar.button("help").y() < sidebar.button("settings").y()
 
 
 def test_persistent_buttons_are_at_the_bottom_and_the_others_at_the_top(main_window):
     sidebar = main_window.panel_sidebar
-    persistent = {"console", "docs", "settings"}
+    persistent = {"console", "help", "settings"}
     others = {"nodes", "tree", "undo", "bridge"}
     for button_id in persistent:
         assert sidebar.is_persistent(button_id)
@@ -294,9 +323,9 @@ def test_persistent_buttons_cannot_be_hidden(main_window):
     sidebar = main_window.panel_sidebar
     try:
         sidebar._set_button_visible("settings", False)
-        sidebar.set_hidden_buttons(["console", "docs", "settings", "bridge"])
+        sidebar.set_hidden_buttons(["console", "help", "settings", "bridge"])
         assert sidebar.hidden_button_ids() == ["bridge"]
-        assert {"console", "docs", "settings"} <= set(sidebar.visible_button_ids())
+        assert {"console", "help", "settings"} <= set(sidebar.visible_button_ids())
 
         menu = sidebar._create_context_menu()
         offered = [
@@ -311,9 +340,9 @@ def test_persistent_buttons_cannot_be_hidden(main_window):
 def test_a_button_added_later_is_not_hidden_by_a_saved_list(main_window):
     sidebar = main_window.panel_sidebar
     try:
-        sidebar.set_hidden_buttons(["bridge"])  # list saved before docs existed
+        sidebar.set_hidden_buttons(["bridge"])  # list saved before help existed
         assert "bridge" not in sidebar.visible_button_ids()
-        assert {"docs", "settings", "console", "tree"} <= set(
+        assert {"help", "settings", "console", "tree"} <= set(
             sidebar.visible_button_ids()
         )
     finally:

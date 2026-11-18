@@ -10,8 +10,6 @@ from nyx.core.config_values.graphics_values import NyxEditorGraphicsStageConfigV
 class NyxEditorLogWidgetConfigValues(NyxBaseConfigValues):
     """Logger widget config values."""
 
-    auto_scroll: bool = Field(default=True)
-    """Scroll the log to new records."""
     minimum_level: int = Field(default=logging.DEBUG)
     """Minimum logging level shown in the log."""
 

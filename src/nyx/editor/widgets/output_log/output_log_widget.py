@@ -4,16 +4,12 @@ import logging
 from PySide6.QtCore import (
     QPoint,
     Qt,
-    Signal,
 )
-from PySide6.QtGui import QAction, QGuiApplication, QKeySequence
+from PySide6.QtGui import QAction, QGuiApplication, QKeySequence, QShowEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QHBoxLayout,
-    QLabel,
     QListView,
     QMenu,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -22,22 +18,18 @@ from nyx.utils import logging_fn
 from nyx.core.models.log_record_model import LogRecordListModel
 from nyx.editor.utils import context_menus
 from .log_filter_bar import LogFilterBar
-from .log_record_delegate import LogRecordItemDelegate, color_for_logging_level
+from .log_record_delegate import LogRecordItemDelegate
 from .log_record_filter_model import LogRecordFilterModel
-from ..common_widgets import ElidedTextLabel, ClickableHeaderWidget
 
 if typing.TYPE_CHECKING:
     from nyx.core.logger import NyxLogger
 
 
 class OutputLogWidget(QWidget):
-    """Collapsible log with a header showing the latest message.
+    """Log of the records with a filter bar. It has no state of its own to show or hide.
 
-    Attributes:
-        expansion_state_changed: emitted with the new expansion state
+    The panel it is a child of decides when it is visible.
     """
-
-    expansion_state_changed = Signal(bool)
 
     def __init__(
         self,
@@ -55,15 +47,12 @@ class OutputLogWidget(QWidget):
         self._log_message_list_model = log_message_list_model or LogRecordListModel(
             parent=self
         )
-        self._is_expanded = False
 
         self._create_actions()
         self._create_widgets()
         self._create_layouts()
         self._create_connections()
 
-        self._refresh_latest_message_display()
-        self._apply_expansion_state_to_child_widgets()
         self.set_logger()
 
     def _create_actions(self) -> None:
@@ -82,19 +71,6 @@ class OutputLogWidget(QWidget):
 
     def _create_widgets(self) -> None:
         """Create child widgets."""
-        # Header row (always visible)
-        self._header_widget = ClickableHeaderWidget(self)
-        self._header_widget.setFixedHeight(self.fontMetrics().height() + 12)
-
-        self._latest_severity_indicator_label = QLabel(self._header_widget)
-        self._latest_severity_indicator_label.setFixedSize(10, 10)
-
-        self._latest_message_label = ElidedTextLabel(self._header_widget)
-
-        self._toggle_expansion_button = QToolButton(self._header_widget)
-        self._toggle_expansion_button.setAutoRaise(True)
-
-        # History (visible only when expanded)
         self._filter_bar = LogFilterBar(self)
 
         self._filter_model = LogRecordFilterModel(self)
@@ -120,27 +96,15 @@ class OutputLogWidget(QWidget):
 
     def _create_layouts(self) -> None:
         """Create layouts."""
-        header_layout = QHBoxLayout(self._header_widget)
-        header_layout.setContentsMargins(8, 0, 4, 0)
-        header_layout.setSpacing(8)
-        header_layout.addWidget(self._toggle_expansion_button)
-        header_layout.addWidget(self._latest_severity_indicator_label)
-        header_layout.addWidget(self._latest_message_label, stretch=1)
-
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        main_layout.addWidget(self._header_widget)
         main_layout.addWidget(self._filter_bar)
         main_layout.addWidget(self._log_message_list_view, stretch=1)
 
     def _create_connections(self) -> None:
         """Create signal-slot connections."""
-        self._toggle_expansion_button.clicked.connect(self.toggle_expanded_state)
         self._log_message_list_model.rowsInserted.connect(self._on_log_records_inserted)
-        self._log_message_list_model.modelReset.connect(
-            self._refresh_latest_message_display
-        )
         self._filter_bar.search_text_changed.connect(self._on_search_text_changed)
         self._filter_bar.minimum_level_changed.connect(self._on_minimum_level_changed)
         self._filter_bar.clear_requested.connect(self._clear_action.trigger)
@@ -154,49 +118,17 @@ class OutputLogWidget(QWidget):
         )
 
     # ---- Public API ----
-    def header_height_in_pixels(self) -> int:
-        """int: height of the always visible header."""
-        return self._header_widget.height()
-
-    def is_expanded(self) -> bool:
-        """bool: log list is shown."""
-        return self._is_expanded
-
-    def set_expanded(self, should_be_expanded: bool) -> None:
-        """Show or hide the log list.
-
-        Args:
-            should_be_expanded (bool): whether the list is shown.
-        """
-        if should_be_expanded == self._is_expanded:
-            return
-        self._is_expanded = should_be_expanded
-        self._apply_expansion_state_to_child_widgets()
-        self.expansion_state_changed.emit(self._is_expanded)
-
-    def set_header_visible(self, is_visible: bool) -> None:
-        """Show or hide the header with the latest message and the toggle button.
-
-        Args:
-            is_visible (bool): whether the header is shown.
-        """
-        self._header_widget.setVisible(is_visible)
-
     def get_minimum_level(self) -> int:
-        """int: minimum logging level shown in the history."""
+        """int: minimum logging level shown in the log."""
         return self._filter_bar.get_minimum_level()
 
     def set_minimum_level(self, minimum_level: int) -> None:
-        """Set the minimum logging level shown in the history.
+        """Set the minimum logging level shown in the log.
 
         Args:
             minimum_level (int): logging level number.
         """
         self._filter_bar.set_minimum_level(minimum_level)
-
-    def toggle_expanded_state(self) -> None:
-        """Toggle between expanded and collapsed."""
-        self.set_expanded(not self._is_expanded)
 
     # ---- Internals ----
     def set_logger(self):
@@ -210,19 +142,17 @@ class OutputLogWidget(QWidget):
             self._log_message_list_model.append_log_record
         )
 
-    def _apply_expansion_state_to_child_widgets(self) -> None:
-        """Show the list and arrow matching the expansion state."""
-        self._log_message_list_view.setVisible(self._is_expanded)
-        self._filter_bar.setVisible(self._is_expanded)
-        self._toggle_expansion_button.setArrowType(
-            Qt.ArrowType.DownArrow if self._is_expanded else Qt.ArrowType.UpArrow
-        )
-        if self._is_expanded:
-            self._log_message_list_view.scrollToBottom()
+    def showEvent(self, event: QShowEvent) -> None:
+        """Show the newest records, which arrived while the log was hidden.
+
+        Args:
+            event (QShowEvent): event.
+        """
+        super().showEvent(event)
+        self._log_message_list_view.scrollToBottom()
 
     def _on_log_records_inserted(self, *_unused_signal_arguments) -> None:
-        """Update the header and scroll to the newest record."""
-        self._refresh_latest_message_display()
+        """Scroll to the newest record."""
         self._log_message_list_view.scrollToBottom()
 
     def _on_search_text_changed(self, search_text: str) -> None:
@@ -267,22 +197,4 @@ class OutputLogWidget(QWidget):
         menu.addAction(self._clear_action)
         context_menus.show_menu(
             menu, self._log_message_list_view.viewport().mapToGlobal(point)
-        )
-
-    def _refresh_latest_message_display(self) -> None:
-        """Show the latest record in the header, or "Ready" if there is none."""
-        latest_log_record = self._log_message_list_model.latest_log_record()
-        if latest_log_record is None:
-            self._latest_message_label.set_full_text("Ready")
-            self._latest_severity_indicator_label.setStyleSheet("")
-            self._latest_severity_indicator_label.setVisible(False)
-            return
-
-        severity_color = color_for_logging_level(latest_log_record.levelno)
-        self._latest_severity_indicator_label.setStyleSheet(
-            f"background-color: {severity_color.name()}; border-radius: 5px;"
-        )
-        self._latest_severity_indicator_label.setVisible(True)
-        self._latest_message_label.set_full_text(
-            logging_fn.format_log_record_message_as_single_line(latest_log_record)
         )

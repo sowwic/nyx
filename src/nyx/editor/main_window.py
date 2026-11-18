@@ -30,7 +30,7 @@ from .widgets.run_overlay import RunOverlay
 from .widgets import menubar_menus
 from .widgets.stage_mdi_area import StageMdiArea
 from .panels import PANEL_REGISTRY, PanelHost, PanelManager, PanelSidebar
-from .panels.default_panels import DefaultPanelId, register_default_panels
+from .panels.panel_definitions import PanelId, register_panels
 from ..utils import pyside_fn
 from ..static import vars as nyx_vars
 from ..core.session import SESSION_FILE_SUFFIX
@@ -141,6 +141,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         register(ActionId.SHOW_ADDRESS_NAMES, self.set_show_address_names)
         register(ActionId.ALWAYS_ON_TOP, self.set_always_on_top)
         register(ActionId.DOCUMENTATION, self.open_documentation)
+        register(ActionId.SUBMIT_ISSUE, self.open_issue_tracker)
         register(ActionId.ABOUT, self.show_about_dialog)
         # Fallbacks so toolbar buttons work before the tree view has focus
         register(ActionId.CREATE_NODE, self.show_nodes_palette)
@@ -160,14 +161,12 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menubar_edit_menu = menubar_menus.EditMenu(self)
         self.menubar_session_menu = menubar_menus.SessionMenu(self)
         self.menubar_view_menu = menubar_menus.ViewMenu(self)
-        self.menubar_help_menu = menubar_menus.HelpMenu(self)
 
         self.menuBar().setNativeMenuBar(False)
         self.menuBar().addMenu(self.menubar_file_menu)
         self.menuBar().addMenu(self.menubar_edit_menu)
         self.menuBar().addMenu(self.menubar_session_menu)
         self.menuBar().addMenu(self.menubar_view_menu)
-        self.menuBar().addMenu(self.menubar_help_menu)
 
     def create_widgets(self):
         """Create the window widgets."""
@@ -181,8 +180,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.undo_view.setEmptyLabel("Stage initial state")
 
         self.output_log_widget = OutputLogWidget(parent=self)
-        self.output_log_widget.set_expanded(True)
-        self.output_log_widget.set_header_visible(False)
 
         # Panel contents are children of the window until their panel is created, so
         # hide them, or they show through the transparent parts of the tab bar
@@ -198,14 +195,14 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         # mdi area with the sidebar and the overlay panels around it
         self.mdi_area = StageMdiArea()
-        register_default_panels()
+        register_panels()
         self.panel_sidebar = PanelSidebar(PANEL_REGISTRY, self)
         self.panel_host = PanelHost(self.mdi_area, self.panel_sidebar)
         self.panel_manager = PanelManager(
             self, self.panel_host, self.panel_sidebar, PANEL_REGISTRY
         )
         self.run_overlay = RunOverlay(
-            self.panel_manager.toggle_action(DefaultPanelId.INSPECTOR)
+            self.panel_manager.toggle_action(PanelId.INSPECTOR)
         )
         self.panel_host.add_floating_widget(self.run_overlay)
         self.setCentralWidget(self.panel_host)
@@ -319,6 +316,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
     def open_documentation(self) -> None:
         """Open the documentation in the default browser."""
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(nyx_vars.DOCUMENTATION_URL))
+
+    def open_issue_tracker(self) -> None:
+        """Open the page for submitting an issue in the default browser."""
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(nyx_vars.ISSUES_URL))
 
     def show_about_dialog(self) -> None:
         """Show the modal about dialog."""

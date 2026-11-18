@@ -155,7 +155,6 @@ Saved when the window closes.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `log_widget.auto_scroll` | `true` | Scroll the log to new records. |
 | `log_widget.minimum_level` | `10` | Minimum logging level shown in the log. |
 | `graphics_stage.link_style` | `"bezier"` | Shape links are drawn with: `bezier`, `direct` or `square`. |
 | `graphics_stage.highlight_flow_chain` | `true` | Animate the flow links that are part of the execution chain of the drawn scope. |

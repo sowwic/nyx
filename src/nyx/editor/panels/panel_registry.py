@@ -53,8 +53,10 @@ class SidebarActionDefinition:
         title: title shown below the icon.
         icon_path: resource path of the icon.
         action_id: id of the editor action the button triggers when it is clicked.
-        menu_action_ids: ids of the editor actions listed in the menu that right-clicking
-            the button opens. Empty for a button without one.
+            None for a button that opens its menu when it is clicked.
+        menu_action_ids: ids of the editor actions listed in the button menu. It opens
+            on a click when `action_id` is None and on a right-click otherwise. Empty
+            for a button without one.
         is_persistent: the button is always shown, in the bottom group, and can't be
             hidden. Other buttons are in the top group and can be hidden.
     """
@@ -62,7 +64,7 @@ class SidebarActionDefinition:
     button_id: str
     title: str
     icon_path: str
-    action_id: str
+    action_id: str | None = None
     menu_action_ids: tuple[str, ...] = ()
     is_persistent: bool = True
 

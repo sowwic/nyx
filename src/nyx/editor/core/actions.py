@@ -49,6 +49,7 @@ class ActionId(StrEnum):
     ALWAYS_ON_TOP = "view.always_on_top"
     # Help
     DOCUMENTATION = "help.documentation"
+    SUBMIT_ISSUE = "help.submit_issue"
     ABOUT = "help.about"
     # Stage
     EXECUTE_STAGE = "stage.execute"
@@ -213,15 +214,28 @@ def default_definitions() -> list[ActionDefinition]:
             ActionId.DOCUMENTATION,
             "Documentation",
             "Help",
-            icon_path=":/icons/info",
+            icon_path=":/icons/docs",
             status_tip="Open the Nyx documentation in the browser",
         ),
-        D(ActionId.ABOUT, "About", "Help", status_tip="Show information about Nyx"),
+        D(
+            ActionId.SUBMIT_ISSUE,
+            "Submit an issue",
+            "Help",
+            icon_path=":/icons/bug",
+            status_tip="Report a bug or request a feature on GitHub",
+        ),
+        D(
+            ActionId.ABOUT,
+            "About",
+            "Help",
+            icon_path=":/icons/info",
+            status_tip="Show information about Nyx",
+        ),
         D(
             ActionId.EXECUTE_STAGE,
             "Execute stage",
             "Stage",
-            icon_path=":/icons/exec_stage",
+            icon_path=":/icons/run_arrow",
         ),
         D(
             ActionId.EXECUTE_FROM_SELECTED,

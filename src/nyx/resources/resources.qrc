@@ -38,6 +38,7 @@
     <file>icons/focus.png</file>
     <file>icons/function.png</file>
     <file>icons/group.png</file>
+    <file>icons/inspector.png</file>
     <file>icons/link.png</file>
     <file>icons/lock.png</file>
     <file>icons/remote_action.png</file>
@@ -51,14 +52,25 @@
     <file>icons/arrow_double_down.png</file>
     <file>icons/arrow_double_up.png</file>
     <file>icons/asterisk.png</file>
+    <file>icons/bug.png</file>
     <file>icons/check.png</file>
     <file>icons/cross.png</file>
+    <file>icons/console.png</file>
+    <file>icons/database.png</file>
+    <file>icons/docs.png</file>
     <file>icons/frame_bug.png</file>
     <file>icons/green_check.png</file>
+    <file>icons/help.png</file>
     <file>icons/info.png</file>
+    <file>icons/library.png</file>
+    <file>icons/palette.png</file>
     <file>icons/plus.png</file>
     <file>icons/red_error.png</file>
     <file>icons/redo.png</file>
+    <file>icons/run_arrow.png</file>
+    <file>icons/search.png</file>
+    <file>icons/tree_graph.png</file>
+    <file>icons/tree_graph_horizontal.png</file>
     <file>icons/undo.png</file>
 
     <!-- Fonts -->
