@@ -47,6 +47,17 @@ class CoreGraphicsObjects(enum.StrEnum):
     GROUP = "core.group"
 
 
+class CoreInspectorWidgets(enum.StrEnum):
+    """Ids of the inspector widgets provided by the editor and the core plugin.
+
+    Types return them from `get_inspector_widget_id`.
+    """
+
+    NODE = "core.node_inspector"
+    NOTE = "core.note_inspector"
+    GROUP = "core.group_inspector"
+
+
 class LinkAnimationStyle(enum.StrEnum):
     """Animations a graphics link can be highlighted with."""
 

@@ -432,7 +432,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         mdi_sub_window = self.mdi_area.addSubWindow(stage_graph_editor_widget)
 
         # Connect signals
-        stage_graph_editor_widget.selection_model.selectionChanged.connect(
+        stage_graph_editor_widget.selected_objects_changed.connect(
             self.inspector.update_data
         )
         stage_graph_editor_widget.node_type_dropped.connect(

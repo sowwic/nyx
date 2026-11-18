@@ -96,13 +96,6 @@ def test_inspector_waits_for_the_end_of_the_band(main_window, three_nodes, monke
     monkeypatch.setattr(
         main_window.inspector, "update_data", lambda *a: calls.append(1), raising=True
     )
-    editor.selection_model.selectionChanged.disconnect()
-    editor.selection_model.selectionChanged.connect(
-        editor.gr_stage.on_selection_model_selection_changed
-    )
-    editor.selection_model.selectionChanged.connect(
-        lambda *_: main_window.inspector.update_data()
-    )
     gr_stage = editor.gr_stage
     editor.gr_view.set_interaction_mode(RUBBER_BAND)
     # Turning undo off for the band refreshes the inspector once, that is not the

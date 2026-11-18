@@ -3,6 +3,7 @@ from PySide6 import QtCore
 
 from nyx.api.v1 import CoreNodes, commands
 from nyx.editor.views.node_components_view import NodeComponentsView
+from nyx.editor.widgets.inspector_widgets import NodeInspectorWidget
 
 
 def texts(item):
@@ -118,7 +119,7 @@ def test_inspector_header_edits_the_display_name(
     main_window, stage_editor, remote_client_gr_node, qtbot
 ):
     node, _ = remote_client_gr_node
-    header = main_window.inspector._node_header
+    header = main_window.inspector.findChild(NodeInspectorWidget).node_header
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

@@ -22,6 +22,7 @@ from ..utils import file_fn, inspect_fn
 from .node_render_options import NodeRenderOptions
 from ..static.enums import (
     CoreGraphicsObjects,
+    CoreInspectorWidgets,
     CoreNodes,
     RestoreUuidOption,
     NodeExecutionStatus,
@@ -1084,6 +1085,11 @@ class Node(QtGui.QStandardItem, StageObject):
     def get_graphics_object_id(cls) -> str | None:
         """str | None: id of the graphics object drawing the type."""
         return CoreGraphicsObjects.NODE
+
+    @classmethod
+    def get_inspector_widget_id(cls) -> str | None:
+        """str | None: id of the inspector widget showing the type."""
+        return CoreInspectorWidgets.NODE
 
     @classmethod
     def get_type_id(cls) -> str:

@@ -1,6 +1,7 @@
 import logging
 import pathlib
 import typing
+from uuid import UUID
 
 import shiboken6
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -19,6 +20,7 @@ from .dim_overlay import dimmed_ovelay
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import NodeLike, Node
+    from nyx.core.stage_object import StageObject
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
@@ -33,6 +35,8 @@ class StageGraphEditor(QtWidgets.QWidget):
         scope_changed: emitted with the new scope path
         node_type_dropped: emitted with a node type id and scene position on drop
         stage_file_used: emitted with the stage file path after it was opened or saved
+        selected_objects_changed: emitted when the selected nodes or util objects are
+            not the ones of the last time. Not emitted twice for the same selection.
     """
 
     DEFAULT_TITLE = "Untitled"
@@ -41,6 +45,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
     node_type_dropped = QtCore.Signal(str, QtCore.QPointF)
     stage_file_used = QtCore.Signal(str)
+    selected_objects_changed = QtCore.Signal()
 
     def __init__(
         self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
@@ -55,6 +60,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
         self._selection_model = QtCore.QItemSelectionModel()
+        self._selected_object_uuids: tuple[UUID, ...] = ()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
         self._scope_path = ROOT_NODE_PATH
@@ -151,6 +157,9 @@ class StageGraphEditor(QtWidgets.QWidget):
         )
         # After the scene selection is synced: selection decides action availability.
         self.selection_model.selectionChanged.connect(self._refresh_actions)
+        self.selection_model.selectionChanged.connect(
+            self.notify_selected_objects_changed
+        )
 
     def create_connections(self):
         """Create signal to slot connections."""
@@ -423,6 +432,28 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
+
+    def list_selected_objects(self) -> list[StageObject]:
+        """List the selected stage objects: the nodes, then the util objects.
+
+        Returns:
+            list[StageObject]: selected nodes and util objects.
+        """
+        selected_objects: list[StageObject] = self.list_selected_nodes()
+        gr_stage = getattr(self, "gr_stage", None)
+        if gr_stage is not None:
+            selected_objects.extend(
+                gr_util.util_object for gr_util in gr_stage.selected_gr_util_objects()
+            )
+        return selected_objects
+
+    def notify_selected_objects_changed(self, *_unused_signal_arguments) -> None:
+        """Emit `selected_objects_changed` if the selection is not the last one."""
+        uuids = tuple(stage_object.uuid for stage_object in self.list_selected_objects())
+        if uuids == self._selected_object_uuids:
+            return
+        self._selected_object_uuids = uuids
+        self.selected_objects_changed.emit()
 
     def select_nodes(self, nodes: list[Node]) -> None:
         """Replace the selection, so the graph shows it even if it was unchanged.

@@ -297,11 +297,12 @@ def render_components(out: pathlib.Path) -> None:
     from PySide6 import QtCore
 
     from nyx.api.v1 import NYX_REGISTRY, NodeComponent, commands
+    from nyx.editor.views.node_components_view import NodeComponentsView
 
     app, window = create_editor()
     editor = window.current_stage_graph
     stage = editor.stage
-    view = window.inspector._node_components_view
+    view = window.inspector.findChild(NodeComponentsView)
     apply_dark_palette(app, view)
     pump(app, 10)
 

@@ -71,6 +71,19 @@ class StageObject:
         """
         return None
 
+    @classmethod
+    def get_inspector_widget_id(cls) -> str | None:
+        """Get the id of the inspector widget showing objects of the type.
+
+        Override it in subclasses to show the objects of the type in the inspector with
+        a widget registered in the registry.
+
+        Returns:
+            str | None: inspector widget id, None if the inspector has nothing to show
+                for objects of the type.
+        """
+        return None
+
     @property
     def path(self) -> pathlib.PosixPath:
         """pathlib.PosixPath: path in the stage. Subclasses must implement."""

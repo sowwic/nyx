@@ -40,6 +40,9 @@ from .util_objects.group import GroupObject
 from .graphics_objects.note import GraphicsNote
 from .graphics_objects.group import GraphicsGroup
 
+from .inspector_widgets.note import NoteInspector
+from .inspector_widgets.group import GroupInspector
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -102,5 +105,6 @@ class NyxStdlib(NyxPlugin):
         ]
         plugin.contents.util_objects = [NoteObject, GroupObject]
         plugin.contents.graphics_objects = [GraphicsNote, GraphicsGroup]
+        plugin.contents.inspector_widgets = [NoteInspector, GroupInspector]
 
         return plugin

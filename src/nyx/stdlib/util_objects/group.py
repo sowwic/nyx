@@ -1,7 +1,12 @@
 import typing
 from collections import OrderedDict
 
-from nyx.api.v1 import CoreGraphicsObjects, CoreUtilObjects, UtilObject
+from nyx.api.v1 import (
+    CoreGraphicsObjects,
+    CoreInspectorWidgets,
+    CoreUtilObjects,
+    UtilObject,
+)
 from nyx.core.util_object import get_configured_color
 from nyx.static.vars import DEFAULT_GROUP_COLOR
 
@@ -37,6 +42,11 @@ class GroupObject(UtilObject):
         return CoreGraphicsObjects.GROUP
 
     @classmethod
+    def get_inspector_widget_id(cls) -> str | None:
+        """str | None: id of the inspector widget showing the type."""
+        return CoreInspectorWidgets.GROUP
+
+    @classmethod
     def get_type_id(cls) -> str:
         """str: util object type id."""
         return CoreUtilObjects.GROUP
@@ -45,6 +55,11 @@ class GroupObject(UtilObject):
     def get_type_display_name(cls) -> str:
         """str: name shown in the UI."""
         return "Group"
+
+    @classmethod
+    def get_type_icon(cls) -> str:
+        """str: resource path of the type icon."""
+        return ":/icons/group"
 
     @classmethod
     def get_description(cls) -> str:

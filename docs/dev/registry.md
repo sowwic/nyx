@@ -18,6 +18,7 @@ from nyx.api.v1 import NYX_REGISTRY
 | `datatypes` | `Datatype` instances | datatype type id |
 | `util_objects` | util object classes | util object type id |
 | `graphics_objects` | graphics item classes, the built-in ones included | graphics object id |
+| `inspector_widgets` | inspector widget classes, the built-in ones included | inspector widget id |
 | `qml_import_root_directories` | directories QML modules are imported from | n/a |
 
 All keys are plain strings with a namespace, `"<namespace>:<name>"` (`core:value`,
@@ -62,10 +63,10 @@ what the `with_plugins` test marker does).
 enabled plugins:
 
 1. clear `nodes`, `node_components`, `datatypes`, `util_objects`, and reset
-   `graphics_objects` to the built-in ones,
+   `graphics_objects` and `inspector_widgets` to the built-in ones,
 2. register the core datatypes (`core_types.CORE_DATATYPES`),
 3. for each plugin entry, in discovery order: node components, nodes, datatypes, util
-   objects, graphics objects and its QML import root.
+   objects, graphics objects, inspector widgets and its QML import root.
 
 Registering a node, component or util object class also sets `SOURCE_PLUGIN` on it to the
 plugin entry. Serialization writes the plugin id as `source_plugin` into the file, and the
@@ -85,6 +86,7 @@ the core plugin is discovered first, **its ids can't be overridden** by another 
 | `get_node_component_cls(type_id)` | the component class, or `None`. |
 | `get_util_object_cls(type_id)` | the util object class. Logs an error and returns `None` when unknown. |
 | `get_graphics_object_cls(type_id)` | the graphics item class, or `None`. |
+| `get_inspector_widget_cls(type_id)` | the inspector widget class, or `None`. |
 | `get_datatype(type_id)` | the `Datatype`, or `None`. |
 | `resolve_datatype(type_id)` | the `Datatype`, falling back to `OBJECT_DATATYPE` (defined in `core/datatypes/core_types.py`) for a missing or unknown id (logged). Use this when reading files. |
 | `infer_datatype(value)` | first registered datatype whose Python type is exactly `type(value)`, else `Object`. |
@@ -92,6 +94,7 @@ the core plugin is discovered first, **its ids can't be overridden** by another 
 | `iter_datatypes()`, `iter_node_components()`, `iter_plugins()` | iterate the registered content. |
 | `resolve_qml_source(module_uri, type_name)` | path of `<root>/<module/path>/<type_name>.qml` in the first import root that has it, else `FileNotFoundError`. |
 | `register_builtin_graphics_object(type_id, cls)` | for the editor: graphics items that exist whatever plugins are enabled (nodes, plugs, links). |
+| `register_builtin_inspector_widget(type_id, cls)` | for the editor: inspector widgets that exist whatever plugins are enabled (nodes). |
 
 `infer_datatype` and `find_datatype_for_type` return the *first* match in registration
 order, so two datatypes with the same Python type resolve to the one registered earlier.

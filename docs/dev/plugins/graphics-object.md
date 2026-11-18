@@ -92,6 +92,8 @@ class GraphicsChecklist(GraphicsUtilObject):
             self.push_properties({"items": text.splitlines()}, "Edit checklist")
 ```
 
+Edit the object in the Inspector with an [inspector widget](inspector-widget.md).
+
 The util object returns this id from `get_graphics_object_id()`
 (`"studio.checklist"` in [New util object](util-object.md)), and the plugin lists the class:
 

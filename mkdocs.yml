@@ -118,3 +118,4 @@ nav:
           - New datatype: dev/plugins/datatype.md
           - New util object: dev/plugins/util-object.md
           - New graphics object: dev/plugins/graphics-object.md
+          - New inspector widget: dev/plugins/inspector-widget.md

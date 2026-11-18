@@ -4,6 +4,11 @@ Most of them need a running `QApplication`, and `get_current_stage_graph` the ed
 window, so they are for code that runs in the editor, not in a headless run.
 """
 
+from nyx.editor.widgets.inspector_widgets import (
+    CommitPlainTextEdit,
+    InspectorWidget,
+    UtilObjectInspectorWidget,
+)
 from nyx.editor.utils.common import (
     blocked_signals,
     build_component_tooltip_html,
@@ -16,6 +21,9 @@ from nyx.editor.utils.common import (
 from nyx.utils.icon_fn import create_mono_icon, create_mono_image
 
 __all__ = [
+    "CommitPlainTextEdit",
+    "InspectorWidget",
+    "UtilObjectInspectorWidget",
     "blocked_signals",
     "build_component_tooltip_html",
     "build_role_tooltip_html",

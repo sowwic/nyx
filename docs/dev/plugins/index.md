@@ -12,6 +12,7 @@ with Nyx. This section shows how to add each kind of content:
 | A new datatype | [New datatype](datatype.md) |
 | A note-like object that doesn't execute | [New util object](util-object.md) |
 | A custom drawing for a util object | [New graphics object](graphics-object.md) |
+| A panel in the Inspector for a type of object | [New inspector widget](inspector-widget.md) |
 
 Import from `nyx.api.v1` only. It is the public, versioned API; `nyx.core` and
 `nyx.editor` can change without notice. Look at `nyx/stdlib` (the core plugin) and
@@ -96,6 +97,7 @@ The pieces:
 | `datatypes` | `Datatype` instances |
 | `util_objects` | util object classes |
 | `graphics_objects` | graphics item classes (QGraphicsItem subclasses with a `get_type_id`) |
+| `inspector_widgets` | inspector widget classes (QWidget subclasses with a `get_type_id`) |
 | `register_function_node(func)` | method that generates a node class from a function and adds it to `nodes` |
 | `register_function_module(module, namespace)` | the same for every public function of a module |
 
@@ -123,7 +125,7 @@ the folder name unique among your plugins.
 
 ## Type ids
 
-Every node, component, datatype, util object and graphics object has a **type id**: a
+Every node, component, datatype, util object, graphics object and inspector widget has a **type id**: a
 string stored in saved stages. Rules to follow:
 
 - Use `namespace:name`, with a namespace of your own (`studio:greeter`). `core:` and

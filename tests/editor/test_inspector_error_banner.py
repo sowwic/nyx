@@ -2,7 +2,12 @@ import pytest
 from PySide6 import QtCore
 
 from nyx.api.v1 import CoreNodes
+from nyx.editor.widgets.inspector_widgets import NodeInspectorWidget
 from nyx.static.enums import NodeExecutionStatus
+
+
+def error_banner(main_window):
+    return main_window.inspector.findChild(NodeInspectorWidget).error_banner
 
 
 @pytest.fixture
@@ -21,11 +26,11 @@ def fail(node, error):
 
 
 def test_no_banner_for_a_node_that_did_not_fail(main_window, failing_node):
-    assert main_window.inspector._error_banner.isHidden()
+    assert error_banner(main_window).isHidden()
 
 
 def test_banner_shows_the_error_when_the_node_fails(main_window, failing_node):
-    banner = main_window.inspector._error_banner
+    banner = error_banner(main_window)
 
     fail(failing_node, ValueError("it broke"))
 
@@ -34,7 +39,7 @@ def test_banner_shows_the_error_when_the_node_fails(main_window, failing_node):
 
 
 def test_banner_hides_again_when_the_node_is_reset(main_window, failing_node):
-    banner = main_window.inspector._error_banner
+    banner = error_banner(main_window)
     fail(failing_node, ValueError("x"))
 
     failing_node.reset_execution_status()
@@ -46,7 +51,7 @@ def test_banner_hides_again_when_the_node_is_reset(main_window, failing_node):
 def test_long_messages_stay_on_one_line_and_open_in_full(
     main_window, failing_node, monkeypatch
 ):
-    banner = main_window.inspector._error_banner
+    banner = error_banner(main_window)
     message = "line one\n" + "very long " * 50
     fail(failing_node, RuntimeError(message))
 
@@ -69,7 +74,7 @@ def test_long_messages_stay_on_one_line_and_open_in_full(
 def test_banner_follows_the_selection(
     main_window, stage_editor, failing_node, create_node
 ):
-    banner = main_window.inspector._error_banner
+    banner = error_banner(main_window)
     fail(failing_node, ValueError("x"))
     other = create_node(stage_editor.stage, "b", type_id=CoreNodes.EMPTY)
     stage_editor.selection_model.clear()

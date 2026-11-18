@@ -849,6 +849,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.selection_model.select(
             selection, QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
         )
+        # The model says nothing when only util objects were selected
+        self.graph_editor.notify_selected_objects_changed()
 
     def start_selected_node_rename(self):
         """Starts editing the title of the last selected GraphicsNode item."""
