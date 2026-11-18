@@ -4,8 +4,8 @@ Most of them need a running `QApplication`, and `get_current_stage_graph` the ed
 window, so they are for code that runs in the editor, not in a headless run.
 """
 
+from nyx.editor.widgets.common_widgets import CommitPlainTextEdit
 from nyx.editor.widgets.inspector_widgets import (
-    CommitPlainTextEdit,
     InspectorWidget,
     UtilObjectInspectorWidget,
 )

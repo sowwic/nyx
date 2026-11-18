@@ -1,9 +1,8 @@
 from .base import InspectorWidget
 from .node_inspector import NodeInspectorWidget
-from .util_object_inspector import CommitPlainTextEdit, UtilObjectInspectorWidget
+from .util_object_inspector import UtilObjectInspectorWidget
 
 __all__ = [
-    "CommitPlainTextEdit",
     "InspectorWidget",
     "NodeInspectorWidget",
     "UtilObjectInspectorWidget",

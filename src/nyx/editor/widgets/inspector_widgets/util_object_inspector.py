@@ -11,25 +11,6 @@ if typing.TYPE_CHECKING:
     from nyx.core.util_object import UtilObject
 
 
-class CommitPlainTextEdit(QtWidgets.QPlainTextEdit):
-    """Multi-line text edit that says when the user is done: it lost the focus.
-
-    Attributes:
-        editing_finished: emitted when the field loses the focus.
-    """
-
-    editing_finished = QtCore.Signal()
-
-    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
-        """Tell that the edit is done.
-
-        Args:
-            event (QtGui.QFocusEvent): event.
-        """
-        super().focusOutEvent(event)
-        self.editing_finished.emit()
-
-
 class UtilObjectInspectorWidget(InspectorWidget):
     """Base of the inspector widgets of util objects.
 

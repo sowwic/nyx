@@ -1,7 +1,11 @@
 import pytest
 from PySide6 import QtCore, QtWidgets
 
-from nyx.editor.widgets.common_widgets import ClickableHeaderWidget, ElidedTextLabel
+from nyx.editor.widgets.common_widgets import (
+    ClickableHeaderWidget,
+    CommitPlainTextEdit,
+    ElidedTextLabel,
+)
 from nyx.editor.widgets.dim_overlay import DimOverlay, dimmed_ovelay
 from nyx.editor.widgets.stage_mdi_area import StageMdiArea
 from nyx.editor.widgets.stage_mdi_window import StageMdiSubWindow
@@ -64,6 +68,28 @@ def test_clickable_header_emits_only_on_left_click(qtbot):
         qtbot.mouseClick(header, QtCore.Qt.MouseButton.LeftButton)
     with qtbot.assertNotEmitted(header.clicked):
         qtbot.mouseClick(header, QtCore.Qt.MouseButton.RightButton)
+
+
+# ---- CommitPlainTextEdit ----
+def test_commit_plain_text_edit_says_when_it_loses_the_focus(qtbot):
+    window = QtWidgets.QWidget()
+    layout = QtWidgets.QVBoxLayout(window)
+    edit = CommitPlainTextEdit()
+    other = QtWidgets.QLineEdit()
+    layout.addWidget(edit)
+    layout.addWidget(other)
+    qtbot.addWidget(window)
+    window.show()
+    qtbot.waitExposed(window)
+    edit.setFocus()
+    qtbot.waitUntil(edit.hasFocus, timeout=1000)
+
+    with qtbot.assertNotEmitted(edit.editing_finished):
+        qtbot.keyClicks(edit, "typing")
+    with qtbot.waitSignal(edit.editing_finished, timeout=1000):
+        other.setFocus()
+
+    assert edit.toPlainText() == "typing"
 
 
 # ---- NyxTextEdit ----
