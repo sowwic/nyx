@@ -58,6 +58,16 @@ class CoreInspectorWidgets(enum.StrEnum):
     GROUP = "core.group_inspector"
 
 
+class CoreCreators(enum.StrEnum):
+    """Ids of the creators provided by the core plugin.
+
+    Creators add things to the stage from the Create menu of the graph view.
+    """
+
+    NOTE = "core.create_note"
+    GROUP = "core.create_group"
+
+
 class LinkAnimationStyle(enum.StrEnum):
     """Animations a graphics link can be highlighted with."""
 

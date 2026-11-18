@@ -2,18 +2,24 @@ import functools
 import logging
 import typing
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.core import commands
 from nyx.core.exceptions import NyxCommandValidationError
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
+from nyx.core.util_object import UtilObject
+from nyx.editor.core.action_registry import ACTION_REGISTRY
+from nyx.editor.creators import Creator, CreatorContext
+from nyx.editor.utils import context_menus
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import clipboard
-from nyx.static.enums import CoreUtilObjects
+from nyx.static.enums import CoreCreators
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
     from nyx.core import Node
+    from nyx.core.stage_object import StageObject
     from nyx.editor.views.stage_graph_view import StageGraphView
 
 
@@ -28,10 +34,11 @@ class StageGraphActions:
     the viewport.
     """
 
-    GROUP_MARGIN = 24.0
-    """float: space between a new group and the nodes it is created around."""
-    GROUP_TITLE_SPACE = 26.0
-    """float: room above the nodes for the title of a new group."""
+    CREATOR_ACTION_IDS: typing.ClassVar[dict[str, ActionId]] = {
+        CoreCreators.NOTE: ActionId.CREATE_NOTE,
+        CoreCreators.GROUP: ActionId.CREATE_GROUP,
+    }
+    """Creators that have a registered action, with its shortcut and condition."""
 
     def __init__(self, view: StageGraphView):
         """Initialize StageGraphActions.
@@ -141,65 +148,130 @@ class StageGraphActions:
 
     def create_note(self):
         """Create a note at the mouse position."""
-        self._create_util_object(
-            CoreUtilObjects.NOTE, position=self._view.last_scene_mouse_pos
-        )
+        self.run_creator(NYX_REGISTRY.get_creator_cls(CoreCreators.NOTE))
 
     def create_group(self):
         """Create a group around the selected nodes, or at the mouse position."""
-        gr_nodes = list(self._view.gr_stage.selected_gr_nodes())
-        if not gr_nodes:
-            self._create_util_object(
-                CoreUtilObjects.GROUP, position=self._view.last_scene_mouse_pos
-            )
-            return
+        self.run_creator(NYX_REGISTRY.get_creator_cls(CoreCreators.GROUP))
 
-        bounds = QtCore.QRectF()
-        for gr_node in gr_nodes:
-            bounds = bounds.united(
-                QtCore.QRectF(
-                    gr_node.pos(), QtCore.QSizeF(gr_node.width, gr_node.height)
-                )
-            )
-        margin = self.GROUP_MARGIN
-        bounds = bounds.adjusted(
-            -margin, -margin - self.GROUP_TITLE_SPACE, margin, margin
-        )
-        self._create_util_object(
-            CoreUtilObjects.GROUP, position=bounds.topLeft(), size=bounds.size()
-        )
-
-    def _create_util_object(self, type_id, position, size=None):
-        """Create a util object in the scope being drawn and select it.
+    def build_creator_context(
+        self, position: QtCore.QPointF | None = None
+    ) -> CreatorContext | None:
+        """Describe where creators would create something.
 
         Args:
-            type_id (str): util object type id.
-            position (QtCore.QPointF): top left corner.
-            size (QtCore.QSizeF | None): size, the default of the type if omitted.
+            position (QtCore.QPointF | None): position in scene coordinates, the mouse
+                position if omitted.
+
+        Returns:
+            CreatorContext | None: context, None if the view shows no stage.
         """
         view = self._view
         if not view.stage:
-            return
-
-        scope_node = view.stage.get_object(view.graph_editor.get_scope_path())
-        command = commands.CreateUtilObjectCommand(
-            view.stage,
-            type_id,
-            node=scope_node,
-            position=position,
-            size=size,
+            return None
+        selection_rect = None
+        for gr_node in view.gr_stage.selected_gr_nodes():
+            node_rect = QtCore.QRectF(
+                gr_node.pos(), QtCore.QSizeF(gr_node.width, gr_node.height)
+            )
+            selection_rect = (
+                node_rect if selection_rect is None else selection_rect.united(node_rect)
+            )
+        return CreatorContext(
+            graph_editor=view.graph_editor,
+            stage=view.stage,
+            scope_node=view.stage.get_object(view.graph_editor.get_scope_path()),
+            position=view.last_scene_mouse_pos if position is None else position,
+            selection_rect=selection_rect,
         )
-        try:
-            view.stage.push_command(command)
-        except NyxCommandValidationError as err:
-            LOGGER.warning(f"Can't create {type_id}: {err}")
-            return
 
+    def run_creator(
+        self,
+        creator_cls: type[Creator] | None,
+        position: QtCore.QPointF | None = None,
+        context: CreatorContext | None = None,
+    ) -> StageObject | None:
+        """Let a creator create something in the scope being drawn, and select it.
+
+        Args:
+            creator_cls (type[Creator] | None): creator to run, ignored if None.
+            position (QtCore.QPointF | None): position in scene coordinates, the mouse
+                position if omitted. Ignored when a context is given.
+            context (CreatorContext | None): context to give the creator, built from the
+                position if omitted.
+
+        Returns:
+            StageObject | None: created object, None if nothing was created.
+        """
+        if creator_cls is None:
+            return None
+        context = context or self.build_creator_context(position)
+        if context is None:
+            return None
+        name = creator_cls.get_display_name()
+        if not creator_cls.is_available(context):
+            LOGGER.warning(f"Can't create {name.lower()} here")
+            return None
+        try:
+            created = creator_cls.create(context)
+        except NyxCommandValidationError as err:
+            LOGGER.warning(f"Can't create {name.lower()}: {err}")
+            return None
+
+        view = self._view
         view.gr_stage.rebuild_current_scope()
         view.gr_stage.clearSelection()
-        gr_util = view.gr_stage.get_gr_util_object(command.result_object)
-        if gr_util is not None:
-            gr_util.setSelected(True)
+        if isinstance(created, UtilObject):
+            gr_util = view.gr_stage.get_gr_util_object(created)
+            if gr_util is not None:
+                gr_util.setSelected(True)
+        elif created is not None:
+            view.graph_editor.select_nodes([created])
+        return created
+
+    def build_creator_actions(
+        self, parent: QtWidgets.QWidget, position: QtCore.QPointF
+    ) -> list[QtGui.QAction]:
+        """Make the menu entries of the creators.
+
+        The note and group entries run the registered actions, which come with their
+        shortcuts. The creators of plugins get an entry that runs them at the position.
+
+        Args:
+            parent (QtWidgets.QWidget): owner of the new actions.
+            position (QtCore.QPointF): position in scene coordinates.
+
+        Returns:
+            list[QtGui.QAction]: entries, in the order the creators are registered.
+        """
+        context = self.build_creator_context(position)
+        actions = []
+        for creator_id, creator_cls in NYX_REGISTRY.creators.items():
+            registered_action_id = self.CREATOR_ACTION_IDS.get(creator_id)
+            if registered_action_id is not None:
+                actions.append(
+                    context_menus.make_proxy_action(
+                        parent,
+                        ACTION_REGISTRY.action(registered_action_id),
+                        creator_cls.get_display_name(),
+                        QtGui.QIcon(creator_cls.get_icon()),
+                    )
+                )
+                continue
+            action = QtGui.QAction(
+                QtGui.QIcon(creator_cls.get_icon()),
+                creator_cls.get_display_name(),
+                parent,
+            )
+            action.setToolTip(creator_cls.get_description())
+            action.setEnabled(context is not None and creator_cls.is_available(context))
+            action.triggered.connect(
+                lambda _checked=False, cls=creator_cls, ctx=context: self.run_creator(
+                    cls, context=ctx
+                )
+            )
+            actions.append(action)
+        return actions
 
     def reload_selected_references(self):
         """Load the source files of the selected nodes again."""

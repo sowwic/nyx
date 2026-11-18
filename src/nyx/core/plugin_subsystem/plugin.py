@@ -30,6 +30,8 @@ class NyxPluginContents:
         inspector_widgets: List of inspector widget classes (QWidget subclasses with a
             `get_type_id` classmethod). Stage objects refer to them by
             `get_inspector_widget_id`.
+        creators: List of creator classes (with a `get_type_id` classmethod). They are
+            listed in the Create menu of the graph view, in this order.
     """
 
     namespace: str = ""
@@ -43,6 +45,7 @@ class NyxPluginContents:
     )
     graphics_objects: list[type] = dataclasses.field(init=False, default_factory=list)
     inspector_widgets: list[type] = dataclasses.field(init=False, default_factory=list)
+    creators: list[type] = dataclasses.field(init=False, default_factory=list)
 
     def register_function_node(
         self,

@@ -49,6 +49,7 @@ class NyxRegistry:
         util_objects: util object classes by type id
         graphics_objects: graphics object classes by type id, built-in ones included
         inspector_widgets: inspector widget classes by type id, built-in ones included
+        creators: creator classes by type id, in the order they are listed in the UI
         qml_import_root_directories: QML import roots of registered plugins
     """
 
@@ -71,6 +72,9 @@ class NyxRegistry:
         init=False, default_factory=OrderedDict
     )
     inspector_widgets: OrderedDict[str, type] = dataclasses.field(
+        init=False, default_factory=OrderedDict
+    )
+    creators: OrderedDict[str, type] = dataclasses.field(
         init=False, default_factory=OrderedDict
     )
     qml_import_root_directories: list[pathlib.Path] = dataclasses.field(
@@ -97,6 +101,7 @@ class NyxRegistry:
         self.qml_import_root_directories.clear()
         self.reset_graphics_objects()
         self.reset_inspector_widgets()
+        self.creators.clear()
 
     def get_plugin(self, name: str) -> NyxPluginRegistryEntry | None:
         """Get plugin registry entry by name.
@@ -154,6 +159,7 @@ class NyxRegistry:
         self.register_core_datatypes()
         self.reset_graphics_objects()
         self.reset_inspector_widgets()
+        self.creators.clear()
 
         for plugin_entry in self.iter_plugin_entries():
             if not plugin_entry.plugin_instance:
@@ -174,6 +180,7 @@ class NyxRegistry:
             self.register_util_objects(plugin_entry)
             self.register_graphics_objects(plugin_entry)
             self.register_inspector_widgets(plugin_entry)
+            self.register_creators(plugin_entry)
             self.register_qml_import_root(plugin_entry)
 
     def register_node_components(self, plugin_entry: NyxPluginRegistryEntry):
@@ -385,6 +392,44 @@ class NyxRegistry:
             type | None: class, None if not registered.
         """
         return self.inspector_widgets.get(type_id)
+
+    def register_creators(self, plugin_entry: NyxPluginRegistryEntry):
+        """Register the creators provided by a plugin. Duplicates are skipped.
+
+        Args:
+            plugin_entry (NyxPluginRegistryEntry): initialized plugin entry.
+        """
+        LOGGER.debug("Registering new creators...")
+        for creator_cls in plugin_entry.plugin_instance.contents.creators:
+            type_id = creator_cls.get_type_id()
+            if type_id in self.creators:
+                LOGGER.error(
+                    "Failed to register creator class %s - "
+                    "TYPE_ID %s is already registered as %s",
+                    creator_cls.__name__,
+                    type_id,
+                    self.creators[type_id],
+                )
+                continue
+
+            self.creators[type_id] = creator_cls
+            LOGGER.debug(
+                "Registered creator %s (%s) from %s",
+                type_id,
+                creator_cls.__name__,
+                plugin_entry.plugin_cls.get_type_id(),
+            )
+
+    def get_creator_cls(self, type_id: str) -> type | None:
+        """Get a creator class.
+
+        Args:
+            type_id (str): creator type id.
+
+        Returns:
+            type | None: class, None if not registered.
+        """
+        return self.creators.get(type_id)
 
     def register_core_datatypes(self):
         """Register the built-in datatypes, which exist whatever plugins are enabled."""

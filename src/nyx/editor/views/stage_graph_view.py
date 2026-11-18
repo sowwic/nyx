@@ -609,7 +609,9 @@ class StageGraphView(QtWidgets.QGraphicsView):
         menu = context_menus.build_nodes_context_menu(
             self,
             has_selection=state.has_selection,
-            with_util_objects=True,
+            creator_actions=self.edit_actions.build_creator_actions(
+                self, self.mapToScene(point)
+            ),
             has_reference=any(
                 gr_node.node.get_source_file() is not None
                 for gr_node in self.gr_stage.selected_gr_nodes()

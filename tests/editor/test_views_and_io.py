@@ -364,15 +364,15 @@ def test_graph_and_tree_context_menus_match(
     monkeypatch.setattr(context_menus, "show_menu", capture("tree"))
     main_window.stage_tree_view.show_context_menu(QtCore.QPoint(5, 5))
 
-    # Only the graph can show notes and groups, so only it offers creating them.
+    # Only the graph can run creators, so it has a Create menu where the tree has the
+    # entry that creates a node.
     graph_layout = [
-        action_id
-        for action_id in layouts["graph"]
-        if action_id not in (ActionId.CREATE_NOTE, ActionId.CREATE_GROUP)
+        ActionId.CREATE_NODE if name == context_menus.CREATE_MENU_OBJECT_NAME else name
+        for name in layouts["graph"]
     ]
     assert graph_layout == layouts["tree"]
-    assert ActionId.CREATE_NOTE in layouts["graph"]
-    assert ActionId.CREATE_GROUP in layouts["graph"]
+    assert context_menus.CREATE_MENU_OBJECT_NAME in layouts["graph"]
+    assert ActionId.CREATE_NODE not in layouts["graph"]
     expected = WITH_SELECTION_LAYOUT if with_selection else NO_SELECTION_LAYOUT
     assert layouts["tree"] == expected
 
