@@ -2,7 +2,8 @@ from nyx.core.node import Node, NodeLike
 from nyx.core.stage import Stage
 from nyx.core.node_render_options import NodeRenderOptions
 from nyx.core.stage_render_options import StageRenderOptions
-from nyx.core.datatypes.datatype import Datatype, OBJECT_DATATYPE
+from nyx.core.datatypes.datatype import Datatype
+from nyx.core.datatypes.core_types import OBJECT_DATATYPE
 from nyx.core.link import Link, LinkLike
 from nyx.core.stage_object import StageObject
 from nyx.core.util_object import UtilObject
@@ -41,6 +42,8 @@ from nyx_bridge.server import (
 )
 from nyx.static import vars as static_vars
 from nyx.static import paths as static_paths
+from nyx.static import env_file as static_env_file
+from nyx.api.v1 import editor_utils
 
 __all__ = [
     "StageObject",
@@ -85,4 +88,6 @@ __all__ = [
     "exceptions",
     "static_vars",
     "static_paths",
+    "static_env_file",
+    "editor_utils",
 ]

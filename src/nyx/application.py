@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from PySide6 import QtGui, QtWidgets, QtQml, QtQuickControls2
@@ -6,8 +7,9 @@ from PySide6 import QtGui, QtWidgets, QtQml, QtQuickControls2
 import nyx.resources.resources_rc  # noqa: F401
 from nyx.core.layered_config import NyxConfig
 from nyx.core.session import NyxSession
+from nyx.core.plugin_subsystem.plugin_manager import NyxPluginManager
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
-from nyx.api.v1 import NyxPluginManager
+from nyx.static.env_file import load_env_file
 from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.editor.widgets.startup_splash import NyxStartupSplash
 from nyx.editor.core.actions import register_default_actions
@@ -29,6 +31,7 @@ class NyxApplication(QtWidgets.QApplication):
         """
         super().__init__(sys.argv)
         self._session = NyxSession()
+        self.apply_config_environment()  # plugin discovery reads NYX_PLUGIN_PATH
         self._plugin_manager = NyxPluginManager()
         self.aboutToQuit.connect(self._session.shutdown)
         self.setApplicationDisplayName("Nyx")
@@ -72,6 +75,29 @@ class NyxApplication(QtWidgets.QApplication):
     def config(self) -> NyxConfig:
         """NyxConfig: layered application config, owned by the session."""
         return self._session.config
+
+    def apply_config_environment(self) -> None:
+        """Set the environment variables of the config in this process.
+
+        The source file is loaded first, then the overrides, so they win over it. Values
+        are expanded with the current environment, so `$PATH` can be extended. Variables
+        removed from the config are left as they are.
+        """
+        environment = self.config.values.environment
+        if environment.source_file:
+            try:
+                load_env_file(environment.source_file)
+            except OSError as err:
+                LOGGER.error(
+                    "Could not read the environment file %s: %s",
+                    environment.source_file,
+                    err,
+                )
+        for name, value in environment.vars_overrides.items():
+            if not name or "=" in name:
+                LOGGER.warning("Invalid environment variable name: %r", name)
+                continue
+            os.environ[name] = os.path.expandvars(value)
 
     def reset_config(self):
         """Reset application config."""

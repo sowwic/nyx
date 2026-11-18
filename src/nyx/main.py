@@ -1,7 +1,11 @@
 import logging
 
-from nyx.core.logger import NyxLogger
-from nyx.utils.logging_fn import add_signal_handler
+from nyx.static.shell_env import load_shell_env
+
+load_shell_env()  # before the modules that read the environment on import
+
+from nyx.core.logger import NyxLogger  # noqa: E402
+from nyx.utils.logging_fn import add_signal_handler  # noqa: E402
 
 logging.setLoggerClass(NyxLogger)
 ROOT_LOGGER = logging.getLogger()

@@ -18,6 +18,7 @@ Both are installed with the package, and with the standalone app (see the README
 | --- | --- |
 | `--no-bridge` | Don't start the bridge server. Use it for stages without Remote nodes, or when the port is needed elsewhere. |
 | `--port N` | Use port `N` for the bridge server in this run instead of the configured one. Handy when several runs happen on one machine at once. |
+| `--envfile PATH` | Load an environment file (`NAME=value` lines, `#` comments, `export` allowed, `$NAME` expanded in unquoted and double quoted values) before Nyx starts. Also works for the editor: `nyx --envfile PATH`. The `environment` config section is applied afterwards, so its `source_file` and `vars_overrides` win for a name set in both. |
 
 ### Exit codes
 

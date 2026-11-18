@@ -6,6 +6,7 @@ class CoreNodes(enum.StrEnum):
 
     EMPTY = "core:node"
     GET = "core:get"
+    FETCH_ENVIRONMENT = "core:fetch_environment"
     SET = "core:set"
     VALUE = "core:value"
     ACTION = "core:action"

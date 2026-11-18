@@ -28,6 +28,7 @@ The nodes of the standard library. Most have **flow** components that connect th
 | [Value](value.md) | Provides a value that can be edited and linked to other nodes. |
 | [Set](set.md) | Sets the value of a component of another node when the flow reaches it. |
 | [Get](get.md) | Provides the value of a component of another node. |
+| [Fetch Environment](fetch-environment.md) | Reads the environment variables of the application into a dictionary when the flow reaches it. |
 | [Dict](dictionary.md) | Collects value components and creates a dictionary result. |
 | [List](list.md) | Collects value components and creates a list result. |
 | [Type Cast](type-cast.md) | Converts an object to the given type when the flow reaches it, e.g. a string to an int. |

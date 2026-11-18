@@ -117,6 +117,7 @@ ComponentValue {
 | Member | Meaning |
 | --- | --- |
 | `component` | The component being edited (model row): `component.rawValue`, `.cachedValue`, `.displayValue`, `.isEditable`, `.inputLinks`, `.datatypeId`, ... |
+| `component.valueRows` | The entries of a dictionary, list, tuple or set value as `{key, value, more}` rows of text (empty for any other value), capped at `NodeComponentsModel.MAX_VALUE_ROWS`. The Value item lists them with `ValueRowsView` from `NyxEditor.Common` instead of showing one line of text; use the same view for your own item. |
 | `controller` | The components controller; `controller.setComponentValue(...)` is what `finishEdit` ends up calling. Controllers can offer more, for instance `selectFile` that the File item uses. |
 | `label` | Text before the value. |
 | `editable` | Whether editing is allowed. Defaults to `component.isEditable`; bind it to `&& !hasInputConnection` to forbid editing a linked value (the Value item does). |

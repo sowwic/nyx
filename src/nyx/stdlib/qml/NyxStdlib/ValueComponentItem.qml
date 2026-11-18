@@ -24,13 +24,35 @@ ComponentValue {
         controller: valueItemRoot.controller
     }
 
-    displayDelegate: TextField {
-        readOnly: true
-        opacity: valueItemRoot.editable ? 1.0 : 0.6
-        text: valueItemRoot.maskedText
+    // Entries of a dictionary or list, empty for any other value.
+    readonly property var valueRows: component && component.valueRows ? component.valueRows : []
 
-        TapHandler {
-            onDoubleTapped: valueItemRoot.requestEdit()
+    // A collection is listed, anything else is one line of text.
+    displayDelegate: valueRows.length > 0 ? rowsDelegate : textDelegate
+
+    Component {
+        id: textDelegate
+
+        TextField {
+            readOnly: true
+            opacity: valueItemRoot.editable ? 1.0 : 0.6
+            text: valueItemRoot.maskedText
+
+            TapHandler {
+                onDoubleTapped: valueItemRoot.requestEdit()
+            }
+        }
+    }
+
+    Component {
+        id: rowsDelegate
+
+        ValueRowsView {
+            rows: valueItemRoot.valueRows
+
+            TapHandler {
+                onDoubleTapped: valueItemRoot.requestEdit()
+            }
         }
     }
 

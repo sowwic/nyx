@@ -373,7 +373,7 @@ class NyxRegistry:
             Datatype: registered datatype, `OBJECT_DATATYPE` for missing or unknown
                 ids (e.g. provided by a plugin that isn't loaded).
         """
-        from ..datatypes.datatype import OBJECT_DATATYPE
+        from ..datatypes.core_types import OBJECT_DATATYPE
 
         if not type_id:
             return OBJECT_DATATYPE
@@ -393,7 +393,7 @@ class NyxRegistry:
             Datatype: first registered datatype matching the value,
                 `OBJECT_DATATYPE` if there is none.
         """
-        from ..datatypes.datatype import OBJECT_DATATYPE
+        from ..datatypes.core_types import OBJECT_DATATYPE
 
         for datatype in self.datatypes.values():
             if datatype.matches(value):

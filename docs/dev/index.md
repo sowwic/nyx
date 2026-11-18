@@ -42,13 +42,22 @@ Points to keep in mind when working on the code:
 - **Stages are held weakly.** Keep a reference to a `Stage` you create, or its nodes and
   commands lose it.
 - **`nyx.api.v1` is the contract.** Add to it when a plugin needs something new, don't let
-  plugins reach into `nyx.core`.
+  plugins reach into `nyx.core`. The other way round, `nyx.core`, `nyx.editor` and the
+  application import from the core modules directly (`nyx.core.stage`, ...) and never from
+  `nyx.api`, which is for plugins, the stdlib, other packages and tests.
 - **Application startup** is `NyxApplication.__init__`: register built-in content,
   `pre_initialize()`, load plugins, `post_initialize()`. Subclasses override the hooks
   (`NyxEditorApplication` shows the splash screen in `pre_initialize` and builds the QML
   engine and main window in `post_initialize`) rather than reordering around `super().__init__`.
   Prefer adding a no-op `pre_*`/`post_*` hook to a base class over changing its constructor.
 - **Paths of user files** are all defined in `nyx/static/paths.py`.
+- **The environment** is made before the application starts: `nyx/main.py` calls
+  `static/shell_env.load_shell_env()` before importing the rest, because some modules read
+  the environment when they are imported, and the command line loads `--envfile` with
+  `static/env_file.load_env_file()` after it. Both modules import nothing from nyx.
+  `NyxApplication.apply_config_environment()` loads `environment.source_file`, then sets
+  `environment.vars_overrides`, at startup before plugins load and again when the config
+  is saved in the editor.
 
 ## Working on Nyx
 

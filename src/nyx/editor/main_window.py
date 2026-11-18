@@ -38,7 +38,7 @@ from ..static.paths import LAST_SESSION_FILE_PATH
 
 
 if typing.TYPE_CHECKING:
-    from nyx.api.v1 import Stage
+    from ..core.stage import Stage
     from ..application import NyxEditorApplication
     from ..core.layered_config import NyxConfig
 
@@ -408,6 +408,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def apply_config_values(self):
         """Apply values from application config."""
+        QtWidgets.QApplication.instance().apply_config_environment()
         self._apply_window_geometry()
 
         self._apply_always_on_top()
