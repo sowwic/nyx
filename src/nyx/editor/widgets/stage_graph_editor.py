@@ -280,6 +280,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         new_stage.import_json(file_path)
         self.set_stage(new_stage)
         self.gr_stage.rebuild_current_scope()
+        self.restore_view_state()
         self._notify_stage_file_used()
         return True
 
@@ -290,6 +291,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             bool: stage was saved.
         """
         if self.stage.file_path is not None:
+            self.record_view_state()
             self.stage.export_json(self.stage.file_path)
             saved = True
             self._notify_stage_file_used()
@@ -310,6 +312,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         )[0]
         if not file_path:
             return False
+        self.record_view_state()
         self.stage.export_json(file_path)
         self.update_title()
         self._notify_stage_file_used()
@@ -361,11 +364,57 @@ class StageGraphEditor(QtWidgets.QWidget):
             silent (bool): don't emit `scope_changed`.
         """
         new_scope = self.get_next_valid_scope(scope)
+        is_scope_changing = new_scope != self._scope_path
 
+        if is_scope_changing:
+            self.record_view_state()
         self._scope_path = new_scope
         LOGGER.debug(f"Set scope to: {self._scope_path}")
         if not silent:
             self.scope_changed.emit(self._scope_path)
+            if is_scope_changing:
+                self.restore_view_state()
+
+    def get_scope_node(self) -> Node | None:
+        """Get the node whose children are shown.
+
+        Returns:
+            Node | None: scope node, None if it doesn't exist (anymore).
+        """
+        try:
+            return self.stage.get_object(self._scope_path)
+        except StageObjectQueryError:
+            return None
+
+    def record_view_state(self) -> None:
+        """Store where the graph view is in the metadata of the scope node.
+
+        The view is remembered per scope and saved with the stage. Nothing is stored
+        while the view isn't shown, because its center means nothing then.
+        """
+        gr_view = getattr(self, "gr_view", None)
+        scope_node = self.get_scope_node()
+        if gr_view is None or scope_node is None or not gr_view.isVisible():
+            return
+        view_state = gr_view.get_view_state()
+        scope_node.set_graph_view(
+            QtCore.QPointF(*view_state["center"]), view_state["zoom"]
+        )
+
+    def restore_view_state(self) -> bool:
+        """Move the graph view to where it was the last time the scope was shown.
+
+        Returns:
+            bool: the view was moved, False if the scope node has no stored position.
+        """
+        gr_view = getattr(self, "gr_view", None)
+        scope_node = self.get_scope_node()
+        graph_view = None if scope_node is None else scope_node.get_graph_view()
+        if gr_view is None or graph_view is None:
+            return False
+        position, zoom = graph_view
+        gr_view.apply_view_state({"zoom": zoom, "center": [position.x(), position.y()]})
+        return True
 
     def get_session_state(self) -> dict:
         """State stored per stage in a session file."""

@@ -62,6 +62,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
     # Constants
     HIGH_QUALITY_ZOOM = StageGraphZoom.HIGH_QUALITY_ZOOM
     DEFAULT_ZOOM = StageGraphZoom.DEFAULT_ZOOM
+    CENTER_ATTEMPTS = 3
+    """int: times `center_on_exactly` asks again before it gives up."""
     FOCUS_MARGIN = 40  # scene units kept around nodes when fitting
     LINK_PICK_DISTANCE = 6.0  # screen pixels from a link that still count as on it
 
@@ -150,8 +152,29 @@ class StageGraphView(QtWidgets.QGraphicsView):
         self.zoom_controller.set_zoom(float(state.get("zoom", self.DEFAULT_ZOOM)))
         self.setTransform(self.zoom_controller.transform)
         x, y = state.get("center", [0.0, 0.0])
-        self.centerOn(float(x), float(y))
+        self.center_on_exactly(QtCore.QPointF(float(x), float(y)))
         self.update_render_hints()
+
+    def center_on_exactly(self, scene_pos: QtCore.QPointF) -> None:
+        """Center the view on a scene point, as close as the scrollbars allow.
+
+        `centerOn` lands off the point by up to a scrollbar step, which is several pixels
+        in a scene as large as this one, and always the same way, so a view restored
+        with it creeps every time. This asks again, shifted by what was missed, which
+        settles on the nearest position the scrollbars can reach. The center of the
+        viewport is what `get_view_state` reports.
+
+        Args:
+            scene_pos (QtCore.QPointF): point in scene coordinates.
+        """
+        tolerance = 1.0 / max(self.zoom, 1e-6)  # a pixel, in scene units
+        requested = QtCore.QPointF(scene_pos)
+        for _ in range(self.CENTER_ATTEMPTS):
+            self.centerOn(requested)
+            missed = scene_pos - self.mapToScene(self.viewport().rect().center())
+            if abs(missed.x()) <= tolerance and abs(missed.y()) <= tolerance:
+                return
+            requested += missed
 
     def update_render_hints(self):
         """Enable text antialiasing only at higher zoom levels."""

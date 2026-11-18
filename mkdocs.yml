@@ -108,6 +108,7 @@ nav:
       - Overview: dev/index.md
       - The registry: dev/registry.md
       - Link pins: dev/link-pins.md
+      - Graph view memory: dev/graph-view-memory.md
       - Profiling: dev/profiling.md
       - Writing plugins:
           - Overview: dev/plugins/index.md
