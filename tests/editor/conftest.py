@@ -6,6 +6,8 @@ from PySide6 import QtCore, QtWidgets
 from nyx.api.v1 import CoreNodes, commands
 from nyx.editor.core.action_registry import ActionRegistry
 from nyx.editor.core.actions import register_default_actions
+from nyx.editor.panels import PANEL_REGISTRY
+from nyx.editor.widgets.notifications import NotificationManager
 
 
 def close_all_stage_windows(main_window) -> None:
@@ -32,6 +34,26 @@ def main_window(qapp, qtbot):
     close_all_stage_windows(window)
     yield window
     close_all_stage_windows(window)
+
+
+def _reset_panels(main_window):
+    """Close every panel, give each its default size back and drop the toasts."""
+    manager, host = main_window.panel_manager, main_window.panel_host
+    notifications = NotificationManager._instance
+    for message in notifications.messages if notifications else []:
+        message.remove()
+    for panel_id in manager.open_panel_ids():
+        manager.set_open(panel_id, False)
+    for definition in PANEL_REGISTRY.definitions():
+        panel = manager.panel(definition.panel_id)
+        host.set_panel_size(panel, host.DEFAULT_SIZES[definition.area])
+
+
+@pytest.fixture
+def manager(main_window):
+    _reset_panels(main_window)
+    yield main_window.panel_manager
+    _reset_panels(main_window)
 
 
 @pytest.fixture

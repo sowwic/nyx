@@ -212,18 +212,6 @@ class ItemSelectionMode(enum.IntEnum):
     RANGE = enum.auto()
 
 
-class EditorUIObject(enum.StrEnum):
-    """Object names of the editor docks."""
-
-    NODES_PALETTE_DOCK = "nodes_palette_dock"
-    STAGE_TREE_DOCK = "stage_tree_dock"
-    UNDO_HISTORY_DOCK = "undo_history_dock"
-    LOG_OUTPUT_DOCK = "log_output_dock"
-    TOOLBAR_DOCK = "toolbar_dock"
-    INSPECTOR_DOCK = "inspector_dock"
-    BRIDGE_DOCK = "bridge_dock"
-
-
 class GraphicsPlugShape(enum.IntEnum):
     CIRCLE = 0
     TRIANGLE = enum.auto()

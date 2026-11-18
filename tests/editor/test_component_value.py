@@ -262,7 +262,7 @@ def test_editor_in_inspector_sets_value_through_undoable_command(
     stage.push_command(add_command)
     component = add_command.result_component
     component.push_value("1+1")
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -369,7 +369,7 @@ def test_getter_component_path_shows_in_inspector(
     getter = create_node(stage, "getter", type_id=CoreNodes.GET)
     getter["component"].push_value("./target.message")
     expected = str(target["message"])
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -409,7 +409,7 @@ def test_reference_in_inspector_updates_without_reselecting(
     stage = stage_editor.stage
     node = create_node(stage, "node", type_id=CoreNodes.LOG)
     getter = create_node(stage, "getter", type_id=CoreNodes.GET)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -466,7 +466,7 @@ def test_getter_value_in_inspector_updates_when_the_path_changes(
     first["message"].push_value("one")
     second["message"].push_value("two")
     getter = create_node(stage, "getter", type_id=CoreNodes.GET)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -622,7 +622,7 @@ def test_tapping_empty_space_in_components_view_deselects_and_closes_palette(
             node=node, type_id=CoreNodeComponents.VALUE, name="val"
         )
     )
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -675,7 +675,7 @@ def test_clicking_empty_space_in_components_view_deselects(
             node=node, type_id=CoreNodeComponents.VALUE, name="val"
         )
     )
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -711,7 +711,7 @@ def test_component_items_have_the_description_tooltip(
 ):
     stage = stage_editor.stage
     node = create_node(stage, "a", type_id=CoreNodes.BRANCH)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

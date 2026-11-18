@@ -174,6 +174,14 @@ class OutputLogWidget(QWidget):
         self._apply_expansion_state_to_child_widgets()
         self.expansion_state_changed.emit(self._is_expanded)
 
+    def set_header_visible(self, is_visible: bool) -> None:
+        """Show or hide the header with the latest message and the toggle button.
+
+        Args:
+            is_visible (bool): whether the header is shown.
+        """
+        self._header_widget.setVisible(is_visible)
+
     def get_minimum_level(self) -> int:
         """int: minimum logging level shown in the history."""
         return self._filter_bar.get_minimum_level()

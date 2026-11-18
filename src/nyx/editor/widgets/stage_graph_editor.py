@@ -13,7 +13,6 @@ from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.core.layered_config import get_app_config
 from nyx.editor.views.stage_graph_view import StageGraphView
-from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 from nyx.utils import pyside_fn
 from .dim_overlay import dimmed_ovelay
@@ -27,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class StageGraphEditor(QtWidgets.QWidget):
-    """Widget editing one stage: the graphics view, scope bar and file handling.
+    """Widget editing one stage: the graphics view and file handling.
 
     Attributes:
         stage_changed: emitted with the new stage when the stage is replaced
@@ -127,7 +126,6 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def create_widgets(self):
         """Create and setup widgets."""
-        self.graph_scope_widget = GraphScopeWidget(self)
         self.gr_stage = GraphicsStage(self)
         self.gr_view = StageGraphView(self)
 
@@ -137,7 +135,6 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
 
-        self.main_layout.addWidget(self.graph_scope_widget)
         self.main_layout.addWidget(self.gr_view)
 
     def create_stage_connections(self):

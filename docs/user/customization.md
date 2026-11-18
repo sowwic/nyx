@@ -1,7 +1,7 @@
 # Customization
 
 Nyx keeps its settings in one JSON file, the **user config**. The editor reads it at
-startup, and saves it when it exits normally, with state such as the window layout and
+startup, and saves it when it exits normally, with state such as the open panels and
 the recent files. Edit it by hand to change options, or to prepare a machine. Close the
 editor first, or it overwrites your edit when it exits.
 
@@ -101,7 +101,7 @@ The server external processes (Maya, Blender, ...) connect to. See
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `enabled` | `true` | Start the server when the application launches. It can be started later from the Bridge dock. |
+| `enabled` | `true` | Start the server when the application launches. It can be started later from the Bridge panel. |
 | `host` | `"127.0.0.1"` | Interface to listen on. Anyone holding the token can run code in a client, so only change it on a network you trust. |
 | `port` | `null` | Port to listen on. `null` tries the default port and the ones after it. |
 | `token` | `""` | Secret clients have to present. Random on every launch if empty. Set it to keep a fixed token across launches. |
@@ -133,8 +133,9 @@ Saved when the window closes.
 | `size` | `null` | Window size in pixels, `[width, height]`. |
 | `position` | `null` | Window position on the screen, `[x, y]`. |
 | `is_always_on_top` | `false` | Keep the window above other windows. |
-| `layout.version` | `0` | Layout version the state was saved with. |
-| `layout.state` | `null` | Base64 encoded Qt window state (the arrangement of the docks). Set it to `null` to reset the layout. |
+| `panels.hidden_buttons` | `null` | Ids of the sidebar buttons you hid. `null` shows the default ones. Right-click the sidebar to change it. |
+| `panels.open_panels` | `[]` | Ids of the panels that are open. |
+| `panels.sizes` | `{}` | Size of each panel in pixels. |
 
 ### `editor_style`
 
@@ -155,8 +156,6 @@ Saved when the window closes.
 | Option | Default | Description |
 | --- | --- | --- |
 | `log_widget.auto_scroll` | `true` | Scroll the log to new records. |
-| `log_widget.is_expanded` | `false` | The log dock is expanded. |
-| `log_widget.expanded_height` | `220` | Height of the expanded log dock in pixels. |
 | `log_widget.minimum_level` | `10` | Minimum logging level shown in the log. |
 | `graphics_stage.link_style` | `"bezier"` | Shape links are drawn with: `bezier`, `direct` or `square`. |
 | `graphics_stage.highlight_flow_chain` | `true` | Animate the flow links that are part of the execution chain of the drawn scope. |

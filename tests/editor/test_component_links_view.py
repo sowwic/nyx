@@ -23,7 +23,7 @@ def inspector_controller(main_window, stage_editor, create_node, qtbot):
     )
     stage.push_command(link_command)
 
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         target.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

@@ -5,7 +5,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
-from nyx.static.enums import EditorUIObject
+from nyx.editor.panels import PANEL_REGISTRY
 
 
 def test_no_stage_by_default(main_window):
@@ -143,17 +143,16 @@ def test_close_event_ignored_when_save_cancelled(main_window, stage_editor):
     assert not event.isAccepted()
 
 
-def test_all_docks_present(main_window):
-    names = {dock.objectName() for dock in main_window.dock_widgets}
-    assert EditorUIObject.NODES_PALETTE_DOCK in names
-    assert all(dock.parent() is main_window for dock in main_window.dock_widgets)
+def test_panels_have_a_sidebar_button_unless_they_opt_out(main_window):
+    for definition in PANEL_REGISTRY.definitions():
+        button = main_window.panel_sidebar.button(definition.panel_id)
+        assert (button is not None) == definition.has_sidebar_button
+    assert main_window.panel_sidebar.button("inspector") is None
 
 
-def test_window_menu_lists_every_dock(main_window):
-    window_menu = main_window.menubar_window_menu
-    toggles = [a for a in window_menu.actions() if not a.isSeparator()]
-    for dock in main_window.dock_widgets:
-        assert dock.toggleViewAction() in toggles
+def test_there_is_no_window_menu(main_window):
+    titles = [action.text() for action in main_window.menuBar().actions()]
+    assert "&Window" not in titles
 
 
 def test_menus_use_registry_actions(main_window):
@@ -169,10 +168,8 @@ def test_menus_use_registry_actions(main_window):
 
     edit_actions = main_window.menubar_edit_menu.actions()
     assert ACTION_REGISTRY.action(ActionId.RENAME_NODE) in edit_actions
-    assert ACTION_REGISTRY.action(ActionId.RESET_CONFIG) in edit_actions
-    assert edit_actions.index(ACTION_REGISTRY.action(ActionId.EDIT_CONFIG)) + 1 == (
-        edit_actions.index(ACTION_REGISTRY.action(ActionId.RESET_CONFIG))
-    )
+    assert ACTION_REGISTRY.action(ActionId.EDIT_CONFIG) not in edit_actions
+    assert ACTION_REGISTRY.action(ActionId.RESET_CONFIG) not in edit_actions
     assert main_window.menubar_edit_menu.undo_action in edit_actions
 
 
@@ -185,10 +182,14 @@ def test_undo_redo_follow_active_stack(main_window, stage_editor, create_node):
     assert edit_menu.redo_action.isEnabled()
 
 
-def test_toolbar_exposes_registry_actions(main_window):
-    toolbar_actions = main_window.findChild(QtWidgets.QToolBar).actions()
-    for action_id in (ActionId.CREATE_NODE, ActionId.EXECUTE_STAGE):
-        assert ACTION_REGISTRY.action(action_id) in toolbar_actions
+def test_run_overlay_exposes_registry_actions(main_window):
+    overlay = main_window.run_overlay
+    assert overlay.run_button.defaultAction() is ACTION_REGISTRY.action(
+        ActionId.EXECUTE_STAGE
+    )
+    assert ACTION_REGISTRY.action(ActionId.EXECUTE_FROM_SELECTED) in (
+        overlay.run_menu.actions()
+    )
 
 
 def test_create_node_action_opens_palette(main_window, stage_editor, monkeypatch):

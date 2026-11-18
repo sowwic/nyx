@@ -25,7 +25,7 @@ def controller_and_node(main_window, stage_editor, create_node, qtbot):
                 node=node, type_id=CoreNodeComponents.VALUE, name=name
             )
         )
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -103,7 +103,7 @@ def test_components_of_a_locked_node_cant_move(
         component = inner.components_model.create_component(CoreNodeComponents.VALUE)
         component.name = name
         inner.components_model.add_component(component)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         inner.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

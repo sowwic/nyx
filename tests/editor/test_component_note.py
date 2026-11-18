@@ -132,7 +132,7 @@ def inspector_delegate(main_window, stage_editor, create_node, qtbot):
     )
     stage.push_command(command)
     component = command.result_component
-    main_window.inspector.show()
+    main_window.panel_manager.set_open("inspector", True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

@@ -12,10 +12,6 @@ class NyxEditorLogWidgetConfigValues(NyxBaseConfigValues):
 
     auto_scroll: bool = Field(default=True)
     """Scroll the log to new records."""
-    expanded_height: int = Field(default=220)
-    """Height of the expanded log dock in pixels."""
-    is_expanded: bool = Field(default=False)
-    """The log dock is expanded."""
     minimum_level: int = Field(default=logging.DEBUG)
     """Minimum logging level shown in the log."""
 

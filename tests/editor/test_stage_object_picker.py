@@ -192,8 +192,10 @@ def path_view(main_window, stage_editor, create_node, qtbot):
             node=holder, type_id=CoreNodeComponents.STAGE_OBJECT_PATH, name="where"
         )
     )
-    main_window.inspector.show()
-    main_window.inspector.resize(600, 700)
+    main_window.panel_manager.set_open("inspector", True)
+    main_window.panel_host.set_panel_size(
+        main_window.panel_manager.panel("inspector"), 600
+    )
     stage_editor.selection_model.select(
         holder.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

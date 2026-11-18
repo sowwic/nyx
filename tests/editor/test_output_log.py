@@ -1,11 +1,9 @@
 import logging
-import types
 
 import pytest
 from PySide6 import QtCore, QtWidgets
 
 from nyx.core.models.log_record_model import LogRecordListModel
-from nyx.editor.widgets.output_log.output_log_dock import OutputLogDockWidget
 from nyx.editor.widgets.output_log.output_log_widget import OutputLogWidget
 
 
@@ -78,6 +76,19 @@ def test_root_logger_records_reach_widget(log_widget, qtbot):
     )
 
 
+def test_message_of_a_record_with_a_dead_argument_falls_back_to_the_raw_message():
+    class Dead:
+        def __repr__(self):
+            raise RuntimeError("already deleted")
+
+    record = logging.LogRecord(
+        "test", logging.INFO, __file__, 1, "gone %r", (Dead(),), None
+    )
+    model = LogRecordListModel()
+    model.append_log_record(record)
+    assert model.index(0).data() == "gone %r"
+
+
 def test_log_model_trims_to_maximum():
     model = LogRecordListModel(maximum_retained_log_record_count=3)
     for number in range(5):
@@ -87,76 +98,14 @@ def test_log_model_trims_to_maximum():
     assert model.index(0).data() == "2"
 
 
-# ---- Dock ----
-@pytest.fixture
-def output_log_dock(qtbot):
-    window = QtWidgets.QMainWindow()
-    qtbot.addWidget(window)
-    dock = OutputLogDockWidget("Log", window)
-    window.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, dock)
-    window.resize(600, 400)
-    window.show()
-    yield dock  # `window` stays alive in this frame
-
-
-def _fake_config(is_expanded=False, expanded_height=250, minimum_level=logging.DEBUG):
-    log_widget = types.SimpleNamespace(
-        is_expanded=is_expanded,
-        expanded_height=expanded_height,
-        minimum_level=minimum_level,
-    )
-    return types.SimpleNamespace(
-        values=types.SimpleNamespace(
-            editor_widgets=types.SimpleNamespace(log_widget=log_widget)
-        )
-    )
-
-
-def test_dock_collapsed_height_is_pinned_to_header(output_log_dock):
-    header = output_log_dock.output_log_widget.header_height_in_pixels()
-    assert output_log_dock.output_log_widget.minimumHeight() == header
-    assert output_log_dock.output_log_widget.maximumHeight() == header
-
-
-def test_dock_expanding_unpins_height(output_log_dock):
-    output_log_dock.output_log_widget.set_expanded(True)
-    assert output_log_dock.output_log_widget.maximumHeight() > 10_000
-    assert output_log_dock.output_log_widget.minimumHeight() > (
-        output_log_dock.output_log_widget.header_height_in_pixels()
-    )
-
-
-def test_dock_applies_and_saves_config(output_log_dock):
-    output_log_dock.apply_config_values(
-        _fake_config(is_expanded=True, expanded_height=300)
-    )
-    assert output_log_dock.output_log_widget.is_expanded()
-    assert output_log_dock._last_user_expanded_height == 300
-
-    saved = _fake_config(is_expanded=False, expanded_height=0)
-    output_log_dock.save_config_values(saved)
-    values = saved.values.editor_widgets.log_widget
-    assert values.is_expanded is True
-    assert values.expanded_height == 300
-
-
-def test_dock_applies_and_saves_minimum_level(output_log_dock):
-    output_log_dock.apply_config_values(_fake_config(minimum_level=logging.WARNING))
-    assert output_log_dock.output_log_widget.get_minimum_level() == logging.WARNING
-    assert (
-        output_log_dock.output_log_widget._filter_model._minimum_level == logging.WARNING
-    )
-
-    saved = _fake_config(minimum_level=logging.DEBUG)
-    output_log_dock.save_config_values(saved)
-    assert saved.values.editor_widgets.log_widget.minimum_level == logging.WARNING
-
-
-def test_dock_size_hint_uses_remembered_height_when_expanded(output_log_dock):
-    output_log_dock.apply_config_values(
-        _fake_config(is_expanded=True, expanded_height=321)
-    )
-    assert output_log_dock.sizeHint().height() == 321
+# ---- Header ----
+def test_header_can_be_hidden(qtbot):
+    widget = OutputLogWidget()
+    qtbot.addWidget(widget)
+    widget.show()
+    assert widget._header_widget.isVisible()
+    widget.set_header_visible(False)
+    assert not widget._header_widget.isVisible()
 
 
 def _fill(log_model):
