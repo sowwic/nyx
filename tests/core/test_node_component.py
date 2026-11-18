@@ -173,3 +173,16 @@ def test_linking_notifies_model_of_link_changes():
     stage.unregister_link(link)
     assert any(target.Roles.INPUT_LINKS in roles for roles in changes)
     assert target.input_links == []
+
+
+def test_component_type_without_an_editor_uses_the_default_item_file():
+    from PySide6 import QtCore
+
+    from nyx.core.node_component import NodeComponent
+    from nyx.static.paths import DEFAULT_QML_NODE_COMPONENT_ITEM
+
+    assert NodeComponent.EDITOR_QML is None
+    url = NodeComponent.get_qml_editor_url()
+
+    assert DEFAULT_QML_NODE_COMPONENT_ITEM.is_file()
+    assert url == QtCore.QUrl.fromLocalFile(str(DEFAULT_QML_NODE_COMPONENT_ITEM))

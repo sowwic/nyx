@@ -112,6 +112,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         RESOLVED_DATATYPE = enum.auto()
         IS_DATATYPE_LOCKED = enum.auto()
         LABEL = enum.auto()
+        VALUE_ROWS = enum.auto()
 
         @classmethod
         def virtual_roles(cls):
@@ -138,6 +139,7 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
                 cls.RESOLVED_DATATYPE,
                 cls.IS_DATATYPE_LOCKED,
                 cls.LABEL,
+                cls.VALUE_ROWS,
             )
 
     def __repr__(self) -> str:

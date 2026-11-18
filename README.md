@@ -89,12 +89,19 @@ app.session.shutdown()
 nyx                               # open the editor
 nyx stage run path/to/stage.nyx   # run a stage without the editor
 nyx-run-stage path/to/stage.nyx   # the same, as one command
+nyx --envfile studio.env          # load environment variables from a file first
 ```
 
 `stage run` loads the plugins, starts the bridge server (so stages with Remote Client
 nodes can reach Maya, Blender, ...) unless `--no-bridge` is given, and runs the stage
-once. `--port N` replaces the configured bridge port for the run. The config is read
-but never saved.
+once. `--port N` replaces the configured bridge port for the run. `--envfile PATH`
+(also for the editor) loads a file of `NAME=value` lines into the environment before
+anything starts. The config is read but never saved.
+
+Nyx reads the environment of your login shell on launch (Linux and macOS), so it has your
+`PATH` also when started from the Finder or a desktop entry, and the `environment` config
+section (a `source_file` and `vars_overrides`) sets more variables. See
+[Customization](docs/user/customization.md).
 
 Exit codes: `0` the stage ran, `1` it failed (the log names the node), `2` the file was
 not found or could not be loaded.

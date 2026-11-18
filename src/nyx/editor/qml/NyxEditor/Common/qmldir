@@ -13,3 +13,4 @@ TagsList 1.0 TagsList.qml
 SearchBar 1.0 SearchBar.qml
 EditButton 1.0 EditButton.qml
 EditActionButtons 1.0 EditActionButtons.qml
+ValueRowsView 1.0 ValueRowsView.qml

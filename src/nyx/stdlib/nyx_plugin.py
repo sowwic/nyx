@@ -14,6 +14,7 @@ from .node_components.object_path import StageObjectPathComponent
 
 from .nodes.blank import BlankNode
 from .nodes.setter import SetterNode
+from .nodes.fetch_environment import FetchEnvironmentNode
 from .nodes.getter import GetterNode
 from .nodes.value import ValueNode
 from .nodes.branch import BranchNode
@@ -80,6 +81,7 @@ class NyxStdlib(NyxPlugin):
             BlankNode,
             SetterNode,
             GetterNode,
+            FetchEnvironmentNode,
             ActionNode,
             ValueNode,
             BranchNode,

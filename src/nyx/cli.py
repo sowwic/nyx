@@ -21,6 +21,22 @@ EXIT_USAGE = 2
 EXIT_INTERRUPTED = 130
 
 
+def add_envfile_argument(parser: argparse.ArgumentParser, dest: str) -> None:
+    """Add the argument that loads an environment file.
+
+    Args:
+        parser (argparse.ArgumentParser): parser to add it to.
+        dest (str): name of the parsed attribute.
+    """
+    parser.add_argument(
+        "--envfile",
+        dest=dest,
+        metavar="PATH",
+        type=pathlib.Path,
+        help="environment file (NAME=value lines) to load before the application starts",
+    )
+
+
 def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     """Add the arguments of running a stage.
 
@@ -39,6 +55,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         type=int,
         help="port of the bridge server for this run, instead of the configured one",
     )
+    add_envfile_argument(parser, "run_envfile")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -50,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nyx", description="Nyx, a Python nodal execution graph."
     )
+    add_envfile_argument(parser, "envfile")
     commands = parser.add_subparsers(dest="command", metavar="command")
     stage = commands.add_parser("stage", help="work with stage files")
     stage_commands = stage.add_subparsers(
@@ -84,8 +102,8 @@ def main(argv: typing.Sequence[str] | None = None) -> int:
     """
     args = build_parser().parse_args(argv)
     if args.command is None:
-        return _open_editor()
-    return run_stage(args.path, args.bridge, args.port)
+        return _open_editor(args.envfile)
+    return run_stage(args.path, args.bridge, args.port, args.run_envfile or args.envfile)
 
 
 def run_stage_main(argv: typing.Sequence[str] | None = None) -> int:
@@ -98,15 +116,44 @@ def run_stage_main(argv: typing.Sequence[str] | None = None) -> int:
         int: exit code.
     """
     args = build_run_stage_parser().parse_args(argv)
-    return run_stage(args.path, args.bridge, args.port)
+    return run_stage(args.path, args.bridge, args.port, args.run_envfile)
 
 
-def _open_editor() -> int:
-    """Run the editor, see `nyx.main.main`.
+def _load_envfile(path: pathlib.Path | None) -> bool:
+    """Load an environment file, reporting a file that can't be read.
+
+    Args:
+        path (pathlib.Path | None): environment file, nothing is done if omitted.
 
     Returns:
-        int: exit code.
+        bool: False if the file could not be read.
     """
+    if path is None:
+        return True
+    from nyx.static.env_file import load_env_file
+
+    try:
+        load_env_file(path)
+    except OSError as err:
+        logging.getLogger(__name__).error("Could not read the envfile %s: %s", path, err)
+        return False
+    return True
+
+
+def _open_editor(envfile: pathlib.Path | None = None) -> int:
+    """Run the editor, see `nyx.main.main`.
+
+    Args:
+        envfile (pathlib.Path | None): environment file to load first.
+
+    Returns:
+        int: exit code, 2 if the environment file could not be read.
+    """
+    from nyx.static.shell_env import load_shell_env
+
+    load_shell_env()  # first, so the envfile wins over the shell
+    if not _load_envfile(envfile):
+        return EXIT_USAGE
     from nyx import main as editor
 
     editor.main()
@@ -117,6 +164,7 @@ def run_stage(
     path: pathlib.Path | str,
     bridge: bool = True,
     port: int | None = None,
+    envfile: pathlib.Path | str | None = None,
 ) -> int:
     """Run a stage file without the editor.
 
@@ -126,12 +174,15 @@ def run_stage(
         path (pathlib.Path | str): stage file.
         bridge (bool): start the bridge server, if the config enables it.
         port (int | None): port of the bridge server, the configured one if omitted.
+        envfile (pathlib.Path | str | None): environment file to load first.
 
     Returns:
         int: exit code, 0 when the stage ran, 1 when it failed, 2 when it could not
-            be loaded.
+            be loaded or the environment file read.
     """
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    if envfile is not None and not _load_envfile(pathlib.Path(envfile)):
+        return EXIT_USAGE
     from nyx.core.logger import NyxLogger
 
     # Before the other modules make their loggers, like the editor does: the nyx loggers
@@ -139,7 +190,7 @@ def run_stage(
     logging.setLoggerClass(NyxLogger)
     from PySide6 import QtWidgets
 
-    from nyx.api.v1 import Stage
+    from nyx.core.stage import Stage
     from nyx.application import NyxApplication
 
     app = QtWidgets.QApplication.instance() or NyxApplication()

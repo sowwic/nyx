@@ -78,6 +78,7 @@ nav:
               - Value: user/stdlib/nodes/value.md
               - Set: user/stdlib/nodes/set.md
               - Get: user/stdlib/nodes/get.md
+              - Fetch Environment: user/stdlib/nodes/fetch-environment.md
               - Dict: user/stdlib/nodes/dictionary.md
               - List: user/stdlib/nodes/list.md
               - Type Cast: user/stdlib/nodes/type-cast.md

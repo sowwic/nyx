@@ -8,7 +8,7 @@ from nyx_bridge.server import BridgeServer
 
 from .bridge_events import BridgeEvents
 from .layered_config import NyxConfig
-from ..api.v1 import Stage
+from .stage import Stage
 from ..static.paths import BRIDGE_ADDRESS_FILE_PATH
 
 
