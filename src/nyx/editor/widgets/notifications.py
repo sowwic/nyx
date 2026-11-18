@@ -166,8 +166,8 @@ class NotificationManager(QtCore.QObject):
     `set_host` (the CLI, tests) messages are ignored.
 
     With a panel host the messages float in its top right corner, stacked under the
-    other widgets there (the run overlay) and out of the way of open panels. Without
-    one they stack upwards from the bottom right corner of the window.
+    other widgets there (the stage controls overlay) and out of the way of open
+    panels. Without one they stack upwards from the bottom right corner of the window.
     """
 
     MARGIN = 24

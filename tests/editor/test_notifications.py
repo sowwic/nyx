@@ -133,10 +133,12 @@ def test_a_failing_stage_gives_one_failure_message(
     ]
 
 
-def test_floating_messages_stack_under_the_run_overlay(floating_notification_host):
+def test_floating_messages_stack_under_the_stage_controls_overlay(
+    floating_notification_host,
+):
     window = floating_notification_host
     host = window.panel_host
-    overlay = window.run_overlay
+    overlay = window.stage_controls_overlay
 
     first = NotificationManager.add_message("one")
     second = NotificationManager.add_message("two")

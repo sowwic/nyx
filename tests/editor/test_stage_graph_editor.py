@@ -140,7 +140,7 @@ def test_from_json_file_roundtrip(
 
 def test_scope_widget_follows_editor_scope(main_window, stage_editor, create_node):
     node = create_node(stage_editor.stage, "parent")
-    scope_widget = main_window.run_overlay.scope_widget
+    scope_widget = main_window.stage_controls_overlay.scope_widget
     assert scope_widget.path_line_edit.text() == ROOT_NODE_PATH.as_posix()
 
     stage_editor.set_scope_path(node)
@@ -153,7 +153,7 @@ def test_scope_widget_return_pressed_sets_scope(
     from PySide6 import QtCore
 
     node = create_node(stage_editor.stage, "target")
-    scope_widget = main_window.run_overlay.scope_widget
+    scope_widget = main_window.stage_controls_overlay.scope_widget
     scope_widget.path_line_edit.setText(node.path.as_posix())
     qtbot.keyClick(scope_widget.path_line_edit, QtCore.Qt.Key.Key_Return)
     assert stage_editor.get_scope_path() == node.path
@@ -163,7 +163,7 @@ def test_scope_widget_buttons(main_window, stage_editor, create_node, qtbot):
     parent = create_node(stage_editor.stage, "parent")
     child = create_node(stage_editor.stage, "child", parent=parent)
     stage_editor.set_scope_path(child)
-    scope_widget = main_window.run_overlay.scope_widget
+    scope_widget = main_window.stage_controls_overlay.scope_widget
 
     from PySide6 import QtCore
 

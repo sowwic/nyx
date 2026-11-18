@@ -182,8 +182,8 @@ def test_undo_redo_follow_active_stack(main_window, stage_editor, create_node):
     assert edit_menu.redo_action.isEnabled()
 
 
-def test_run_overlay_exposes_registry_actions(main_window):
-    overlay = main_window.run_overlay
+def test_stage_controls_overlay_exposes_registry_actions(main_window):
+    overlay = main_window.stage_controls_overlay
     assert overlay.run_button.defaultAction() is ACTION_REGISTRY.action(
         ActionId.EXECUTE_STAGE
     )

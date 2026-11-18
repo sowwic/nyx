@@ -160,7 +160,7 @@ class PanelManager(QtCore.QObject):
         if not is_open or panel_id not in changed_ids:
             # Keep the clicked button honest when the request changed nothing
             self._sync(panel_id)
-        # Syncing can resize the floating widgets, for example the run overlay
+        # Syncing can resize the floating widgets, for example the stage controls overlay
         self._host.update_layout()
 
     def _sync(self, panel_id: str) -> None:

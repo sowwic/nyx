@@ -7,7 +7,7 @@ from nyx.editor.core.actions import ActionId
 from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 
 
-class RunOverlay(QtWidgets.QFrame):
+class StageControlsOverlay(QtWidgets.QFrame):
     """Floating bar over the graph: run button, scope field and inspector toggle.
 
     The run button executes the stage, and its drop-down menu executes from the selected
@@ -22,7 +22,7 @@ class RunOverlay(QtWidgets.QFrame):
         inspector_action: QtGui.QAction,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
-        """Initialize RunOverlay.
+        """Initialize StageControlsOverlay.
 
         Args:
             inspector_action (QtGui.QAction): checkable action that toggles the
@@ -31,7 +31,7 @@ class RunOverlay(QtWidgets.QFrame):
         """
         super().__init__(parent)
         self._inspector_action = inspector_action
-        self.setObjectName("run_overlay")
+        self.setObjectName("stage_controls_overlay")
         self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.setAutoFillBackground(True)
 

@@ -163,12 +163,12 @@ def test_panels_start_below_the_tab_bar(main_window, manager, stage_editor, qtbo
         assert panel.geometry().bottom() == host.canvas.height() - 1
 
 
-def test_run_overlay_inspector_button_toggles_and_stays_visible(
+def test_stage_controls_overlay_inspector_button_toggles_and_stays_visible(
     main_window, manager, qtbot
 ):
     main_window.show()
     qtbot.waitExposed(main_window)
-    overlay = main_window.run_overlay
+    overlay = main_window.stage_controls_overlay
     assert overlay.inspector_button.isVisible()
 
     qtbot.mouseClick(overlay.inspector_button, QtCore.Qt.MouseButton.LeftButton)
@@ -180,13 +180,13 @@ def test_run_overlay_inspector_button_toggles_and_stays_visible(
     assert not manager.is_open("inspector")
 
 
-def test_run_overlay_follows_the_right_panel_then_stops_at_the_left_one(
+def test_stage_controls_overlay_follows_the_right_panel_then_stops_at_the_left_one(
     main_window, manager, qtbot
 ):
     main_window.show()
     qtbot.waitExposed(main_window)
     host = main_window.panel_host
-    overlay = main_window.run_overlay
+    overlay = main_window.stage_controls_overlay
     margin = host.FLOATING_MARGIN
     canvas_width = host.canvas.width()
 
@@ -203,8 +203,8 @@ def test_run_overlay_follows_the_right_panel_then_stops_at_the_left_one(
     assert overlay.geometry().intersects(right.geometry())
 
 
-def test_run_overlay_orders_run_scope_and_inspector_toggle(main_window):
-    overlay = main_window.run_overlay
+def test_stage_controls_overlay_orders_run_scope_and_inspector_toggle(main_window):
+    overlay = main_window.stage_controls_overlay
     layout = overlay.layout()
     assert [layout.itemAt(i).widget() for i in range(layout.count())] == [
         overlay.run_button,
@@ -214,7 +214,7 @@ def test_run_overlay_orders_run_scope_and_inspector_toggle(main_window):
 
 
 def test_scope_widget_follows_the_active_editor(main_window, stage_editor, qtbot):
-    scope_widget = main_window.run_overlay.scope_widget
+    scope_widget = main_window.stage_controls_overlay.scope_widget
     assert scope_widget.graph_editor is stage_editor
     assert scope_widget.isEnabled()
 
@@ -228,7 +228,7 @@ def test_scope_widget_follows_the_active_editor(main_window, stage_editor, qtbot
 
 
 def test_scope_widget_is_disabled_without_an_editor(main_window):
-    scope_widget = main_window.run_overlay.scope_widget
+    scope_widget = main_window.stage_controls_overlay.scope_widget
     main_window.on_node_graph_window_activated(None)
     assert scope_widget.graph_editor is None
     assert not scope_widget.isEnabled()
@@ -415,9 +415,9 @@ def test_right_anchored_widgets_share_their_right_edge(main_window, floating):
     assert wide.x() < narrow.x()
 
 
-def test_top_right_stack_starts_below_the_run_overlay(main_window, floating):
+def test_top_right_stack_starts_below_the_stage_controls_overlay(main_window, floating):
     host = main_window.panel_host
-    overlay = main_window.run_overlay
+    overlay = main_window.stage_controls_overlay
     widget = floating(FloatingAnchor.TOP_RIGHT)
 
     assert widget.y() == overlay.geometry().bottom() + 1 + host.FLOATING_SPACING

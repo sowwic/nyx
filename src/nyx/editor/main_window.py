@@ -26,7 +26,7 @@ from .widgets.dialogs.about_dialog import AboutDialog
 from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
 from .widgets.output_log.output_log_widget import OutputLogWidget
 from .widgets.inspector import Inspector
-from .widgets.run_overlay import RunOverlay
+from .widgets.stage_controls import StageControlsOverlay
 from .widgets import menubar_menus
 from .widgets.stage_mdi_area import StageMdiArea
 from .panels import PANEL_REGISTRY, PanelHost, PanelManager, PanelSidebar
@@ -201,10 +201,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.panel_manager = PanelManager(
             self, self.panel_host, self.panel_sidebar, PANEL_REGISTRY
         )
-        self.run_overlay = RunOverlay(
+        self.stage_controls_overlay = StageControlsOverlay(
             self.panel_manager.toggle_action(PanelId.INSPECTOR)
         )
-        self.panel_host.add_floating_widget(self.run_overlay)
+        self.panel_host.add_floating_widget(self.stage_controls_overlay)
         self.setCentralWidget(self.panel_host)
 
     def _apply_default_geometry(self):
@@ -545,7 +545,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """
         self.inspector.setEnabled(mdi_window is not None)
         self._apply_viewport_debug_overlay()
-        self.run_overlay.scope_widget.set_graph_editor(
+        self.stage_controls_overlay.scope_widget.set_graph_editor(
             mdi_window.widget() if mdi_window is not None else None
         )
         if mdi_window is None:
