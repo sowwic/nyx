@@ -126,6 +126,71 @@ def test_a_panel_cannot_be_made_smaller_than_the_minimum_of_its_area(
     assert size == expected_minimum
 
 
+def test_every_maximum_leaves_room_above_the_minimum_on_the_smallest_window():
+    from nyx.editor.panels import PanelArea
+    from nyx.editor.panels.panel_host import PanelHost
+
+    smallest_width = 1000
+    for area in (PanelArea.LEFT, PanelArea.RIGHT):
+        maximum = smallest_width * PanelHost.MAXIMUM_FRACTIONS[area]
+        assert maximum > PanelHost.MINIMUM_SIZES[area]
+    # With both side panels at their largest, a fifth of the graph is left over
+    both = sum(
+        PanelHost.MAXIMUM_FRACTIONS[area] for area in (PanelArea.LEFT, PanelArea.RIGHT)
+    )
+    assert both <= 0.8
+
+
+@pytest.mark.parametrize(
+    ("panel_id", "fraction", "extent_of"),
+    [
+        ("tree", 0.4, lambda canvas: canvas.width()),
+        ("inspector", 0.4, lambda canvas: canvas.width()),
+        ("console", 0.5, lambda canvas: canvas.height()),
+    ],
+)
+def test_a_panel_cannot_be_dragged_past_its_share_of_the_graph_area(
+    main_window, manager, qtbot, panel_id, fraction, extent_of
+):
+    main_window.show()
+    qtbot.waitExposed(main_window)
+    manager.set_open(panel_id, True)
+    panel = manager.panel(panel_id)
+    canvas = main_window.panel_host.canvas
+
+    panel.size_requested.emit(extent_of(canvas) * 10)  # dragged far past the edge
+
+    size = panel.height() if panel_id == "console" else panel.width()
+    assert size == int(extent_of(canvas) * fraction)
+
+
+def test_both_side_panels_leave_the_graph_area_room(main_window, manager, qtbot):
+    main_window.show()
+    qtbot.waitExposed(main_window)
+    host = main_window.panel_host
+    manager.set_open("tree", True)
+    manager.set_open("inspector", True)
+    left, right = manager.panel("tree"), manager.panel("inspector")
+
+    host.set_panel_size(left, host.canvas.width() * 10)
+    host.set_panel_size(right, host.canvas.width() * 10)
+
+    free = host.canvas.width() - left.width() - right.width()
+    assert free >= host.canvas.width() * 0.2 - 1
+
+
+def test_a_larger_window_gives_a_saved_size_back(main_window, manager, qtbot):
+    main_window.show()
+    qtbot.waitExposed(main_window)
+    host = main_window.panel_host
+    manager.set_open("tree", True)
+    panel = manager.panel("tree")
+    host.set_panel_size(panel, 400)
+
+    assert panel.width() == 400
+    assert host.panel_size(panel) == 400
+
+
 def test_dragging_the_grip_resizes_the_panel(main_window, manager, qtbot):
     main_window.show()
     qtbot.waitExposed(main_window)
@@ -474,15 +539,14 @@ def test_side_panels_move_the_corners(main_window, manager, floating):
     assert bottom_right.geometry().right() < right_edge
 
 
-def test_a_very_wide_right_panel_slides_over_right_anchored_widgets(
+def test_the_right_panel_slides_over_a_widget_wider_than_the_free_space(
     main_window, manager, floating
 ):
     host = main_window.panel_host
-    widget = floating(FloatingAnchor.BOTTOM_RIGHT)
+    widget = floating(FloatingAnchor.BOTTOM_RIGHT, width=host.canvas.width())
+
     manager.set_open("inspector", True)
     inspector = manager.panel("inspector")
-
-    host.set_panel_size(inspector, host.canvas.width())
 
     assert widget.x() == host.FLOATING_MARGIN
     assert widget.geometry().intersects(inspector.geometry())

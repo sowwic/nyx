@@ -53,6 +53,13 @@ class PanelHost(QtWidgets.QWidget):
         PanelArea.BOTTOM: 180,
     }
     """Smallest width (height for the bottom area) a panel can be given."""
+    MAXIMUM_FRACTIONS = {
+        PanelArea.LEFT: 0.4,
+        PanelArea.RIGHT: 0.4,
+        PanelArea.BOTTOM: 0.5,
+    }
+    """Largest share of the graph area (its width, or height for the bottom area) a
+    panel can take. The side panels leave a fifth of the width for the graph."""
     MINIMUM_FREE_SIZE = 60
     FLOATING_MARGIN = 10
     FLOATING_SPACING = 6
@@ -219,18 +226,24 @@ class PanelHost(QtWidgets.QWidget):
                 return panel
         return None
 
-    def _clamped_size(self, panel: OverlayPanel, available: int) -> int:
-        """Limit the size of a panel so part of the graph area stays visible.
+    def _clamped_size(self, panel: OverlayPanel, extent: int, available: int) -> int:
+        """Limit the size of a panel to its range, so the graph area stays visible.
 
         Args:
             panel (OverlayPanel): panel.
-            available (int): extent of the graph area along the panel size.
+            extent (int): width of the graph area, or its height for the bottom area.
+            available (int): part of the extent the panel can use, less than the extent
+                when another panel is open at the other side.
 
         Returns:
-            int: size in pixels.
+            int: size in pixels, never below the minimum of the area.
         """
-        limit = max(self.MINIMUM_SIZES[panel.area], available - self.MINIMUM_FREE_SIZE)
-        return min(self._sizes[panel], limit)
+        minimum = self.MINIMUM_SIZES[panel.area]
+        maximum = min(
+            int(extent * self.MAXIMUM_FRACTIONS[panel.area]),
+            available - self.MINIMUM_FREE_SIZE,
+        )
+        return min(self._sizes[panel], max(minimum, maximum))
 
     def update_layout(self) -> None:
         """Place the MDI area and the open panels inside the graph area."""
@@ -243,14 +256,16 @@ class PanelHost(QtWidgets.QWidget):
         bottom = self._open_panel(PanelArea.BOTTOM)
 
         # The left panel keeps its size, the right one takes what is left
-        left_width = self._clamped_size(left, width) if left else 0
-        right_width = self._clamped_size(right, width - left_width) if right else 0
+        left_width = self._clamped_size(left, width, width) if left else 0
+        right_width = (
+            self._clamped_size(right, width, width - left_width) if right else 0
+        )
         if left:
             left.setGeometry(0, top, left_width, height - top)
         if right:
             right.setGeometry(width - right_width, top, right_width, height - top)
         if bottom:
-            bottom_height = self._clamped_size(bottom, height)
+            bottom_height = self._clamped_size(bottom, height, height)
             bottom.setGeometry(
                 left_width,
                 height - bottom_height,
