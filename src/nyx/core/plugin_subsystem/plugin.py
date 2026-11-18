@@ -7,7 +7,10 @@ import inspect
 
 
 if typing.TYPE_CHECKING:
-    from nyx.api.v1 import Node, NodeComponent, Datatype, UtilObject
+    from nyx.core.datatypes.datatype import Datatype
+    from nyx.core.node import Node
+    from nyx.core.node_component import NodeComponent
+    from nyx.core.util_object import UtilObject
 
 
 @dataclasses.dataclass()

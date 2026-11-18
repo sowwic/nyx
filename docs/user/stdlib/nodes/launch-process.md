@@ -24,5 +24,6 @@ Type id: `core:launch_process`
 
 - Acts as a scope: starts the process, runs the nodes inside of it, and stops the process when they are done.
 - In `command`, `$NAME` and `${NAME}` are replaced by environment variables, the ones of `env` included.
+- The process gets the environment of Nyx (see [Customization](../../customization.md#environment-variables)) with the bridge settings and `env` on top. `env` only has to hold what you add or change: link a dictionary made by a [Dict](dictionary.md) node, or one from [Fetch Environment](fetch-environment.md) changed with the dictionary functions.
 - With `wait_for_client` on, the nodes inside run only after the process has connected to the bridge as `client_name`.
 - Details: [Remote nodes and the bridge](../../remote-nodes.md).

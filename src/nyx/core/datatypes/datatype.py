@@ -3,7 +3,7 @@ import dataclasses
 import typing
 
 from ..exceptions import DatatypeCastError
-from ...static.enums import CoreDatatypes, GraphicsPlugShape
+from ...static.enums import GraphicsPlugShape
 
 
 @dataclasses.dataclass(frozen=True)
@@ -97,16 +97,6 @@ class Datatype:
         return self.is_wildcard or other.is_wildcard
 
 
-OBJECT_DATATYPE = Datatype(
-    type_id=CoreDatatypes.OBJECT,
-    display_name="Object",
-    color="#0096FF",
-    is_wildcard=True,
-    plug_shape=GraphicsPlugShape.SQUARE_MATRIX,
-)
-"""Datatype of values without a type hint, used wherever no datatype is set."""
-
-
 def value_to_class_name(value: typing.Any) -> typing.Any:
     """Turn a class into text that can be shown, edited and saved.
 
@@ -144,3 +134,40 @@ def value_to_view_text(value: typing.Any) -> typing.Any:
     if isinstance(value, (list, dict, tuple, set, frozenset)):
         return repr(value)
     return value_to_class_name(value)
+
+
+def value_to_rows(
+    value: typing.Any, max_rows: int, max_length: int
+) -> list[dict[str, typing.Any]]:
+    """Turn a collection into the rows a list view shows.
+
+    Args:
+        value (typing.Any): value of a component.
+        max_rows (int): rows to make, the rest is reported in a last row.
+        max_length (int): characters of the text of a row value, cut with an ellipsis.
+
+    Returns:
+        list[dict[str, Any]]: rows with the `key` (the key of a dictionary, the position
+            in anything else) and the `value` as text. A row of a cut off collection
+            comes last and has `more` set. Empty for a value that is not a list, tuple,
+            set or dictionary.
+    """
+    if isinstance(value, dict):
+        entries = value.items()
+    elif isinstance(value, (list, tuple, set, frozenset)):
+        entries = enumerate(value)
+    else:
+        return []
+
+    rows: list[dict[str, typing.Any]] = []
+    for key, item in entries:
+        if len(rows) == max_rows:
+            rows.append(
+                {"key": "…", "value": f"{len(value) - max_rows} more", "more": True}
+            )
+            break
+        text = str(value_to_view_text(item))
+        if len(text) > max_length:
+            text = text[: max_length - 1] + "…"
+        rows.append({"key": str(key), "value": text, "more": False})
+    return rows

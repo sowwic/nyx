@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from uuid import UUID
 
 from ..node_component import NodeComponent
-from ..datatypes.datatype import value_to_view_text
+from ..datatypes.datatype import value_to_rows, value_to_view_text
 from ..contexts.serialization import NodeDeserializationContext
 from ..plugin_subsystem.registry import NYX_REGISTRY
 from ...static.enums import CoreNodeComponents, RestoreUuidOption
@@ -58,6 +58,10 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
 
     VALUE_CHANGED_ROLE = NodeComponent.Roles.CACHED_VALUE
 
+    # What views are given of a collection value, see `value_to_rows`.
+    MAX_VALUE_ROWS = 1000
+    MAX_VALUE_ROW_LENGTH = 500
+
     def __init__(self, node: Node):
         """Initialize NodeComponentsModel.
 
@@ -70,6 +74,7 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
         super().__init__()
         self._register_qml_role_names()
         self.dataChanged.connect(self._refresh_dependents)
+        self.dataChanged.connect(self._refresh_value_rows)
 
     @property
     def node(self) -> Node:
@@ -127,6 +132,51 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
             for dependency in self._dependencies
             if component not in (dependency.dependent, dependency.source)
         ]
+
+    def _refresh_value_rows(
+        self,
+        top_left: QtCore.QModelIndex,
+        bottom_right: QtCore.QModelIndex,
+        roles: typing.Sequence[int] = (),
+    ) -> None:
+        """Report new rows to the views when the value of a component changed.
+
+        The rows are made from the value, so no change of them is ever stored.
+
+        Args:
+            top_left (QtCore.QModelIndex): first changed index.
+            bottom_right (QtCore.QModelIndex): last changed index.
+            roles (Sequence[int]): changed roles, empty if everything changed.
+        """
+        Roles = NodeComponent.Roles
+        if roles and not set(roles) & {
+            Roles.CACHED_VALUE,
+            Roles.DISPLAY_VALUE,
+            Roles.INPUT_LINKS,
+        }:
+            return
+        if Roles.VALUE_ROWS in roles:
+            return
+        self.dataChanged.emit(top_left, bottom_right, [Roles.VALUE_ROWS])
+
+    @classmethod
+    def _value_rows(cls, component: NodeComponent) -> list[dict[str, typing.Any]]:
+        """Make the rows of a list, tuple, set or dictionary value.
+
+        Args:
+            component (NodeComponent): component to read the value of.
+
+        Returns:
+            list[dict[str, Any]]: rows, see `value_to_rows`. Empty if the value is
+                anything else, or can't be read.
+        """
+        try:
+            return value_to_rows(
+                component.pull_value(), cls.MAX_VALUE_ROWS, cls.MAX_VALUE_ROW_LENGTH
+            )
+        except Exception as err:
+            LOGGER.debug("%s: no rows for the value: %s", component.path, err)
+            return []
 
     def _refresh_dependents(
         self,
@@ -217,6 +267,8 @@ class NodeComponentsModel(QtGui.QStandardItemModel):
                 return component.is_datatype_locked
             if role == NodeComponent.Roles.LABEL:
                 return component.label
+            if role == NodeComponent.Roles.VALUE_ROWS:
+                return self._value_rows(component)
             if role == NodeComponent.Roles.IS_BUILT_IN:
                 return component.is_built_in
             if role == NodeComponent.Roles.IS_STATIC:

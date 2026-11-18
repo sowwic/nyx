@@ -4,6 +4,7 @@ from .animation_values import (
     NyxEditorLinkPulseAnimationConfigValues,
 )
 from .base_values import NyxBaseConfigValues
+from .environment_values import NyxEnvironmentConfigValues
 from .editor_values import NyxEditorBehaviourConfigValues, NyxEditorSessionConfigValues
 from .graphics_values import (
     NyxEditorGraphicsNodeConfigValues,
@@ -30,6 +31,7 @@ __all__ = [
     "NyxEditorSessionConfigValues",
     "NyxEditorStyleConfigValues",
     "NyxEditorWidgetsConfigValues",
+    "NyxEnvironmentConfigValues",
     "NyxMainWindowConfigValues",
     "NyxMainWindowLayoutConfigValues",
 ]

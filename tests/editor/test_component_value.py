@@ -483,8 +483,10 @@ def test_getter_value_in_inspector_updates_when_the_path_changes(
         )
 
     qtbot.waitUntil(
-        lambda: editor_labelled("Object:") is not None
-        and editor_labelled("Value:") is not None,
+        lambda: (
+            editor_labelled("Object:") is not None
+            and editor_labelled("Value:") is not None
+        ),
         timeout=3000,
     )
     reference, value = editor_labelled("Object:"), editor_labelled("Value:")
@@ -837,3 +839,55 @@ def test_comment_edit_button_gives_way_to_the_editor_buttons(make_value_editor):
     assert button.property("visible") is False
     editor.run("cancelEdit()")
     assert button.property("visible") is True
+
+
+ROWS = [
+    {"key": "A", "value": "1", "more": False},
+    {"key": "B", "value": "two", "more": False},
+]
+
+
+def test_collection_value_is_listed(make_value_editor):
+    editor = make_value_editor(CORE_QML_DIR / "ValueComponentItem.qml", valueRows=ROWS)
+
+    assert editor.field.property("itemCount") == 2
+    assert editor.run("field.rows.length") == 2
+    assert editor.run("field.rows[1].value") == "two"
+
+
+def test_scalar_value_stays_one_line_of_text(make_value_editor):
+    editor = make_value_editor(CORE_QML_DIR / "ValueComponentItem.qml", valueRows=[])
+
+    assert editor.text == "2"
+    assert editor.field.property("itemCount") is None
+
+
+def test_note_of_a_cut_off_collection_is_not_counted(make_value_editor):
+    rows = ROWS + [{"key": "…", "value": "5 more", "more": True}]
+    editor = make_value_editor(CORE_QML_DIR / "ValueComponentItem.qml", valueRows=rows)
+
+    assert editor.field.property("itemCount") == 2
+
+
+def test_editing_a_listed_value_switches_to_the_text_editor(make_value_editor):
+    editor = make_value_editor(
+        CORE_QML_DIR / "ValueComponentItem.qml", valueRows=ROWS, rawValue="{'A': 1}"
+    )
+
+    editor.run("requestEdit()")
+
+    assert editor.text == "{'A': 1}"
+    assert editor.field.property("readOnly") is False
+
+
+def test_key_column_fits_the_longest_key_between_the_limits(make_value_editor):
+    def key_width(*keys):
+        rows = [{"key": key, "value": "v", "more": False} for key in keys]
+        editor = make_value_editor(
+            CORE_QML_DIR / "ValueComponentItem.qml", valueRows=rows
+        )
+        return editor.field.property("keyWidth")
+
+    assert key_width("A", "B") == 100  # the minimum
+    assert 100 < key_width("A", "A" * 15) < 200
+    assert key_width("A" * 500) == 200  # the maximum

@@ -1,3 +1,4 @@
+import os
 import logging
 
 import pytest
@@ -160,3 +161,28 @@ def test_remote_nodes_run_against_a_client_found_through_the_address_file(
         thread.join(timeout=5)
 
     assert code == cli.EXIT_OK
+
+
+def test_envfile_argument_is_parsed_for_the_editor_and_stage_run():
+    editor = cli.build_parser().parse_args(["--envfile", "a.env"])
+    run = cli.build_parser().parse_args(["stage", "run", "s.nyx", "--envfile", "b.env"])
+
+    assert str(editor.envfile) == "a.env"
+    assert str(run.run_envfile) == "b.env"
+    assert cli.build_parser().parse_args([]).envfile is None
+
+
+def test_run_stage_loads_the_envfile(tmp_path, monkeypatch):
+    monkeypatch.delenv("NYX_TEST_ENVFILE", raising=False)
+    envfile = tmp_path / ".env"
+    envfile.write_text("NYX_TEST_ENVFILE=yes\n")
+
+    cli.run_stage(tmp_path / "missing.nyx", bridge=False, envfile=envfile)
+
+    assert os.environ["NYX_TEST_ENVFILE"] == "yes"
+
+
+def test_run_stage_fails_with_usage_code_for_a_missing_envfile(tmp_path):
+    code = cli.run_stage(tmp_path / "s.nyx", bridge=False, envfile=tmp_path / "no.env")
+
+    assert code == cli.EXIT_USAGE

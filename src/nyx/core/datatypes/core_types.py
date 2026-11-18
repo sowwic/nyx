@@ -1,13 +1,9 @@
 import pathlib
 import typing
 
-from nyx.api.v1 import (
-    NYX_REGISTRY,
-    CoreDatatypes,
-    Datatype,
-    GraphicsPlugShape,
-    OBJECT_DATATYPE,
-)
+from nyx.core.datatypes.datatype import Datatype
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
+from nyx.static.enums import CoreDatatypes, GraphicsPlugShape
 
 
 def cast_to_type(value: typing.Any) -> type:
@@ -30,6 +26,15 @@ def cast_to_type(value: typing.Any) -> type:
             return datatype.python_type or object
     return type(value)
 
+
+OBJECT_DATATYPE = Datatype(
+    type_id=CoreDatatypes.OBJECT,
+    display_name="Object",
+    color="#0096FF",
+    is_wildcard=True,
+    plug_shape=GraphicsPlugShape.SQUARE_MATRIX,
+)
+"""Datatype of values without a type hint, used wherever no datatype is set."""
 
 CORE_DATATYPES: tuple[Datatype, ...] = (
     OBJECT_DATATYPE,

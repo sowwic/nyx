@@ -9,6 +9,7 @@ from nyx.core.config_values.editor_values import (
     NyxEditorBehaviourConfigValues,
     NyxEditorSessionConfigValues,
 )
+from nyx.core.config_values.environment_values import NyxEnvironmentConfigValues
 from nyx.core.config_values.main_window_values import NyxMainWindowConfigValues
 from nyx.core.config_values.style_values import NyxEditorStyleConfigValues
 from nyx.core.config_values.widgets_values import NyxEditorWidgetsConfigValues
@@ -46,3 +47,7 @@ class NyxConfigValues(NyxBaseConfigValues):
     """Logging level of the application."""
     plugin_paths: list[str] = Field(default_factory=list)
     """Additional directories to discover plugins in."""
+    environment: NyxEnvironmentConfigValues = Field(
+        default_factory=NyxEnvironmentConfigValues, alias="environment"
+    )
+    """Environment variables set for the application and the processes it launches."""

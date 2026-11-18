@@ -86,7 +86,7 @@ the core plugin is discovered first, **its ids can't be overridden** by another 
 | `get_util_object_cls(type_id)` | the util object class. Logs an error and returns `None` when unknown. |
 | `get_graphics_object_cls(type_id)` | the graphics item class, or `None`. |
 | `get_datatype(type_id)` | the `Datatype`, or `None`. |
-| `resolve_datatype(type_id)` | the `Datatype`, falling back to `OBJECT_DATATYPE` for a missing or unknown id (logged). Use this when reading files. |
+| `resolve_datatype(type_id)` | the `Datatype`, falling back to `OBJECT_DATATYPE` (defined in `core/datatypes/core_types.py`) for a missing or unknown id (logged). Use this when reading files. |
 | `infer_datatype(value)` | first registered datatype whose Python type is exactly `type(value)`, else `Object`. |
 | `find_datatype_for_type(python_type)` | datatype claiming that Python type, or `None`. Used for the type hints of function nodes. |
 | `iter_datatypes()`, `iter_node_components()`, `iter_plugins()` | iterate the registered content. |

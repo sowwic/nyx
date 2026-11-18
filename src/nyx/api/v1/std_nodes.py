@@ -7,6 +7,7 @@ from nyx.stdlib.nodes.dictionary import DictionaryNode
 from nyx.stdlib.nodes.flow_start import FlowStartNode
 from nyx.stdlib.nodes.for_each_loop import ForEachLoopNode
 from nyx.stdlib.nodes.for_loop import ForLoopNode
+from nyx.stdlib.nodes.fetch_environment import FetchEnvironmentNode
 from nyx.stdlib.nodes.get_type import GetTypeNode
 from nyx.stdlib.nodes.getter import GetterNode
 from nyx.stdlib.nodes.launch_process import LaunchProcessNode
@@ -32,6 +33,7 @@ __all__ = [
     "FlowStartNode",
     "ForEachLoopNode",
     "ForLoopNode",
+    "FetchEnvironmentNode",
     "GetTypeNode",
     "GetterNode",
     "LaunchProcessNode",

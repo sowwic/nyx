@@ -139,6 +139,37 @@ own, add a `.qrc` file, compile it with `pyside6-rcc` and import the generated m
 from your `nyx_plugin.py` (the stdlib does `from .resources import resources_rc`). Use a
 unique prefix in the `.qrc` so paths don't clash.
 
+The built-in icons are white shapes on a transparent background, 24 or 32 pixels. To get
+one that matches from a picture of your own (a PNG, an SVG, a black drawing on white),
+make it with `editor_utils.create_mono_icon(path)`: the shape is found from the
+transparency, or from the dark parts of an image without any (`invert=True` takes the
+light parts), and drawn in white (or the `color` you give) at the right size.
+
+```python
+from nyx.api.v1 import editor_utils
+
+icon = editor_utils.create_mono_icon("studio_logo.png")        # QtGui.QIcon
+image = editor_utils.create_mono_image("studio_logo.png", 32)  # QtGui.QImage
+```
+
+## Editor helpers
+
+`nyx.api.v1.editor_utils` has what plugins that add to the editor tend to need. Most of
+it needs a running `QApplication`, and `get_current_stage_graph` the editor window, so
+use it from code that runs in the editor, not in a headless run.
+
+| Function | What it does |
+| --- | --- |
+| `create_mono_icon(path, size, color, invert)` | White one-color `QIcon` from an image file, see [Icons](#icons). |
+| `create_mono_image(path, size, color, invert)` | The same as a `QImage`. |
+| `get_application_qml_engine()` | The QML engine of the application, for your own QML items. |
+| `get_current_stage_graph()` | The stage graph editor of the active window. |
+| `blocked_signals(*objects)` | Context manager that blocks the signals of Qt objects and restores them after. |
+| `resolve_to_source_index(index)` | Maps an index through proxy models down to the source model. |
+| `note_to_html(text, note_format)` | Converts a plain, Markdown or HTML note to HTML for tooltips and labels. |
+| `build_component_tooltip_html(component)` | The tooltip the editor shows for a component. |
+| `build_role_tooltip_html(index)` | An HTML table of every role of a model index, for debugging models. |
+
 ## Testing a plugin
 
 The repository's test suite shows the pattern. `tests/conftest.py` starts the

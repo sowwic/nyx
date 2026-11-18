@@ -166,6 +166,65 @@ def test_system_operations(monkeypatch):
         system.run_command([system.python_executable(), "-c", "raise SystemExit(1)"])
 
 
+def test_append_and_prepend_env_add_separated_entries(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_PATH", "a")
+
+    assert system.append_env("NYX_TEST_PATH", "b", ":") == "a:b"
+    assert system.prepend_env("NYX_TEST_PATH", "c", ":") == "c:a:b"
+    assert os.environ["NYX_TEST_PATH"] == "c:a:b"
+
+
+def test_append_and_prepend_env_set_an_unset_variable(monkeypatch):
+    monkeypatch.delenv("NYX_TEST_PATH", raising=False)
+    assert system.append_env("NYX_TEST_PATH", "a", ":") == "a"
+
+    monkeypatch.delenv("NYX_TEST_PATH")
+    assert system.prepend_env("NYX_TEST_PATH", "a", ":") == "a"
+    assert os.environ["NYX_TEST_PATH"] == "a"
+
+
+def test_append_and_prepend_env_move_an_existing_entry(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_PATH", "a:b:c")
+
+    assert system.append_env("NYX_TEST_PATH", "a", ":") == "b:c:a"
+    assert system.prepend_env("NYX_TEST_PATH", "c", ":") == "c:b:a"
+
+
+def test_env_entries_default_to_the_path_separator(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_PATH", "a")
+
+    assert system.append_env("NYX_TEST_PATH", "b") == f"a{os.pathsep}b"
+
+
+def test_env_entries_ignore_empty_ones(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_PATH", ":a::")
+
+    assert system.append_env("NYX_TEST_PATH", "b", ":") == "a:b"
+
+
+def test_pop_env_removes_an_entry(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_PATH", "a:b:a:c")
+
+    assert system.pop_env("NYX_TEST_PATH", "a", ":") == "b:c"
+    assert os.environ["NYX_TEST_PATH"] == "b:c"
+    assert system.pop_env("NYX_TEST_PATH", "missing", ":") == "b:c"
+
+
+def test_pop_env_unsets_the_variable_with_the_last_entry(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_PATH", "a")
+
+    assert system.pop_env("NYX_TEST_PATH", "a", ":") == ""
+    assert "NYX_TEST_PATH" not in os.environ
+    assert system.pop_env("NYX_TEST_PATH", "a", ":") == ""
+
+
+def test_env_functions_are_registered_as_nodes():
+    from nyx.api.v1 import NYX_REGISTRY
+
+    for name in ("append_env", "prepend_env", "pop_env"):
+        assert f"function:system.{name}" in NYX_REGISTRY.nodes
+
+
 def test_create_file(tmp_path):
     path = str(tmp_path / "new" / "dir" / "f.txt")
 
@@ -225,3 +284,138 @@ def test_absolute_path_expands_and_resolves(tmp_path):
         (tmp_path / "b").resolve()
     )
     assert not paths.expand_user("~").startswith("~")
+
+
+def test_unset_env_removes_a_variable(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_VAR2", "1")
+
+    assert system.unset_env("NYX_TEST_VAR2") is True
+    assert "NYX_TEST_VAR2" not in os.environ
+    assert system.unset_env("NYX_TEST_VAR2") is False
+
+
+def test_update_env_sets_many_variables(monkeypatch):
+    monkeypatch.delenv("NYX_TEST_A", raising=False)
+    monkeypatch.delenv("NYX_TEST_B", raising=False)
+
+    assert system.update_env({"NYX_TEST_A": "1", "NYX_TEST_B": 2}) == {
+        "NYX_TEST_A": "1",
+        "NYX_TEST_B": "2",
+    }
+    assert os.environ["NYX_TEST_A"] == "1"
+    assert os.environ["NYX_TEST_B"] == "2"
+
+
+@pytest.mark.parametrize("name", ["", "A=B"])
+def test_update_env_sets_nothing_for_an_invalid_name(monkeypatch, name):
+    monkeypatch.delenv("NYX_TEST_A", raising=False)
+
+    with pytest.raises(ValueError):
+        system.update_env({"NYX_TEST_A": "1", name: "x"})
+    assert "NYX_TEST_A" not in os.environ
+
+
+def test_split_env_and_has_env_entry(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_PATH", "a:b::c")
+    monkeypatch.delenv("NYX_TEST_UNSET", raising=False)
+
+    assert system.split_env("NYX_TEST_PATH", ":") == ["a", "b", "c"]
+    assert system.split_env("NYX_TEST_UNSET") == []
+    assert system.has_env_entry("NYX_TEST_PATH", "b", ":") is True
+    assert system.has_env_entry("NYX_TEST_PATH", "x", ":") is False
+    assert system.has_env_entry("NYX_TEST_PATH", "a:b", ":") is False  # not an entry
+
+
+def test_expand_env(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_HOME", "/h")
+    monkeypatch.delenv("NYX_TEST_UNSET", raising=False)
+
+    assert system.expand_env("$NYX_TEST_HOME/${NYX_TEST_HOME}x") == "/h//hx"
+    assert system.expand_env("$NYX_TEST_UNSET") == "$NYX_TEST_UNSET"
+
+
+def test_load_env_file_sets_its_variables(tmp_path, monkeypatch):
+    monkeypatch.delenv("NYX_TEST_A", raising=False)
+    monkeypatch.delenv("NYX_TEST_B", raising=False)
+    path = tmp_path / ".env"
+    path.write_text("# comment\nexport NYX_TEST_A=1\nNYX_TEST_B=$NYX_TEST_A/2\n")
+
+    assert system.load_env_file(str(path)) == {
+        "NYX_TEST_A": "1",
+        "NYX_TEST_B": "1/2",
+    }
+    assert os.environ["NYX_TEST_B"] == "1/2"
+
+
+def test_load_env_file_fails_for_a_missing_file(tmp_path):
+    with pytest.raises(OSError):
+        system.load_env_file(str(tmp_path / "missing.env"))
+
+
+def test_filter_env_keeps_the_names_with_the_prefix(monkeypatch):
+    monkeypatch.setenv("NYX_TEST_FILTER_A", "1")
+    monkeypatch.setenv("NYX_TEST_FILTER_B", "2")
+    monkeypatch.setenv("OTHER_NYX_TEST_FILTER", "3")
+
+    assert system.filter_env("NYX_TEST_FILTER_") == {
+        "NYX_TEST_FILTER_A": "1",
+        "NYX_TEST_FILTER_B": "2",
+    }
+    assert system.filter_env("NYX_TEST_FILTER_", strip_prefix=True) == {
+        "A": "1",
+        "B": "2",
+    }
+
+
+@pytest.mark.parametrize(
+    ("value", "default", "expected"),
+    [
+        ("1", False, True),
+        ("True", False, True),
+        (" YES ", False, True),
+        ("0", True, False),
+        ("off", True, False),
+        ("", True, False),
+        ("maybe", True, True),
+        ("maybe", False, False),
+        (None, True, True),
+        (None, False, False),
+    ],
+)
+def test_get_env_bool(monkeypatch, value, default, expected):
+    if value is None:
+        monkeypatch.delenv("NYX_TEST_FLAG", raising=False)
+    else:
+        monkeypatch.setenv("NYX_TEST_FLAG", value)
+
+    assert system.get_env_bool("NYX_TEST_FLAG", default) is expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("42", 42), (" -7 ", -7), ("4.5", 9), ("abc", 9), ("", 9), (None, 9)],
+)
+def test_get_env_int(monkeypatch, value, expected):
+    if value is None:
+        monkeypatch.delenv("NYX_TEST_NUMBER", raising=False)
+    else:
+        monkeypatch.setenv("NYX_TEST_NUMBER", value)
+
+    assert system.get_env_int("NYX_TEST_NUMBER", 9) == expected
+
+
+def test_all_env_functions_are_registered_as_nodes():
+    from nyx.api.v1 import NYX_REGISTRY
+
+    for name in (
+        "unset_env",
+        "update_env",
+        "split_env",
+        "has_env_entry",
+        "expand_env",
+        "load_env_file",
+        "filter_env",
+        "get_env_bool",
+        "get_env_int",
+    ):
+        assert f"function:system.{name}" in NYX_REGISTRY.nodes
