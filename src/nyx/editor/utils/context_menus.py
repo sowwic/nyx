@@ -18,6 +18,29 @@ def show_menu(menu: QtWidgets.QMenu, global_pos: QtCore.QPoint) -> None:
 
 
 CREATE_MENU_OBJECT_NAME = "create_menu"
+SELECT_MENU_OBJECT_NAME = "select_menu"
+
+
+def add_select_menu(
+    menu: QtWidgets.QMenu,
+    select_actions: list[QtGui.QAction] | None,
+    with_separator: bool = False,
+) -> None:
+    """Add the Select menu at the end of a menu.
+
+    Args:
+        menu (QtWidgets.QMenu): menu to add to.
+        select_actions (list[QtGui.QAction] | None): one entry for each of the items
+            stacked under the cursor. Nothing is added without any.
+        with_separator (bool): add a separator after the menu.
+    """
+    if not select_actions:
+        return
+    select_menu = menu.addMenu("Select")
+    select_menu.menuAction().setObjectName(SELECT_MENU_OBJECT_NAME)
+    select_menu.addActions(select_actions)
+    if with_separator:
+        menu.addSeparator()
 
 
 def make_proxy_action(
@@ -80,6 +103,7 @@ def build_nodes_context_menu(
     has_selection: bool,
     has_reference: bool = False,
     creator_actions: list[QtGui.QAction] | None = None,
+    select_actions: list[QtGui.QAction] | None = None,
 ) -> QtWidgets.QMenu:
     """Build the node context menu used by both the tree and the graph views.
 
@@ -92,6 +116,8 @@ def build_nodes_context_menu(
         creator_actions: entries of the creators, which only the graph can run. They
             go in a Create menu with the node. Without them the menu has an entry
             that creates a node.
+        select_actions: entries that select one of the items stacked under the cursor.
+            They go in a Select menu below the Create entry.
     """
     action = ACTION_REGISTRY.action
     menu = QtWidgets.QMenu("", parent)
@@ -99,6 +125,7 @@ def build_nodes_context_menu(
         menu.addAction(action(ActionId.CREATE_NODE))
     else:
         menu.addMenu(build_create_menu(menu, creator_actions))
+    add_select_menu(menu, select_actions)
     if has_selection:
         menu.addSeparator()
         menu.addAction(action(ActionId.COPY))
@@ -118,15 +145,20 @@ def build_nodes_context_menu(
 
 
 def build_util_object_context_menu(
-    parent: QtWidgets.QWidget, gr_util: GraphicsUtilObject
+    parent: QtWidgets.QWidget,
+    gr_util: GraphicsUtilObject,
+    select_actions: list[QtGui.QAction] | None = None,
 ) -> QtWidgets.QMenu:
     """Build the context menu of a note, group or other util object.
 
     Args:
         parent: owner of the menu
         gr_util: item of the util object under the cursor
+        select_actions: entries that select one of the items stacked under the cursor.
+            They go in a Select menu at the top.
     """
     menu = QtWidgets.QMenu("", parent)
+    add_select_menu(menu, select_actions, with_separator=True)
     if gr_util.is_editable:
         menu.addAction("Edit...", gr_util.edit)
         color_menu = menu.addMenu("Color")

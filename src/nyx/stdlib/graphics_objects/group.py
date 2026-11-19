@@ -10,11 +10,19 @@ class GraphicsGroup(GraphicsUtilObject):
 
     The nodes, notes, groups and link pins inside the frame when it is pressed move
     along with it.
+
+    Groups stack by size: a smaller group is above a larger one, so a group inside
+    another can always be reached, whichever of them was created first.
     """
 
     RADIUS = 10.0
     TITLE_HEIGHT = 26.0
     Z_VALUE = -3.0
+    STACKING_RANGE = 0.99
+    """float: how far above `Z_VALUE` the smallest groups are, less than one so they stay
+    below the notes, nodes and links."""
+    STACKING_REFERENCE_AREA = 100_000.0
+    """float: area of the group that is halfway up the range, in square scene units."""
     FONT = QtGui.QFont("Zed Mono", 11, QtGui.QFont.Bold)
 
     def __init__(self, util_object, parent=None):
@@ -71,6 +79,24 @@ class GraphicsGroup(GraphicsUtilObject):
                 self.util_object.title,
             )
         self.paint_selection(painter, self.RADIUS)
+
+    def get_select_label(self) -> str:
+        """str: "Group" and its title."""
+        title = self.util_object.title.strip()
+        return f"Group: {title}" if title else "Group"
+
+    @property
+    def stacking_z(self) -> float:
+        """float: z value of the group, higher the smaller the group is."""
+        size = self.item_size
+        reference = self.STACKING_REFERENCE_AREA
+        area = max(size.width() * size.height(), 0.0)
+        return self.Z_VALUE + self.STACKING_RANGE * reference / (reference + area)
+
+    def refresh(self) -> None:
+        """Re-read the state of the group and stack it among the other groups."""
+        super().refresh()
+        self.setZValue(self.stacking_z)
 
     def edit(self) -> None:
         """Ask for the title of the group."""

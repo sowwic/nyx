@@ -63,6 +63,8 @@ class StageGraphView(QtWidgets.QGraphicsView):
     HIGH_QUALITY_ZOOM = StageGraphZoom.HIGH_QUALITY_ZOOM
     DEFAULT_ZOOM = StageGraphZoom.DEFAULT_ZOOM
     CENTER_ATTEMPTS = 3
+    MAX_STACKED_ITEMS = 12
+    """int: most items listed in the Select menu of the context menu."""
     """int: times `center_on_exactly` asks again before it gives up."""
     FOCUS_MARGIN = 40  # scene units kept around nodes when fitting
     LINK_PICK_DISTANCE = 6.0  # screen pixels from a link that still count as on it
@@ -364,6 +366,69 @@ class StageGraphView(QtWidgets.QGraphicsView):
             gr_item = gr_item.parentItem()
         return gr_item
 
+    def list_stacked_items(
+        self, point: QtCore.QPoint
+    ) -> list[GraphicsNode | GraphicsUtilObject]:
+        """List the nodes and util objects under a point, the topmost first.
+
+        Args:
+            point (QtCore.QPoint): position in view coordinates.
+
+        Returns:
+            list[GraphicsNode | GraphicsUtilObject]: each item once, a node for any of
+                its parts (title, plug, ...), at most `MAX_STACKED_ITEMS`.
+        """
+        stacked: list[GraphicsNode | GraphicsUtilObject] = []
+        for gr_item in self.items(point):
+            owner = self._owning_gr_node(gr_item) or self._owning_gr_util_object(gr_item)
+            if owner is not None and owner not in stacked:
+                stacked.append(owner)
+        return stacked[: self.MAX_STACKED_ITEMS]
+
+    def build_select_actions(
+        self, parent: QtWidgets.QWidget, point: QtCore.QPoint
+    ) -> list[QtGui.QAction]:
+        """Make the menu entries that select one of the items stacked under a point.
+
+        Items can hide each other, such as the title of a group under another group, so
+        this is a way to get to one that a click can't reach.
+
+        Args:
+            parent (QtWidgets.QWidget): owner of the new actions.
+            point (QtCore.QPoint): position in view coordinates.
+
+        Returns:
+            list[QtGui.QAction]: one entry per item, the topmost first. Empty unless
+                more than one item is under the point.
+        """
+        stacked = self.list_stacked_items(point)
+        if len(stacked) < 2:
+            return []
+        actions = []
+        for gr_item in stacked:
+            if isinstance(gr_item, GraphicsNode):
+                node = gr_item.node
+                icon, label = QtGui.QIcon(node.get_type_icon()), node.display_name
+            else:
+                util_object = gr_item.util_object
+                icon = QtGui.QIcon(util_object.get_type_icon())
+                label = gr_item.get_select_label()
+            action = QtGui.QAction(icon, label, parent)
+            action.triggered.connect(
+                lambda _checked=False, item=gr_item: self.select_only(item)
+            )
+            actions.append(action)
+        return actions
+
+    def select_only(self, gr_item: GraphicsNode | GraphicsUtilObject) -> None:
+        """Make an item the whole selection.
+
+        Args:
+            gr_item (GraphicsNode | GraphicsUtilObject): node or util object item.
+        """
+        self.gr_stage.clearSelection()
+        gr_item.setSelected(True)
+
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> None:
         """Enter the scope of a double clicked node.
 
@@ -626,12 +691,15 @@ class StageGraphView(QtWidgets.QGraphicsView):
             if not gr_util.isSelected():
                 self.gr_stage.clearSelection()
                 gr_util.setSelected(True)
-            menu = context_menus.build_util_object_context_menu(self, gr_util)
+            menu = context_menus.build_util_object_context_menu(
+                self, gr_util, select_actions=self.build_select_actions(self, point)
+            )
             context_menus.show_menu(menu, self.mapToGlobal(point))
             return
         menu = context_menus.build_nodes_context_menu(
             self,
             has_selection=state.has_selection,
+            select_actions=self.build_select_actions(self, point),
             creator_actions=self.edit_actions.build_creator_actions(
                 self, self.mapToScene(point)
             ),
