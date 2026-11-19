@@ -8,6 +8,7 @@ from PySide6 import QtGui
 from PySide6 import QtWidgets
 
 from nyx.core import commands
+from nyx.core.models.stage_filter_model import StageFilterModel
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import clipboard, context_menus
@@ -24,6 +25,10 @@ LOGGER = logging.getLogger(__name__)
 
 class StageTreeView(QtWidgets.QTreeView):
     """Tree view of the nodes of a stage.
+
+    The view shows the stage through a `StageFilterModel`, so only the nodes that match
+    the filter text are listed. Its selection is the part of the selection model of the
+    stage that is listed: nodes the filter hides stay selected in the model.
 
     Attributes:
         selection_changed: emitted when the selection changes
@@ -47,7 +52,16 @@ class StageTreeView(QtWidgets.QTreeView):
             parent (QtWidgets.QWidget | None): parent widget.
         """
         super().__init__(parent)
-        self.setModel(stage)
+        self._source_selection_model: QtCore.QItemSelectionModel | None = None
+        self._is_syncing_selection = False
+
+        self._filter_model = StageFilterModel(self)
+        # Before the selection model exists, so that its handlers of the removed rows
+        # run after this one
+        self._filter_model.rowsAboutToBeRemoved.connect(self._begin_syncing_selection)
+        self._filter_model.rowsRemoved.connect(self._end_syncing_selection)
+        self.setModel(self._filter_model)
+        self.set_stage(stage)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.setHeaderHidden(True)
@@ -78,12 +92,18 @@ class StageTreeView(QtWidgets.QTreeView):
     def create_connections(self):
         """Connect signals."""
         self.doubleClicked.connect(self._emit_doubledclicked_item)
+        self.selectionModel().selectionChanged.connect(self._on_selection_changed)
         self.customContextMenuRequested.connect(self.show_context_menu)
 
     @property
-    def stage(self) -> Stage:
-        """Stage: stage shown by the view."""
-        return self.model()
+    def stage(self) -> Stage | None:
+        """Stage | None: stage shown by the view."""
+        return self._filter_model.sourceModel()
+
+    @property
+    def filter_model(self) -> StageFilterModel:
+        """StageFilterModel: model the view shows."""
+        return self._filter_model
 
     @property
     def main_window(self) -> NyxEditorMainWindow:
@@ -101,10 +121,120 @@ class StageTreeView(QtWidgets.QTreeView):
         Args:
             stage (Stage | None): stage to show, None to clear the view.
         """
-        self.setModel(stage)
+        self._filter_model.setSourceModel(stage)
         if stage is None:
             return
-        self.setRootIndex(stage.root_node.index())
+        self.setRootIndex(self._filter_model.mapFromSource(stage.root_node.index()))
+
+    def set_filter(self, text: str, tokens: list[str] | None = None):
+        """Show only the nodes that match a search, and their parents.
+
+        Args:
+            text (str): part of a node name, empty for any node.
+            tokens (list[str] | None): tokens like `tag:logic`, see
+                `StageFilterModel.TOKEN_ROLES`.
+        """
+        self._filter_model.setQuery(text, tokens or [])
+        # Rows that came back are not selected in the view yet
+        self._sync_selection_from_source()
+        if self._filter_model.is_active:
+            self.expandAll()
+
+    def index_of(self, node: Node) -> QtCore.QModelIndex:
+        """Get the index of a node in the model the view shows.
+
+        Args:
+            node (Node): node of the stage.
+
+        Returns:
+            QtCore.QModelIndex: index, invalid if the filter hides the node.
+        """
+        return self._filter_model.mapFromSource(node.index())
+
+    def set_selection_model(self, selection_model: QtCore.QItemSelectionModel | None):
+        """Follow the selection of a selection model of the stage, and change it.
+
+        Args:
+            selection_model (QtCore.QItemSelectionModel | None): selection model of the
+                stage, None to stop following.
+        """
+        if self._source_selection_model is not None:
+            self._source_selection_model.selectionChanged.disconnect(
+                self._sync_selection_from_source
+            )
+            self._source_selection_model.currentChanged.disconnect(
+                self._on_source_current_changed
+            )
+        self._source_selection_model = selection_model
+        if selection_model is not None:
+            selection_model.selectionChanged.connect(self._sync_selection_from_source)
+            selection_model.currentChanged.connect(self._on_source_current_changed)
+        self._sync_selection_from_source()
+
+    def _begin_syncing_selection(self):
+        """Stop the changes of the selection of the view from reaching the stage."""
+        self._is_syncing_selection = True
+
+    def _end_syncing_selection(self):
+        """Let the changes of the selection of the view reach the stage again."""
+        self._is_syncing_selection = False
+
+    def _is_following(self, selection_model: QtCore.QItemSelectionModel) -> bool:
+        """Check if a selection model belongs to the stage shown.
+
+        Args:
+            selection_model (QtCore.QItemSelectionModel): selection model.
+
+        Returns:
+            bool: True if the selection model is of the stage the view shows.
+        """
+        stage = self.stage
+        return stage is not None and selection_model.model() is stage
+
+    def _sync_selection_from_source(self, *_):
+        """Select in the view what the selection model of the stage has selected."""
+        source = self._source_selection_model
+        was_syncing = self._is_syncing_selection
+        self._is_syncing_selection = True
+        try:
+            if source is None or not self._is_following(source):
+                self.selectionModel().clearSelection()
+                return
+            self.selectionModel().select(
+                self._filter_model.mapSelectionFromSource(source.selection()),
+                QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect,
+            )
+        finally:
+            self._is_syncing_selection = was_syncing
+
+    def _on_source_current_changed(
+        self, current: QtCore.QModelIndex, previous: QtCore.QModelIndex
+    ):
+        """Move the current index of the view along the one of the stage.
+
+        Args:
+            current (QtCore.QModelIndex): new current index of the stage.
+            previous (QtCore.QModelIndex): previous current index of the stage.
+        """
+        source = self._source_selection_model
+        if source is None or not self._is_following(source):
+            return
+        self.selectionModel().setCurrentIndex(
+            self._filter_model.mapFromSource(current),
+            QtCore.QItemSelectionModel.SelectionFlag.NoUpdate,
+        )
+
+    def _on_selection_changed(self, *_):
+        """Select in the stage what is selected in the view."""
+        source = self._source_selection_model
+        if self._is_syncing_selection or source is None:
+            return
+        if not self._is_following(source):
+            return
+        source.select(
+            self._filter_model.mapSelectionToSource(self.selectionModel().selection()),
+            QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect,
+        )
 
     def _emit_doubledclicked_item(self, index):
         """Emit `node_doubleclicked` for a double clicked index.
@@ -114,7 +244,7 @@ class StageTreeView(QtWidgets.QTreeView):
         """
         if not self.stage:
             return
-        node = self.stage.itemFromIndex(index)
+        node = self.stage.itemFromIndex(self._filter_model.mapToSource(index))
         self.node_doubleclicked.emit(node)
 
     def current_node(self) -> Node:
@@ -138,13 +268,21 @@ class StageTreeView(QtWidgets.QTreeView):
         """Get the selected nodes.
 
         Returns:
-            deque[Node]: selected nodes.
+            deque[Node]: selected nodes the filter doesn't hide.
         """
-        nodes = deque()
-        for index in self.selectedIndexes():
-            nodes.append(self.stage.itemFromIndex(index))
-
-        return nodes
+        source = self._source_selection_model
+        if source is not None and self._is_following(source):
+            # Read from the stage, the view is updated after the ones that listen to it
+            source_indexes = [
+                index
+                for index in source.selectedIndexes()
+                if self._filter_model.mapFromSource(index).isValid()
+            ]
+        else:
+            source_indexes = [
+                self._filter_model.mapToSource(index) for index in self.selectedIndexes()
+            ]
+        return deque(self.stage.itemFromIndex(index) for index in source_indexes)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         """Delete the selected nodes on the Delete key.

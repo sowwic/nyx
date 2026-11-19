@@ -29,7 +29,7 @@ PANELS: tuple[PanelDefinition, ...] = (
         PanelId.TREE,
         "Tree",
         ":/icons/tree_graph",
-        lambda window: window.stage_tree_view,
+        lambda window: window.stage_tree_widget,
     ),
     PanelDefinition(
         PanelId.NODES,

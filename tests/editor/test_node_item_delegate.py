@@ -73,8 +73,8 @@ def test_tree_row_renders_icon(main_window, stage_editor, create_node, qtbot):
     tree.show()
     qtbot.waitExposed(tree)
 
-    with_icon = tree.viewport().grab(tree.visualRect(node.index())).toImage()
+    with_icon = tree.viewport().grab(tree.visualRect(tree.index_of(node))).toImage()
     node.setData(None, Node.Roles.TYPE_ICON)
-    without_icon = tree.viewport().grab(tree.visualRect(node.index())).toImage()
+    without_icon = tree.viewport().grab(tree.visualRect(tree.index_of(node))).toImage()
 
     assert with_icon != without_icon

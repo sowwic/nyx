@@ -105,7 +105,7 @@ def test_tree_view_double_click_emits_node(
     a = create_node(stage_editor.stage, "a")
     tree = main_window.stage_tree_view
     with qtbot.waitSignal(tree.node_doubleclicked, timeout=1000) as blocker:
-        tree.doubleClicked.emit(a.index())
+        tree.doubleClicked.emit(tree.index_of(a))
     assert blocker.args == [a]
 
 
@@ -301,9 +301,7 @@ def test_tree_selection_after_focus_enables_focus_action(
     action = ACTION_REGISTRY.action(ActionId.FOCUS_SELECTED)
     assert not action.isEnabled()
 
-    tree.selectionModel().select(
-        node.index(), QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
-    )
+    select(stage_editor, node)
 
     assert action.isEnabled()
     assert ACTION_REGISTRY.action(ActionId.DELETE_NODE).isEnabled()
@@ -895,8 +893,10 @@ def test_moved_link_dropped_on_empty_space_replaced_by_spawned_node_link(
     gr_stage.begin_link_drag(plug_b, plug_b.Socket.INPUT)
     gr_stage.finish_link_drag(QtCore.QPointF(2000, 2000))
     qtbot.waitUntil(
-        lambda: [g.target_plug.component.node.name for g in gr_stage.gr_links()]
-        == ["spawned"],
+        lambda: (
+            [g.target_plug.component.node.name for g in gr_stage.gr_links()]
+            == ["spawned"]
+        ),
         timeout=2000,
     )
 

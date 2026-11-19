@@ -26,6 +26,7 @@ from .widgets.dialogs.about_dialog import AboutDialog
 from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
 from .widgets.output_log.output_log_widget import OutputLogWidget
 from .widgets.inspector import Inspector
+from .widgets.stage_tree_widget import StageTreeWidget
 from .widgets.stage_controls import StageControlsOverlay
 from .widgets import menubar_menus
 from .widgets.stage_mdi_area import StageMdiArea
@@ -170,7 +171,8 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     def create_widgets(self):
         """Create the window widgets."""
-        self.stage_tree_view = StageTreeView()
+        self.stage_tree_widget = StageTreeWidget(self)
+        self.stage_tree_view: StageTreeView = self.stage_tree_widget.tree_view
         self.inspector = Inspector(self)
         self.nodes_palette_view = NodesPaletteView(drag_enabled=True, parent=self)
 
@@ -184,7 +186,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Panel contents are children of the window until their panel is created, so
         # hide them, or they show through the transparent parts of the tab bar
         for panel_content in (
-            self.stage_tree_view,
+            self.stage_tree_widget,
             self.inspector,
             self.nodes_palette_view,
             self.bridge_panel,
@@ -556,7 +558,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         stage_graph: StageGraphEditor = mdi_window.widget()
         self.stage_tree_view.set_stage(stage_graph.stage)
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
-        self.stage_tree_view.setSelectionModel(stage_graph.selection_model)
+        self.stage_tree_view.set_selection_model(stage_graph.selection_model)
 
     def on_stage_open(self, tabbed: bool = False):
         """Ask for a stage file and open it.
