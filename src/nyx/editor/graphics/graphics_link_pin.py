@@ -11,6 +11,9 @@ class GraphicsLinkPin(QtWidgets.QGraphicsEllipseItem):
 
     The pin is moved with the mouse and removed with a double click. The link follows
     it while it moves, the move is pushed to the stage when the mouse is released.
+
+    The pin is dragged here and doesn't have the movable flag: a movable item takes
+    every selected movable item along when it is dragged, nodes and groups included.
     """
 
     RADIUS = 5.0
@@ -28,10 +31,10 @@ class GraphicsLinkPin(QtWidgets.QGraphicsEllipseItem):
         )
         self._link = link
         self._press_pos: QtCore.QPointF | None = None
+        self._grab_offset = QtCore.QPointF()
         self.setPos(pos)
-        self.setFlags(
-            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
-            | QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemSendsScenePositionChanges
+        self.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemSendsScenePositionChanges
         )
         self.setAcceptHoverEvents(True)
         self.setCursor(QtCore.Qt.CursorShape.SizeAllCursor)
@@ -86,13 +89,29 @@ class GraphicsLinkPin(QtWidgets.QGraphicsEllipseItem):
         super().hoverLeaveEvent(event)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        """Remember where the pin was to tell later whether it moved.
+        """Start dragging, remembering where the pin was to tell later whether it moved.
 
         Args:
             event (QtWidgets.QGraphicsSceneMouseEvent): event.
         """
+        if event.button() != QtCore.Qt.MouseButton.LeftButton:
+            super().mousePressEvent(event)
+            return
         self._press_pos = self.scenePos()
-        super().mousePressEvent(event)
+        self._grab_offset = self.scenePos() - event.scenePos()
+        # Accepted, or the item doesn't get the moves that follow
+        event.accept()
+
+    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        """Move the pin with the mouse, and nothing else.
+
+        Args:
+            event (QtWidgets.QGraphicsSceneMouseEvent): event.
+        """
+        if self._press_pos is None:
+            super().mouseMoveEvent(event)
+            return
+        self.setPos(self.parentItem().mapFromScene(event.scenePos() + self._grab_offset))
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         """Push the move to the stage.
