@@ -1,14 +1,14 @@
-from nyx.api.v1 import CoreCreators, CoreUtilObjects
-from nyx.api.v1.editor_utils import UtilObjectCreator
+from nyx.api.v1 import CoreSpawners, CoreUtilObjects
+from nyx.api.v1.editor_utils import UtilObjectSpawner
 
 
-class NoteCreator(UtilObjectCreator):
+class NoteSpawner(UtilObjectSpawner):
     """Creates a note where the user clicked."""
 
     @classmethod
     def get_type_id(cls) -> str:
-        """str: id of the creator."""
-        return CoreCreators.NOTE
+        """str: id of the spawner."""
+        return CoreSpawners.NOTE
 
     @classmethod
     def get_util_object_type_id(cls) -> str:

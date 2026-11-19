@@ -9,8 +9,8 @@ A util object needs three classes, and can have a fourth:
 1. the **util object** (`UtilObject` subclass): the data, which is saved with the stage,
 2. a **graphics object** (a `QGraphicsItem`) that draws it, see
    [New graphics object](graphics-object.md),
-3. a **creator** that adds it to the stage from the Create menu of the graph view, see
-   [New creator](creator.md). Without one, users can't add the type,
+3. a **spawner** that adds it to the stage from the Create menu of the graph view, see
+   [New spawner](spawner.md). Without one, users can't add the type,
 4. optionally an **inspector widget** that edits it in the Inspector panel, see
    [New inspector widget](inspector-widget.md). Without one, the Inspector shows a
    placeholder for the object.
@@ -79,7 +79,7 @@ class ChecklistObject(UtilObject):
 ```
 
 Register: `plugin.contents.util_objects = [ChecklistObject]`, and add a
-[creator](creator.md) to `plugin.contents.creators` so users can create it.
+[spawner](spawner.md) to `plugin.contents.spawners` so users can create it.
 
 ## The contract
 

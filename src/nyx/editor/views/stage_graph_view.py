@@ -700,7 +700,7 @@ class StageGraphView(QtWidgets.QGraphicsView):
             self,
             has_selection=state.has_selection,
             select_actions=self.build_select_actions(self, point),
-            creator_actions=self.edit_actions.build_creator_actions(
+            spawner_actions=self.edit_actions.build_spawner_actions(
                 self, self.mapToScene(point)
             ),
             has_reference=any(

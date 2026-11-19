@@ -4,7 +4,11 @@ Most of them need a running `QApplication`, and `get_current_stage_graph` the ed
 window, so they are for code that runs in the editor, not in a headless run.
 """
 
-from nyx.editor.creators import Creator, CreatorContext, UtilObjectCreator
+from nyx.editor.controllers.stage_object_spawner import (
+    SpawnContext,
+    StageObjectSpawner,
+)
+from nyx.editor.controllers.util_object_spawner import UtilObjectSpawner
 from nyx.editor.widgets.common_widgets import CommitPlainTextEdit
 from nyx.editor.widgets.inspector_widgets import (
     InspectorWidget,
@@ -23,9 +27,9 @@ from nyx.utils.icon_fn import create_mono_icon, create_mono_image
 
 __all__ = [
     "CommitPlainTextEdit",
-    "Creator",
-    "CreatorContext",
-    "UtilObjectCreator",
+    "SpawnContext",
+    "StageObjectSpawner",
+    "UtilObjectSpawner",
     "InspectorWidget",
     "UtilObjectInspectorWidget",
     "blocked_signals",

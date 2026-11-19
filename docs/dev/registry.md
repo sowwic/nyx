@@ -19,7 +19,7 @@ from nyx.api.v1 import NYX_REGISTRY
 | `util_objects` | util object classes | util object type id |
 | `graphics_objects` | graphics item classes, the built-in ones included | graphics object id |
 | `inspector_widgets` | inspector widget classes, the built-in ones included | inspector widget id |
-| `creators` | creator classes, in the order they are listed in the Create menu | creator id |
+| `spawners` | spawner classes, in the order they are listed in the Create menu | spawner id |
 | `qml_import_root_directories` | directories QML modules are imported from | n/a |
 
 All keys are plain strings with a namespace, `"<namespace>:<name>"` (`core:value`,
@@ -64,10 +64,10 @@ what the `with_plugins` test marker does).
 enabled plugins:
 
 1. clear `nodes`, `node_components`, `datatypes`, `util_objects`, and reset
-   `graphics_objects` and `inspector_widgets` to the built-in ones, and clear `creators`,
+   `graphics_objects` and `inspector_widgets` to the built-in ones, and clear `spawners`,
 2. register the core datatypes (`core_types.CORE_DATATYPES`),
 3. for each plugin entry, in discovery order: node components, nodes, datatypes, util
-   objects, graphics objects, inspector widgets, creators and its QML import root.
+   objects, graphics objects, inspector widgets, spawners and its QML import root.
 
 Registering a node, component or util object class also sets `SOURCE_PLUGIN` on it to the
 plugin entry. Serialization writes the plugin id as `source_plugin` into the file, and the
@@ -88,7 +88,7 @@ the core plugin is discovered first, **its ids can't be overridden** by another 
 | `get_util_object_cls(type_id)` | the util object class. Logs an error and returns `None` when unknown. |
 | `get_graphics_object_cls(type_id)` | the graphics item class, or `None`. |
 | `get_inspector_widget_cls(type_id)` | the inspector widget class, or `None`. |
-| `get_creator_cls(type_id)` | the creator class, or `None`. |
+| `get_spawner_cls(type_id)` | the spawner class, or `None`. |
 | `get_datatype(type_id)` | the `Datatype`, or `None`. |
 | `resolve_datatype(type_id)` | the `Datatype`, falling back to `OBJECT_DATATYPE` (defined in `core/datatypes/core_types.py`) for a missing or unknown id (logged). Use this when reading files. |
 | `infer_datatype(value)` | first registered datatype whose Python type is exactly `type(value)`, else `Object`. |

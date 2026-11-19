@@ -58,14 +58,14 @@ class CoreInspectorWidgets(enum.StrEnum):
     GROUP = "core.group_inspector"
 
 
-class CoreCreators(enum.StrEnum):
-    """Ids of the creators provided by the core plugin.
+class CoreSpawners(enum.StrEnum):
+    """Ids of the spawners provided by the core plugin.
 
-    Creators add things to the stage from the Create menu of the graph view.
+    Spawners add things to the stage from the Create menu of the graph view.
     """
 
-    NOTE = "core.create_note"
-    GROUP = "core.create_group"
+    NOTE = "core.note_spawner"
+    GROUP = "core.group_spawner"
 
 
 class LinkAnimationStyle(enum.StrEnum):

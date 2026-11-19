@@ -6,14 +6,14 @@ from PySide6 import QtCore
 
 from nyx.core import commands
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
-from .creator import Creator, CreatorContext
+from .stage_object_spawner import SpawnContext, StageObjectSpawner
 
 if typing.TYPE_CHECKING:
     from nyx.core.util_object import UtilObject
 
 
-class UtilObjectCreator(Creator):
-    """Creator of util objects of one type, at the place the user clicked.
+class UtilObjectSpawner(StageObjectSpawner):
+    """Spawner of util objects of one type, at the place the user clicked.
 
     Subclasses implement `get_type_id` and `get_util_object_type_id`. The name, icon and
     description of the menu entry come from the util object type. Override
@@ -55,12 +55,12 @@ class UtilObjectCreator(Creator):
 
     @classmethod
     def get_creation_geometry(
-        cls, context: CreatorContext
+        cls, context: SpawnContext
     ) -> tuple[QtCore.QPointF, QtCore.QSizeF | None]:
         """Choose where the object goes and how big it is.
 
         Args:
-            context (CreatorContext): where the user wants to create.
+            context (SpawnContext): where the user wants to create.
 
         Returns:
             tuple[QtCore.QPointF, QtCore.QSizeF | None]: top left corner in scene
@@ -70,12 +70,12 @@ class UtilObjectCreator(Creator):
 
     @classmethod
     def get_creation_properties(
-        cls, context: CreatorContext
+        cls, context: SpawnContext
     ) -> dict[str, typing.Any] | None:
         """Choose properties the object starts with besides position and size.
 
         Args:
-            context (CreatorContext): where the user wants to create.
+            context (SpawnContext): where the user wants to create.
 
         Returns:
             dict[str, typing.Any] | None: values as listed by
@@ -83,24 +83,22 @@ class UtilObjectCreator(Creator):
         """
         return None
 
-    @classmethod
-    def create(cls, context: CreatorContext) -> UtilObject | None:
+    def spawn(self, context: SpawnContext) -> UtilObject | None:
         """Create the util object.
 
         Args:
-            context (CreatorContext): where the user wants to create.
+            context (SpawnContext): where the user wants to create.
 
         Returns:
-            UtilObject | None: created object.
+            UtilObject | None: created object, None if the stage refused it.
         """
-        position, size = cls.get_creation_geometry(context)
+        position, size = self.get_creation_geometry(context)
         command = commands.CreateUtilObjectCommand(
             context.stage,
-            cls.get_util_object_type_id(),
+            self.get_util_object_type_id(),
             node=context.scope_node,
             position=position,
             size=size,
-            properties=cls.get_creation_properties(context),
+            properties=self.get_creation_properties(context),
         )
-        context.stage.push_command(command)
-        return command.result_object
+        return self._spawn(context.stage, command, lambda: command.result_object)

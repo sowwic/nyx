@@ -475,7 +475,7 @@ class ComponentsController(QtCore.QObject):
         try:
             candidate = pathlib.Path(path)
             return path if candidate.is_file() or candidate.is_dir() else ""
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return ""
 
     @QtCore.Slot(int)

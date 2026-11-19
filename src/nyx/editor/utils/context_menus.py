@@ -76,13 +76,13 @@ def make_proxy_action(
 
 
 def build_create_menu(
-    parent: QtWidgets.QWidget, creator_actions: list[QtGui.QAction]
+    parent: QtWidgets.QWidget, spawner_actions: list[QtGui.QAction]
 ) -> QtWidgets.QMenu:
-    """Build the Create menu: a node, then what creators add.
+    """Build the Create menu: a node, then what spawners add.
 
     Args:
         parent (QtWidgets.QWidget): owner of the menu.
-        creator_actions (list[QtGui.QAction]): entries of the creators.
+        spawner_actions (list[QtGui.QAction]): entries of the spawners.
 
     Returns:
         QtWidgets.QMenu: menu.
@@ -92,9 +92,9 @@ def build_create_menu(
     menu.addAction(
         make_proxy_action(menu, ACTION_REGISTRY.action(ActionId.CREATE_NODE), "Node...")
     )
-    if creator_actions:
+    if spawner_actions:
         menu.addSeparator()
-        menu.addActions(creator_actions)
+        menu.addActions(spawner_actions)
     return menu
 
 
@@ -102,7 +102,7 @@ def build_nodes_context_menu(
     parent: QtWidgets.QWidget,
     has_selection: bool,
     has_reference: bool = False,
-    creator_actions: list[QtGui.QAction] | None = None,
+    spawner_actions: list[QtGui.QAction] | None = None,
     select_actions: list[QtGui.QAction] | None = None,
 ) -> QtWidgets.QMenu:
     """Build the node context menu used by both the tree and the graph views.
@@ -113,7 +113,7 @@ def build_nodes_context_menu(
             hidden otherwise
         has_reference: whether a selected node is loaded from a stage file; the
             entries for those are hidden otherwise
-        creator_actions: entries of the creators, which only the graph can run. They
+        spawner_actions: entries of the spawners, which only the graph can run. They
             go in a Create menu with the node. Without them the menu has an entry
             that creates a node.
         select_actions: entries that select one of the items stacked under the cursor.
@@ -121,10 +121,10 @@ def build_nodes_context_menu(
     """
     action = ACTION_REGISTRY.action
     menu = QtWidgets.QMenu("", parent)
-    if creator_actions is None:
+    if spawner_actions is None:
         menu.addAction(action(ActionId.CREATE_NODE))
     else:
-        menu.addMenu(build_create_menu(menu, creator_actions))
+        menu.addMenu(build_create_menu(menu, spawner_actions))
     add_select_menu(menu, select_actions)
     if has_selection:
         menu.addSeparator()

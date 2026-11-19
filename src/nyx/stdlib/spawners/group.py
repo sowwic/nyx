@@ -1,10 +1,10 @@
 from PySide6 import QtCore
 
-from nyx.api.v1 import CoreCreators, CoreUtilObjects
-from nyx.api.v1.editor_utils import CreatorContext, UtilObjectCreator
+from nyx.api.v1 import CoreSpawners, CoreUtilObjects
+from nyx.api.v1.editor_utils import SpawnContext, UtilObjectSpawner
 
 
-class GroupCreator(UtilObjectCreator):
+class GroupSpawner(UtilObjectSpawner):
     """Creates a group around the selected nodes, or where the user clicked."""
 
     MARGIN = 24.0
@@ -14,8 +14,8 @@ class GroupCreator(UtilObjectCreator):
 
     @classmethod
     def get_type_id(cls) -> str:
-        """str: id of the creator."""
-        return CoreCreators.GROUP
+        """str: id of the spawner."""
+        return CoreSpawners.GROUP
 
     @classmethod
     def get_util_object_type_id(cls) -> str:
@@ -24,12 +24,12 @@ class GroupCreator(UtilObjectCreator):
 
     @classmethod
     def get_creation_geometry(
-        cls, context: CreatorContext
+        cls, context: SpawnContext
     ) -> tuple[QtCore.QPointF, QtCore.QSizeF | None]:
         """Wrap the selected nodes, with room for the title above them.
 
         Args:
-            context (CreatorContext): where the user wants to create.
+            context (SpawnContext): where the user wants to create.
 
         Returns:
             tuple[QtCore.QPointF, QtCore.QSizeF | None]: top left corner and size of

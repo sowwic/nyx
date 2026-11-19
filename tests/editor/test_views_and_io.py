@@ -364,7 +364,7 @@ def test_graph_and_tree_context_menus_match(
     monkeypatch.setattr(context_menus, "show_menu", capture("tree"))
     main_window.stage_tree_view.show_context_menu(QtCore.QPoint(5, 5))
 
-    # Only the graph can run creators, so it has a Create menu where the tree has the
+    # Only the graph can run spawners, so it has a Create menu where the tree has the
     # entry that creates a node.
     graph_layout = [
         ActionId.CREATE_NODE if name == context_menus.CREATE_MENU_OBJECT_NAME else name

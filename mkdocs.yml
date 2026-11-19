@@ -120,4 +120,4 @@ nav:
           - New util object: dev/plugins/util-object.md
           - New graphics object: dev/plugins/graphics-object.md
           - New inspector widget: dev/plugins/inspector-widget.md
-          - New creator: dev/plugins/creator.md
+          - New spawner: dev/plugins/spawner.md

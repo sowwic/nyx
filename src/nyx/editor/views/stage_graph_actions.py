@@ -9,12 +9,15 @@ from nyx.core.exceptions import NyxCommandValidationError
 from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
 from nyx.core.util_object import UtilObject
 from nyx.editor.core.action_registry import ACTION_REGISTRY
-from nyx.editor.creators import Creator, CreatorContext
+from nyx.editor.controllers.stage_object_spawner import (
+    SpawnContext,
+    StageObjectSpawner,
+)
 from nyx.editor.utils import context_menus
 from nyx.editor.core.action_router import ACTION_ROUTER
 from nyx.editor.core.actions import ActionId
 from nyx.editor.utils import clipboard
-from nyx.static.enums import CoreCreators
+from nyx.static.enums import CoreSpawners
 from nyx.utils import pyside_fn
 
 if typing.TYPE_CHECKING:
@@ -34,11 +37,11 @@ class StageGraphActions:
     the viewport.
     """
 
-    CREATOR_ACTION_IDS: typing.ClassVar[dict[str, ActionId]] = {
-        CoreCreators.NOTE: ActionId.CREATE_NOTE,
-        CoreCreators.GROUP: ActionId.CREATE_GROUP,
+    SPAWNER_ACTION_IDS: typing.ClassVar[dict[str, ActionId]] = {
+        CoreSpawners.NOTE: ActionId.CREATE_NOTE,
+        CoreSpawners.GROUP: ActionId.CREATE_GROUP,
     }
-    """Creators that have a registered action, with its shortcut and condition."""
+    """Spawners that have a registered action, with its shortcut and condition."""
 
     def __init__(self, view: StageGraphView):
         """Initialize StageGraphActions.
@@ -47,6 +50,7 @@ class StageGraphActions:
             view (StageGraphView): view the actions are for.
         """
         self._view = view
+        self._spawners: dict[type, StageObjectSpawner] = {}
 
     def register(self):
         """Register the handlers of the actions, scoped to the view."""
@@ -148,23 +152,23 @@ class StageGraphActions:
 
     def create_note(self):
         """Create a note at the mouse position."""
-        self.run_creator(NYX_REGISTRY.get_creator_cls(CoreCreators.NOTE))
+        self.run_spawner(NYX_REGISTRY.get_spawner_cls(CoreSpawners.NOTE))
 
     def create_group(self):
         """Create a group around the selected nodes, or at the mouse position."""
-        self.run_creator(NYX_REGISTRY.get_creator_cls(CoreCreators.GROUP))
+        self.run_spawner(NYX_REGISTRY.get_spawner_cls(CoreSpawners.GROUP))
 
-    def build_creator_context(
+    def build_spawn_context(
         self, position: QtCore.QPointF | None = None
-    ) -> CreatorContext | None:
-        """Describe where creators would create something.
+    ) -> SpawnContext | None:
+        """Describe where spawners would create something.
 
         Args:
             position (QtCore.QPointF | None): position in scene coordinates, the mouse
                 position if omitted.
 
         Returns:
-            CreatorContext | None: context, None if the view shows no stage.
+            SpawnContext | None: context, None if the view shows no stage.
         """
         view = self._view
         if not view.stage:
@@ -177,7 +181,7 @@ class StageGraphActions:
             selection_rect = (
                 node_rect if selection_rect is None else selection_rect.united(node_rect)
             )
-        return CreatorContext(
+        return SpawnContext(
             graph_editor=view.graph_editor,
             stage=view.stage,
             scope_node=view.stage.get_object(view.graph_editor.get_scope_path()),
@@ -185,35 +189,49 @@ class StageGraphActions:
             selection_rect=selection_rect,
         )
 
-    def run_creator(
-        self,
-        creator_cls: type[Creator] | None,
-        position: QtCore.QPointF | None = None,
-        context: CreatorContext | None = None,
-    ) -> StageObject | None:
-        """Let a creator create something in the scope being drawn, and select it.
+    def _get_spawner(self, spawner_cls: type[StageObjectSpawner]) -> StageObjectSpawner:
+        """Get the spawner of a class, made the first time and kept with the view.
 
         Args:
-            creator_cls (type[Creator] | None): creator to run, ignored if None.
+            spawner_cls (type[StageObjectSpawner]): spawner class.
+
+        Returns:
+            StageObjectSpawner: instance owned by the view.
+        """
+        if spawner_cls not in self._spawners:
+            self._spawners[spawner_cls] = spawner_cls(self._view)
+        return self._spawners[spawner_cls]
+
+    def run_spawner(
+        self,
+        spawner_cls: type[StageObjectSpawner] | None,
+        position: QtCore.QPointF | None = None,
+        context: SpawnContext | None = None,
+    ) -> StageObject | None:
+        """Let a spawner create something in the scope being drawn, and select it.
+
+        Args:
+            spawner_cls (type[StageObjectSpawner] | None): spawner to run, ignored if
+                None.
             position (QtCore.QPointF | None): position in scene coordinates, the mouse
                 position if omitted. Ignored when a context is given.
-            context (CreatorContext | None): context to give the creator, built from the
+            context (SpawnContext | None): context to give the spawner, built from the
                 position if omitted.
 
         Returns:
             StageObject | None: created object, None if nothing was created.
         """
-        if creator_cls is None:
+        if spawner_cls is None:
             return None
-        context = context or self.build_creator_context(position)
+        context = context or self.build_spawn_context(position)
         if context is None:
             return None
-        name = creator_cls.get_display_name()
-        if not creator_cls.is_available(context):
+        name = spawner_cls.get_display_name()
+        if not spawner_cls.is_available(context):
             LOGGER.warning(f"Can't create {name.lower()} here")
             return None
         try:
-            created = creator_cls.create(context)
+            created = self._get_spawner(spawner_cls).spawn(context)
         except NyxCommandValidationError as err:
             LOGGER.warning(f"Can't create {name.lower()}: {err}")
             return None
@@ -229,44 +247,44 @@ class StageGraphActions:
             view.graph_editor.select_nodes([created])
         return created
 
-    def build_creator_actions(
+    def build_spawner_actions(
         self, parent: QtWidgets.QWidget, position: QtCore.QPointF
     ) -> list[QtGui.QAction]:
-        """Make the menu entries of the creators.
+        """Make the menu entries of the spawners.
 
         The note and group entries run the registered actions, which come with their
-        shortcuts. The creators of plugins get an entry that runs them at the position.
+        shortcuts. The spawners of plugins get an entry that runs them at the position.
 
         Args:
             parent (QtWidgets.QWidget): owner of the new actions.
             position (QtCore.QPointF): position in scene coordinates.
 
         Returns:
-            list[QtGui.QAction]: entries, in the order the creators are registered.
+            list[QtGui.QAction]: entries, in the order the spawners are registered.
         """
-        context = self.build_creator_context(position)
+        context = self.build_spawn_context(position)
         actions = []
-        for creator_id, creator_cls in NYX_REGISTRY.creators.items():
-            registered_action_id = self.CREATOR_ACTION_IDS.get(creator_id)
+        for spawner_id, spawner_cls in NYX_REGISTRY.spawners.items():
+            registered_action_id = self.SPAWNER_ACTION_IDS.get(spawner_id)
             if registered_action_id is not None:
                 actions.append(
                     context_menus.make_proxy_action(
                         parent,
                         ACTION_REGISTRY.action(registered_action_id),
-                        creator_cls.get_display_name(),
-                        QtGui.QIcon(creator_cls.get_icon()),
+                        spawner_cls.get_display_name(),
+                        QtGui.QIcon(spawner_cls.get_icon()),
                     )
                 )
                 continue
             action = QtGui.QAction(
-                QtGui.QIcon(creator_cls.get_icon()),
-                creator_cls.get_display_name(),
+                QtGui.QIcon(spawner_cls.get_icon()),
+                spawner_cls.get_display_name(),
                 parent,
             )
-            action.setToolTip(creator_cls.get_description())
-            action.setEnabled(context is not None and creator_cls.is_available(context))
+            action.setToolTip(spawner_cls.get_description())
+            action.setEnabled(context is not None and spawner_cls.is_available(context))
             action.triggered.connect(
-                lambda _checked=False, cls=creator_cls, ctx=context: self.run_creator(
+                lambda _checked=False, cls=spawner_cls, ctx=context: self.run_spawner(
                     cls, context=ctx
                 )
             )
