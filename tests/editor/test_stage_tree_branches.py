@@ -1,6 +1,7 @@
 import pytest
 from nyx.editor.panels.panel_definitions import PanelId
-from nyx.editor.views.stage_tree_view import BranchLines, StageTreeView
+from nyx.editor.views.stage_tree_view import StageTreeView
+from nyx.editor.views.tree_branch_lines import BranchLines
 
 
 @pytest.fixture
