@@ -4,6 +4,7 @@ from PySide6 import QtCore, QtQml
 from nyx.api.v1 import CoreNodeComponents, CoreNodes, NoteFormat, commands
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.static.paths import PACKAGE_ROOT
+from nyx.editor.panels.panel_definitions import PanelId
 
 NOTE_QML = (
     PACKAGE_ROOT / "editor" / "qml" / "NyxEditor" / "ComponentsView"
@@ -132,7 +133,7 @@ def inspector_delegate(main_window, stage_editor, create_node, qtbot):
     )
     stage.push_command(command)
     component = command.result_component
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

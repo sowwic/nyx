@@ -5,15 +5,18 @@ from PySide6 import QtCore
 from ...core.node import Node
 from ...core.node_component import NodeComponent
 from ...core.commands import AddNodeComponentCommand
-from ...core.exceptions import NyxCommandValidationError
+from .stage_object_spawner import StageObjectSpawner
 
 
 LOGGER = logging.getLogger(__name__)
 
 
-class NodeComponentSpawner(QtCore.QObject):
-    """Owns selection state for a components model and keeps it
-    consistent across reorders."""
+class NodeComponentSpawner(StageObjectSpawner):
+    """Adds the components the user picks in the components list to a node.
+
+    Attributes:
+        componentSpawned: emitted with the component that was added.
+    """
 
     componentSpawned = QtCore.Signal(NodeComponent)
 
@@ -26,14 +29,12 @@ class NodeComponentSpawner(QtCore.QObject):
             target_node (Node): node receiving the component.
 
         Returns:
-            NodeComponent: created component.
+            NodeComponent | None: created component, None if the node refused it.
         """
         command = AddNodeComponentCommand(node=target_node, type_id=type_id)
-        try:
-            target_node.stage.push_command(command)
-        except NyxCommandValidationError as err:
-            LOGGER.warning(str(err))
-            return None
-        result_component = command.result_component
-        self.componentSpawned.emit(result_component)
+        result_component = self._spawn(
+            target_node.stage, command, lambda: command.result_component
+        )
+        if result_component is not None:
+            self.componentSpawned.emit(result_component)
         return result_component

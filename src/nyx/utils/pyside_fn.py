@@ -6,6 +6,21 @@ if typing.TYPE_CHECKING:
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
+def add_search_icon(line_edit: QtWidgets.QLineEdit) -> QtGui.QAction:
+    """Show a search icon at the start of a line edit.
+
+    Args:
+        line_edit (QtWidgets.QLineEdit): search field.
+
+    Returns:
+        QtGui.QAction: action that shows the icon.
+    """
+    return line_edit.addAction(
+        QtGui.QIcon(":/icons/search"),
+        QtWidgets.QLineEdit.ActionPosition.LeadingPosition,
+    )
+
+
 def move_window_to_screen_center(window: QtWidgets.QWidget):
     """Move a window to the center of the primary screen.
 

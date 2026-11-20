@@ -4,6 +4,7 @@ from PySide6 import QtCore, QtQml, QtTest
 from nyx.api.v1 import CoreNodes, commands
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.static.paths import PACKAGE_ROOT
+from nyx.editor.panels.panel_definitions import PanelId
 
 LINK_DELEGATE_QML = (
     PACKAGE_ROOT / "editor" / "qml" / "NyxEditor" / "ComponentsView"
@@ -23,7 +24,7 @@ def inspector_controller(main_window, stage_editor, create_node, qtbot):
     )
     stage.push_command(link_command)
 
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         target.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -70,8 +71,10 @@ def test_unlinking_the_output_side(
         source.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
     qtbot.waitUntil(
-        lambda: controller.components_model is not None
-        and controller.components_model.node is source,
+        lambda: (
+            controller.components_model is not None
+            and controller.components_model.node is source
+        ),
         timeout=3000,
     )
     proxy = controller.components_filter_model

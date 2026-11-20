@@ -62,7 +62,7 @@ class GlowAnimation(LinkAnimation):
         for layer in layers:
             try:
                 width, opacity = (float(value) for value in layer)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 LOGGER.warning(f"Ignoring invalid glow layer {layer!r}")
                 continue
             if width > 0:

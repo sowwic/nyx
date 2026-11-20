@@ -92,6 +92,8 @@ class GraphicsChecklist(GraphicsUtilObject):
             self.push_properties({"items": text.splitlines()}, "Edit checklist")
 ```
 
+Edit the object in the Inspector with an [inspector widget](inspector-widget.md).
+
 The util object returns this id from `get_graphics_object_id()`
 (`"studio.checklist"` in [New util object](util-object.md)), and the plugin lists the class:
 
@@ -114,6 +116,7 @@ Add a `color` property (serialized like the note's) for color presets and the co
 | `paint(...)` | **You implement it.** Draw into `QRectF(QPointF(), item_size)`. |
 | `paint_selection(painter, radius)` | Draws the selection outline and the resize grip. Call it last. |
 | `edit()` | Called on double click. Implement it to edit the content. |
+| `get_select_label()` | Text that tells the object apart in the **Select** menu, which lists the items stacked under the cursor. The type name by default, the group adds its title and the note the start of its text. |
 | `push_properties(properties, text)` | Pushes a `SetUtilObjectPropertiesCommand`, so the change is undoable. **Never change the util object directly.** |
 | `set_color(color)` | Pushes a color change. |
 | `parent_widget()` | A widget to parent dialogs to. |

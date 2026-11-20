@@ -75,6 +75,10 @@ Rectangle {
         anchors.rightMargin: 4
         spacing: 4
 
+        SearchIcon {
+            objectName: "searchIcon"
+        }
+
         ListView {
             id: chips
 

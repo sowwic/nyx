@@ -752,6 +752,19 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         """Clear the cached value and reset the display value to the raw value."""
         self.value_storage.clear_cache()
 
+    def validate_value(self, value: typing.Any) -> None:
+        """Check the component can be given a value.
+
+        Called before a command sets the value. Does nothing, components that can't take
+        some values override it.
+
+        Args:
+            value (typing.Any): value to set.
+
+        Raises:
+            NyxCommandValidationError: if the component can't have the value.
+        """
+
     def push_value(self, value: typing.Any, evaluate: bool = True):
         """Set the value of the component.
 

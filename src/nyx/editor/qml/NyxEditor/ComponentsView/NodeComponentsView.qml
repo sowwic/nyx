@@ -40,13 +40,22 @@ Rectangle {
         // TODO: Replace with common search bar component
         TextField {
             id: searchField
+            objectName: "componentsSearchField"
             Layout.fillWidth: true
             Layout.topMargin: 6
             Layout.leftMargin: 6
             Layout.rightMargin: 6
             placeholderText: qsTr("Search...")
             selectByMouse: true
+            leftPadding: searchIcon.width + 10
             onTextChanged: root.componentsFilterModel.setFilterFixedString(text)
+
+            SearchIcon {
+                id: searchIcon
+                objectName: "searchIcon"
+                x: 6
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
 
         // ---- List area ----

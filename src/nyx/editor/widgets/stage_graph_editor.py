@@ -1,6 +1,7 @@
 import logging
 import pathlib
 import typing
+from uuid import UUID
 
 import shiboken6
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -13,13 +14,13 @@ from nyx.editor.core.actions import ActionId
 from nyx.editor.graphics.graphics_stage import GraphicsStage
 from nyx.core.layered_config import get_app_config
 from nyx.editor.views.stage_graph_view import StageGraphView
-from nyx.editor.widgets.graph_scope_widget import GraphScopeWidget
 from nyx.editor.widgets.dialogs.popup_nodes_palette import PopupNodesPalette
 from nyx.utils import pyside_fn
 from .dim_overlay import dimmed_ovelay
 
 if typing.TYPE_CHECKING:
     from nyx.core.node import NodeLike, Node
+    from nyx.core.stage_object import StageObject
     from nyx.editor.main_window import NyxEditorMainWindow
 
 
@@ -27,13 +28,15 @@ LOGGER = logging.getLogger(__name__)
 
 
 class StageGraphEditor(QtWidgets.QWidget):
-    """Widget editing one stage: the graphics view, scope bar and file handling.
+    """Widget editing one stage: the graphics view and file handling.
 
     Attributes:
         stage_changed: emitted with the new stage when the stage is replaced
         scope_changed: emitted with the new scope path
         node_type_dropped: emitted with a node type id and scene position on drop
         stage_file_used: emitted with the stage file path after it was opened or saved
+        selected_objects_changed: emitted when the selected nodes or util objects are
+            not the ones of the last time. Not emitted twice for the same selection.
     """
 
     DEFAULT_TITLE = "Untitled"
@@ -42,6 +45,7 @@ class StageGraphEditor(QtWidgets.QWidget):
     scope_changed = QtCore.Signal(pathlib.PurePosixPath)
     node_type_dropped = QtCore.Signal(str, QtCore.QPointF)
     stage_file_used = QtCore.Signal(str)
+    selected_objects_changed = QtCore.Signal()
 
     def __init__(
         self, stage: Stage | None = None, parent: QtWidgets.QWidget | None = None
@@ -56,6 +60,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.main_window: NyxEditorMainWindow = pyside_fn.find_nyx_editor_window()
         self.tree_view = self.main_window.stage_tree_view
         self._selection_model = QtCore.QItemSelectionModel()
+        self._selected_object_uuids: tuple[UUID, ...] = ()
         self._stage: Stage = None
         self.set_stage(stage, create_connections=False)
         self._scope_path = ROOT_NODE_PATH
@@ -127,7 +132,6 @@ class StageGraphEditor(QtWidgets.QWidget):
 
     def create_widgets(self):
         """Create and setup widgets."""
-        self.graph_scope_widget = GraphScopeWidget(self)
         self.gr_stage = GraphicsStage(self)
         self.gr_view = StageGraphView(self)
 
@@ -137,11 +141,11 @@ class StageGraphEditor(QtWidgets.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.main_layout)
 
-        self.main_layout.addWidget(self.graph_scope_widget)
         self.main_layout.addWidget(self.gr_view)
 
     def create_stage_connections(self):
         """Create connections between graph widgets and stage."""
+        self.gr_stage.follow_stage(self.stage)
         # Stage connections
         self.stage.undo_stack.indexChanged.connect(self.update_title)
         self.stage.undo_stack.indexChanged.connect(self.gr_stage.rebuild_current_scope)
@@ -154,6 +158,9 @@ class StageGraphEditor(QtWidgets.QWidget):
         )
         # After the scene selection is synced: selection decides action availability.
         self.selection_model.selectionChanged.connect(self._refresh_actions)
+        self.selection_model.selectionChanged.connect(
+            self.notify_selected_objects_changed
+        )
 
     def create_connections(self):
         """Create signal to slot connections."""
@@ -176,6 +183,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         if self.maybe_save():
             self.main_window.application.session.unregister_stage(self.stage)
+            self.gr_stage.detach()
             event.accept()
         else:
             event.ignore()
@@ -274,6 +282,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         new_stage.import_json(file_path)
         self.set_stage(new_stage)
         self.gr_stage.rebuild_current_scope()
+        self.restore_view_state()
         self._notify_stage_file_used()
         return True
 
@@ -284,6 +293,7 @@ class StageGraphEditor(QtWidgets.QWidget):
             bool: stage was saved.
         """
         if self.stage.file_path is not None:
+            self.record_view_state()
             self.stage.export_json(self.stage.file_path)
             saved = True
             self._notify_stage_file_used()
@@ -304,6 +314,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         )[0]
         if not file_path:
             return False
+        self.record_view_state()
         self.stage.export_json(file_path)
         self.update_title()
         self._notify_stage_file_used()
@@ -355,11 +366,57 @@ class StageGraphEditor(QtWidgets.QWidget):
             silent (bool): don't emit `scope_changed`.
         """
         new_scope = self.get_next_valid_scope(scope)
+        is_scope_changing = new_scope != self._scope_path
 
+        if is_scope_changing:
+            self.record_view_state()
         self._scope_path = new_scope
         LOGGER.debug(f"Set scope to: {self._scope_path}")
         if not silent:
             self.scope_changed.emit(self._scope_path)
+            if is_scope_changing:
+                self.restore_view_state()
+
+    def get_scope_node(self) -> Node | None:
+        """Get the node whose children are shown.
+
+        Returns:
+            Node | None: scope node, None if it doesn't exist (anymore).
+        """
+        try:
+            return self.stage.get_object(self._scope_path)
+        except StageObjectQueryError:
+            return None
+
+    def record_view_state(self) -> None:
+        """Store where the graph view is in the metadata of the scope node.
+
+        The view is remembered per scope and saved with the stage. Nothing is stored
+        while the view isn't shown, because its center means nothing then.
+        """
+        gr_view = getattr(self, "gr_view", None)
+        scope_node = self.get_scope_node()
+        if gr_view is None or scope_node is None or not gr_view.isVisible():
+            return
+        view_state = gr_view.get_view_state()
+        scope_node.set_graph_view(
+            QtCore.QPointF(*view_state["center"]), view_state["zoom"]
+        )
+
+    def restore_view_state(self) -> bool:
+        """Move the graph view to where it was the last time the scope was shown.
+
+        Returns:
+            bool: the view was moved, False if the scope node has no stored position.
+        """
+        gr_view = getattr(self, "gr_view", None)
+        scope_node = self.get_scope_node()
+        graph_view = None if scope_node is None else scope_node.get_graph_view()
+        if gr_view is None or graph_view is None:
+            return False
+        position, zoom = graph_view
+        gr_view.apply_view_state({"zoom": zoom, "center": [position.x(), position.y()]})
+        return True
 
     def get_session_state(self) -> dict:
         """State stored per stage in a session file."""
@@ -426,6 +483,28 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         selected_indexes = self.selection_model.selectedIndexes()
         return [self.stage.itemFromIndex(index) for index in selected_indexes]
+
+    def list_selected_objects(self) -> list[StageObject]:
+        """List the selected stage objects: the nodes, then the util objects.
+
+        Returns:
+            list[StageObject]: selected nodes and util objects.
+        """
+        selected_objects: list[StageObject] = self.list_selected_nodes()
+        gr_stage = getattr(self, "gr_stage", None)
+        if gr_stage is not None:
+            selected_objects.extend(
+                gr_util.util_object for gr_util in gr_stage.selected_gr_util_objects()
+            )
+        return selected_objects
+
+    def notify_selected_objects_changed(self, *_unused_signal_arguments) -> None:
+        """Emit `selected_objects_changed` if the selection is not the last one."""
+        uuids = tuple(stage_object.uuid for stage_object in self.list_selected_objects())
+        if uuids == self._selected_object_uuids:
+            return
+        self._selected_object_uuids = uuids
+        self.selected_objects_changed.emit()
 
     def select_nodes(self, nodes: list[Node]) -> None:
         """Replace the selection, so the graph shows it even if it was unchanged.

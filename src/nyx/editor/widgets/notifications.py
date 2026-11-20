@@ -4,6 +4,11 @@ import typing
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from nyx.editor.panels.panel_host import FloatingAnchor
+
+if typing.TYPE_CHECKING:
+    from nyx.editor.panels.panel_host import PanelHost
+
 
 class NotificationMessage(QtWidgets.QFrame):
     """One notification: an optional icon, a text and a button to dismiss it.
@@ -114,6 +119,13 @@ class NotificationMessage(QtWidgets.QFrame):
         self._fade_timer.stop()
         self._animate(0.0, self.FADE_OUT_MS, on_finished=self._finish)
 
+    def remove(self) -> None:
+        """Remove the message at once, without the fade out."""
+        self._is_closing = True
+        self._fade_timer.stop()
+        self._animation.stop()
+        self._finish()
+
     def _animate(
         self,
         target: float,
@@ -147,11 +159,15 @@ class NotificationMessage(QtWidgets.QFrame):
 
 
 class NotificationManager(QtCore.QObject):
-    """Shows notification messages in the bottom right corner of the editor window.
+    """Shows notification messages over the editor window.
 
     Used through its class methods, there is nothing to create:
     `NotificationManager.add_message("Saved", fade=5)`. Until a window is set with
     `set_host` (the CLI, tests) messages are ignored.
+
+    With a panel host the messages float in its top right corner, stacked under the
+    other widgets there (the stage controls overlay) and out of the way of open
+    panels. Without one they stack upwards from the bottom right corner of the window.
     """
 
     MARGIN = 24
@@ -160,30 +176,41 @@ class NotificationManager(QtCore.QObject):
     _instance: NotificationManager | None = None
     _requested = QtCore.Signal(str, float, object)
 
-    def __init__(self, host: QtWidgets.QWidget) -> None:
+    def __init__(
+        self, host: QtWidgets.QWidget, panel_host: PanelHost | None = None
+    ) -> None:
         """Initialize NotificationManager. Use `set_host` instead of creating one.
 
         Args:
             host (QWidget): window the messages are shown over.
+            panel_host (PanelHost | None): host whose top right corner the messages
+                float in.
         """
         super().__init__(host)
         self._host = host
+        self._panel_host = panel_host
         self._messages: list[NotificationMessage] = []
         host.installEventFilter(self)
         self._requested.connect(self._add_message)
 
     @classmethod
-    def set_host(cls, host: QtWidgets.QWidget | None) -> None:
+    def set_host(
+        cls, host: QtWidgets.QWidget | None, panel_host: PanelHost | None = None
+    ) -> None:
         """Set the window messages are shown over, None to stop showing them.
 
         Args:
             host (QWidget | None): window.
+            panel_host (PanelHost | None): host whose top right corner the messages
+                float in, instead of stacking from the bottom right of the window.
         """
         if cls._instance is not None:
+            for message in cls._instance.messages:
+                message.remove()
             cls._instance.deleteLater()
             cls._instance = None
         if host is not None:
-            cls._instance = cls(host)
+            cls._instance = cls(host, panel_host)
 
     @classmethod
     def add_message(
@@ -232,7 +259,10 @@ class NotificationManager(QtCore.QObject):
         message = NotificationMessage(text, fade=fade, icon=icon, parent=self._host)
         message.closed.connect(self._on_message_closed)
         self._messages.append(message)
-        self._layout_messages()
+        if self._panel_host is not None:
+            self._panel_host.add_floating_widget(message, FloatingAnchor.TOP_RIGHT)
+        else:
+            self._layout_messages()
         message.appear()
         return message
 
@@ -240,7 +270,10 @@ class NotificationManager(QtCore.QObject):
         """Forget a message and close the gap it left."""
         if message in self._messages:
             self._messages.remove(message)
-        self._layout_messages()
+        if self._panel_host is not None:
+            self._panel_host.remove_floating_widget(message)
+        else:
+            self._layout_messages()
 
     def _layout_messages(self) -> None:
         """Stack the messages upwards from the bottom right corner of the window."""
@@ -261,6 +294,10 @@ class NotificationManager(QtCore.QObject):
         Returns:
             bool: always False, events are not consumed.
         """
-        if watched is self._host and event.type() == QtCore.QEvent.Type.Resize:
+        if (
+            self._panel_host is None
+            and watched is self._host
+            and event.type() == QtCore.QEvent.Type.Resize
+        ):
             self._layout_messages()
         return False

@@ -1,4 +1,5 @@
 import collections.abc
+import copy
 import dataclasses
 import enum
 import logging
@@ -22,6 +23,7 @@ from ..utils import file_fn, inspect_fn
 from .node_render_options import NodeRenderOptions
 from ..static.enums import (
     CoreGraphicsObjects,
+    CoreInspectorWidgets,
     CoreNodes,
     RestoreUuidOption,
     NodeExecutionStatus,
@@ -97,6 +99,10 @@ class Node(QtGui.QStandardItem, StageObject):
     DISPLAY_NAME_KEY = "display_name"
     ACTIVE_KEY = "active"
     POSITION_KEY = "position"
+    GRAPH_VIEW_POSITION_KEY = "graph_view_position"
+    """str: metadata key of the point the graph view was centered on in this scope."""
+    GRAPH_VIEW_ZOOM_KEY = "graph_view_zoom"
+    """str: metadata key of the zoom level the graph view had in this scope."""
     EXECUTION_ORDER_KEY = "execution_order"
     COMPONENTS_KEY = "components"
     CHILDREN_KEY = "children"
@@ -549,6 +555,35 @@ class Node(QtGui.QStandardItem, StageObject):
         position = self.position()
         return [position.x(), position.y()]
 
+    def get_graph_view(self) -> tuple[QtCore.QPointF, float] | None:
+        """Get where the graph view was when the contents of the node were last shown.
+
+        Returns:
+            tuple[QtCore.QPointF, float] | None: scene point the view was centered on and
+                the zoom level, None if the contents were never shown or the stored
+                values can't be read.
+        """
+        try:
+            x, y = self.metadata[self.GRAPH_VIEW_POSITION_KEY]
+            return QtCore.QPointF(float(x), float(y)), float(
+                self.metadata[self.GRAPH_VIEW_ZOOM_KEY]
+            )
+        except KeyError, TypeError, ValueError:
+            return None
+
+    def set_graph_view(self, position: QtCore.QPointF, zoom: float) -> None:
+        """Remember where the graph view is while it shows the contents of the node.
+
+        Stored in the metadata, so it is saved with the stage. Not an edit: it isn't
+        undoable and doesn't mark the stage as modified.
+
+        Args:
+            position (QtCore.QPointF): scene point the view is centered on.
+            zoom (float): zoom level of the view.
+        """
+        self.metadata[self.GRAPH_VIEW_POSITION_KEY] = [position.x(), position.y()]
+        self.metadata[self.GRAPH_VIEW_ZOOM_KEY] = float(zoom)
+
     def set_position(self, position: QtCore.QPointF):
         """Set the position in the graph.
 
@@ -872,6 +907,10 @@ class Node(QtGui.QStandardItem, StageObject):
         node.execution_order = serialized_node.get(
             cls.EXECUTION_ORDER_KEY, cls.get_type_execution_order()
         )
+        # Data of older files has none: keep what the node already has then
+        if cls.META_DATA_KEY in serialized_node:
+            node.metadata.clear()
+            node.metadata.update(copy.deepcopy(dict(serialized_node[cls.META_DATA_KEY])))
 
         node.deserialize_contents(
             serialized_node, context=context, restore_uuid=restore_uuid
@@ -1084,6 +1123,11 @@ class Node(QtGui.QStandardItem, StageObject):
     def get_graphics_object_id(cls) -> str | None:
         """str | None: id of the graphics object drawing the type."""
         return CoreGraphicsObjects.NODE
+
+    @classmethod
+    def get_inspector_widget_id(cls) -> str | None:
+        """str | None: id of the inspector widget showing the type."""
+        return CoreInspectorWidgets.NODE
 
     @classmethod
     def get_type_id(cls) -> str:

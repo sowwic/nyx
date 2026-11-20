@@ -1,23 +1,20 @@
 import logging
-import typing
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore
 
 from ...core.node import Node
 from ...core.commands import CreateNodeCommand
-
-
-if typing.TYPE_CHECKING:
-    from ...core.stage import Stage
-    from ...application import NyxEditorApplication
-    from ..widgets.stage_graph_editor import StageGraphEditor
+from .stage_object_spawner import StageObjectSpawner
 
 LOGGER = logging.getLogger(__name__)
 
 
-class NodeSpawner(QtCore.QObject):
-    """Owns selection state for a components model and keeps it
-    consistent across reorders."""
+class NodeSpawner(StageObjectSpawner):
+    """Creates the nodes the user picks in the nodes palette, in the scope being drawn.
+
+    Attributes:
+        nodeSpawned: emitted with the node that was created.
+    """
 
     nodeSpawned = QtCore.Signal(Node)
 
@@ -47,20 +44,6 @@ class NodeSpawner(QtCore.QObject):
             )
         self._spawn_position = position
 
-    @property
-    def current_stage_graph(self) -> StageGraphEditor | None:
-        """StageGraphEditor | None: editor of the active window."""
-        application: NyxEditorApplication = QtWidgets.QApplication.instance()
-        return application.main_window().current_stage_graph
-
-    @property
-    def stage(self) -> Stage | None:
-        """Stage | None: stage of the active editor."""
-        current_editor = self.current_stage_graph
-        if current_editor is None:
-            return None
-        return current_editor.stage
-
     @QtCore.Slot(str, result=Node)
     def spawnNodeAtCenter(self, type_id: str) -> Node:
         """Create a node at the center of the active view.
@@ -82,10 +65,14 @@ class NodeSpawner(QtCore.QObject):
             type_id (str): registered node type id.
             position (QtCore.QPointF | None): scene position. Defaults to the spawn
                 position or view center.
+
+        Returns:
+            Node | None: created node, None if there is no editor or the stage refused
+                the node, for example in a scope that is locked.
         """
         current_editor = self.current_stage_graph
         if current_editor is None:
-            return
+            return None
 
         position = (
             position
@@ -94,15 +81,13 @@ class NodeSpawner(QtCore.QObject):
         )
 
         stage = current_editor.stage
-        current_scope = self.current_stage_graph.get_scope_path()
         command = CreateNodeCommand(
-            stage=self.stage,
+            stage=stage,
             type_id=type_id,
-            parent_node=current_scope,
+            parent_node=current_editor.get_scope_path(),
             position=position,
         )
-        stage.push_command(command)
-        result_node = command.result_node
-
-        self.nodeSpawned.emit(result_node)
+        result_node = self._spawn(stage, command, lambda: command.result_node)
+        if result_node is not None:
+            self.nodeSpawned.emit(result_node)
         return result_node

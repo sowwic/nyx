@@ -4,11 +4,16 @@ A **util object** is something that sits in the graph of a node but isn't part o
 execution: notes and groups are util objects. It has a position and a size, and
 properties of its own. It has no components and no links.
 
-A util object needs two classes:
+A util object needs three classes, and can have a fourth:
 
 1. the **util object** (`UtilObject` subclass): the data, which is saved with the stage,
 2. a **graphics object** (a `QGraphicsItem`) that draws it, see
-   [New graphics object](graphics-object.md).
+   [New graphics object](graphics-object.md),
+3. a **spawner** that adds it to the stage from the Create menu of the graph view, see
+   [New spawner](spawner.md). Without one, users can't add the type,
+4. optionally an **inspector widget** that edits it in the Inspector panel, see
+   [New inspector widget](inspector-widget.md). Without one, the Inspector shows a
+   placeholder for the object.
 
 ## A complete example: a checklist
 
@@ -73,7 +78,8 @@ class ChecklistObject(UtilObject):
             self.items = [str(item) for item in properties[self.ITEMS_KEY]]
 ```
 
-Register: `plugin.contents.util_objects = [ChecklistObject]`.
+Register: `plugin.contents.util_objects = [ChecklistObject]`, and add a
+[spawner](spawner.md) to `plugin.contents.spawners` so users can create it.
 
 ## The contract
 
@@ -82,6 +88,7 @@ Register: `plugin.contents.util_objects = [ChecklistObject]`.
 | `get_type_id()` | Unique id, `namespace:name`. |
 | `get_type_display_name()`, `get_description()` | UI texts. |
 | `get_graphics_object_id()` | The id of the graphics object that draws the type. It must be registered by a plugin (or be a built-in one such as `CoreGraphicsObjects.NOTE`). |
+| `get_inspector_widget_id()` | The id of the inspector widget that shows the type. Optional, `None` by default. It must be registered by a plugin (or be a built-in one such as `CoreInspectorWidgets.NOTE`). |
 | `DEFAULT_SIZE`, `MIN_SIZE` | Size a new object gets, and the smallest size it can be resized to. |
 | `position`, `size`, `rect` | Geometry in the scene of the owning node. The size is never smaller than `MIN_SIZE`. |
 | `serialize_properties()` | Returns **all** state that can change, as JSON values. Call `super()` and add your own. |

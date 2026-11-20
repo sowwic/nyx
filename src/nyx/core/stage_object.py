@@ -1,3 +1,4 @@
+import copy
 import typing
 import pathlib
 import logging
@@ -32,6 +33,7 @@ class StageObject:
             uuid (UUID | str | None): object uuid. Generated if omitted.
         """
         self._uuid = self.as_uuid(uuid)
+        self._metadata: dict[str, typing.Any] = {}
 
     @property
     def stage(self) -> Stage:
@@ -71,6 +73,19 @@ class StageObject:
         """
         return None
 
+    @classmethod
+    def get_inspector_widget_id(cls) -> str | None:
+        """Get the id of the inspector widget showing objects of the type.
+
+        Override it in subclasses to show the objects of the type in the inspector with
+        a widget registered in the registry.
+
+        Returns:
+            str | None: inspector widget id, None if the inspector has nothing to show
+                for objects of the type.
+        """
+        return None
+
     @property
     def path(self) -> pathlib.PosixPath:
         """pathlib.PosixPath: path in the stage. Subclasses must implement."""
@@ -78,8 +93,12 @@ class StageObject:
 
     @property
     def metadata(self) -> dict[str, typing.Any]:
-        """dict[str, typing.Any]: extra data stored when serializing."""
-        return {}
+        """dict[str, typing.Any]: extra data stored when serializing.
+
+        Changing it is not an edit: it isn't undoable and doesn't mark the stage as
+        modified. Values must be JSON serializable.
+        """
+        return self._metadata
 
     def serialize(self) -> OrderedDict[str, typing.Any]:
         """Serialize the object.
@@ -89,7 +108,8 @@ class StageObject:
         """
         serialized_data = OrderedDict()
         serialized_data[self.UUID_KEY] = str(self.uuid)
-        serialized_data[self.META_DATA_KEY] = self.metadata
+        # A copy, so subclasses can add to the data without changing the object
+        serialized_data[self.META_DATA_KEY] = copy.deepcopy(self.metadata)
         if self.SOURCE_PLUGIN is not None:
             serialized_data[self.SOURCE_PLUGIN_KEY] = (
                 self.SOURCE_PLUGIN.plugin_cls.get_type_id()

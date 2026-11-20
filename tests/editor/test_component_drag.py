@@ -3,6 +3,7 @@ from PySide6 import QtCore, QtTest
 
 from nyx.api.v1 import CoreNodeComponents, CoreNodes, commands
 from nyx.editor.views.node_components_view import NodeComponentsView
+from nyx.editor.panels.panel_definitions import PanelId
 
 
 def find_items(item, object_name):
@@ -24,8 +25,10 @@ def three_components(main_window, stage_editor, create_node, qtbot):
                 node=node, type_id=CoreNodeComponents.VALUE, name=name
             )
         )
-    main_window.inspector.show()
-    main_window.inspector.resize(500, 700)
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
+    main_window.panel_host.set_panel_size(
+        main_window.panel_manager.panel(PanelId.INSPECTOR), 500
+    )
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

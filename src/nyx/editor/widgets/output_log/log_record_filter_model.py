@@ -1,5 +1,7 @@
 import logging
 
+from nyx.utils import logging_fn
+
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel
 
 from nyx.core.models.log_record_model import LogRecordListModel
@@ -53,6 +55,6 @@ class LogRecordFilterModel(QSortFilterProxyModel):
         if not self._search_text:
             return True
         return (
-            self._search_text in record.getMessage().casefold()
+            self._search_text in logging_fn.get_log_record_message(record).casefold()
             or self._search_text in record.name.casefold()
         )

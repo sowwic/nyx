@@ -42,6 +42,14 @@ class SetNodeComponentValueCommand(NyxCommand):
         """NodeComponent: component the command operates on."""
         return self.stage.get_object(self.component_uuid, expected_type=NodeComponent)
 
+    def validate(self) -> None:
+        """Check the component can have the value.
+
+        Raises:
+            NyxCommandValidationError: if the component refuses the value.
+        """
+        self.component.validate_value(self.new_value)
+
     def target_nodes(self):
         """list[Node]: nodes the command changes."""
         return [self.component.node]

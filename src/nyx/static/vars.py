@@ -8,6 +8,7 @@ AUTHOR_NAME = "Dmitrii Shevchenko"
 COPYRIGHT_YEAR = 2026
 REPOSITORY_URL = "https://github.com/sowwic/nyx"
 DOCUMENTATION_URL = "https://sowwic.github.io/nyx/"
+ISSUES_URL = f"{REPOSITORY_URL}/issues/new"
 NYX_FILE_EXTENSION = ".nyx"
 NYX_FILE_FILTER = f"Nyx files (*{NYX_FILE_EXTENSION});;All Files (*)"
 DEBUG = int(os.getenv("NYX_DEBUG", 0))

@@ -1,12 +1,13 @@
 import pytest
 from PySide6 import QtCore, QtQml, QtWidgets
 
-from nyx.api.v1 import CoreNodeComponents, CoreNodes, commands
+from nyx.api.v1 import CoreNodeComponents, CoreNodes, Stage, commands
 from nyx.editor.controllers.components import ComponentsController
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.static.enums import ItemSelectionMode
 
 from nyx.static.paths import PACKAGE_ROOT
+from nyx.editor.panels.panel_definitions import PanelId
 
 _KEEP_ALIVE = []
 CORE_QML_DIR = PACKAGE_ROOT / "stdlib" / "qml" / "NyxStdlib"
@@ -262,7 +263,7 @@ def test_editor_in_inspector_sets_value_through_undoable_command(
     stage.push_command(add_command)
     component = add_command.result_component
     component.push_value("1+1")
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -369,7 +370,7 @@ def test_getter_component_path_shows_in_inspector(
     getter = create_node(stage, "getter", type_id=CoreNodes.GET)
     getter["component"].push_value("./target.message")
     expected = str(target["message"])
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -409,7 +410,7 @@ def test_reference_in_inspector_updates_without_reselecting(
     stage = stage_editor.stage
     node = create_node(stage, "node", type_id=CoreNodes.LOG)
     getter = create_node(stage, "getter", type_id=CoreNodes.GET)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -466,7 +467,7 @@ def test_getter_value_in_inspector_updates_when_the_path_changes(
     first["message"].push_value("one")
     second["message"].push_value("two")
     getter = create_node(stage, "getter", type_id=CoreNodes.GET)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         getter.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -622,7 +623,7 @@ def test_tapping_empty_space_in_components_view_deselects_and_closes_palette(
             node=node, type_id=CoreNodeComponents.VALUE, name="val"
         )
     )
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -675,7 +676,7 @@ def test_clicking_empty_space_in_components_view_deselects(
             node=node, type_id=CoreNodeComponents.VALUE, name="val"
         )
     )
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -711,7 +712,7 @@ def test_component_items_have_the_description_tooltip(
 ):
     stage = stage_editor.stage
     node = create_node(stage, "a", type_id=CoreNodes.BRANCH)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -891,3 +892,22 @@ def test_key_column_fits_the_longest_key_between_the_limits(make_value_editor):
     assert key_width("A", "B") == 100  # the minimum
     assert 100 < key_width("A", "A" * 15) < 200
     assert key_width("A" * 500) == 200  # the maximum
+
+
+def test_controller_reports_a_refused_value_instead_of_raising(
+    monkeypatch, caplog, create_node
+):
+    stage = Stage()
+    node = create_node(stage, "getter", type_id=CoreNodes.GET)
+    component = node["component"]
+    controller = ComponentsController()
+    monkeypatch.setattr(ComponentsController, "stage", property(lambda self: stage))
+    monkeypatch.setattr(
+        controller, "get_component_from_proxy_row", lambda row: component
+    )
+
+    with caplog.at_level("WARNING"):
+        controller.setComponentValue(0, component.path.as_posix(), False)
+
+    assert "a component of its own node" in caplog.text
+    assert component.raw_value != component.path.as_posix()
