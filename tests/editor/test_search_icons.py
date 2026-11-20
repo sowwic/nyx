@@ -8,6 +8,7 @@ from nyx.editor.widgets.dialogs.stage_object_picker import StageObjectPickerDial
 from nyx.editor.widgets.output_log.output_log_widget import OutputLogWidget
 from nyx.utils import pyside_fn
 from stage_helpers import STAGES
+from nyx.editor.panels.panel_definitions import PanelId
 
 
 def search_icon_image() -> QtGui.QImage:
@@ -77,7 +78,7 @@ def test_the_components_search_field_has_the_icon_and_leaves_room_for_it(
     main_window, stage_editor, create_node, qtbot
 ):
     node = create_node(stage_editor.stage, "a", type_id=CoreNodes.BRANCH)
-    main_window.panel_manager.set_open("inspector", True)
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -94,4 +95,4 @@ def test_the_components_search_field_has_the_icon_and_leaves_room_for_it(
 @pytest.fixture(autouse=True)
 def _close_inspector(main_window):
     yield
-    main_window.panel_manager.set_open("inspector", False)
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, False)

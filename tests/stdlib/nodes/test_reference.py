@@ -480,8 +480,8 @@ def test_link_to_a_pasted_reference_survives_undo_and_redo(source_path):
         [
             ("uuid", str(uuid.uuid4())),
             ("name", "ref"),
-            ("type_id", CoreNodes.REFERENCE),
-            ("active", True),
+            (Node.TYPE_ID_KEY, CoreNodes.REFERENCE),
+            (Node.ACTIVE_KEY, True),
             ("source", str(source_path)),
         ]
     )

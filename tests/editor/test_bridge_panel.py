@@ -3,6 +3,7 @@ from nyx_bridge.client import NyxClient
 from PySide6 import QtGui, QtWidgets
 
 from nyx.editor.widgets.bridge_panel import BridgePanel
+from nyx.editor.panels.panel_definitions import PanelId
 
 
 @pytest.fixture
@@ -84,7 +85,7 @@ def test_clients_are_listed_while_they_are_connected(
 
 
 def test_main_window_has_a_bridge_panel(main_window):
-    panel = main_window.panel_manager.panel("bridge")
+    panel = main_window.panel_manager.panel(PanelId.BRIDGE)
 
     assert panel.content is main_window.bridge_panel
 

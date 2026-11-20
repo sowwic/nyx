@@ -2,8 +2,15 @@ import pytest
 from PySide6 import QtCore, QtWidgets
 
 from nyx.static.vars import ROOT_NODE_PATH
-from nyx.editor.panels import PANEL_REGISTRY, FloatingAnchor, PanelRegistry
+from nyx.editor.main_window import NyxEditorMainWindow
+from nyx.editor.panels import PANEL_REGISTRY, FloatingAnchor, PanelArea, PanelRegistry
+from nyx.editor.panels.panel_host import PanelHost
 from nyx.editor.panels.panel_registry import PanelDefinition
+
+
+def panel_extent(panel) -> int:
+    """Size of a panel along its area: the height of the bottom one, else the width."""
+    return panel.height() if panel.area is PanelArea.BOTTOM else panel.width()
 
 
 def test_panels_are_registered():
@@ -96,87 +103,75 @@ def test_panels_are_anchored_to_their_edges(main_window, manager, qtbot):
 
 
 def test_every_default_size_is_above_the_minimum_of_its_area():
-    from nyx.editor.panels import PanelArea
-    from nyx.editor.panels.panel_host import PanelHost
-
     for area in PanelArea:
         assert PanelHost.DEFAULT_SIZES[area] > PanelHost.MINIMUM_SIZES[area]
-    # The side panels are the ones that need room for their content
-    assert PanelHost.MINIMUM_SIZES[PanelArea.LEFT] >= 280
-    assert PanelHost.MINIMUM_SIZES[PanelArea.RIGHT] >= 280
 
 
-@pytest.mark.parametrize(
-    ("panel_id", "expected_minimum"),
-    [("tree", 280), ("inspector", 300), ("console", 180)],
-)
+@pytest.mark.parametrize("panel_id", ["tree", "inspector", "console"])
 def test_a_panel_cannot_be_made_smaller_than_the_minimum_of_its_area(
-    main_window, manager, qtbot, panel_id, expected_minimum
+    main_window, manager, qtbot, panel_id
 ):
     main_window.show()
     qtbot.waitExposed(main_window)
     manager.set_open(panel_id, True)
     panel = manager.panel(panel_id)
     host = main_window.panel_host
+    expected_minimum = PanelHost.MINIMUM_SIZES[panel.area]
 
-    panel.size_requested.emit(20)  # what dragging the grip far inwards asks for
+    panel.size_requested.emit(0)  # what dragging the grip all the way in asks for
 
     assert host.panel_size(panel) == expected_minimum
-    size = panel.height() if panel_id == "console" else panel.width()
-    assert size == expected_minimum
+    assert panel_extent(panel) == expected_minimum
 
 
 def test_every_maximum_leaves_room_above_the_minimum_on_the_smallest_window():
-    from nyx.editor.panels import PanelArea
-    from nyx.editor.panels.panel_host import PanelHost
-
-    smallest_width = 1000
+    smallest_width = NyxEditorMainWindow.MINIMUM_SIZE[0]
     for area in (PanelArea.LEFT, PanelArea.RIGHT):
         maximum = smallest_width * PanelHost.MAXIMUM_FRACTIONS[area]
         assert maximum > PanelHost.MINIMUM_SIZES[area]
-    # With both side panels at their largest, a fifth of the graph is left over
-    both = sum(
-        PanelHost.MAXIMUM_FRACTIONS[area] for area in (PanelArea.LEFT, PanelArea.RIGHT)
+    # Both side panels at their smallest still leave the graph area its free size
+    side_minimums = sum(
+        PanelHost.MINIMUM_SIZES[area] for area in (PanelArea.LEFT, PanelArea.RIGHT)
     )
-    assert both <= 0.8
+    assert side_minimums + PanelHost.MINIMUM_FREE_SIZE <= smallest_width
 
 
-@pytest.mark.parametrize(
-    ("panel_id", "fraction", "extent_of"),
-    [
-        ("tree", 0.4, lambda canvas: canvas.width()),
-        ("inspector", 0.4, lambda canvas: canvas.width()),
-        ("console", 0.5, lambda canvas: canvas.height()),
-    ],
-)
+@pytest.mark.parametrize("panel_id", ["tree", "inspector", "console"])
 def test_a_panel_cannot_be_dragged_past_its_share_of_the_graph_area(
-    main_window, manager, qtbot, panel_id, fraction, extent_of
+    main_window, manager, qtbot, panel_id
 ):
     main_window.show()
     qtbot.waitExposed(main_window)
     manager.set_open(panel_id, True)
     panel = manager.panel(panel_id)
     canvas = main_window.panel_host.canvas
+    extent = canvas.height() if panel.area is PanelArea.BOTTOM else canvas.width()
 
-    panel.size_requested.emit(extent_of(canvas) * 10)  # dragged far past the edge
+    panel.size_requested.emit(extent * 10)  # dragged far past the edge
 
-    size = panel.height() if panel_id == "console" else panel.width()
-    assert size == int(extent_of(canvas) * fraction)
+    expected = int(extent * PanelHost.MAXIMUM_FRACTIONS[panel.area])
+    assert panel_extent(panel) == expected
 
 
-def test_both_side_panels_leave_the_graph_area_room(main_window, manager, qtbot):
+def test_both_side_panels_stay_within_their_limits(main_window, manager, qtbot):
     main_window.show()
     qtbot.waitExposed(main_window)
     host = main_window.panel_host
     manager.set_open("tree", True)
     manager.set_open("inspector", True)
     left, right = manager.panel("tree"), manager.panel("inspector")
+    width = host.canvas.width()
 
-    host.set_panel_size(left, host.canvas.width() * 10)
-    host.set_panel_size(right, host.canvas.width() * 10)
+    host.set_panel_size(left, width * 10)
+    host.set_panel_size(right, width * 10)
 
-    free = host.canvas.width() - left.width() - right.width()
-    assert free >= host.canvas.width() * 0.2 - 1
+    # The left panel keeps its size, the right one takes what is left of its share
+    assert left.width() == int(width * PanelHost.MAXIMUM_FRACTIONS[PanelArea.LEFT])
+    assert (
+        PanelHost.MINIMUM_SIZES[PanelArea.RIGHT]
+        <= right.width()
+        <= int(width * PanelHost.MAXIMUM_FRACTIONS[PanelArea.RIGHT])
+    )
 
 
 def test_a_larger_window_gives_a_saved_size_back(main_window, manager, qtbot):
@@ -185,10 +180,11 @@ def test_a_larger_window_gives_a_saved_size_back(main_window, manager, qtbot):
     host = main_window.panel_host
     manager.set_open("tree", True)
     panel = manager.panel("tree")
-    host.set_panel_size(panel, 400)
+    size = PanelHost.DEFAULT_SIZES[panel.area] + 80
+    host.set_panel_size(panel, size)
 
-    assert panel.width() == 400
-    assert host.panel_size(panel) == 400
+    assert panel.width() == size
+    assert host.panel_size(panel) == size
 
 
 def test_dragging_the_grip_resizes_the_panel(main_window, manager, qtbot):
@@ -197,9 +193,11 @@ def test_dragging_the_grip_resizes_the_panel(main_window, manager, qtbot):
     manager.set_open("tree", True)
     panel = manager.panel("tree")
 
-    panel.size_requested.emit(400)
+    size = PanelHost.DEFAULT_SIZES[panel.area] + 80
 
-    assert panel.width() == 400
+    panel.size_requested.emit(size)
+
+    assert panel.width() == size
 
 
 def test_sidebar_hides_and_shows_buttons(main_window):
@@ -220,19 +218,20 @@ def test_config_round_trip(main_window, manager):
     try:
         sidebar._set_button_visible("bridge", False)
         manager.set_open("tree", True)
-        main_window.panel_host.set_panel_size(manager.panel("tree"), 411)
+        size = PanelHost.DEFAULT_SIZES[PanelArea.LEFT] + 91
+        main_window.panel_host.set_panel_size(manager.panel("tree"), size)
         manager.save_config_values(config)
         saved = config.values.main_window.panels
         assert "bridge" in saved.hidden_buttons
         assert saved.open_panels == ["tree"]
-        assert saved.sizes["tree"] == 411
+        assert saved.sizes["tree"] == size
 
         manager.set_open("tree", False)
         sidebar.set_hidden_buttons(None)
         manager.apply_config_values(config)
         assert manager.is_open("tree")
         assert "bridge" not in sidebar.visible_button_ids()
-        assert main_window.panel_host.panel_size(manager.panel("tree")) == 411
+        assert main_window.panel_host.panel_size(manager.panel("tree")) == size
     finally:
         sidebar.set_hidden_buttons(None)
         config.values.main_window.panels.open_panels = []

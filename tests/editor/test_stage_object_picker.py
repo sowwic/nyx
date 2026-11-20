@@ -12,6 +12,7 @@ from nyx.api.v1 import (
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.editor.widgets.dialogs.stage_object_picker import StageObjectPickerDialog
 from stage_helpers import STAGES
+from nyx.editor.panels.panel_definitions import PanelId
 
 """Stages of the running test: a node doesn't keep its stage alive."""
 
@@ -192,9 +193,9 @@ def path_view(main_window, stage_editor, create_node, qtbot):
             node=holder, type_id=CoreNodeComponents.STAGE_OBJECT_PATH, name="where"
         )
     )
-    main_window.panel_manager.set_open("inspector", True)
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     main_window.panel_host.set_panel_size(
-        main_window.panel_manager.panel("inspector"), 600
+        main_window.panel_manager.panel(PanelId.INSPECTOR), 600
     )
     stage_editor.selection_model.select(
         holder.index(), QtCore.QItemSelectionModel.SelectionFlag.Select

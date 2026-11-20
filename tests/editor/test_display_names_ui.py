@@ -4,6 +4,7 @@ from PySide6 import QtCore
 from nyx.api.v1 import CoreNodes, commands
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.editor.widgets.inspector_widgets import NodeInspectorWidget
+from nyx.editor.panels.panel_definitions import PanelId
 
 
 def texts(item):
@@ -136,9 +137,9 @@ def test_component_rows_show_labels_and_switch_with_the_setting(
     main_window, stage_editor, remote_client_gr_node, qtbot
 ):
     node, _ = remote_client_gr_node
-    main_window.panel_manager.set_open("inspector", True)
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     main_window.panel_host.set_panel_size(
-        main_window.panel_manager.panel("inspector"), 500
+        main_window.panel_manager.panel(PanelId.INSPECTOR), 500
     )
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
@@ -158,7 +159,7 @@ def test_component_row_rename_sets_the_display_name(
     main_window, stage_editor, remote_client_gr_node, qtbot
 ):
     node, _ = remote_client_gr_node
-    main_window.panel_manager.set_open("inspector", True)
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

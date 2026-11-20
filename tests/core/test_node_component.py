@@ -72,7 +72,7 @@ def test_serialize():
     )
     data = flow_component.serialize()
 
-    assert data["type_id"] == flow_component.get_type_id()
+    assert data[NodeComponent.TYPE_ID_KEY] == flow_component.get_type_id()
     assert data["name"] == flow_component.name
     assert data["value"] == flow_component.pull_value()
     assert data["is_active"] == flow_component.is_active

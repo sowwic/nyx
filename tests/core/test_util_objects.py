@@ -79,11 +79,11 @@ def test_util_objects_are_serialized_under_the_node():
 
     data = node.serialize()[Node.UTIL_OBJECTS_KEY]
 
-    assert [each["type_id"] for each in data] == [
+    assert [each[UtilObject.TYPE_ID_KEY] for each in data] == [
         CoreUtilObjects.NOTE,
         CoreUtilObjects.GROUP,
     ]
-    assert data[0]["position"] == [1.0, 2.0]
+    assert data[0][UtilObject.POSITION_KEY] == [1.0, 2.0]
     assert data[0]["text"] == "a"
     assert data[1]["title"] == "G"
     assert Node.UTIL_OBJECTS_KEY not in node.serialize()["children"]

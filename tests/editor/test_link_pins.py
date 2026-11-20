@@ -69,10 +69,10 @@ def test_new_pin_goes_into_the_closest_part_of_the_link():
 
 def test_pins_are_saved_with_the_link(flow_link):
     _editor, link, _gr_link = flow_link
-    assert "pins" not in link.serialize()
+    assert Link.PINS_KEY not in link.serialize()
     link.pins = [PIN_A, PIN_B]
     data = link.serialize()
-    assert data["pins"] == [[100.0, 80.0], [300.0, -80.0]]
+    assert data[Link.PINS_KEY] == [[100.0, 80.0], [300.0, -80.0]]
 
     restored = Link.deserialize(link.stage, data)
     assert restored.pins == [PIN_A, PIN_B]

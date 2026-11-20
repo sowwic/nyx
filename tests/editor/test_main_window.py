@@ -6,6 +6,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from nyx.editor.core.action_registry import ACTION_REGISTRY
 from nyx.editor.core.actions import ActionId
 from nyx.editor.panels import PANEL_REGISTRY
+from nyx.editor.panels.panel_definitions import PanelId
 
 
 def test_no_stage_by_default(main_window):
@@ -147,7 +148,7 @@ def test_panels_have_a_sidebar_button_unless_they_opt_out(main_window):
     for definition in PANEL_REGISTRY.definitions():
         button = main_window.panel_sidebar.button(definition.panel_id)
         assert (button is not None) == definition.has_sidebar_button
-    assert main_window.panel_sidebar.button("inspector") is None
+    assert main_window.panel_sidebar.button(PanelId.INSPECTOR) is None
 
 
 def test_there_is_no_window_menu(main_window):

@@ -5,6 +5,7 @@ from PySide6 import QtGui
 
 from nyx.api.v1 import CoreNodes
 from nyx.editor.widgets.notifications import NotificationManager
+from nyx.editor.panels.panel_definitions import PanelId
 
 
 @pytest.fixture
@@ -169,13 +170,13 @@ def test_floating_messages_move_aside_for_the_right_panel(
     message = NotificationManager.add_message("hi")
     closed_right = message.geometry().right()
 
-    window.panel_manager.set_open("inspector", True)
-    inspector = window.panel_manager.panel("inspector")
+    window.panel_manager.set_open(PanelId.INSPECTOR, True)
+    inspector = window.panel_manager.panel(PanelId.INSPECTOR)
     try:
         assert message.geometry().right() < inspector.x()
         assert message.geometry().right() < closed_right
     finally:
-        window.panel_manager.set_open("inspector", False)
+        window.panel_manager.set_open(PanelId.INSPECTOR, False)
 
 
 def test_replacing_the_host_removes_the_messages(floating_notification_host):
