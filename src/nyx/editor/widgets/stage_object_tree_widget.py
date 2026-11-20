@@ -18,7 +18,8 @@ class StageObjectTreeWidget(BranchLinesMixin, QtWidgets.QTreeWidget):
 
     The rows are the nodes of the stage, with their components below them, each with the
     icon of its type, and the lines between the rows show which belongs to which. What
-    the caller can't use is listed but can't be chosen, see `target_types`.
+    the caller can't use is listed but can't be chosen, see `target_types` and
+    `excluded`.
 
     Attributes:
         object_activated: emitted when an object that can be chosen is double clicked
@@ -34,6 +35,7 @@ class StageObjectTreeWidget(BranchLinesMixin, QtWidgets.QTreeWidget):
         self,
         stage: Stage,
         target_types: tuple[type, ...] = (Node, NodeComponent),
+        excluded: typing.Iterable[Node | NodeComponent] = (),
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         """Initialize StageObjectTreeWidget.
@@ -43,11 +45,14 @@ class StageObjectTreeWidget(BranchLinesMixin, QtWidgets.QTreeWidget):
             target_types (tuple[type, ...]): what can be chosen, `Node` and
                 `NodeComponent`. Components are not listed when it has no
                 `NodeComponent`.
+            excluded (typing.Iterable[Node | NodeComponent]): objects that are listed
+                but can't be chosen, like the component that is being filled.
             parent (QtWidgets.QWidget | None): parent widget.
         """
         super().__init__(parent)
         self._stage = stage
         self._target_types = target_types
+        self._excluded_uuids = {each.uuid for each in excluded}
         self._items: dict[UUID, QtWidgets.QTreeWidgetItem] = {}
         self._icon_cache: dict[str, QtGui.QIcon] = {}
 
@@ -167,7 +172,11 @@ class StageObjectTreeWidget(BranchLinesMixin, QtWidgets.QTreeWidget):
         )
         item.setIcon(0, self._icon_for(stage_object.get_type_icon()))
         item.setData(0, self.UUID_ROLE, stage_object.uuid)
-        self._set_selectable(item, isinstance(stage_object, self._target_types))
+        self._set_selectable(
+            item,
+            isinstance(stage_object, self._target_types)
+            and stage_object.uuid not in self._excluded_uuids,
+        )
         self._items[stage_object.uuid] = item
         return item
 

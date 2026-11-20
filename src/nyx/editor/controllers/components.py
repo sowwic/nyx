@@ -344,11 +344,17 @@ class ComponentsController(QtCore.QObject):
             raw (bool): set the value without evaluating it.
         """
         component = self.get_component_from_proxy_row(row)
-        self.stage.push_command(
-            SetNodeComponentValueCommand(
-                stage=self.stage, node_component=component, value=new_value, raw=raw
+        try:
+            self.stage.push_command(
+                SetNodeComponentValueCommand(
+                    stage=self.stage,
+                    node_component=component,
+                    value=new_value,
+                    raw=raw,
+                )
             )
-        )
+        except NyxCommandValidationError as err:
+            LOGGER.warning(f"Can't set the value of {component.path}: {err}")
 
     @QtCore.Slot(int, str, str)
     def setComponentNote(self, row: int, text: str, note_format: str):

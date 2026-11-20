@@ -354,3 +354,43 @@ def test_the_tree_sets_up_its_own_columns_and_rows(stage, qtbot):
     assert headers == list(tree.COLUMNS)
     assert tree.iconSize() == tree.ICON_SIZE
     assert tree.uniformRowHeights()
+
+
+def test_excluded_objects_are_listed_but_cannot_be_chosen(stage, qtbot):
+    value = stage.a["value"]
+    dialog = dialog_for(stage, qtbot, excluded=(value,))
+
+    dialog.tree.setCurrentItem(item_for(dialog, value))
+
+    assert item_for(dialog, value) is not None
+    assert dialog.selected_object is None
+    assert not ok_enabled(dialog)
+    # What else is there can still be chosen
+    dialog.tree.setCurrentItem(item_for(dialog, stage.a))
+    assert dialog.selected_object is stage.a
+
+
+def test_picking_for_a_path_component_does_not_offer_the_components_of_its_node(
+    stage, qtbot, monkeypatch
+):
+    getter = create(stage, CoreNodes.GET, name="getter")
+    component = getter["component"]
+    seen = []
+
+    def fake_exec(dialog):
+        seen.append(dialog)
+        return QtWidgets.QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(StageObjectPickerDialog, "exec", fake_exec)
+
+    assert StageObjectPickerDialog.pick(stage, component) is None
+
+    (dialog,) = seen
+    qtbot.addWidget(dialog)
+    # Itself and the other components of its node are listed, and can't be chosen
+    for own in (component, getter["value"]):
+        assert item_for(dialog, own) is not None
+        assert not dialog.tree.is_selectable(item_for(dialog, own))
+    # Components of other nodes can be, a getter takes components only
+    assert dialog.tree.is_selectable(item_for(dialog, stage.a["value"]))
+    assert not dialog.tree.is_selectable(item_for(dialog, getter))

@@ -25,6 +25,7 @@ class StageObjectPickerDialog(QtWidgets.QDialog):
         stage: Stage,
         target_types: tuple[type, ...] = (Node, NodeComponent),
         current_target: Node | NodeComponent | None = None,
+        excluded: typing.Iterable[Node | NodeComponent] = (),
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         """Initialize StageObjectPickerDialog.
@@ -35,6 +36,8 @@ class StageObjectPickerDialog(QtWidgets.QDialog):
                 `NodeComponent`. Components are not listed when it has no
                 `NodeComponent`.
             current_target (Node | NodeComponent | None): object to start at.
+            excluded (typing.Iterable[Node | NodeComponent]): objects that are shown
+                but can't be chosen.
             parent (QtWidgets.QWidget | None): parent widget.
         """
         super().__init__(parent)
@@ -45,7 +48,7 @@ class StageObjectPickerDialog(QtWidgets.QDialog):
         self.search_field.setPlaceholderText("Search")
         self.search_field.setClearButtonEnabled(True)
         pyside_fn.add_search_icon(self.search_field)
-        self.tree = StageObjectTreeWidget(stage, target_types, self)
+        self.tree = StageObjectTreeWidget(stage, target_types, excluded, self)
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Ok
             | QtWidgets.QDialogButtonBox.StandardButton.Cancel,
@@ -90,11 +93,25 @@ class StageObjectPickerDialog(QtWidgets.QDialog):
             stage,
             target_types=getattr(component, "target_types", (Node, NodeComponent)),
             current_target=getattr(component, "target", None),
+            excluded=cls._components_of_the_node(component),
             parent=parent,
         )
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             return dialog.selected_object
         return None
+
+    @staticmethod
+    def _components_of_the_node(component: NodeComponent) -> list[NodeComponent]:
+        """Get the components of the node a component belongs to.
+
+        Args:
+            component (NodeComponent): component.
+
+        Returns:
+            list[NodeComponent]: its siblings and itself, empty if it has no node.
+        """
+        node = getattr(component, "node", None)
+        return node.components_model.list_components() if node is not None else []
 
     @property
     def selected_object(self) -> Node | NodeComponent | None:

@@ -1,7 +1,7 @@
 import pytest
 from PySide6 import QtCore, QtQml, QtWidgets
 
-from nyx.api.v1 import CoreNodeComponents, CoreNodes, commands
+from nyx.api.v1 import CoreNodeComponents, CoreNodes, Stage, commands
 from nyx.editor.controllers.components import ComponentsController
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.static.enums import ItemSelectionMode
@@ -892,3 +892,22 @@ def test_key_column_fits_the_longest_key_between_the_limits(make_value_editor):
     assert key_width("A", "B") == 100  # the minimum
     assert 100 < key_width("A", "A" * 15) < 200
     assert key_width("A" * 500) == 200  # the maximum
+
+
+def test_controller_reports_a_refused_value_instead_of_raising(
+    monkeypatch, caplog, create_node
+):
+    stage = Stage()
+    node = create_node(stage, "getter", type_id=CoreNodes.GET)
+    component = node["component"]
+    controller = ComponentsController()
+    monkeypatch.setattr(ComponentsController, "stage", property(lambda self: stage))
+    monkeypatch.setattr(
+        controller, "get_component_from_proxy_row", lambda row: component
+    )
+
+    with caplog.at_level("WARNING"):
+        controller.setComponentValue(0, component.path.as_posix(), False)
+
+    assert "a component of its own node" in caplog.text
+    assert component.raw_value != component.path.as_posix()
