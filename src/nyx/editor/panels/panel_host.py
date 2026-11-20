@@ -59,8 +59,10 @@ class PanelHost(QtWidgets.QWidget):
         PanelArea.BOTTOM: 0.9,
     }
     """Largest share of the graph area (its width, or height for the bottom area) a
-    panel can take. The side panels leave a fifth of the width for the graph."""
+    panel can take."""
     MINIMUM_FREE_SIZE = 60
+    """Width (height for the bottom area) the panels leave free, while the minimum
+    sizes of the open panels allow it."""
     FLOATING_MARGIN = 10
     FLOATING_SPACING = 6
 

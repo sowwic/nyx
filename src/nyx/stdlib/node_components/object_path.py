@@ -123,7 +123,7 @@ class StageObjectPathComponent(NodeComponent):
         try:
             # The suffix decides: a component path gives a component, else a node.
             target = stage.get_object(path)
-        except (exceptions.StageObjectQueryError, ValueError):
+        except exceptions.StageObjectQueryError, ValueError:
             return None
         return target if isinstance(target, self.target_types) else None
 

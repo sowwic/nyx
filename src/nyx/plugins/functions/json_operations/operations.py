@@ -77,6 +77,6 @@ def get_json_value(
                 value = value[int(part)]
             else:
                 value = value[part]
-        except (KeyError, IndexError, ValueError, TypeError):
+        except KeyError, IndexError, ValueError, TypeError:
             return default
     return value
