@@ -78,9 +78,30 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
 
     def create_connections(self):
         """Creates signal-slot connections for the graphics stage."""
+        # The editor can be given another stage later, disconnect from this one
+        self._followed_stage = self.stage
         self.selectionChanged.connect(self.on_selection_changed)
-        self.stage.itemChanged.connect(self.on_node_changed)
-        self.stage.link_pins_changed.connect(self.on_link_pins_changed)
+        self._followed_stage.itemChanged.connect(self.on_node_changed)
+        self._followed_stage.link_pins_changed.connect(self.on_link_pins_changed)
+
+    def detach(self) -> None:
+        """Stop following the stage and the selection, for an editor that was closed.
+
+        A closed editor can stay alive until the application exits. Destroying a scene
+        with selected items emits `selectionChanged` while Python is shutting down,
+        which prints `Slot 'GraphicsStage::' not found`, so the selection is dropped
+        here, after the scene stops listening to it.
+        """
+        stage = self._followed_stage
+        if stage is None:
+            return
+        self._followed_stage = None
+        self.selectionChanged.disconnect(self.on_selection_changed)
+        # The stage is gone if the editor was given another one
+        if shiboken6.isValid(stage):
+            stage.itemChanged.disconnect(self.on_node_changed)
+            stage.link_pins_changed.disconnect(self.on_link_pins_changed)
+        self.clearSelection()
 
     @property
     def graph_editor(self) -> StageGraphEditor:

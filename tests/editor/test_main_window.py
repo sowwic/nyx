@@ -484,3 +484,21 @@ def test_always_on_top_config_value_is_applied(main_window):
         assert action.isChecked()
     finally:
         main_window.set_always_on_top(False)
+
+
+def test_closing_an_editor_drops_the_selection_of_its_scene(
+    main_window, stage_editor, create_node
+):
+    """A closed editor can stay alive until exit, a scene destroyed with a selection
+    prints `Slot 'GraphicsStage::' not found` then."""
+    node = create_node(stage_editor.stage, "a")
+    gr_stage = stage_editor.gr_stage
+    gr_stage.get_gr_node(node).setSelected(True)
+    assert gr_stage.selectedItems()
+    receivers = stage_editor.stage.receivers("2itemChanged(QStandardItem*)")
+    stage_editor.maybe_save = lambda: True  # avoid modal save prompt
+
+    stage_editor.parentWidget().close()
+
+    assert gr_stage.selectedItems() == []
+    assert stage_editor.stage.receivers("2itemChanged(QStandardItem*)") == receivers - 1

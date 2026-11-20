@@ -182,6 +182,7 @@ class StageGraphEditor(QtWidgets.QWidget):
         """
         if self.maybe_save():
             self.main_window.application.session.unregister_stage(self.stage)
+            self.gr_stage.detach()
             event.accept()
         else:
             event.ignore()
