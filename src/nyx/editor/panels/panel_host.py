@@ -49,14 +49,14 @@ class PanelHost(QtWidgets.QWidget):
     }
     MINIMUM_SIZES = {
         PanelArea.LEFT: 280,
-        PanelArea.RIGHT: 300,
-        PanelArea.BOTTOM: 180,
+        PanelArea.RIGHT: 330,
+        PanelArea.BOTTOM: 155,
     }
     """Smallest width (height for the bottom area) a panel can be given."""
     MAXIMUM_FRACTIONS = {
-        PanelArea.LEFT: 0.4,
-        PanelArea.RIGHT: 0.4,
-        PanelArea.BOTTOM: 0.5,
+        PanelArea.LEFT: 0.7,
+        PanelArea.RIGHT: 0.7,
+        PanelArea.BOTTOM: 0.9,
     }
     """Largest share of the graph area (its width, or height for the bottom area) a
     panel can take. The side panels leave a fifth of the width for the graph."""

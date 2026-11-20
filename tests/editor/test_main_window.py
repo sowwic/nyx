@@ -502,3 +502,23 @@ def test_closing_an_editor_drops_the_selection_of_its_scene(
 
     assert gr_stage.selectedItems() == []
     assert stage_editor.stage.receivers("2itemChanged(QStandardItem*)") == receivers - 1
+
+
+def test_a_replaced_stage_is_followed_by_the_graphics_stage(
+    main_window, stage_editor, create_node, monkeypatch
+):
+    """The scene has to show the changes of the stage the editor has now."""
+    from nyx.api.v1 import Stage
+
+    new_stage = Stage()
+
+    stage_editor.set_stage(new_stage)
+    node = create_node(new_stage, "a")
+    gr_node = stage_editor.gr_stage.get_gr_node(node)
+    refreshed = []
+    monkeypatch.setattr(gr_node, "refresh", lambda: refreshed.append(node))
+    node.set_display_name("Renamed")
+
+    # A rename changes the data of the node more than once
+    assert refreshed
+    assert all(each is node for each in refreshed)
