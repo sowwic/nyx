@@ -126,6 +126,10 @@ Everything in the [node](node.md) properties table applies to components: `reada
 - **The value is one of three**: raw (as set), cached (evaluated) and display (text). Read
   with `pull_value()`, which follows links; `raw_value` and `cached_value` read this
   component's own.
+- **`pull_value()` guards against cycles.** It raises `NodeComponentCycleError` (and logs a
+  warning) if the pull leads back to the same component. To change how a component
+  produces its value, override `resolve_value(value_mask)`, not `pull_value`, so the
+  guard stays in place.
 - **`invalid_reason`** marks a component as not usable and shows the reason in the UI. It is
   not saved. Set it back to `""` when the problem is gone.
 - **Flags that are static** (like File, which sets `STATIC | EDITABLE`) are skipped when the

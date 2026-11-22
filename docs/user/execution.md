@@ -128,6 +128,10 @@ pushed), the **cached** value (the evaluated result) and the **display** text.
   component. A failed cast is logged as a warning and the value is passed on as it is.
 - Otherwise the component's own cached value is used.
 
+If a pull leads back to a component that is already being pulled (for example a **Get**
+node that points at a component fed by its own value), that is a cycle. A warning with the
+path of the cycle goes to the log, and the node being executed fails with an error.
+
 !!! important
     Pulling **does not run the source node**. It reads the value the source component
     holds *now*. A value link only gives you the right value if the node that produces

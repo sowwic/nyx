@@ -4,7 +4,6 @@ import functools
 import pathlib
 import typing
 import logging
-import base64
 
 import shiboken6
 from PySide6 import QtCore
@@ -25,14 +24,16 @@ from .widgets.bridge_panel import BridgePanel
 from .widgets.notifications import NotificationManager
 from .widgets.dialogs.about_dialog import AboutDialog
 from .widgets.dialogs.execution_progress_dialog import ExecutionProgressDialog
-from .widgets.output_log.output_log_dock import OutputLogDockWidget
+from .widgets.output_log.output_log_widget import OutputLogWidget
 from .widgets.inspector import Inspector
-from .widgets.editor_toolbar import EditorToolBar
+from .widgets.stage_tree_widget import StageTreeWidget
+from .widgets.stage_controls import StageControlsOverlay
 from .widgets import menubar_menus
 from .widgets.stage_mdi_area import StageMdiArea
+from .panels import PANEL_REGISTRY, PanelHost, PanelManager, PanelSidebar
+from .panels.panel_definitions import PanelId, register_panels
 from ..utils import pyside_fn
 from ..static import vars as nyx_vars
-from ..static.enums import EditorUIObject
 from ..core.session import SESSION_FILE_SUFFIX
 from ..static.paths import LAST_SESSION_FILE_PATH
 
@@ -47,12 +48,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class NyxEditorMainWindow(QtWidgets.QMainWindow):
-    """Main window of the Nyx editor: docks, menus and the MDI area of stage editors."""
+    """Main window of the Nyx editor: sidebar, panels, menus and stage editors."""
 
     _INSTANCE: NyxEditorMainWindow = None
 
     DEFAULT_TITLE = f"Nyx Editor v{__version__}"
-    LAYOUT_VERSION = 2
     MINIMUM_SIZE = (1000, 600)
 
     @classmethod
@@ -83,15 +83,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             parent (QtWidgets.QWidget | None): parent widget.
         """
         super().__init__(parent)
-        self._has_completed_first_show = False
-        self._dock_widgets: list[QtWidgets.QDockWidget] = []
         self._is_nyx_editor_window = True
         self.setWindowTitle(self.DEFAULT_TITLE)
         self.setMinimumSize(*self.MINIMUM_SIZE)
-        self.setDockNestingEnabled(True)
-        self.setDockOptions(
-            self.dockOptions() | QtWidgets.QMainWindow.DockOption.AllowTabbedDocks
-        )
 
         self.undo_group = QtGui.QUndoGroup(self)
         self.viewport_debug_overlay = StageGraphDebugOverlay()
@@ -99,13 +93,12 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         # Initialize ui
         self.create_actions()
         self.create_widgets()
-        self._create_dock_widgets()
         self.create_menubar()
         self.create_layouts()
         self.create_connections()
 
         self.apply_config_values()
-        NotificationManager.set_host(self)
+        NotificationManager.set_host(self, self.panel_host)
 
     @property
     def config(self) -> NyxConfig:
@@ -130,44 +123,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         app: NyxEditorApplication = QtWidgets.QApplication.instance()
         return app
 
-    @property
-    def dock_widgets(self) -> list[QtWidgets.QDockWidget]:
-        """list[QtWidgets.QDockWidget]: docks created by the window."""
-        return self._dock_widgets
-
-    def _create_dock(
-        self,
-        title: str,
-        object_name: str,
-        widget: QtWidgets.QWidget,
-        dock_class: type[QtWidgets.QDockWidget] | None = None,
-        allowed_areas: QtCore.Qt.DockWidgetArea | None = None,
-    ) -> QtWidgets.QDockWidget:
-        """Create a dock widget owned by the window.
-
-        Args:
-            title (str): dock title.
-            object_name (str): object name used to save and restore the layout.
-            widget (QtWidgets.QWidget): widget shown in the dock.
-            dock_class (type[QtWidgets.QDockWidget] | None): dock class. Defaults to
-                QDockWidget.
-            allowed_areas (QtCore.Qt.DockWidgetArea | None): areas the dock can be placed
-                in.
-
-        Returns:
-            QtWidgets.QDockWidget: created dock.
-        """
-        if dock_class is None:
-            dock_class = QtWidgets.QDockWidget
-        dock = dock_class(title, self)
-        if widget:
-            dock.setWidget(widget)
-        dock.setObjectName(object_name)
-        if allowed_areas is not None:
-            dock.setAllowedAreas(allowed_areas)
-        self._dock_widgets.append(dock)
-        return dock
-
     def create_actions(self):
         """Register handlers of the window actions."""
         register = ACTION_ROUTER.register_handler
@@ -187,6 +142,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         register(ActionId.SHOW_ADDRESS_NAMES, self.set_show_address_names)
         register(ActionId.ALWAYS_ON_TOP, self.set_always_on_top)
         register(ActionId.DOCUMENTATION, self.open_documentation)
+        register(ActionId.SUBMIT_ISSUE, self.open_issue_tracker)
         register(ActionId.ABOUT, self.show_about_dialog)
         # Fallbacks so toolbar buttons work before the tree view has focus
         register(ActionId.CREATE_NODE, self.show_nodes_palette)
@@ -206,20 +162,17 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.menubar_edit_menu = menubar_menus.EditMenu(self)
         self.menubar_session_menu = menubar_menus.SessionMenu(self)
         self.menubar_view_menu = menubar_menus.ViewMenu(self)
-        self.menubar_window_menu = menubar_menus.WindowMenu(self)
-        self.menubar_help_menu = menubar_menus.HelpMenu(self)
 
         self.menuBar().setNativeMenuBar(False)
         self.menuBar().addMenu(self.menubar_file_menu)
         self.menuBar().addMenu(self.menubar_edit_menu)
         self.menuBar().addMenu(self.menubar_session_menu)
         self.menuBar().addMenu(self.menubar_view_menu)
-        self.menuBar().addMenu(self.menubar_window_menu)
-        self.menuBar().addMenu(self.menubar_help_menu)
 
     def create_widgets(self):
         """Create the window widgets."""
-        self.stage_tree_view = StageTreeView()
+        self.stage_tree_widget = StageTreeWidget(self)
+        self.stage_tree_view: StageTreeView = self.stage_tree_widget.tree_view
         self.inspector = Inspector(self)
         self.nodes_palette_view = NodesPaletteView(drag_enabled=True, parent=self)
 
@@ -227,88 +180,34 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
         self.undo_view = QtWidgets.QUndoView(self.undo_group, self)
         self.undo_view.setEmptyLabel("Stage initial state")
-        self.tool_bar = EditorToolBar(self)
 
-        # mdi area
+        self.output_log_widget = OutputLogWidget(parent=self)
+
+        # Panel contents are children of the window until their panel is created, so
+        # hide them, or they show through the transparent parts of the tab bar
+        for panel_content in (
+            self.stage_tree_widget,
+            self.inspector,
+            self.nodes_palette_view,
+            self.bridge_panel,
+            self.undo_view,
+            self.output_log_widget,
+        ):
+            panel_content.hide()
+
+        # mdi area with the sidebar and the overlay panels around it
         self.mdi_area = StageMdiArea()
-        self.setCentralWidget(self.mdi_area)
-
-    def _create_dock_widgets(self):
-        """Create the dock widgets and the default tab positions."""
-        # Dock Widgets
-        self.setTabPosition(QtCore.Qt.RightDockWidgetArea, QtWidgets.QTabWidget.East)
-        self.setTabPosition(QtCore.Qt.LeftDockWidgetArea, QtWidgets.QTabWidget.West)
-        self.setTabPosition(QtCore.Qt.BottomDockWidgetArea, QtWidgets.QTabWidget.North)
-
-        self.nodes_palette_dock = self._create_dock(
-            title="Nodes Palette",
-            object_name=EditorUIObject.NODES_PALETTE_DOCK,
-            widget=self.nodes_palette_view,
+        register_panels()
+        self.panel_sidebar = PanelSidebar(PANEL_REGISTRY, self)
+        self.panel_host = PanelHost(self.mdi_area, self.panel_sidebar)
+        self.panel_manager = PanelManager(
+            self, self.panel_host, self.panel_sidebar, PANEL_REGISTRY
         )
-        self.stage_tree_dock = self._create_dock(
-            title="Tree View",
-            object_name=EditorUIObject.STAGE_TREE_DOCK,
-            widget=self.stage_tree_view,
+        self.stage_controls_overlay = StageControlsOverlay(
+            self.panel_manager.toggle_action(PanelId.INSPECTOR)
         )
-        self.undo_dock = self._create_dock(
-            title="Undo History",
-            object_name=EditorUIObject.UNDO_HISTORY_DOCK,
-            widget=self.undo_view,
-        )
-        self.bridge_dock = self._create_dock(
-            title="Bridge",
-            object_name=EditorUIObject.BRIDGE_DOCK,
-            widget=self.bridge_panel,
-        )
-        self.logger_dock: OutputLogDockWidget = self._create_dock(
-            title="Output Log",
-            object_name=EditorUIObject.LOG_OUTPUT_DOCK,
-            widget=None,
-            dock_class=OutputLogDockWidget,
-            allowed_areas=QtCore.Qt.DockWidgetArea.BottomDockWidgetArea
-            | QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
-        )
-
-        self.toolbar_dock = self._create_dock(
-            title="Tools",
-            object_name=EditorUIObject.TOOLBAR_DOCK,
-            widget=self.tool_bar,
-            allowed_areas=QtCore.Qt.DockWidgetArea.TopDockWidgetArea
-            | QtCore.Qt.DockWidgetArea.BottomDockWidgetArea,
-        )
-        self.inspector_dock = self._create_dock(
-            title="Inspector",
-            object_name=EditorUIObject.INSPECTOR_DOCK,
-            widget=self.inspector,
-        )
-
-    def _apply_default_docks_layout(self):
-        """Reset the docks to the default layout."""
-        # Start from a clean slate so no stale tab groups or floating state remain
-        for dock in self.dock_widgets:
-            dock.setFloating(False)
-            self.removeDockWidget(dock)
-
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.stage_tree_dock)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.undo_dock)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.bridge_dock)
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.logger_dock)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.inspector_dock)
-        self.addDockWidget(
-            QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.nodes_palette_dock
-        )
-        self.addDockWidget(QtCore.Qt.TopDockWidgetArea, self.toolbar_dock)
-
-        # Tabify dock widgets
-        self.tabifyDockWidget(self.stage_tree_dock, self.nodes_palette_dock)
-        self.tabifyDockWidget(self.stage_tree_dock, self.undo_dock)
-        self.tabifyDockWidget(self.stage_tree_dock, self.bridge_dock)
-
-        for dock in self.dock_widgets:
-            dock.show()
-
-        # Default in tabified group
-        self.stage_tree_dock.raise_()
+        self.panel_host.add_floating_widget(self.stage_controls_overlay)
+        self.setCentralWidget(self.panel_host)
 
     def _apply_default_geometry(self):
         """Resize the window to most of the screen and center it."""
@@ -331,23 +230,6 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self.inspector.setEnabled(self.current_mdi_window is not None)
 
     # Events
-    def showEvent(self, show_event: QtGui.QShowEvent) -> None:
-        """Restore the log dock height after the first show.
-
-        Args:
-            show_event (QtGui.QShowEvent): event.
-        """
-        super().showEvent(show_event)
-        if self._has_completed_first_show:
-            return
-        self._has_completed_first_show = True
-        # The first layout pass has not happened yet at this point, so wait one
-        # event-loop turn before asking the dock to restore its height.
-        QtCore.QTimer.singleShot(
-            0,
-            self.logger_dock.restore_expanded_height_into_main_window_if_possible,
-        )
-
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Prompt to save each editor, then save the last session and config.
 
@@ -376,14 +258,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
 
     # Config methods
     def save_config_value(self):
-        """Store window geometry and layout in the config."""
+        """Store window geometry, panels and log filter in the config."""
         self.config.values.main_window.position = (self.pos().x(), self.pos().y())
         self.config.values.main_window.size = (self.width(), self.height())
-        self.config.values.main_window.layout.version = self.LAYOUT_VERSION
-        self.config.values.main_window.layout.state = base64.b64encode(
-            bytes(self.saveState(self.LAYOUT_VERSION))
-        ).decode("ascii")
-        self.logger_dock.save_config_values(self.config)
+        self.panel_manager.save_config_values(self.config)
+        self.config.values.editor_widgets.log_widget.minimum_level = (
+            self.output_log_widget.get_minimum_level()
+        )
 
     def _apply_window_geometry(self):
         """Apply the saved window geometry, or the default one if there is none."""
@@ -417,13 +298,10 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         self._apply_show_address_names()
         self._apply_stage_render_options()
 
-        # The log dock's expansion state and size constraints must be in place
-        # BEFORE the layout is built or restored. Otherwise Qt clamps the dock
-        # to its collapsed/default size while placing it.
-        self.logger_dock.apply_config_values(self.config)
-        self._load_layout_from_config()
-        # Restoring the dock layout shrinks the window to its minimum size
-        self._apply_window_geometry()
+        self.output_log_widget.set_minimum_level(
+            self.config.values.editor_widgets.log_widget.minimum_level
+        )
+        self.panel_manager.apply_config_values(self.config)
 
     def _apply_stage_render_options(self):
         """Redraw the open stages with the render options of the config.
@@ -437,36 +315,13 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
             graph_editor.gr_stage.apply_render_options()
             graph_editor.gr_stage.rebuild_current_scope()
 
-    def _load_layout_from_config(self):
-        """Restore the dock layout from the config.
-
-        Returns:
-            bool: saved layout was applied, False if the default was used.
-        """
-        layout_config = self.config.values.main_window.layout
-        if not layout_config.state or layout_config.version != self.LAYOUT_VERSION:
-            LOGGER.info("No compatible saved layout, using default")
-            self._apply_default_docks_layout()
-            return False
-
-        try:
-            layout_state = QtCore.QByteArray(base64.b64decode(layout_config.state))
-        except ValueError:
-            LOGGER.info("Corrupt saved layout, using default")
-            self._apply_default_docks_layout()
-            return False
-
-        if not self.restoreState(layout_state, version=layout_config.version):
-            LOGGER.warning("Layout state restore failed, using default")
-            self._apply_default_docks_layout()
-            return False
-
-        LOGGER.info("Using saved main window layout")
-        return True
-
     def open_documentation(self) -> None:
         """Open the documentation in the default browser."""
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(nyx_vars.DOCUMENTATION_URL))
+
+    def open_issue_tracker(self) -> None:
+        """Open the page for submitting an issue in the default browser."""
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(nyx_vars.ISSUES_URL))
 
     def show_about_dialog(self) -> None:
         """Show the modal about dialog."""
@@ -579,7 +434,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         mdi_sub_window = self.mdi_area.addSubWindow(stage_graph_editor_widget)
 
         # Connect signals
-        stage_graph_editor_widget.selection_model.selectionChanged.connect(
+        stage_graph_editor_widget.selected_objects_changed.connect(
             self.inspector.update_data
         )
         stage_graph_editor_widget.node_type_dropped.connect(
@@ -692,6 +547,9 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         """
         self.inspector.setEnabled(mdi_window is not None)
         self._apply_viewport_debug_overlay()
+        self.stage_controls_overlay.scope_widget.set_graph_editor(
+            mdi_window.widget() if mdi_window is not None else None
+        )
         if mdi_window is None:
             self.stage_tree_view.set_stage(None)
             self.undo_group.setActiveStack(None)
@@ -700,7 +558,7 @@ class NyxEditorMainWindow(QtWidgets.QMainWindow):
         stage_graph: StageGraphEditor = mdi_window.widget()
         self.stage_tree_view.set_stage(stage_graph.stage)
         self.undo_group.setActiveStack(stage_graph.stage.undo_stack)
-        self.stage_tree_view.setSelectionModel(stage_graph.selection_model)
+        self.stage_tree_view.set_selection_model(stage_graph.selection_model)
 
     def on_stage_open(self, tabbed: bool = False):
         """Ask for a stage file and open it.

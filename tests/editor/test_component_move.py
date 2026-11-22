@@ -4,6 +4,7 @@ from PySide6 import QtCore
 from nyx.api.v1 import CoreNodeComponents, CoreNodes, commands
 from nyx.editor.views.node_components_view import NodeComponentsView
 from nyx.static.paths import PACKAGE_ROOT
+from nyx.editor.panels.panel_definitions import PanelId
 
 DELEGATE_QML = (
     PACKAGE_ROOT / "editor" / "qml" / "NyxEditor" / "ComponentsView"
@@ -25,7 +26,7 @@ def controller_and_node(main_window, stage_editor, create_node, qtbot):
                 node=node, type_id=CoreNodeComponents.VALUE, name=name
             )
         )
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         node.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -103,7 +104,7 @@ def test_components_of_a_locked_node_cant_move(
         component = inner.components_model.create_component(CoreNodeComponents.VALUE)
         component.name = name
         inner.components_model.add_component(component)
-    main_window.inspector.show()
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
     stage_editor.selection_model.select(
         inner.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )

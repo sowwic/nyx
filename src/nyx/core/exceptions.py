@@ -18,6 +18,10 @@ class NodeComponentLinkError(RuntimeError):
     """Raised when node components can't be linked or unlinked."""
 
 
+class NodeComponentCycleError(RuntimeError):
+    """Raised when pulling a component value leads back to the component itself."""
+
+
 class ActionRegistrationError(RuntimeError):
     """Raised when an editor action can't be registered."""
 

@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import typing
 import logging
 
 from PySide6 import QtCore, QtWidgets
 
-from .inspector_error_banner import InspectorErrorBanner
-from .inspector_node_header import InspectorNodeHeader
-from ..views.node_components_view import NodeComponentsView
+from nyx.core.plugin_subsystem.registry import NYX_REGISTRY
+from nyx.static.enums import CoreInspectorWidgets
+from .inspector_widgets.base import InspectorWidget
 
 if typing.TYPE_CHECKING:
+    from nyx.core.stage_object import StageObject
     from ..main_window import NyxEditorMainWindow
     from .stage_graph_editor import StageGraphEditor
 
@@ -15,7 +18,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Inspector(QtWidgets.QWidget):
-    """Dock content showing the header and components of the selected node."""
+    """Panel content showing the selected stage object.
+
+    The object picks the widget that shows it with `get_inspector_widget_id`. Widgets
+    come from the registry, the inspector creates each one when it is first needed and
+    keeps it. Objects without a widget get a placeholder text.
+    """
 
     def __init__(
         self, main_window: NyxEditorMainWindow, parent: QtWidgets.QWidget | None = None
@@ -28,6 +36,9 @@ class Inspector(QtWidgets.QWidget):
         """
         super().__init__(parent)
         self.main_window: NyxEditorMainWindow = main_window
+        self._widgets: dict[str, InspectorWidget] = {}
+        self._unknown_widget_ids: set[str] = set()
+        self._active_widget: InspectorWidget | None = None
 
         self.create_actions()
         self.create_widgets()
@@ -38,78 +49,134 @@ class Inspector(QtWidgets.QWidget):
         pass
 
     def create_widgets(self):
-        """Create the node header and components view."""
-        self._node_header = InspectorNodeHeader()
-        self._error_banner = InspectorErrorBanner()
-        self._node_components_view = NodeComponentsView()
-        self._watched_model: QtCore.QAbstractItemModel | None = None
+        """Create the placeholder and the widget showing nodes."""
+        self._placeholder = QtWidgets.QLabel()
+        self._placeholder.setObjectName("inspector_placeholder")
+        self._placeholder.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self._placeholder.setWordWrap(True)
+        self._placeholder.setEnabled(False)
 
     def create_layouts(self):
-        """Lay out the header above the components."""
-        self.main_layout = QtWidgets.QVBoxLayout(self)
+        """Stack the placeholder and the widgets."""
+        self.main_layout = QtWidgets.QStackedLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.addWidget(self._node_header, stretch=0)
-        self.main_layout.addWidget(self._error_banner, stretch=0)
-        self.main_layout.addWidget(self._node_components_view, stretch=1)
+        self.main_layout.addWidget(self._placeholder)
+        # Created now, so the node widgets exist before the first selection
+        self._get_widget(CoreInspectorWidgets.NODE)
+        self.main_layout.setCurrentWidget(self._placeholder)
 
     @property
     def current_stage_graph(self) -> StageGraphEditor | None:
         """StageGraphEditor | None: editor of the active window."""
         return self.main_window.current_stage_graph
 
+    @property
+    def active_widget(self) -> InspectorWidget | None:
+        """InspectorWidget | None: widget shown, None while the placeholder is."""
+        return self._active_widget
+
+    @property
+    def placeholder_text(self) -> str:
+        """str: text of the placeholder."""
+        return self._placeholder.text()
+
+    def _get_widget(self, widget_id: str) -> InspectorWidget | None:
+        """Get the widget of an id, creating it the first time.
+
+        Args:
+            widget_id (str): inspector widget id.
+
+        Returns:
+            InspectorWidget | None: widget, None if no widget is registered with the id.
+        """
+        widget = self._widgets.get(widget_id)
+        if widget is not None:
+            return widget
+        widget_cls = NYX_REGISTRY.get_inspector_widget_cls(widget_id)
+        if widget_cls is None:
+            if widget_id not in self._unknown_widget_ids:
+                self._unknown_widget_ids.add(widget_id)
+                LOGGER.error("Unknown inspector widget %r", widget_id)
+            return None
+        widget = widget_cls()
+        self._widgets[widget_id] = widget
+        self.main_layout.addWidget(widget)
+        return widget
+
+    def _show_widget(self, widget: InspectorWidget | None) -> None:
+        """Show a widget, or the placeholder.
+
+        The widget shown before is told to show no object, so it lets go of it.
+
+        Args:
+            widget (InspectorWidget | None): widget to show, None for the placeholder.
+        """
+        previous = self._active_widget
+        # Set before telling the previous widget, which can push a command that makes
+        # the inspector update again
+        self._active_widget = widget
+        self.main_layout.setCurrentWidget(
+            self._placeholder if widget is None else widget
+        )
+        if previous is not None and previous is not widget:
+            previous.set_stage_object(None)
+
     def clear(self):
-        """Show no node."""
-        self._node_header.set_node(None)
-        self._error_banner.set_node(None)
-        self._watch_model(None)
-        self._node_components_view.setModel(None)
+        """Show no object."""
+        for widget in self._widgets.values():
+            widget.set_stage_object(None)
+        self._active_widget = None
+        self._placeholder.setText("Nothing to inspect.")
+        self.main_layout.setCurrentWidget(self._placeholder)
 
-    def _watch_model(self, model: QtCore.QAbstractItemModel | None) -> None:
-        """Follow the changes of the model the shown node is in, to update the error.
-
-        Args:
-            model (QAbstractItemModel | None): the stage, None to stop following.
-        """
-        if model is self._watched_model:
-            return
-        if self._watched_model is not None:
-            try:
-                self._watched_model.dataChanged.disconnect(self._on_data_changed)
-            except (RuntimeError, TypeError):
-                pass  # the model is already gone
-        self._watched_model = model
-        if model is not None:
-            model.dataChanged.connect(self._on_data_changed)
-
-    def _on_data_changed(self, top_left, bottom_right, roles=None) -> None:
-        """Refresh the error when the shown node changes.
+    def show_stage_object(self, stage_object: StageObject) -> None:
+        """Show an object with the widget of its type.
 
         Args:
-            top_left (QModelIndex): first changed index.
-            bottom_right (QModelIndex): last changed index.
-            roles (list[int] | None): changed roles, empty or None for all.
+            stage_object (StageObject): object to show.
         """
-        node = self._error_banner.node
-        if node is None or top_left != node.index():
+        widget_id = type(stage_object).get_inspector_widget_id()
+        if widget_id is None:
+            self._show_widget(None)
+            self._placeholder.setText(
+                f"No inspector available for {self._type_name(stage_object)}."
+            )
             return
-        self._error_banner.refresh()
+        widget = self._get_widget(widget_id)
+        if widget is None:
+            self._show_widget(None)
+            self._placeholder.setText(
+                f"Inspector widget {widget_id!r} is not available."
+            )
+            return
+        self._show_widget(widget)
+        widget.set_stage_object(stage_object)
+
+    @staticmethod
+    def _type_name(stage_object: StageObject) -> str:
+        """Get a name of the type of an object to show to the user.
+
+        Args:
+            stage_object (StageObject): object.
+
+        Returns:
+            str: display name of the type, the class name if it has none.
+        """
+        try:
+            return stage_object.get_type_display_name()
+        except AttributeError, NotImplementedError:
+            return type(stage_object).__name__
 
     def update_data(self):
-        """Show the selected node of the active editor, or the root node."""
-        if self.current_stage_graph is None:
+        """Show the selected object of the active editor, or the root node."""
+        graph = self.current_stage_graph
+        if graph is None:
             self.clear()
             self.setEnabled(False)
             return
 
         self.setEnabled(True)
-        selected_nodes = self.current_stage_graph.list_selected_nodes()
-        node = (
-            selected_nodes[0]
-            if selected_nodes
-            else self.current_stage_graph.stage.root_node
+        selected_objects = graph.list_selected_objects()
+        self.show_stage_object(
+            selected_objects[0] if selected_objects else graph.stage.root_node
         )
-        LOGGER.debug(f"Updating inspector: {node.path}")
-        self._node_header.set_node(node_uuid=node.uuid if node else None)
-        self._error_banner.set_node(node)
-        self._watch_model(node.model() if node else None)
-        self._node_components_view.setModel(node.components_model)

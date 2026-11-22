@@ -6,6 +6,7 @@ from PySide6 import QtCore
 from nyx.api.v1 import (
     CoreNodeComponents,
     CoreNodes,
+    Node,
     NodeComponent,
     NodeComponentFlag,
     Stage,
@@ -251,6 +252,104 @@ def test_set_value_command_undo_redo(getter_and_target):
     assert object_path.resolve_component() is other["message"]
     stage.undo_stack.undo()
     assert object_path.resolve_component() is target["message"]
+
+
+# ======== Self reference ========= #
+
+
+@pytest.mark.parametrize("text", ["/stage/getter.component", "getter.component"])
+def test_a_path_cannot_be_set_to_the_component_itself(getter_and_target, text):
+    stage, getter, target = getter_and_target
+    object_path = getter["component"]
+    command = commands.SetNodeComponentValueCommand(
+        stage=stage, node_component=object_path, value=text
+    )
+
+    with pytest.raises(exceptions.NyxCommandValidationError, match="own node"):
+        stage.push_command(command)
+
+    assert object_path.resolve_component() is target["message"]
+    assert stage.undo_stack.count() == stage.undo_stack.index()
+    assert not stage.undo_stack.canRedo()
+
+
+@pytest.mark.parametrize("text", ["/stage/getter.value", "getter.value"])
+def test_a_path_cannot_be_set_to_another_component_of_its_node(getter_and_target, text):
+    stage, getter, target = getter_and_target
+    command = commands.SetNodeComponentValueCommand(
+        stage=stage, node_component=getter["component"], value=text
+    )
+
+    with pytest.raises(exceptions.NyxCommandValidationError, match="own node"):
+        stage.push_command(command)
+
+    assert getter["component"].resolve_component() is target["message"]
+
+
+def test_a_path_can_point_at_the_node_it_belongs_to_and_at_other_nodes(
+    getter_and_target,
+):
+    stage, getter, target = getter_and_target
+    path = getter["component"]
+    path.target_types = (Node, NodeComponent)
+
+    stage.push_command(
+        commands.SetNodeComponentValueCommand(
+            stage=stage, node_component=path, value="getter"
+        )
+    )
+    assert path.resolve_node() is getter
+    stage.push_command(
+        commands.SetNodeComponentValueCommand(
+            stage=stage, node_component=path, value="/stage/target.message"
+        )
+    )
+    assert path.resolve_component() is target["message"]
+
+
+def test_a_path_loaded_with_a_component_of_its_node_as_the_target_has_no_target(
+    getter_and_target,
+):
+    _stage, getter, _target = getter_and_target
+    object_path = getter["component"]
+
+    object_path.restore_value(
+        {
+            object_path.TARGET_UUID_KEY: str(getter["value"].uuid),
+            object_path.TARGET_PATH_KEY: "getter.value",
+        },
+        None,
+    )
+
+    assert object_path.target is None
+    assert not object_path.is_valid
+
+
+def test_a_path_loaded_with_itself_as_the_target_has_no_target(getter_and_target):
+    stage, getter, _target = getter_and_target
+    object_path = getter["component"]
+
+    object_path.restore_value(
+        {
+            object_path.TARGET_UUID_KEY: str(object_path.uuid),
+            object_path.TARGET_PATH_KEY: "getter.component",
+        },
+        None,
+    )
+
+    assert object_path.target is None
+    assert not object_path.is_valid
+
+
+def test_a_path_pushed_directly_to_itself_has_no_target(getter_and_target):
+    _stage, getter, _target = getter_and_target
+    object_path = getter["component"]
+
+    # Not through a command, which refuses it: what an old file can still hold
+    object_path.push_value("/stage/getter.component")
+
+    assert object_path.target is None
+    assert not object_path.is_valid
 
 
 # ======== Getter and setter ========= #

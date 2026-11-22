@@ -12,7 +12,7 @@ from .graphics_values import (
 )
 from .main_window_values import (
     NyxMainWindowConfigValues,
-    NyxMainWindowLayoutConfigValues,
+    NyxMainWindowPanelsConfigValues,
 )
 from .root_values import NyxConfigValues
 from .style_values import NyxEditorStyleConfigValues
@@ -33,5 +33,5 @@ __all__ = [
     "NyxEditorWidgetsConfigValues",
     "NyxEnvironmentConfigValues",
     "NyxMainWindowConfigValues",
-    "NyxMainWindowLayoutConfigValues",
+    "NyxMainWindowPanelsConfigValues",
 ]

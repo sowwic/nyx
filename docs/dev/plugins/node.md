@@ -133,7 +133,8 @@ as Python expressions.
 
 Read inputs with `pull_value()`. It follows an input link (and casts to the
 component's datatype) or returns the component's own value. It never runs the node on the
-other end of the link, so producers must come earlier in the flow.
+other end of the link, so producers must come earlier in the flow. A pull that loops back
+to a component already being pulled raises `NodeComponentCycleError`, which fails the node.
 
 ## Reacting to edits
 

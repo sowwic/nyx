@@ -12,11 +12,21 @@ class GraphicsNote(GraphicsUtilObject):
     PADDING = 8.0
     Z_VALUE = 0.5
     FONT = QtGui.QFont("Zed Mono", 10)
+    SELECT_LABEL_LENGTH = 32
+    """int: characters of the text shown in a list of stacked items."""
 
     @classmethod
     def get_type_id(cls) -> str:
         """str: id the graphics object is registered with."""
         return CoreGraphicsObjects.NOTE
+
+    def get_select_label(self) -> str:
+        """str: "Note" and the start of its text."""
+        lines = [line.strip() for line in self.util_object.text.splitlines()]
+        first_line = next((line for line in lines if line), "")
+        if len(first_line) > self.SELECT_LABEL_LENGTH:
+            first_line = first_line[: self.SELECT_LABEL_LENGTH - 1] + "\u2026"
+        return f"Note: {first_line}" if first_line else "Note"
 
     def paint(
         self,

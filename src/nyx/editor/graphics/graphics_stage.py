@@ -60,6 +60,7 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         super().__init__(parent=parent)
 
         self._graph_editor = graph_editor
+        self._followed_stage: Stage | None = None
         self._gr_nodes: dict[UUID, GraphicsNode] = {}
         self._gr_links: dict[UUID, GraphicsLink] = {}
         self._gr_util_objects: dict[UUID, GraphicsUtilObject] = {}
@@ -79,8 +80,41 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
     def create_connections(self):
         """Creates signal-slot connections for the graphics stage."""
         self.selectionChanged.connect(self.on_selection_changed)
-        self.stage.itemChanged.connect(self.on_node_changed)
-        self.stage.link_pins_changed.connect(self.on_link_pins_changed)
+        self.follow_stage(self.stage)
+
+    def follow_stage(self, stage: Stage | None) -> None:
+        """Show the node and link pin changes of a stage, and stop following the last.
+
+        The editor calls this when it is given another stage.
+
+        Args:
+            stage (Stage | None): stage to follow, None to follow none.
+        """
+        previous = self._followed_stage
+        if previous is stage:
+            return
+        # The previous stage is gone if the editor deleted it
+        if previous is not None and shiboken6.isValid(previous):
+            previous.itemChanged.disconnect(self.on_node_changed)
+            previous.link_pins_changed.disconnect(self.on_link_pins_changed)
+        self._followed_stage = stage
+        if stage is not None:
+            stage.itemChanged.connect(self.on_node_changed)
+            stage.link_pins_changed.connect(self.on_link_pins_changed)
+
+    def detach(self) -> None:
+        """Stop following the stage and the selection, for an editor that was closed.
+
+        A closed editor can stay alive until the application exits. Destroying a scene
+        with selected items emits `selectionChanged` while Python is shutting down,
+        which prints `Slot 'GraphicsStage::' not found`, so the selection is dropped
+        here, after the scene stops listening to it.
+        """
+        if self._followed_stage is None:
+            return
+        self.follow_stage(None)
+        self.selectionChanged.disconnect(self.on_selection_changed)
+        self.clearSelection()
 
     @property
     def graph_editor(self) -> StageGraphEditor:
@@ -849,6 +883,8 @@ class GraphicsStage(QtWidgets.QGraphicsScene):
         self.selection_model.select(
             selection, QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
         )
+        # The model says nothing when only util objects were selected
+        self.graph_editor.notify_selected_objects_changed()
 
     def start_selected_node_rename(self):
         """Starts editing the title of the last selected GraphicsNode item."""

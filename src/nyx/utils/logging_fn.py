@@ -93,6 +93,24 @@ def format_log_record_timestamp(log_record: logging.LogRecord) -> str:
     return datetime.datetime.fromtimestamp(log_record.created).strftime("%H:%M:%S")
 
 
+def get_log_record_message(log_record: logging.LogRecord) -> str:
+    """Get the formatted message of a record, even if its arguments can't be shown.
+
+    Records are formatted lazily, so by the time the log is displayed an argument can
+    be an object that no longer exists, and formatting it raises.
+
+    Args:
+        log_record (logging.LogRecord): record.
+
+    Returns:
+        str: message with the arguments filled in, or the raw message if that fails.
+    """
+    try:
+        return log_record.getMessage()
+    except Exception:
+        return str(log_record.msg)
+
+
 def format_log_record_message_as_single_line(log_record: logging.LogRecord) -> str:
     """Get the record message with line breaks replaced by spaces.
 
@@ -104,4 +122,4 @@ def format_log_record_message_as_single_line(log_record: logging.LogRecord) -> s
     """
     # getMessage() always works, whereas `record.message` only exists after a
     # logging.Formatter has processed the record.
-    return log_record.getMessage().replace("\r\n", " ").replace("\n", " ")
+    return get_log_record_message(log_record).replace("\r\n", " ").replace("\n", " ")

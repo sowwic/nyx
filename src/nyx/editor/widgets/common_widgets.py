@@ -62,3 +62,22 @@ class ClickableHeaderWidget(QtWidgets.QWidget):
         if mouse_event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.clicked.emit()
         super().mousePressEvent(mouse_event)
+
+
+class CommitPlainTextEdit(QtWidgets.QPlainTextEdit):
+    """Multi-line text edit that says when the user is done: it lost the focus.
+
+    Attributes:
+        editing_finished: emitted when the field loses the focus.
+    """
+
+    editing_finished = QtCore.Signal()
+
+    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+        """Tell that the edit is done.
+
+        Args:
+            event (QtGui.QFocusEvent): event.
+        """
+        super().focusOutEvent(event)
+        self.editing_finished.emit()

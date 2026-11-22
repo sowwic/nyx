@@ -1,7 +1,7 @@
 import pytest
 from PySide6 import QtCore, QtGui, QtTest
 
-from nyx.api.v1 import CoreNodes, Link, Stage, commands
+from nyx.api.v1 import CoreNodes, CoreUtilObjects, Link, Stage, commands
 from nyx.editor.graphics.graphics_link_pin import GraphicsLinkPin
 from nyx.editor.graphics.link_path import build_link_path, find_pin_index
 from nyx.static.enums import LinkStyle
@@ -69,10 +69,10 @@ def test_new_pin_goes_into_the_closest_part_of_the_link():
 
 def test_pins_are_saved_with_the_link(flow_link):
     _editor, link, _gr_link = flow_link
-    assert "pins" not in link.serialize()
+    assert Link.PINS_KEY not in link.serialize()
     link.pins = [PIN_A, PIN_B]
     data = link.serialize()
-    assert data["pins"] == [[100.0, 80.0], [300.0, -80.0]]
+    assert data[Link.PINS_KEY] == [[100.0, 80.0], [300.0, -80.0]]
 
     restored = Link.deserialize(link.stage, data)
     assert restored.pins == [PIN_A, PIN_B]
@@ -206,6 +206,47 @@ def test_dragging_a_pin_with_the_mouse_moves_it_in_the_stage(qtbot, flow_link):
     (pin,) = link.pins
     assert (pin - view.mapToScene(end)).manhattanLength() < 8
     link.stage.undo_stack.undo()
+    assert link.pins == [QtCore.QPointF(300.0, 0.0)]
+
+
+def test_dragging_a_pin_leaves_the_selected_items_where_they_are(qtbot, flow_link):
+    editor, link, _gr_link = flow_link
+    stage = link.stage
+    link.target_node.set_position(QtCore.QPointF(600.0, 300.0))
+    stage.push_command(
+        commands.SetLinkPinsCommand(stage, link, [QtCore.QPointF(300.0, 0.0)])
+    )
+    # Away from the pin, a group that is selected is not the one around it
+    group_command = commands.CreateUtilObjectCommand(
+        stage,
+        CoreUtilObjects.GROUP,
+        node=None,
+        position=(-800.0, -800.0),
+        size=(200.0, 200.0),
+    )
+    stage.push_command(group_command)
+    gr_group = editor.gr_stage.get_gr_util_object(group_command.result_object)
+    gr_node = editor.gr_stage.get_gr_node(link.target_node)
+    gr_group.setSelected(True)
+    gr_node.setSelected(True)
+    view = editor.gr_view
+    view.show()
+    qtbot.waitExposed(view)
+    start = view.mapFromScene(QtCore.QPointF(300.0, 0.0))
+    end = start + QtCore.QPoint(0, 60)
+
+    QtTest.QTest.mousePress(view.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=start)
+    QtTest.QTest.mouseMove(view.viewport(), end)
+
+    # The items are redrawn from the stage after the release, look while it is dragged
+    assert gr_group.pos() == QtCore.QPointF(-800.0, -800.0)
+    assert gr_node.pos() == QtCore.QPointF(600.0, 300.0)
+    QtTest.QTest.mouseRelease(view.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=end)
+
+    assert link.pins != [QtCore.QPointF(300.0, 0.0)]
+    assert group_command.result_object.position == QtCore.QPointF(-800.0, -800.0)
+    assert link.target_node.position() == QtCore.QPointF(600.0, 300.0)
+    stage.undo_stack.undo()
     assert link.pins == [QtCore.QPointF(300.0, 0.0)]
 
 

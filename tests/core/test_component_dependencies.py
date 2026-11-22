@@ -70,11 +70,11 @@ def test_dependent_answers_with_the_state_the_source_has_now(two_values):
     index = dependent.index()
     answers = []
     node.components_model.dataChanged.connect(
-        lambda top_left, _b, roles: answers.append(
-            index.data(source.Roles.DISPLAY_VALUE)
+        lambda top_left, _b, roles: (
+            answers.append(index.data(source.Roles.DISPLAY_VALUE))
+            if top_left.row() == dependent.row()
+            else None
         )
-        if top_left.row() == dependent.row()
-        else None
     )
 
     source.push_value("new")

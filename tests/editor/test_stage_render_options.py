@@ -1,5 +1,6 @@
 from PySide6 import QtGui
 
+from nyx.core.stage_render_options import StageRenderOptions
 from nyx.static.enums import LinkStyle, StageBackGroundStyle
 
 
@@ -15,7 +16,7 @@ def test_defaults(stage_editor, stage_config):
     gr_stage = stage_editor.gr_stage
     default = type(stage_config).model_fields["background_style"].default
     assert gr_stage.get_background_style() == StageBackGroundStyle(default)
-    assert gr_stage.options.grid_size == 20
+    assert gr_stage.options.grid_size == StageRenderOptions().grid_size
 
 
 def test_background_color_from_config(stage_editor, stage_config):

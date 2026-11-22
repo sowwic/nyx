@@ -1,5 +1,5 @@
 import pytest
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from nyx.api.v1 import (
     CoreNodeComponents,
@@ -10,8 +10,10 @@ from nyx.api.v1 import (
     commands,
 )
 from nyx.editor.views.node_components_view import NodeComponentsView
+from nyx.editor.views.tree_branch_lines import BranchLinesMixin
 from nyx.editor.widgets.dialogs.stage_object_picker import StageObjectPickerDialog
 from stage_helpers import STAGES
+from nyx.editor.panels.panel_definitions import PanelId
 
 """Stages of the running test: a node doesn't keep its stage alive."""
 
@@ -43,7 +45,7 @@ def dialog_for(stage, qtbot, **kwargs):
 
 
 def item_for(dialog, stage_object):
-    return dialog._items[stage_object.uuid]
+    return dialog.tree.item_for(stage_object)
 
 
 def ok_enabled(dialog):
@@ -53,7 +55,7 @@ def ok_enabled(dialog):
 
 
 def visible_paths(dialog):
-    return {item.text(1) for item in dialog._items.values() if not item.isHidden()}
+    return {item.text(1) for item in dialog.tree.listed_items() if not item.isHidden()}
 
 
 def test_tree_lists_nodes_with_their_components_below(stage, qtbot):
@@ -84,7 +86,7 @@ def test_only_what_the_target_types_allow_can_be_chosen(stage, qtbot):
     components_only = dialog_for(stage, qtbot, target_types=(NodeComponent,))
 
     assert item_for(nodes_only, stage.a).flags() & QtCore.Qt.ItemFlag.ItemIsSelectable
-    assert stage.a["value"].uuid not in nodes_only._items
+    assert nodes_only.tree.item_for(stage.a["value"]) is None
     assert not (
         item_for(components_only, stage.a).flags() & QtCore.Qt.ItemFlag.ItemIsSelectable
     )
@@ -164,7 +166,7 @@ def test_double_clicking_a_choosable_item_accepts(stage, qtbot):
     item = item_for(dialog, stage.a)
     dialog.tree.setCurrentItem(item)
 
-    dialog._on_item_double_clicked(item)
+    dialog.tree.itemDoubleClicked.emit(item, 0)
 
     assert dialog.result() == QtWidgets.QDialog.DialogCode.Accepted
     assert dialog.selected_object is stage.a
@@ -173,7 +175,7 @@ def test_double_clicking_a_choosable_item_accepts(stage, qtbot):
 def test_double_clicking_what_cannot_be_chosen_does_not_accept(stage, qtbot):
     dialog = dialog_for(stage, qtbot, target_types=(NodeComponent,))
 
-    dialog._on_item_double_clicked(item_for(dialog, stage.a))
+    dialog.tree.itemDoubleClicked.emit(item_for(dialog, stage.a), 0)
 
     assert dialog.result() != QtWidgets.QDialog.DialogCode.Accepted
 
@@ -192,8 +194,10 @@ def path_view(main_window, stage_editor, create_node, qtbot):
             node=holder, type_id=CoreNodeComponents.STAGE_OBJECT_PATH, name="where"
         )
     )
-    main_window.inspector.show()
-    main_window.inspector.resize(600, 700)
+    main_window.panel_manager.set_open(PanelId.INSPECTOR, True)
+    main_window.panel_host.set_panel_size(
+        main_window.panel_manager.panel(PanelId.INSPECTOR), 600
+    )
     stage_editor.selection_model.select(
         holder.index(), QtCore.QItemSelectionModel.SelectionFlag.Select
     )
@@ -282,3 +286,111 @@ def test_browse_button_sets_the_path_of_the_component(path_view, monkeypatch, qt
     qtbot.waitUntil(lambda: component.target is target, timeout=3000)
     assert component.raw_value == "target"
     assert component.is_valid
+
+
+def test_tree_draws_the_lines_between_its_rows(stage, qtbot):
+    dialog = dialog_for(stage, qtbot)
+    tree = dialog.tree
+    assert isinstance(tree, BranchLinesMixin)
+
+    root = tree.get_branch_lines(tree.indexFromItem(item_for(dialog, stage.root_node)))
+    a = tree.get_branch_lines(tree.indexFromItem(item_for(dialog, stage.a)))
+    group = tree.get_branch_lines(tree.indexFromItem(item_for(dialog, stage.group)))
+
+    assert root.own_level is None
+    assert (a.depth, a.has_next_sibling) == (1, True)
+    assert (group.depth, group.has_next_sibling) == (1, False)
+
+
+def test_a_component_row_passes_the_line_of_its_node_when_a_sibling_follows(
+    stage, qtbot
+):
+    dialog = dialog_for(stage, qtbot)
+    tree = dialog.tree
+
+    component = tree.get_branch_lines(
+        tree.indexFromItem(item_for(dialog, stage.a["value"]))
+    )
+
+    assert component.depth == 2
+    assert component.passing_levels == (0,)
+
+
+def test_the_lines_are_painted_in_the_dialog(stage, qtbot):
+    dialog = dialog_for(stage, qtbot)
+    dialog.show()
+    qtbot.waitExposed(dialog)
+    tree = dialog.tree
+    image = tree.viewport().grab().toImage()
+    line = tree.palette().color(tree.BRANCH_LINE_ROLE).rgb()
+    rect = tree.visualRect(tree.indexFromItem(item_for(dialog, stage.a)))
+
+    # `a` has `group` after it, so the trunk under the arrow of the root goes on
+    assert image.pixelColor(tree.indentation() // 2, rect.bottom()).rgb() == line
+
+
+def icon_image(icon):
+    return icon.pixmap(16, 16).toImage()
+
+
+def test_every_item_shows_the_icon_of_its_type(stage, qtbot):
+    dialog = dialog_for(stage, qtbot)
+    value = stage.a["value"]
+
+    node_icon = item_for(dialog, stage.a).icon(0)
+    component_icon = item_for(dialog, value).icon(0)
+
+    assert not node_icon.isNull()
+    assert icon_image(node_icon) == icon_image(QtGui.QIcon(stage.a.get_type_icon()))
+    assert icon_image(component_icon) == icon_image(QtGui.QIcon(value.get_type_icon()))
+
+
+def test_the_tree_sets_up_its_own_columns_and_rows(stage, qtbot):
+    dialog = dialog_for(stage, qtbot)
+    tree = dialog.tree
+
+    assert tree.columnCount() == len(tree.COLUMNS)
+    headers = [tree.headerItem().text(i) for i in range(tree.columnCount())]
+    assert headers == list(tree.COLUMNS)
+    assert tree.iconSize() == tree.ICON_SIZE
+    assert tree.uniformRowHeights()
+
+
+def test_excluded_objects_are_listed_but_cannot_be_chosen(stage, qtbot):
+    value = stage.a["value"]
+    dialog = dialog_for(stage, qtbot, excluded=(value,))
+
+    dialog.tree.setCurrentItem(item_for(dialog, value))
+
+    assert item_for(dialog, value) is not None
+    assert dialog.selected_object is None
+    assert not ok_enabled(dialog)
+    # What else is there can still be chosen
+    dialog.tree.setCurrentItem(item_for(dialog, stage.a))
+    assert dialog.selected_object is stage.a
+
+
+def test_picking_for_a_path_component_does_not_offer_the_components_of_its_node(
+    stage, qtbot, monkeypatch
+):
+    getter = create(stage, CoreNodes.GET, name="getter")
+    component = getter["component"]
+    seen = []
+
+    def fake_exec(dialog):
+        seen.append(dialog)
+        return QtWidgets.QDialog.DialogCode.Rejected
+
+    monkeypatch.setattr(StageObjectPickerDialog, "exec", fake_exec)
+
+    assert StageObjectPickerDialog.pick(stage, component) is None
+
+    (dialog,) = seen
+    qtbot.addWidget(dialog)
+    # Itself and the other components of its node are listed, and can't be chosen
+    for own in (component, getter["value"]):
+        assert item_for(dialog, own) is not None
+        assert not dialog.tree.is_selectable(item_for(dialog, own))
+    # Components of other nodes can be, a getter takes components only
+    assert dialog.tree.is_selectable(item_for(dialog, stage.a["value"]))
+    assert not dialog.tree.is_selectable(item_for(dialog, getter))

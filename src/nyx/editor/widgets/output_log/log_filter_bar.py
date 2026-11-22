@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from nyx.utils import pyside_fn
+
 
 LEVEL_CHOICES: tuple[tuple[str, int], ...] = (
     ("Debug", logging.DEBUG),
@@ -71,6 +73,7 @@ class LogFilterBar(QWidget):
         self._search_field = QLineEdit(self)
         self._search_field.setPlaceholderText("Search")
         self._search_field.setClearButtonEnabled(True)
+        pyside_fn.add_search_icon(self._search_field)
         self._search_field.setMinimumWidth(self.SEARCH_FIELD_MIN_WIDTH)
 
         self._level_combo_box = QComboBox(self)

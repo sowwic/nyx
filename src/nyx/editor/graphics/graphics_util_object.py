@@ -110,6 +110,15 @@ class GraphicsUtilObject(QtWidgets.QGraphicsItem):
         self.setToolTip(self._util_object.get_description())
         self.update()
 
+    def get_select_label(self) -> str:
+        """Get the text that tells this object apart in a list of stacked items.
+
+        Returns:
+            str: text for a menu entry. Subclasses add what makes the object different,
+                such as the title of a group.
+        """
+        return self._util_object.get_type_display_name()
+
     def edit(self) -> None:
         """Ask for new content of the util object. Subclasses implement."""
 

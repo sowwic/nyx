@@ -33,7 +33,9 @@ class StageObjectPathComponent(NodeComponent):
     The text value is the path the user gave. It finds the target when the uuid can't,
     for example when the group is imported into another stage.
 
-    Only another stage object path can be linked into it, not a plain value.
+    Only another stage object path can be linked into it, not a plain value. It can't
+    point at a component of its own node, itself included: such a value is refused,
+    and a path loaded with one as the target has no target.
     """
 
     DEFAULT_NAME = "path"
@@ -103,15 +105,31 @@ class StageObjectPathComponent(NodeComponent):
         node = model.node if model is not None else None
         return node.stage if node is not None else None
 
-    def _find_target_by_text(self, text: typing.Any) -> Node | NodeComponent | None:
+    def _is_own_component(self, target: Node | NodeComponent | None) -> bool:
+        """Check if an object is a component of the node that owns this component.
+
+        Args:
+            target (Node | NodeComponent | None): object.
+
+        Returns:
+            bool: True for a component of the same node, this one included.
+        """
+        return isinstance(target, NodeComponent) and target.node is self.node
+
+    def _find_target_by_text(
+        self, text: typing.Any, allow_own_components: bool = False
+    ) -> Node | NodeComponent | None:
         """Find the target by a path, absolute or relative to the scope of the owner.
 
         Args:
             text (typing.Any): path text.
+            allow_own_components (bool): return a component of the owning node when
+                the path is its own, else it is no target.
 
         Returns:
             Node | NodeComponent | None: node for a node path, component for a
-                path with a suffix. None if the text isn't the path of either.
+                path with a suffix. None if the text isn't the path of either, or of
+                something the path can't point at (`target_types`).
         """
         stage = self._owner_stage()
         if stage is None or not isinstance(text, str) or not text.strip():
@@ -123,9 +141,13 @@ class StageObjectPathComponent(NodeComponent):
         try:
             # The suffix decides: a component path gives a component, else a node.
             target = stage.get_object(path)
-        except (exceptions.StageObjectQueryError, ValueError):
+        except exceptions.StageObjectQueryError, ValueError:
             return None
-        return target if isinstance(target, self.target_types) else None
+        if not isinstance(target, self.target_types):
+            return None
+        if self._is_own_component(target) and not allow_own_components:
+            return None
+        return target
 
     @property
     def target_uuid(self) -> UUID | None:
@@ -145,11 +167,13 @@ class StageObjectPathComponent(NodeComponent):
 
         # An input link replaces the target: the path it provides is used.
         if self.input_links:
-            return self._find_target_by_text(NodeComponent.pull_value(self))
+            return self._find_target_by_text(NodeComponent.resolve_value(self))
 
         if self._target_uuid is not None:
             target = stage.uuid_map.get(self._target_uuid)
-            if isinstance(target, self.target_types):
+            if isinstance(target, self.target_types) and not self._is_own_component(
+                target
+            ):
                 return target
 
         target = self._find_target_by_text(self.raw_value)
@@ -239,7 +263,7 @@ class StageObjectPathComponent(NodeComponent):
         target = self.target
         if target is not None:
             return target.path.as_posix()
-        text = NodeComponent.pull_value(self) if self.input_links else self.raw_value
+        text = NodeComponent.resolve_value(self) if self.input_links else self.raw_value
         return "" if text is None else str(text)
 
     def current_name_text(self) -> str:
@@ -264,6 +288,23 @@ class StageObjectPathComponent(NodeComponent):
         return self.current_path_text()
 
     # ======== Values ========= #
+
+    def validate_value(self, value: typing.Any) -> None:
+        """Refuse the path of a component of the owning node, this one included.
+
+        Args:
+            value (typing.Any): path of the target, absolute or relative to the scope
+                of the owner.
+
+        Raises:
+            NyxCommandValidationError: if the path is the one of a component of the
+                node that owns this component.
+        """
+        target = self._find_target_by_text(value, allow_own_components=True)
+        if self._is_own_component(target):
+            raise exceptions.NyxCommandValidationError(
+                f"{self.path} can't point at {target.path}, a component of its own node"
+            )
 
     def push_value(self, value: typing.Any, evaluate: bool = True):
         """Set the text of the path and look for its target.
@@ -297,7 +338,7 @@ class StageObjectPathComponent(NodeComponent):
                 ],
             )
 
-    def pull_value(
+    def resolve_value(
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ) -> typing.Any:
         """Get the path of the target, which follows renames.
@@ -309,7 +350,7 @@ class StageObjectPathComponent(NodeComponent):
             typing.Any: path of the target, the raw text for the raw mask.
         """
         if value_mask is NodeComponentValueMask.RAW:
-            return super().pull_value(value_mask)
+            return super().resolve_value(value_mask)
         return self.current_path_text()
 
     def get_display_value(self) -> str:

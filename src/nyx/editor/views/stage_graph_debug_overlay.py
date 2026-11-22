@@ -163,7 +163,7 @@ class StageGraphDebugOverlay:
         return sum(1 for item in items if isinstance(item, item_type))
 
     def paint(self, painter: QtGui.QPainter):
-        """Draw the numbers in the top left corner of the viewport.
+        """Draw the numbers in the bottom left corner of the viewport.
 
         Args:
             painter (QtGui.QPainter): painter of the viewport.
@@ -176,11 +176,12 @@ class StageGraphDebugOverlay:
         painter.setFont(self._font)
         metrics = QtGui.QFontMetricsF(self._font)
         width = max(metrics.horizontalAdvance(line) for line in lines)
+        box_height = metrics.lineSpacing() * len(lines) + 2 * self.PADDING
         box = QtCore.QRectF(
             self.MARGIN,
-            self.MARGIN,
+            self._view.viewport().height() - self.MARGIN - box_height,
             width + 2 * self.PADDING,
-            metrics.lineSpacing() * len(lines) + 2 * self.PADDING,
+            box_height,
         )
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setPen(QtCore.Qt.PenStyle.NoPen)

@@ -12,7 +12,6 @@ if typing.TYPE_CHECKING:
     from ....application import NyxEditorApplication
 
 
-# TODO: Potentially a singleton?
 class PopupNodesPalette(QtWidgets.QDialog):
     """Frameless popup with the nodes palette, closing once a node is created."""
 

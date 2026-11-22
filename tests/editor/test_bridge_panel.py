@@ -3,7 +3,7 @@ from nyx_bridge.client import NyxClient
 from PySide6 import QtGui, QtWidgets
 
 from nyx.editor.widgets.bridge_panel import BridgePanel
-from nyx.static.enums import EditorUIObject
+from nyx.editor.panels.panel_definitions import PanelId
 
 
 @pytest.fixture
@@ -84,10 +84,10 @@ def test_clients_are_listed_while_they_are_connected(
         client.stop()
 
 
-def test_main_window_has_a_bridge_dock(main_window):
-    docks = {dock.objectName(): dock for dock in main_window.dock_widgets}
+def test_main_window_has_a_bridge_panel(main_window):
+    panel = main_window.panel_manager.panel(PanelId.BRIDGE)
 
-    assert docks[EditorUIObject.BRIDGE_DOCK].widget() is main_window.bridge_panel
+    assert panel.content is main_window.bridge_panel
 
 
 def test_the_name_column_takes_the_free_width(bridge_panel):

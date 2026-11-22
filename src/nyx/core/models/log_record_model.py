@@ -1,5 +1,8 @@
 import logging
+
 from PySide6 import QtCore
+
+from nyx.utils import logging_fn
 
 
 class LogRecordListModel(QtCore.QAbstractListModel):
@@ -63,7 +66,7 @@ class LogRecordListModel(QtCore.QAbstractListModel):
             QtCore.Qt.ItemDataRole.DisplayRole,
             QtCore.Qt.ItemDataRole.ToolTipRole,
         ):
-            return log_record.getMessage()
+            return logging_fn.get_log_record_message(log_record)
         return None
 
     # ---- Public API ----

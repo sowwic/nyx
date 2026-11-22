@@ -14,6 +14,9 @@ from nyx.editor.main_window import NyxEditorMainWindow
 from nyx.editor.widgets.startup_splash import NyxStartupSplash
 from nyx.editor.core.actions import register_default_actions
 from nyx.editor.graphics.graphics_factory import register_builtin_graphics_objects
+from nyx.editor.widgets.inspector_widgets.factory import (
+    register_builtin_inspector_widgets,
+)
 from nyx.utils import app_icon, logging_fn, pyside_fn
 from nyx.version import __version__
 
@@ -155,8 +158,10 @@ class NyxEditorApplication(NyxApplication):
         return splash
 
     def register_builtin_content(self) -> None:
-        """Register the graphics objects that draw nodes, plugs and links."""
+        """Register the graphics objects that draw nodes, plugs and links, and the
+        inspector widget that shows nodes."""
         register_builtin_graphics_objects()
+        register_builtin_inspector_widgets()
 
     def main_window(self) -> NyxEditorMainWindow:
         """Get the editor main window.
