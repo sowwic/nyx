@@ -2,6 +2,7 @@ import copy
 import dataclasses
 import enum
 import pathlib
+import threading
 import typing
 import logging
 from collections import OrderedDict
@@ -13,7 +14,7 @@ from .stage_object import StageObject
 from .link import Link
 from .name_validator import NameValidator
 from .datatypes.datatype import Datatype, value_to_class_name
-from .exceptions import DatatypeCastError
+from .exceptions import DatatypeCastError, NodeComponentCycleError
 from .value_storage import ValueStorage
 from .contexts.serialization import NodeDeserializationContext
 from .plugin_subsystem.registry import NYX_REGISTRY
@@ -36,6 +37,9 @@ if typing.TYPE_CHECKING:
 type NodeComponentLike = NodeComponent | UUID | pathlib.PurePosixPath | str
 
 LOGGER = logging.getLogger(__name__)
+
+# Components being pulled by the current thread, outermost first.
+_PULL_STATE = threading.local()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -739,6 +743,9 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
             source = self.input_links[0].source_component
             try:
                 source_value = source.pull_value()
+            except NodeComponentCycleError:
+                # Already logged as a warning where it was found.
+                return self.data(role=self.Roles.DISPLAY_VALUE)
             except Exception as err:
                 LOGGER.debug("%s: can't show the linked value: %s", self.path, err)
                 return self.data(role=self.Roles.DISPLAY_VALUE)
@@ -793,6 +800,38 @@ class NodeComponent(QtGui.QStandardItem, StageObject):
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ) -> typing.Any:
         """Get the value, following the input link if there is one.
+
+        Tracks the components being pulled, so a cycle is reported instead of
+        recursing forever. Subclasses customize the value in `resolve_value`.
+
+        Args:
+            value_mask (NodeComponentValueMask): which value to get.
+
+        Returns:
+            typing.Any: requested value.
+
+        Raises:
+            NodeComponentCycleError: if the pull leads back to this component.
+        """
+        stack: list[NodeComponent] = _PULL_STATE.__dict__.setdefault("stack", [])
+        if any(component is self for component in stack):
+            start = next(i for i, component in enumerate(stack) if component is self)
+            cycle = " -> ".join(str(c.path) for c in [*stack[start:], self])
+            message = f"Cycle detected while pulling a value: {cycle}"
+            LOGGER.warning(message)
+            raise NodeComponentCycleError(message)
+        stack.append(self)
+        try:
+            return self.resolve_value(value_mask)
+        finally:
+            stack.pop()
+
+    def resolve_value(
+        self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
+    ) -> typing.Any:
+        """Work out the value for `pull_value`. Override to customize it.
+
+        Call `pull_value` to read a value, not this.
 
         Args:
             value_mask (NodeComponentValueMask): which value to get.

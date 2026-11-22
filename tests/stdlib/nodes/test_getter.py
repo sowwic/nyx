@@ -123,3 +123,50 @@ def test_getter_value_takes_the_datatype_of_the_component_it_points_at():
     assert value.datatype.type_id == CoreDatatypes.INT
     assert value.is_datatype_locked
     assert value.datatype_id == CoreDatatypes.OBJECT  # its own hint is untouched
+
+
+def make_getter_cycle(stage: Stage):
+    """Create a log node whose message comes from a getter pointing at the message."""
+    log_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.LOG)
+    stage.push_command(log_command)
+    log_node = log_command.result_node
+    getter_command = commands.CreateNodeCommand(stage=stage, type_id=CoreNodes.GET)
+    stage.push_command(getter_command)
+    getter_node = getter_command.result_node
+    getter_node["component"].push_value(f"{log_node.path.as_posix()}.message")
+    stage.push_command(
+        commands.LinkNodeComponentsCommand(
+            stage=stage, source=getter_node["value"], target=log_node["message"]
+        )
+    )
+    return log_node, getter_node
+
+
+def test_getter_cycle_raises_and_warns(caplog: pytest.LogCaptureFixture):
+    stage = Stage()
+    log_node, _ = make_getter_cycle(stage)
+
+    with pytest.raises(exceptions.NodeComponentCycleError):
+        log_node["message"].pull_value()
+
+    assert "Cycle detected" in caplog.text
+    # The tracking is cleaned up: pulling again reports the cycle again.
+    with pytest.raises(exceptions.NodeComponentCycleError):
+        log_node["message"].pull_value()
+
+
+def test_getter_cycle_fails_node_execution():
+    stage = Stage()
+    log_node, _ = make_getter_cycle(stage)
+
+    with pytest.raises(exceptions.NodeComponentCycleError):
+        log_node.execution_hook()
+
+    assert log_node.execution_status.name == "ERROR"
+
+
+def test_getter_cycle_display_value_does_not_raise():
+    stage = Stage()
+    log_node, _ = make_getter_cycle(stage)
+
+    log_node["message"].get_display_value()

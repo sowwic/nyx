@@ -167,7 +167,7 @@ class StageObjectPathComponent(NodeComponent):
 
         # An input link replaces the target: the path it provides is used.
         if self.input_links:
-            return self._find_target_by_text(NodeComponent.pull_value(self))
+            return self._find_target_by_text(NodeComponent.resolve_value(self))
 
         if self._target_uuid is not None:
             target = stage.uuid_map.get(self._target_uuid)
@@ -263,7 +263,7 @@ class StageObjectPathComponent(NodeComponent):
         target = self.target
         if target is not None:
             return target.path.as_posix()
-        text = NodeComponent.pull_value(self) if self.input_links else self.raw_value
+        text = NodeComponent.resolve_value(self) if self.input_links else self.raw_value
         return "" if text is None else str(text)
 
     def current_name_text(self) -> str:
@@ -338,7 +338,7 @@ class StageObjectPathComponent(NodeComponent):
                 ],
             )
 
-    def pull_value(
+    def resolve_value(
         self, value_mask: NodeComponentValueMask = NodeComponentValueMask.CACHE
     ) -> typing.Any:
         """Get the path of the target, which follows renames.
@@ -350,7 +350,7 @@ class StageObjectPathComponent(NodeComponent):
             typing.Any: path of the target, the raw text for the raw mask.
         """
         if value_mask is NodeComponentValueMask.RAW:
-            return super().pull_value(value_mask)
+            return super().resolve_value(value_mask)
         return self.current_path_text()
 
     def get_display_value(self) -> str:
